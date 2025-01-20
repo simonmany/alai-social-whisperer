@@ -80,7 +80,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[300px] p-0" align="start">
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput placeholder="Search activities..." />
                   <CommandEmpty>No activity found.</CommandEmpty>
                   <CommandGroup>
@@ -123,7 +123,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[300px] p-0" align="start">
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput placeholder="Search contacts..." />
                   <CommandEmpty>No contact found.</CommandEmpty>
                   <CommandGroup>
@@ -166,7 +166,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[300px] p-0" align="start">
-                <Command>
+                <Command shouldFilter={false}>
                   <CommandInput placeholder="Search times..." />
                   <CommandEmpty>No time found.</CommandEmpty>
                   <CommandGroup>
