@@ -19,6 +19,22 @@ interface Message {
 
 const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
 
+export const PageContainer = ({ children }: { children: React.ReactNode }) => {
+  const isMobile = useIsMobile();
+  const containerClasses = isMobile
+    ? "min-h-screen bg-black flex flex-col"
+    : "min-h-screen bg-gray-50 flex flex-col";
+  const contentClasses = isMobile
+    ? "flex-1 container max-w-2xl py-8 flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16"
+    : "flex-1 container max-w-2xl py-8 flex flex-col";
+
+  return (
+    <div className={containerClasses}>
+      <div className={contentClasses}>{children}</div>
+    </div>
+  );
+};
+
 const Index = () => {
   const [messages, setMessages] = useState<Message[]>([
     { content: WELCOME_MESSAGE, isAl: true },
@@ -28,12 +44,10 @@ const Index = () => {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isGoalsOpen, setIsGoalsOpen] = useState(false);
   const [isContactsOpen, setIsContactsOpen] = useState(false);
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
 
   const handleSend = (content: string) => {
     setMessages((prev) => [...prev, { content, isAl: false }]);
-    // Here you would typically handle Al's response
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
@@ -62,62 +76,52 @@ const Index = () => {
     }
   };
 
-  const containerClasses = isMobile
-    ? "min-h-screen bg-black flex flex-col"
-    : "min-h-screen bg-gray-50 flex flex-col";
-
-  const contentClasses = isMobile
-    ? "flex-1 container max-w-2xl py-8 flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16"
-    : "flex-1 container max-w-2xl py-8 flex flex-col";
-
   return (
-    <div className={containerClasses}>
-      <div className={contentClasses}>
-        <div className="flex justify-between items-center mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
-            <Calendar className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
-            <Users className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setIsProfileOpen(true)}>
-            <UserRound className="h-5 w-5" />
-          </Button>
-        </div>
-        <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
-          {messages.map((message, index) => (
-            <ChatMessage
-              key={index}
-              content={message.content}
-              isAl={message.isAl}
-              animate={index === messages.length - 1}
+    <PageContainer>
+      <div className="flex justify-between items-center mb-6">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
+          <Calendar className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
+          <Users className="h-5 w-5" />
+        </Button>
+        <Button variant="ghost" size="icon" onClick={() => setIsProfileOpen(true)}>
+          <UserRound className="h-5 w-5" />
+        </Button>
+      </div>
+      <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
+        {messages.map((message, index) => (
+          <ChatMessage
+            key={index}
+            content={message.content}
+            isAl={message.isAl}
+            animate={index === messages.length - 1}
+          />
+        ))}
+      </div>
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
+          <div className="flex gap-2 flex-wrap">
+            <SuggestedPrompt
+              text="plan me a hang"
+              onClick={() => handleSuggestedPrompt("plan me a hang")}
             />
-          ))}
-        </div>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
-            <div className="flex gap-2 flex-wrap">
-              <SuggestedPrompt
-                text="plan me a hang"
-                onClick={() => handleSuggestedPrompt("plan me a hang")}
-              />
-              <SuggestedPrompt
-                text="talk about a hang"
-                onClick={() => handleSuggestedPrompt("talk about a hang")}
-              />
-              <SuggestedPrompt
-                text="Set a new goal"
-                onClick={() => handleSuggestedPrompt("Set a new goal")}
-              />
-              <SuggestedPrompt
-                text="add a new contact"
-                onClick={() => handleSuggestedPrompt("add a new contact")}
-              />
-            </div>
+            <SuggestedPrompt
+              text="talk about a hang"
+              onClick={() => handleSuggestedPrompt("talk about a hang")}
+            />
+            <SuggestedPrompt
+              text="Set a new goal"
+              onClick={() => handleSuggestedPrompt("Set a new goal")}
+            />
+            <SuggestedPrompt
+              text="add a new contact"
+              onClick={() => handleSuggestedPrompt("add a new contact")}
+            />
           </div>
-          <ChatInput onSend={handleSend} />
         </div>
+        <ChatInput onSend={handleSend} />
       </div>
       <Profile open={isProfileOpen} onOpenChange={setIsProfileOpen} />
       <PlanningDialog 
@@ -140,7 +144,7 @@ const Index = () => {
         onOpenChange={setIsContactsOpen}
         onSubmit={handleSend}
       />
-    </div>
+    </PageContainer>
   );
 };
 
