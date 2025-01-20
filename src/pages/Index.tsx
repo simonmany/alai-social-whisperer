@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
+import GoalsDialog from "@/components/GoalsDialog";
 
 interface Message {
   content: string;
@@ -24,6 +25,7 @@ const Index = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [isGoalsOpen, setIsGoalsOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -49,6 +51,8 @@ const Index = () => {
       setIsPlanningOpen(true);
     } else if (prompt === "talk about a hang") {
       setIsFeedbackOpen(true);
+    } else if (prompt === "Set a new goal") {
+      setIsGoalsOpen(true);
     } else {
       handleSend(prompt);
     }
@@ -116,6 +120,11 @@ const Index = () => {
       <FeedbackDialog
         open={isFeedbackOpen}
         onOpenChange={setIsFeedbackOpen}
+        onSubmit={handleSend}
+      />
+      <GoalsDialog
+        open={isGoalsOpen}
+        onOpenChange={setIsGoalsOpen}
         onSubmit={handleSend}
       />
     </div>
