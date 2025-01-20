@@ -26,6 +26,22 @@ const sampleEvents = [
 const CalendarView = () => {
   const navigate = useNavigate();
 
+  const groupEventsByTimeOfDay = (events: typeof sampleEvents) => {
+    return {
+      morning: events.filter(e => e.date.getHours() < 12),
+      afternoon: events.filter(e => e.date.getHours() >= 12 && e.date.getHours() < 17),
+      night: events.filter(e => e.date.getHours() >= 17),
+    };
+  };
+
+  const groupEventsByDayOfWeek = (events: typeof sampleEvents) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    return days.map(day => ({
+      day,
+      events: events.filter(e => days[e.date.getDay()] === day),
+    }));
+  };
+
   return (
     <Sheet open={true}>
       <SheetContent
@@ -62,41 +78,59 @@ const CalendarView = () => {
             </div>
 
             <TabsContent value="day" className="flex-1 p-4">
-              <div className="space-y-4">
-                {sampleEvents.map((event, index) => (
-                  <div
-                    key={index}
-                    className="p-4 rounded-lg border bg-card text-card-foreground"
-                  >
-                    <h3 className="font-medium">{event.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {event.date.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+              <div className="space-y-6">
+                {Object.entries(groupEventsByTimeOfDay(sampleEvents)).map(([timeOfDay, events]) => (
+                  <div key={timeOfDay} className="space-y-4">
+                    <h3 className="font-semibold capitalize text-muted-foreground">
+                      {timeOfDay}
+                    </h3>
+                    {events.map((event, index) => (
+                      <div
+                        key={index}
+                        className="p-4 rounded-lg border bg-card text-card-foreground"
+                      >
+                        <h3 className="font-medium">{event.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {event.date.toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 ))}
+                <Button className="w-full mt-4" variant="outline">
+                  Al, tell me about my day
+                </Button>
               </div>
             </TabsContent>
 
             <TabsContent value="week" className="flex-1 p-4">
-              <div className="space-y-4">
-                {sampleEvents.map((event, index) => (
-                  <div
-                    key={index}
-                    className="p-4 rounded-lg border bg-card text-card-foreground"
-                  >
-                    <h3 className="font-medium">{event.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {event.date.toLocaleDateString([], {
-                        weekday: "long",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+              <div className="space-y-6">
+                {groupEventsByDayOfWeek(sampleEvents).map(({ day, events }) => (
+                  <div key={day} className="space-y-4">
+                    <h3 className="font-semibold text-muted-foreground">{day}</h3>
+                    {events.map((event, index) => (
+                      <div
+                        key={index}
+                        className="p-4 rounded-lg border bg-card text-card-foreground"
+                      >
+                        <h3 className="font-medium">{event.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {event.date.toLocaleDateString([], {
+                            weekday: "long",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 ))}
+                <Button className="w-full mt-4" variant="outline">
+                  Al, tell me about my week
+                </Button>
               </div>
             </TabsContent>
 
@@ -105,8 +139,28 @@ const CalendarView = () => {
                 mode="single"
                 selected={new Date()}
                 className="rounded-md border"
+                components={{
+                  DayContent: ({ date }) => {
+                    const hasEvent = sampleEvents.some(
+                      event =>
+                        event.date.getDate() === date.getDate() &&
+                        event.date.getMonth() === date.getMonth()
+                    );
+                    return (
+                      <div className="relative w-full h-full">
+                        <div>{date.getDate()}</div>
+                        {hasEvent && (
+                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
+                            <div className="h-1 w-1 bg-primary rounded-full" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
+                }}
               />
-              <div className="mt-4 space-y-4">
+              <div className="mt-6 space-y-4">
+                <h3 className="font-semibold text-muted-foreground">Upcoming</h3>
                 {sampleEvents.map((event, index) => (
                   <div
                     key={index}
@@ -123,6 +177,9 @@ const CalendarView = () => {
                     </p>
                   </div>
                 ))}
+                <Button className="w-full mt-4" variant="outline">
+                  Al, tell me about my month
+                </Button>
               </div>
             </TabsContent>
           </Tabs>
