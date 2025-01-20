@@ -54,16 +54,10 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           {/* Goals Section */}
           <Card>
             <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Goals
-                </CardTitle>
-                <Button size="sm" className="gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  Set a new goal
-                </Button>
-              </div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Target className="h-5 w-5" />
+                Goals
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               {goals.sort((a, b) => {
@@ -79,6 +73,11 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
               ))}
             </CardContent>
           </Card>
+
+          <Button size="sm" className="w-full gap-2">
+            <MessageCircle className="h-4 w-4" />
+            Set a new goal
+          </Button>
 
           {/* Stats Section */}
           <Card>
@@ -107,6 +106,11 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
               </div>
             </CardContent>
           </Card>
+
+          <Button size="sm" className="w-full gap-2">
+            <MessageCircle className="h-4 w-4" />
+            Ask Al about your stats
+          </Button>
 
           {/* Actions */}
           <div className="flex flex-col gap-2">
