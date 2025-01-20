@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ArrowLeft, MessageCircle } from "lucide-react";
+import { Search, ChevronUp, MessageCircle } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,35 @@ interface Contact {
 }
 
 const SAMPLE_CONTACTS: Contact[] = [
+  // Inner orbit
   { id: 1, name: "Alice Johnson", email: "alice@example.com", image: "/placeholder.svg", group: "Inner orbit" },
-  { id: 2, name: "Bob Smith", email: "bob@example.com", image: "/placeholder.svg", group: "oldest friends" },
-  { id: 3, name: "Carol White", email: "carol@example.com", image: "/placeholder.svg", group: "college friends" },
-  { id: 4, name: "David Brown", email: "david@example.com", image: "/placeholder.svg", group: "Work contacts" },
-  { id: 5, name: "Eve Wilson", email: "eve@example.com", image: "/placeholder.svg", group: "golf friends" },
-  { id: 6, name: "Frank Miller", email: "frank@example.com", image: "/placeholder.svg", group: "Family" },
+  { id: 2, name: "Bob Wilson", email: "bob@example.com", image: "/placeholder.svg", group: "Inner orbit" },
+  { id: 3, name: "Carol Smith", email: "carol@example.com", image: "/placeholder.svg", group: "Inner orbit" },
+  
+  // Oldest friends
+  { id: 4, name: "David Brown", email: "david@example.com", image: "/placeholder.svg", group: "oldest friends" },
+  { id: 5, name: "Emma Davis", email: "emma@example.com", image: "/placeholder.svg", group: "oldest friends" },
+  { id: 6, name: "Frank Miller", email: "frank@example.com", image: "/placeholder.svg", group: "oldest friends" },
+  
+  // College friends
+  { id: 7, name: "Grace Lee", email: "grace@example.com", image: "/placeholder.svg", group: "college friends" },
+  { id: 8, name: "Henry Wang", email: "henry@example.com", image: "/placeholder.svg", group: "college friends" },
+  { id: 9, name: "Ivy Chen", email: "ivy@example.com", image: "/placeholder.svg", group: "college friends" },
+  
+  // Work contacts
+  { id: 10, name: "Jack Thompson", email: "jack@example.com", image: "/placeholder.svg", group: "Work contacts" },
+  { id: 11, name: "Karen White", email: "karen@example.com", image: "/placeholder.svg", group: "Work contacts" },
+  { id: 12, name: "Leo Martinez", email: "leo@example.com", image: "/placeholder.svg", group: "Work contacts" },
+  
+  // Golf friends
+  { id: 13, name: "Mike Anderson", email: "mike@example.com", image: "/placeholder.svg", group: "golf friends" },
+  { id: 14, name: "Nancy Clark", email: "nancy@example.com", image: "/placeholder.svg", group: "golf friends" },
+  { id: 15, name: "Oliver Scott", email: "oliver@example.com", image: "/placeholder.svg", group: "golf friends" },
+  
+  // Family
+  { id: 16, name: "Patricia Johnson", email: "patricia@example.com", image: "/placeholder.svg", group: "Family" },
+  { id: 17, name: "Quinn Johnson", email: "quinn@example.com", image: "/placeholder.svg", group: "Family" },
+  { id: 18, name: "Robert Johnson", email: "robert@example.com", image: "/placeholder.svg", group: "Family" },
 ];
 
 const CONTACT_GROUPS = [
@@ -36,10 +59,12 @@ const CONTACT_GROUPS = [
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<string>("Inner orbit");
   const navigate = useNavigate();
 
   const filteredContacts = SAMPLE_CONTACTS.filter((contact) =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+    (selectedGroup === "" || contact.group === selectedGroup)
   );
 
   const getInitials = (name: string) => {
@@ -129,14 +154,15 @@ const ContactsView = () => {
           </div>
 
           {/* Contact Groups */}
-          <div className="space-y-2">
+          <div className="space-y-2 mb-16">
             <h3 className="text-lg font-semibold mb-4">Contact Groups</h3>
             <div className="flex flex-wrap gap-2">
               {CONTACT_GROUPS.map((group) => (
                 <Badge
                   key={group}
-                  variant="outline"
+                  variant={selectedGroup === group ? "default" : "outline"}
                   className="cursor-pointer hover:bg-accent"
+                  onClick={() => setSelectedGroup(group)}
                 >
                   {group}
                 </Badge>
@@ -151,7 +177,7 @@ const ContactsView = () => {
             className="fixed bottom-4 left-1/2 -translate-x-1/2"
             onClick={() => navigate("/")}
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ChevronUp className="h-6 w-6" />
           </Button>
         </div>
       </div>
