@@ -26,20 +26,20 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader className="mb-4">
+        <SheetHeader className="mb-2">
           <SheetTitle>Profile</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* Profile Info */}
-          <div className="flex flex-col items-center space-y-3">
-            <Avatar className="h-20 w-20">
+          <div className="flex flex-col items-center space-y-2">
+            <Avatar className="h-16 w-16">
               <AvatarImage src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7" />
               <AvatarFallback>JD</AvatarFallback>
             </Avatar>
             <div className="text-center">
-              <h2 className="text-xl font-semibold">Jane Doe</h2>
-              <div className="flex gap-2 mt-1 text-sm text-muted-foreground">
+              <h2 className="text-lg font-semibold">Jane Doe</h2>
+              <div className="flex gap-2 text-xs text-muted-foreground">
                 <span>@janedoe</span>
                 <span>•</span>
                 <span>San Francisco</span>
@@ -59,14 +59,14 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 Goals
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-2">
               {goals.sort((a, b) => {
                 const timeOrder = { tomorrow: 1, "this week": 2, "this month": 3 };
                 return timeOrder[a.timeframe as keyof typeof timeOrder] - timeOrder[b.timeframe as keyof typeof timeOrder];
               }).map((goal, index) => (
-                <div key={index} className="flex flex-col space-y-1">
+                <div key={index} className="flex flex-col space-y-0.5">
                   <div className="text-sm font-medium">{goal.type}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {goal.description} ({goal.timeframe})
                   </div>
                 </div>
@@ -87,22 +87,22 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 Stats
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-3">
+            <CardContent className="grid grid-cols-2 gap-2">
               <div>
                 <div className="text-sm font-medium">Connections</div>
-                <div className="text-2xl font-semibold">{stats.connections}</div>
+                <div className="text-lg font-semibold">{stats.connections}</div>
               </div>
               <div>
                 <div className="text-sm font-medium">Weekly Hangs</div>
-                <div className="text-2xl font-semibold">{stats.weeklyHangs}</div>
+                <div className="text-lg font-semibold">{stats.weeklyHangs}</div>
               </div>
               <div>
                 <div className="text-sm font-medium">Time Between Hangs</div>
-                <div className="text-2xl font-semibold">{stats.timeBetweenHangs}</div>
+                <div className="text-lg font-semibold">{stats.timeBetweenHangs}</div>
               </div>
               <div>
                 <div className="text-sm font-medium">Most Seen Friend</div>
-                <div className="text-2xl font-semibold">{stats.mostSeenFriend}</div>
+                <div className="text-lg font-semibold">{stats.mostSeenFriend}</div>
               </div>
             </CardContent>
           </Card>
