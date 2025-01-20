@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Check, ChevronsUpDown } from "lucide-react";
@@ -46,6 +45,9 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [activity, setActivity] = useState("");
   const [contact, setContact] = useState("");
   const [time, setTime] = useState("");
+  const [openActivity, setOpenActivity] = useState(false);
+  const [openContact, setOpenContact] = useState(false);
+  const [openTime, setOpenTime] = useState(false);
 
   const handleSubmit = () => {
     if (activity && contact && time) {
@@ -64,18 +66,19 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Popover>
+            <Popover open={openActivity} onOpenChange={setOpenActivity}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
+                  aria-expanded={openActivity}
                   className="justify-between"
                 >
                   {activity || "I want to..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0">
+              <PopoverContent className="w-[300px] p-0">
                 <Command>
                   <CommandInput placeholder="Search activities..." />
                   <CommandEmpty>No activity found.</CommandEmpty>
@@ -83,7 +86,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                     {ACTIVITIES.map((act) => (
                       <CommandItem
                         key={act}
-                        onSelect={() => setActivity(act)}
+                        value={act}
+                        onSelect={(currentValue) => {
+                          setActivity(currentValue);
+                          setOpenActivity(false);
+                        }}
                       >
                         <Check
                           className={cn(
@@ -101,18 +108,19 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           </div>
 
           <div className="grid gap-2">
-            <Popover>
+            <Popover open={openContact} onOpenChange={setOpenContact}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
+                  aria-expanded={openContact}
                   className="justify-between"
                 >
                   {contact || "with..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0">
+              <PopoverContent className="w-[300px] p-0">
                 <Command>
                   <CommandInput placeholder="Search contacts..." />
                   <CommandEmpty>No contact found.</CommandEmpty>
@@ -120,7 +128,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                     {CONTACTS.map((cont) => (
                       <CommandItem
                         key={cont}
-                        onSelect={() => setContact(cont)}
+                        value={cont}
+                        onSelect={(currentValue) => {
+                          setContact(currentValue);
+                          setOpenContact(false);
+                        }}
                       >
                         <Check
                           className={cn(
@@ -138,18 +150,19 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           </div>
 
           <div className="grid gap-2">
-            <Popover>
+            <Popover open={openTime} onOpenChange={setOpenTime}>
               <PopoverTrigger asChild>
                 <Button
                   variant="outline"
                   role="combobox"
+                  aria-expanded={openTime}
                   className="justify-between"
                 >
                   {time || "at..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="p-0">
+              <PopoverContent className="w-[300px] p-0">
                 <Command>
                   <CommandInput placeholder="Search times..." />
                   <CommandEmpty>No time found.</CommandEmpty>
@@ -157,7 +170,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                     {TIMES.map((t) => (
                       <CommandItem
                         key={t}
-                        onSelect={() => setTime(t)}
+                        value={t}
+                        onSelect={(currentValue) => {
+                          setTime(currentValue);
+                          setOpenTime(false);
+                        }}
                       >
                         <Check
                           className={cn(
