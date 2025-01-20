@@ -3,20 +3,32 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Search } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { Badge } from "@/components/ui/badge";
 
 interface Contact {
   id: number;
   name: string;
   image?: string;
   email: string;
+  group: string;
 }
 
 const SAMPLE_CONTACTS: Contact[] = [
-  { id: 1, name: "Alice Johnson", email: "alice@example.com", image: "/placeholder.svg" },
-  { id: 2, name: "Bob Smith", email: "bob@example.com", image: "/placeholder.svg" },
-  { id: 3, name: "Carol White", email: "carol@example.com", image: "/placeholder.svg" },
-  { id: 4, name: "David Brown", email: "david@example.com", image: "/placeholder.svg" },
-  { id: 5, name: "Eve Wilson", email: "eve@example.com", image: "/placeholder.svg" },
+  { id: 1, name: "Alice Johnson", email: "alice@example.com", image: "/placeholder.svg", group: "Inner orbit" },
+  { id: 2, name: "Bob Smith", email: "bob@example.com", image: "/placeholder.svg", group: "oldest friends" },
+  { id: 3, name: "Carol White", email: "carol@example.com", image: "/placeholder.svg", group: "college friends" },
+  { id: 4, name: "David Brown", email: "david@example.com", image: "/placeholder.svg", group: "Work contacts" },
+  { id: 5, name: "Eve Wilson", email: "eve@example.com", image: "/placeholder.svg", group: "golf friends" },
+  { id: 6, name: "Frank Miller", email: "frank@example.com", image: "/placeholder.svg", group: "Family" },
+];
+
+const CONTACT_GROUPS = [
+  "Inner orbit",
+  "oldest friends",
+  "college friends",
+  "Work contacts",
+  "golf friends",
+  "Family"
 ];
 
 const ContactsView = () => {
@@ -26,6 +38,14 @@ const ContactsView = () => {
   const filteredContacts = SAMPLE_CONTACTS.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
+  };
 
   return (
     <div className="fixed inset-0 bg-background animate-slide-in-top">
@@ -70,7 +90,7 @@ const ContactsView = () => {
                       >
                         <Avatar className="h-16 w-16">
                           <AvatarImage src={contact.image} alt={contact.name} />
-                          <AvatarFallback>{contact.name[0]}</AvatarFallback>
+                          <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
                         </Avatar>
                       </button>
                     </DrawerTrigger>
@@ -79,11 +99,14 @@ const ContactsView = () => {
                         <div className="flex items-center space-x-4">
                           <Avatar className="h-20 w-20">
                             <AvatarImage src={contact.image} alt={contact.name} />
-                            <AvatarFallback>{contact.name[0]}</AvatarFallback>
+                            <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
                           </Avatar>
                           <div>
                             <h2 className="text-2xl font-bold">{contact.name}</h2>
                             <p className="text-muted-foreground">{contact.email}</p>
+                            <Badge variant="secondary" className="mt-2">
+                              {contact.group}
+                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -91,6 +114,22 @@ const ContactsView = () => {
                   </Drawer>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Contact Groups */}
+          <div className="mt-8 space-y-2">
+            <h3 className="text-lg font-semibold mb-4">Contact Groups</h3>
+            <div className="flex flex-wrap gap-2">
+              {CONTACT_GROUPS.map((group) => (
+                <Badge
+                  key={group}
+                  variant="outline"
+                  className="cursor-pointer hover:bg-accent"
+                >
+                  {group}
+                </Badge>
+              ))}
             </div>
           </div>
         </div>
