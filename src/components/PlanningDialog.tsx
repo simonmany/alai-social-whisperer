@@ -66,6 +66,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
+            <label className="text-sm font-medium">I want to...</label>
             <Popover open={openActivity} onOpenChange={setOpenActivity}>
               <PopoverTrigger asChild>
                 <Button
@@ -74,7 +75,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   aria-expanded={openActivity}
                   className="justify-between"
                 >
-                  {activity || "I want to..."}
+                  {activity || "(choose an activity)"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -108,6 +109,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           </div>
 
           <div className="grid gap-2">
+            <label className="text-sm font-medium">with...</label>
             <Popover open={openContact} onOpenChange={setOpenContact}>
               <PopoverTrigger asChild>
                 <Button
@@ -116,7 +118,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   aria-expanded={openContact}
                   className="justify-between"
                 >
-                  {contact || "with..."}
+                  {contact || "(choose a person)"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
@@ -150,6 +152,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           </div>
 
           <div className="grid gap-2">
+            <label className="text-sm font-medium">at...</label>
             <Popover open={openTime} onOpenChange={setOpenTime}>
               <PopoverTrigger asChild>
                 <Button
@@ -158,7 +161,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   aria-expanded={openTime}
                   className="justify-between"
                 >
-                  {time || "at..."}
+                  {time || "(choose a time)"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
