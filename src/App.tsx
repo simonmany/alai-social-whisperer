@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import CalendarView from "./pages/CalendarView";
+import ContactsView from "./pages/ContactsView";
 
 const queryClient = new QueryClient();
 
@@ -17,6 +18,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/calendar" element={<CalendarView />} />
+          <Route path="/contacts" element={<ContactsView />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
