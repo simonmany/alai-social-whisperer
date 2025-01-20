@@ -1,10 +1,7 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -12,42 +9,10 @@ interface PlanningDialogProps {
   onSubmit: (activity: string, contact: string, time: string) => void;
 }
 
-const ACTIVITIES = [
-  "get coffee",
-  "grab lunch",
-  "go for a walk",
-  "play basketball",
-  "watch a movie",
-  "have dinner",
-  "go hiking",
-  "play video games",
-];
-
-const CONTACTS = [
-  "Alex",
-  "Sam",
-  "Jordan",
-  "Taylor",
-  "Morgan",
-  "A New Friend",
-];
-
-const TIMES = [
-  "tomorrow morning",
-  "tomorrow afternoon",
-  "tomorrow evening",
-  "this weekend",
-  "next week",
-  "sometime soon",
-];
-
 const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) => {
   const [activity, setActivity] = useState("");
   const [contact, setContact] = useState("");
   const [time, setTime] = useState("");
-  const [openActivity, setOpenActivity] = useState(false);
-  const [openContact, setOpenContact] = useState(false);
-  const [openTime, setOpenTime] = useState(false);
 
   const handleSubmit = () => {
     if (activity && contact && time) {
@@ -67,131 +32,29 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <label className="text-sm font-medium">I want to...</label>
-            <Popover open={openActivity} onOpenChange={setOpenActivity}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openActivity}
-                  className="justify-between"
-                >
-                  {activity || "(choose an activity)"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <CommandInput placeholder="Search activities..." />
-                  <CommandEmpty>No activity found.</CommandEmpty>
-                  <CommandGroup>
-                    {ACTIVITIES.map((act) => (
-                      <CommandItem
-                        key={act}
-                        value={act}
-                        onSelect={() => {
-                          setActivity(act);
-                          setOpenActivity(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            activity === act ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {act}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <Input
+              placeholder="Enter an activity"
+              value={activity}
+              onChange={(e) => setActivity(e.target.value)}
+            />
           </div>
 
           <div className="grid gap-2">
             <label className="text-sm font-medium">with...</label>
-            <Popover open={openContact} onOpenChange={setOpenContact}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openContact}
-                  className="justify-between"
-                >
-                  {contact || "(choose a person)"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <CommandInput placeholder="Search contacts..." />
-                  <CommandEmpty>No contact found.</CommandEmpty>
-                  <CommandGroup>
-                    {CONTACTS.map((cont) => (
-                      <CommandItem
-                        key={cont}
-                        value={cont}
-                        onSelect={() => {
-                          setContact(cont);
-                          setOpenContact(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            contact === cont ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {cont}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <Input
+              placeholder="Enter a person's name"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+            />
           </div>
 
           <div className="grid gap-2">
             <label className="text-sm font-medium">at...</label>
-            <Popover open={openTime} onOpenChange={setOpenTime}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={openTime}
-                  className="justify-between"
-                >
-                  {time || "(choose a time)"}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <CommandInput placeholder="Search times..." />
-                  <CommandEmpty>No time found.</CommandEmpty>
-                  <CommandGroup>
-                    {TIMES.map((t) => (
-                      <CommandItem
-                        key={t}
-                        value={t}
-                        onSelect={() => {
-                          setTime(t);
-                          setOpenTime(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            time === t ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {t}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <Input
+              placeholder="Enter a time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
           </div>
 
           <Button 
