@@ -26,20 +26,20 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="overflow-y-auto">
-        <SheetHeader className="mb-6">
+        <SheetHeader className="mb-4">
           <SheetTitle>Profile</SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Profile Info */}
-          <div className="flex flex-col items-center space-y-4">
-            <Avatar className="h-24 w-24">
+          <div className="flex flex-col items-center space-y-3">
+            <Avatar className="h-20 w-20">
               <AvatarImage src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7" />
               <AvatarFallback>JD</AvatarFallback>
             </Avatar>
             <div className="text-center">
               <h2 className="text-xl font-semibold">Jane Doe</h2>
-              <div className="flex gap-2 mt-2 text-sm text-muted-foreground">
+              <div className="flex gap-2 mt-1 text-sm text-muted-foreground">
                 <span>@janedoe</span>
                 <span>•</span>
                 <span>San Francisco</span>
@@ -53,17 +53,19 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
           {/* Goals Section */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                Goals
-              </CardTitle>
-              <Button size="sm" className="gap-2">
-                <MessageCircle className="h-4 w-4" />
-                Set a new goal
-              </Button>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Goals
+                </CardTitle>
+                <Button size="sm" className="gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Set a new goal
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               {goals.sort((a, b) => {
                 const timeOrder = { tomorrow: 1, "this week": 2, "this month": 3 };
                 return timeOrder[a.timeframe as keyof typeof timeOrder] - timeOrder[b.timeframe as keyof typeof timeOrder];
@@ -80,13 +82,13 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
           {/* Stats Section */}
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-2">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 Stats
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid grid-cols-2 gap-4">
+            <CardContent className="grid grid-cols-2 gap-3">
               <div>
                 <div className="text-sm font-medium">Connections</div>
                 <div className="text-2xl font-semibold">{stats.connections}</div>
