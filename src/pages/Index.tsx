@@ -6,6 +6,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Calendar, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import Profile from "./Profile";
 
 interface Message {
   content: string;
@@ -18,6 +19,7 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([
     { content: WELCOME_MESSAGE, isAl: true },
   ]);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -54,7 +56,7 @@ const Index = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
             <Users className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/profile")}>
+          <Button variant="ghost" size="icon" onClick={() => setIsProfileOpen(true)}>
             <UserRound className="h-5 w-5" />
           </Button>
         </div>
@@ -93,6 +95,7 @@ const Index = () => {
           <ChatInput onSend={handleSend} />
         </div>
       </div>
+      <Profile open={isProfileOpen} onOpenChange={setIsProfileOpen} />
     </div>
   );
 };
