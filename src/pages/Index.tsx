@@ -7,6 +7,7 @@ import { Calendar, Users, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import Profile from "./Profile";
+import PlanningDialog from "@/components/PlanningDialog";
 
 interface Message {
   content: string;
@@ -20,6 +21,7 @@ const Index = () => {
     { content: WELCOME_MESSAGE, isAl: true },
   ]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isPlanningOpen, setIsPlanningOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -34,8 +36,18 @@ const Index = () => {
     }, 1000);
   };
 
+  const handlePlanSubmit = (activity: string, contact: string, time: string) => {
+    const message = `I want to ${activity} with ${contact} at ${time}`;
+    handleSend(message);
+    setIsPlanningOpen(false);
+  };
+
   const handleSuggestedPrompt = (prompt: string) => {
-    handleSend(prompt);
+    if (prompt === "plan me a hang") {
+      setIsPlanningOpen(true);
+    } else {
+      handleSend(prompt);
+    }
   };
 
   const containerClasses = isMobile
@@ -79,16 +91,12 @@ const Index = () => {
                 onClick={() => handleSuggestedPrompt("plan me a hang")}
               />
               <SuggestedPrompt
-                text="Talk about my last hang"
-                onClick={() => handleSuggestedPrompt("Talk about my last hang")}
+                text="talk about a hang"
+                onClick={() => handleSuggestedPrompt("talk about a hang")}
               />
               <SuggestedPrompt
                 text="Set a new goal"
                 onClick={() => handleSuggestedPrompt("Set a new goal")}
-              />
-              <SuggestedPrompt
-                text="add an existing hang"
-                onClick={() => handleSuggestedPrompt("add an existing hang")}
               />
             </div>
           </div>
@@ -96,6 +104,11 @@ const Index = () => {
         </div>
       </div>
       <Profile open={isProfileOpen} onOpenChange={setIsProfileOpen} />
+      <PlanningDialog 
+        open={isPlanningOpen} 
+        onOpenChange={setIsPlanningOpen}
+        onSubmit={handlePlanSubmit}
+      />
     </div>
   );
 };
