@@ -10,6 +10,7 @@ import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import GoalsDialog from "@/components/GoalsDialog";
+import ContactsDialog from "@/components/ContactsDialog";
 
 interface Message {
   content: string;
@@ -26,6 +27,7 @@ const Index = () => {
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isGoalsOpen, setIsGoalsOpen] = useState(false);
+  const [isContactsOpen, setIsContactsOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -53,6 +55,8 @@ const Index = () => {
       setIsFeedbackOpen(true);
     } else if (prompt === "Set a new goal") {
       setIsGoalsOpen(true);
+    } else if (prompt === "add a new contact") {
+      setIsContactsOpen(true);
     } else {
       handleSend(prompt);
     }
@@ -106,6 +110,10 @@ const Index = () => {
                 text="Set a new goal"
                 onClick={() => handleSuggestedPrompt("Set a new goal")}
               />
+              <SuggestedPrompt
+                text="add a new contact"
+                onClick={() => handleSuggestedPrompt("add a new contact")}
+              />
             </div>
           </div>
           <ChatInput onSend={handleSend} />
@@ -125,6 +133,11 @@ const Index = () => {
       <GoalsDialog
         open={isGoalsOpen}
         onOpenChange={setIsGoalsOpen}
+        onSubmit={handleSend}
+      />
+      <ContactsDialog
+        open={isContactsOpen}
+        onOpenChange={setIsContactsOpen}
         onSubmit={handleSend}
       />
     </div>
