@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search } from "lucide-react";
+import { Search, ArrowLeft, MessageCircle } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface Contact {
   id: number;
@@ -34,6 +36,7 @@ const CONTACT_GROUPS = [
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const navigate = useNavigate();
 
   const filteredContacts = SAMPLE_CONTACTS.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -117,8 +120,16 @@ const ContactsView = () => {
             </div>
           </div>
 
+          {/* Ask Al Button */}
+          <div className="flex justify-center mt-8 mb-4">
+            <Button variant="outline" className="w-full max-w-sm">
+              <MessageCircle className="mr-2" />
+              Ask Al about this group
+            </Button>
+          </div>
+
           {/* Contact Groups */}
-          <div className="mt-8 space-y-2">
+          <div className="space-y-2">
             <h3 className="text-lg font-semibold mb-4">Contact Groups</h3>
             <div className="flex flex-wrap gap-2">
               {CONTACT_GROUPS.map((group) => (
@@ -132,6 +143,16 @@ const ContactsView = () => {
               ))}
             </div>
           </div>
+
+          {/* Back to Chat Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed bottom-4 left-1/2 -translate-x-1/2"
+            onClick={() => navigate("/")}
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </Button>
         </div>
       </div>
     </div>
