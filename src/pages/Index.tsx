@@ -1,11 +1,65 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { ChatMessage } from "@/components/ChatMessage";
+import { ChatInput } from "@/components/ChatInput";
+import { SuggestedPrompt } from "@/components/SuggestedPrompt";
+
+interface Message {
+  content: string;
+  isAl: boolean;
+}
+
+const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
 
 const Index = () => {
+  const [messages, setMessages] = useState<Message[]>([
+    { content: WELCOME_MESSAGE, isAl: true },
+  ]);
+
+  const handleSend = (content: string) => {
+    setMessages((prev) => [...prev, { content, isAl: false }]);
+    // Here you would typically handle Al's response
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { content: "I'm still learning, but I'd love to help with that!", isAl: true },
+      ]);
+    }, 1000);
+  };
+
+  const handleSuggestedPrompt = (prompt: string) => {
+    handleSend(prompt);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="flex-1 container max-w-2xl py-8 flex flex-col">
+        <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
+          {messages.map((message, index) => (
+            <ChatMessage
+              key={index}
+              content={message.content}
+              isAl={message.isAl}
+              animate={index === messages.length - 1}
+            />
+          ))}
+        </div>
+        <div className="space-y-4">
+          <div className="flex gap-2 flex-wrap">
+            <SuggestedPrompt
+              text="Plan me something"
+              onClick={() => handleSuggestedPrompt("Plan me something")}
+            />
+            <SuggestedPrompt
+              text="Talk about my last hang"
+              onClick={() => handleSuggestedPrompt("Talk about my last hang")}
+            />
+            <SuggestedPrompt
+              text="Set a new goal"
+              onClick={() => handleSuggestedPrompt("Set a new goal")}
+            />
+          </div>
+          <ChatInput onSend={handleSend} />
+        </div>
       </div>
     </div>
   );
