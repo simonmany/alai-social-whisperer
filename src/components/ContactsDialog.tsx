@@ -165,11 +165,17 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
 
           <div className="grid gap-2">
             <Label>Who are they?</Label>
-            <div className="space-y-2">
+            <Input
+              value={relationship}
+              onChange={(e) => setRelationship(e.target.value)}
+              placeholder="Tell us about them..."
+            />
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium mb-1">Suggestions:</p>
               {relationshipSuggestions.map((suggestion) => (
                 <p
                   key={suggestion}
-                  className="cursor-pointer hover:text-foreground"
+                  className="italic cursor-pointer hover:text-foreground"
                   onClick={() => setRelationship(suggestion)}
                 >
                   • {suggestion}
