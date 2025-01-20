@@ -79,7 +79,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0">
+              <PopoverContent className="w-[300px] p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search activities..." />
                   <CommandEmpty>No activity found.</CommandEmpty>
@@ -88,8 +88,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       <CommandItem
                         key={act}
                         value={act}
-                        onSelect={(currentValue) => {
-                          setActivity(currentValue);
+                        onSelect={() => {
+                          setActivity(act);
                           setOpenActivity(false);
                         }}
                       >
@@ -122,7 +122,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0">
+              <PopoverContent className="w-[300px] p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search contacts..." />
                   <CommandEmpty>No contact found.</CommandEmpty>
@@ -131,8 +131,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       <CommandItem
                         key={cont}
                         value={cont}
-                        onSelect={(currentValue) => {
-                          setContact(currentValue);
+                        onSelect={() => {
+                          setContact(cont);
                           setOpenContact(false);
                         }}
                       >
@@ -165,7 +165,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[300px] p-0">
+              <PopoverContent className="w-[300px] p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search times..." />
                   <CommandEmpty>No time found.</CommandEmpty>
@@ -174,8 +174,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       <CommandItem
                         key={t}
                         value={t}
-                        onSelect={(currentValue) => {
-                          setTime(currentValue);
+                        onSelect={() => {
+                          setTime(t);
                           setOpenTime(false);
                         }}
                       >
