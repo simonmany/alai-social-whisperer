@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
+import FeedbackDialog from "@/components/FeedbackDialog";
 
 interface Message {
   content: string;
@@ -22,6 +23,7 @@ const Index = () => {
   ]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
 
@@ -45,6 +47,8 @@ const Index = () => {
   const handleSuggestedPrompt = (prompt: string) => {
     if (prompt === "plan me a hang") {
       setIsPlanningOpen(true);
+    } else if (prompt === "talk about a hang") {
+      setIsFeedbackOpen(true);
     } else {
       handleSend(prompt);
     }
@@ -108,6 +112,11 @@ const Index = () => {
         open={isPlanningOpen} 
         onOpenChange={setIsPlanningOpen}
         onSubmit={handlePlanSubmit}
+      />
+      <FeedbackDialog
+        open={isFeedbackOpen}
+        onOpenChange={setIsFeedbackOpen}
+        onSubmit={handleSend}
       />
     </div>
   );
