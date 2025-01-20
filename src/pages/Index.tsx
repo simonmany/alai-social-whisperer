@@ -3,6 +3,9 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Calendar, Users, UserRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface Message {
   content: string;
@@ -16,6 +19,7 @@ const Index = () => {
     { content: WELCOME_MESSAGE, isAl: true },
   ]);
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   const handleSend = (content: string) => {
     setMessages((prev) => [...prev, { content, isAl: false }]);
@@ -43,6 +47,17 @@ const Index = () => {
   return (
     <div className={containerClasses}>
       <div className={contentClasses}>
+        <div className="flex justify-between items-center mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
+            <Calendar className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
+            <Users className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/profile")}>
+            <UserRound className="h-5 w-5" />
+          </Button>
+        </div>
         <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
           {messages.map((message, index) => (
             <ChatMessage
@@ -54,19 +69,26 @@ const Index = () => {
           ))}
         </div>
         <div className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            <SuggestedPrompt
-              text="Plan me something"
-              onClick={() => handleSuggestedPrompt("Plan me something")}
-            />
-            <SuggestedPrompt
-              text="Talk about my last hang"
-              onClick={() => handleSuggestedPrompt("Talk about my last hang")}
-            />
-            <SuggestedPrompt
-              text="Set a new goal"
-              onClick={() => handleSuggestedPrompt("Set a new goal")}
-            />
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
+            <div className="flex gap-2 flex-wrap">
+              <SuggestedPrompt
+                text="plan me a hang"
+                onClick={() => handleSuggestedPrompt("plan me a hang")}
+              />
+              <SuggestedPrompt
+                text="Talk about my last hang"
+                onClick={() => handleSuggestedPrompt("Talk about my last hang")}
+              />
+              <SuggestedPrompt
+                text="Set a new goal"
+                onClick={() => handleSuggestedPrompt("Set a new goal")}
+              />
+              <SuggestedPrompt
+                text="add an existing hang"
+                onClick={() => handleSuggestedPrompt("add an existing hang")}
+              />
+            </div>
           </div>
           <ChatInput onSend={handleSend} />
         </div>
