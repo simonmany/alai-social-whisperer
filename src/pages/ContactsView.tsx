@@ -68,7 +68,7 @@ const ContactsView = () => {
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <Avatar className="h-24 w-24">
                 <AvatarImage src="/placeholder.svg" alt="Your profile" />
-                <AvatarFallback>You</AvatarFallback>
+                <AvatarFallback>YOU</AvatarFallback>
               </Avatar>
             </div>
 
