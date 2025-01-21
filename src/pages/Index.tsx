@@ -13,6 +13,7 @@ import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { generateChatResponse } from "@/utils/openai";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   content: string;
@@ -34,6 +35,41 @@ const Index = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const testCalendarFunction = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('calendar', {
+        body: {
+          action: 'list',
+          timeMin: new Date().toISOString(),
+          timeMax: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
+        }
+      });
+
+      if (error) {
+        console.error('Error calling calendar function:', error);
+        toast({
+          title: "Error",
+          description: "Failed to call calendar function: " + error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log('Calendar function response:', data);
+      toast({
+        title: "Success",
+        description: "Calendar function called successfully. Check console for details.",
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSend = async (content: string) => {
     setMessages((prev) => [...prev, { content, isAl: false }]);
@@ -95,6 +131,16 @@ const Index = () => {
             <UserRound className="h-5 w-5" />
           </Button>
         </div>
+
+        {/* Test Button */}
+        <Button 
+          onClick={testCalendarFunction}
+          className="mb-4"
+          variant="outline"
+        >
+          Test Calendar Function
+        </Button>
+
         <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
           {messages.map((message, index) => (
             <ChatMessage
