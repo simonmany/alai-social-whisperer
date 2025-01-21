@@ -1,11 +1,12 @@
+import { Toaster } from "@/components/ui/toaster";
+import { Button } from "@/components/ui/button";
+import { Calendar, Users, UserRound, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Calendar, Users, UserRound, LogOut } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
@@ -32,6 +33,7 @@ const Index = () => {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isGoalsOpen, setIsGoalsOpen] = useState(false);
   const [isContactsOpen, setIsContactsOpen] = useState(false);
+  const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -68,6 +70,46 @@ const Index = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsConnectingCalendar(true);
+      console.log("Starting Google Calendar connection...");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          redirectTo: window.location.origin,
+        }
+      });
+
+      console.log("OAuth response:", { data, error });
+
+      if (error) {
+        console.error("OAuth error:", error);
+        throw error;
+      }
+      
+      toast({
+        title: "Success",
+        description: "Successfully connected to Google Calendar!",
+      });
+    } catch (error: any) {
+      console.error("Calendar connection error:", error);
+      toast({
+        title: "Error connecting to Google Calendar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnectingCalendar(false);
+    }
+  };
+
   const handlePlanSubmit = (activity: string, contact: string, time: string) => {
     const message = `I want to ${activity} with ${contact} at ${time}`;
     handleSend(message);
@@ -85,34 +127,6 @@ const Index = () => {
       setIsContactsOpen(true);
     } else {
       handleSend(prompt);
-    }
-  };
-
-  const handleGoogleSignIn = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-        },
-      });
-
-      if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: "Successfully connected to Google Calendar!",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error connecting to Google Calendar",
-        description: error.message,
-        variant: "destructive",
-      });
     }
   };
 
@@ -135,6 +149,7 @@ const Index = () => {
             <Button 
               variant="outline" 
               onClick={handleGoogleSignIn}
+              disabled={isConnectingCalendar}
               className="flex items-center gap-2"
             >
               <img 
@@ -142,7 +157,7 @@ const Index = () => {
                 alt="Google" 
                 className="w-4 h-4"
               />
-              Connect Calendar
+              {isConnectingCalendar ? "Connecting..." : "Connect Calendar"}
             </Button>
           </div>
           <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
