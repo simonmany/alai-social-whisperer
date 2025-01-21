@@ -1,0 +1,5 @@
+project_id = "ejqucnzpgebbujlnmdzx"
+
+[[functions]]
+name = "calendar"
+verify_jwt = false
