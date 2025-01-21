@@ -84,14 +84,14 @@ const Index = () => {
             prompt: 'consent',
           },
           redirectTo: window.location.origin,
-        },
-        showSignInModal: false // This prevents the iframe approach
+        }
       });
 
       if (error) throw error;
       
-      // The OAuth flow will redirect the user to Google's consent page in a new window
+      // The OAuth flow will redirect the user to Google's consent page
       if (data?.url) {
+        // Open in the same window since popup might be blocked
         window.location.href = data.url;
       }
       
