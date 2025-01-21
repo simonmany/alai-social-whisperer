@@ -8,7 +8,7 @@ export const generateChatResponse = async (message: string) => {
 
     if (error) {
       console.error("Supabase function error:", error);
-      throw error;
+      throw new Error(error.message || "Failed to generate response");
     }
 
     if (!data || !data.response) {
@@ -20,6 +20,9 @@ export const generateChatResponse = async (message: string) => {
 
   } catch (error) {
     console.error("Error generating chat response:", error);
-    throw error;
+    if (error instanceof Error) {
+      throw new Error(error.message);
+    }
+    throw new Error("Failed to generate response");
   }
 };
