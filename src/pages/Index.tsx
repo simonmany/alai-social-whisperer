@@ -84,20 +84,17 @@ const Index = () => {
             prompt: 'consent',
           },
           redirectTo: window.location.origin,
-        }
+        },
+        showSignInModal: false // This prevents the iframe approach
       });
 
-      console.log("OAuth response:", { data, error });
-
-      if (error) {
-        console.error("OAuth error:", error);
-        throw error;
+      if (error) throw error;
+      
+      // The OAuth flow will redirect the user to Google's consent page in a new window
+      if (data?.url) {
+        window.location.href = data.url;
       }
       
-      toast({
-        title: "Success",
-        description: "Successfully connected to Google Calendar!",
-      });
     } catch (error: any) {
       console.error("Calendar connection error:", error);
       toast({
@@ -105,7 +102,6 @@ const Index = () => {
         description: error.message,
         variant: "destructive",
       });
-    } finally {
       setIsConnectingCalendar(false);
     }
   };
