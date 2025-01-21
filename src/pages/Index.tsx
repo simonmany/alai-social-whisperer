@@ -3,7 +3,7 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { Calendar, Users, UserRound } from "lucide-react";
+import { Calendar, Users, UserRound, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import Profile from "./Profile";
@@ -36,36 +36,15 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const testCalendarFunction = async () => {
+  const handleSignOut = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('calendar', {
-        body: {
-          action: 'list',
-          timeMin: new Date().toISOString(),
-          timeMax: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days from now
-        }
-      });
-
-      if (error) {
-        console.error('Error calling calendar function:', error);
-        toast({
-          title: "Error",
-          description: "Failed to call calendar function: " + error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log('Calendar function response:', data);
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      navigate("/auth");
+    } catch (error: any) {
       toast({
-        title: "Success",
-        description: "Calendar function called successfully. Check console for details.",
-      });
-    } catch (error) {
-      console.error('Error:', error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
+        title: "Error signing out",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -127,19 +106,15 @@ const Index = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
             <Users className="h-5 w-5" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => setIsProfileOpen(true)}>
-            <UserRound className="h-5 w-5" />
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" onClick={() => setIsProfileOpen(true)}>
+              <UserRound className="h-5 w-5" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleSignOut}>
+              <LogOut className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
-
-        {/* Test Button */}
-        <Button 
-          onClick={testCalendarFunction}
-          className="mb-4"
-          variant="outline"
-        >
-          Test Calendar Function
-        </Button>
 
         <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
           {messages.map((message, index) => (
