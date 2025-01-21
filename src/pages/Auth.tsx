@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
@@ -12,6 +13,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -32,6 +34,7 @@ const Auth = () => {
 
       if (error) throw error;
 
+      setShowEmailConfirmation(true);
       toast({
         title: "Success!",
         description: "Please check your email to confirm your account.",
@@ -62,7 +65,14 @@ const Auth = () => {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("Email not confirmed")) {
+          setShowEmailConfirmation(true);
+          throw new Error("Please confirm your email before signing in. Check your inbox for the confirmation link.");
+        }
+        throw error;
+      }
+      
       navigate("/");
     } catch (error: any) {
       toast({
@@ -83,6 +93,15 @@ const Auth = () => {
           <CardDescription>Sign in or create a new account</CardDescription>
         </CardHeader>
         <CardContent>
+          {showEmailConfirmation && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                Please check your email and click the confirmation link to activate your account.
+                You won't be able to sign in until you confirm your email address.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <Tabs defaultValue="signin" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Sign In</TabsTrigger>
