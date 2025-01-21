@@ -11,6 +11,8 @@ import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
+import { generateChatResponse } from "@/utils/openai";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Message {
   content: string;
@@ -23,6 +25,7 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([
     { content: WELCOME_MESSAGE, isAl: true },
   ]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -30,16 +33,24 @@ const Index = () => {
   const [isContactsOpen, setIsContactsOpen] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const handleSend = (content: string) => {
+  const handleSend = async (content: string) => {
     setMessages((prev) => [...prev, { content, isAl: false }]);
-    // Here you would typically handle Al's response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { content: "I'm still learning, but I'd love to help with that!", isAl: true },
-      ]);
-    }, 1000);
+    setIsLoading(true);
+
+    try {
+      const response = await generateChatResponse(content);
+      setMessages((prev) => [...prev, { content: response, isAl: true }]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate response. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePlanSubmit = (activity: string, contact: string, time: string) => {
@@ -93,6 +104,11 @@ const Index = () => {
               animate={index === messages.length - 1}
             />
           ))}
+          {isLoading && (
+            <div className="self-start text-sm text-gray-500 animate-pulse">
+              Al is typing...
+            </div>
+          )}
         </div>
         <div className="space-y-4">
           <div className="space-y-2">
