@@ -88,6 +88,34 @@ const Index = () => {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Successfully connected to Google Calendar!",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error connecting to Google Calendar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const containerClasses = isMobile
     ? "min-h-screen bg-black flex flex-col"
     : "min-h-screen bg-gray-50 flex flex-col";
@@ -100,9 +128,23 @@ const Index = () => {
     <div className={containerClasses}>
       <div className={contentClasses}>
         <div className="flex justify-between items-center mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
-            <Calendar className="h-5 w-5" />
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
+              <Calendar className="h-5 w-5" />
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleGoogleSignIn}
+              className="flex items-center gap-2"
+            >
+              <img 
+                src="https://www.google.com/favicon.ico" 
+                alt="Google" 
+                className="w-4 h-4"
+              />
+              Connect Calendar
+            </Button>
+          </div>
           <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
             <Users className="h-5 w-5" />
           </Button>
