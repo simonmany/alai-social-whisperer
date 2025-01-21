@@ -20,6 +20,8 @@ serve(async (req) => {
       throw new Error('OPENAI_API_KEY is not configured');
     }
 
+    console.log('Sending request to OpenAI with message:', message);
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -40,7 +42,19 @@ serve(async (req) => {
       }),
     });
 
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
+      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    }
+
     const data = await response.json();
+    console.log('OpenAI API response:', data);
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error('Invalid response format from OpenAI API');
+    }
+
     return new Response(JSON.stringify({ 
       response: data.choices[0].message.content 
     }), {
@@ -48,8 +62,10 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Error in chat function:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message || 'An unexpected error occurred' 
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
