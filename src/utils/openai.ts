@@ -6,11 +6,20 @@ export const generateChatResponse = async (message: string) => {
       body: { message }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Supabase function error:", error);
+      throw error;
+    }
+
+    if (!data || !data.response) {
+      console.error("Invalid response format:", data);
+      throw new Error("Invalid response from chat function");
+    }
+
     return data.response;
 
   } catch (error) {
     console.error("Error generating chat response:", error);
-    return "I'm having trouble connecting right now. Please try again later!";
+    throw error;
   }
 };
