@@ -48,6 +48,7 @@ const CalendarView = () => {
         side="left"
         className="w-full sm:w-[540px] p-0"
         onPointerDownOutside={() => navigate("/")}
+        showCloseButton={false}
       >
         <div className="flex flex-col h-full bg-background">
           <div className="flex items-center p-4 border-b">
