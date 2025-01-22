@@ -26,9 +26,14 @@ const CalendarView = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  console.log("[CalendarView] Component mounted");
+  console.log("[CalendarView] Component mounted or re-rendered");
   console.log("[CalendarView] Current session:", session ? "Present" : "Not present");
   console.log("[CalendarView] Provider token:", session?.provider_token ? "Present" : "Not present");
+  console.log("[CalendarView] Session details:", {
+    user: session?.user?.id,
+    hasProviderToken: !!session?.provider_token,
+    providerType: session?.user?.app_metadata?.provider
+  });
 
   // Listen for auth state changes from the popup
   useEffect(() => {
@@ -36,9 +41,11 @@ const CalendarView = () => {
     
     const handleMessage = (event: MessageEvent) => {
       console.log("[CalendarView] Received message:", event.data);
+      console.log("[CalendarView] Message origin:", event.origin);
       
       if (event.data === 'google-auth-success') {
         console.log('[CalendarView] Received google-auth-success message');
+        console.log('[CalendarView] Current session before invalidation:', session);
         console.log('[CalendarView] Invalidating calendar events query');
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       }
@@ -49,12 +56,13 @@ const CalendarView = () => {
       console.log("[CalendarView] Cleaning up message listener");
       window.removeEventListener('message', handleMessage);
     };
-  }, [queryClient]);
+  }, [queryClient, session]);
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events', session?.provider_token],
     queryFn: async () => {
       console.log("[CalendarView] Starting calendar events fetch");
+      console.log("[CalendarView] Query execution - session status:", session ? "Present" : "Not present");
       
       if (!session) {
         console.log("[CalendarView] No session available, cannot fetch events");
@@ -64,6 +72,10 @@ const CalendarView = () => {
       // If we have a provider token, use it directly
       if (session.provider_token) {
         console.log("[CalendarView] Provider token found, fetching calendar events");
+        console.log("[CalendarView] Token details:", {
+          tokenLength: session.provider_token.length,
+          tokenPrefix: session.provider_token.substring(0, 10) + '...'
+        });
         return fetchCalendarEvents(session.provider_token);
       }
 
@@ -83,27 +95,33 @@ const CalendarView = () => {
   // Separate function to fetch calendar events
   const fetchCalendarEvents = async (provider_token: string) => {
     console.log('[CalendarView] Calling calendar function with provider token');
-    const { data, error } = await supabase.functions.invoke('calendar', {
-      body: {
-        action: 'list',
-        timeMin: new Date().toISOString(),
-        timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        access_token: provider_token
-      }
-    });
-
-    if (error) {
-      console.error('[CalendarView] Error fetching calendar events:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch calendar events. Please try signing out and back in.",
-        variant: "destructive",
+    try {
+      const { data, error } = await supabase.functions.invoke('calendar', {
+        body: {
+          action: 'list',
+          timeMin: new Date().toISOString(),
+          timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          access_token: provider_token
+        }
       });
+
+      if (error) {
+        console.error('[CalendarView] Error fetching calendar events:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch calendar events. Please try signing out and back in.",
+          variant: "destructive",
+        });
+        throw error;
+      }
+
+      console.log('[CalendarView] Successfully fetched events:', data?.events?.length || 0);
+      console.log('[CalendarView] First event (if any):', data?.events?.[0]);
+      return data?.events || [];
+    } catch (error) {
+      console.error('[CalendarView] Exception in fetchCalendarEvents:', error);
       throw error;
     }
-
-    console.log('[CalendarView] Successfully fetched events:', data?.events?.length || 0);
-    return data?.events || [];
   };
 
   const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
