@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, UserRound, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
@@ -37,6 +37,25 @@ const Index = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Add message listener for Google auth
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.data === 'google-auth-success') {
+        console.log('Received auth success message, refreshing session');
+        const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
+        if (error) {
+          console.error('Error refreshing session:', error);
+        } else {
+          console.log('Session refreshed:', newSession);
+          window.location.reload();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const handleSignOut = async () => {
     try {
@@ -89,12 +108,15 @@ const Index = () => {
       if (data?.url) {
         const authWindow = window.open(data.url, '_blank', 'width=800,height=600');
         
-        const checkWindow = setInterval(() => {
-          if (authWindow?.closed) {
-            clearInterval(checkWindow);
-            window.location.reload();
-          }
-        }, 500);
+        if (authWindow) {
+          // Poll for window closure
+          const checkWindow = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkWindow);
+              // The message event listener will handle the refresh
+            }
+          }, 500);
+        }
       }
       
     } catch (error: any) {

@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -15,20 +14,17 @@ serve(async (req) => {
   try {
     console.log('1. Starting calendar function execution');
 
-    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
     console.log('2. Supabase client initialized');
 
-    // Get the JWT token from the Authorization header
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       throw new Error('Missing authorization header');
     }
 
-    // Verify the session
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
       authHeader.replace('Bearer ', '')
     );
@@ -40,7 +36,6 @@ serve(async (req) => {
 
     console.log('3. Successfully verified user:', user.id);
 
-    // Get request body
     const { action, timeMin, timeMax, access_token } = await req.json();
     
     if (!access_token) {
@@ -71,21 +66,21 @@ serve(async (req) => {
       const data = await response.json();
       console.log('6. Retrieved events from Google Calendar:', data.items?.length);
 
-      // Transform events to our format
-      const events = data.items?.map((event: any) => ({
-        id: event.id,
-        title: event.summary || 'Untitled Event',
-        description: event.description,
-        start_time: event.start.dateTime || event.start.date,
-        end_time: event.end.dateTime || event.end.date,
-        google_event_id: event.id,
-        user_id: user.id,
-      })) || [];
-
-      console.log('7. Successfully transformed events data');
+      // Send success message to parent window
+      if (typeof window !== 'undefined') {
+        window.opener?.postMessage('google-auth-success', window.location.origin);
+      }
 
       return new Response(
-        JSON.stringify({ events }),
+        JSON.stringify({ events: data.items?.map((event: any) => ({
+          id: event.id,
+          title: event.summary || 'Untitled Event',
+          description: event.description,
+          start_time: event.start.dateTime || event.start.date,
+          end_time: event.end.dateTime || event.end.date,
+          google_event_id: event.id,
+          user_id: user.id,
+        })) || [] }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
@@ -97,7 +92,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in calendar function:', error);
     
-    // Determine if this is an auth error
     const isAuthError = error.message.includes('auth') || 
                        error.message.includes('token') || 
                        error.message.includes('session');

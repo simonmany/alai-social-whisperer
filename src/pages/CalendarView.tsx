@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 interface CalendarEvent {
   id: string;
@@ -23,6 +24,25 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
+
+  // Listen for messages from the popup window
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.data === 'google-auth-success') {
+        console.log('Received auth success message, refreshing session');
+        const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
+        if (error) {
+          console.error('Error refreshing session:', error);
+        } else {
+          console.log('Session refreshed:', newSession);
+          window.location.reload();
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -53,12 +73,15 @@ const CalendarView = () => {
       if (data?.url) {
         const authWindow = window.open(data.url, '_blank', 'width=800,height=600');
         
-        const checkWindow = setInterval(() => {
-          if (authWindow?.closed) {
-            clearInterval(checkWindow);
-            window.location.reload();
-          }
-        }, 500);
+        if (authWindow) {
+          // Poll for window closure
+          const checkWindow = setInterval(() => {
+            if (authWindow.closed) {
+              clearInterval(checkWindow);
+              // The message event listener will handle the refresh
+            }
+          }, 500);
+        }
       }
       
     } catch (error: any) {
