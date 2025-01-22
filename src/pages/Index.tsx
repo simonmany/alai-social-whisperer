@@ -67,7 +67,7 @@ const Index = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -87,8 +87,14 @@ const Index = () => {
       }
       
       if (data?.url) {
-        // Open in a new tab/window
-        window.open(data.url, '_blank', 'width=800,height=600');
+        const authWindow = window.open(data.url, '_blank', 'width=800,height=600');
+        
+        const checkWindow = setInterval(() => {
+          if (authWindow?.closed) {
+            clearInterval(checkWindow);
+            window.location.reload();
+          }
+        }, 500);
       }
       
     } catch (error: any) {

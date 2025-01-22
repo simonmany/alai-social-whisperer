@@ -31,7 +31,7 @@ const CalendarView = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -51,14 +51,12 @@ const CalendarView = () => {
       }
       
       if (data?.url) {
-        // Open in a new window and reload the current page when it closes
         const authWindow = window.open(data.url, '_blank', 'width=800,height=600');
         
-        // Check periodically if the window has been closed
         const checkWindow = setInterval(() => {
           if (authWindow?.closed) {
             clearInterval(checkWindow);
-            window.location.reload(); // Reload to get fresh session
+            window.location.reload();
           }
         }, 500);
       }
@@ -88,6 +86,7 @@ const CalendarView = () => {
       }
 
       console.log("Provider token status:", currentSession.provider_token ? "Present" : "Missing");
+      console.log("Session:", currentSession);
 
       if (!currentSession.provider_token) {
         toast({
@@ -116,7 +115,7 @@ const CalendarView = () => {
         body: {
           action: 'list',
           timeMin: new Date().toISOString(),
-          timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+          timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
           access_token: currentSession.provider_token
         }
       });
