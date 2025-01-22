@@ -37,7 +37,7 @@ const CalendarView = () => {
             prompt: 'consent',
           },
           redirectTo: `${window.location.origin}/calendar`,
-          skipBrowserRedirect: true // This prevents automatic redirect
+          skipBrowserRedirect: true
         }
       });
 
@@ -51,9 +51,17 @@ const CalendarView = () => {
         return;
       }
 
-      // If we have the URL, open it in a new tab
+      // Open in a new window instead of a new tab
       if (data?.url) {
-        window.open(data.url, '_blank');
+        const width = 600;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        window.open(
+          data.url,
+          'googleAuthWindow',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
       }
       
     } catch (error: any) {
