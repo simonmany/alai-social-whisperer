@@ -71,9 +71,9 @@ const Index = () => {
 
       if (error) throw error;
       
+      // Open Google's consent page in a new window/tab
       if (data?.url) {
-        // Redirect to Google's consent page directly
-        window.location.href = data.url;
+        window.open(data.url, '_blank', 'noopener,noreferrer');
       }
       
     } catch (error: any) {
@@ -83,6 +83,7 @@ const Index = () => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
       setIsConnectingCalendar(false);
     }
   };
