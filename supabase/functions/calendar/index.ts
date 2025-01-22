@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from 'https://esm.sh/@supabase-js@2.38.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,30 +27,22 @@ serve(async (req) => {
     }
 
     // Get the JWT token from the Authorization header
-    const accessToken = authHeader.replace('Bearer ', '');
-    console.log('Attempting to get session with access token');
+    const token = authHeader.replace('Bearer ', '');
+    console.log('Attempting to get user session with token');
 
-    // Get user data from the access token
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
-    
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      throw new Error('Invalid user session');
-    }
-
-    console.log('Successfully retrieved user:', user.id);
-
-    // Get the user's session to retrieve provider token
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(accessToken);
+    // Get the user's session using the JWT token
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
     
     if (sessionError || !session) {
       console.error('Error getting session:', sessionError);
       throw new Error('Invalid session');
     }
 
+    console.log('Successfully retrieved session for user:', session.user.id);
+
     // Get the provider token from the session
-    const { provider_token } = session;
-    if (!provider_token) {
+    const providerToken = session.provider_token;
+    if (!providerToken) {
       console.error('No provider token found in session');
       throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
     }
@@ -68,7 +60,7 @@ serve(async (req) => {
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
         {
           headers: {
-            'Authorization': `Bearer ${provider_token}`,
+            'Authorization': `Bearer ${providerToken}`,
             'Content-Type': 'application/json',
           },
         }
@@ -90,7 +82,7 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
-        user_id: user.id,
+        user_id: session.user.id,
       })) || [];
 
       // Store events in Supabase
