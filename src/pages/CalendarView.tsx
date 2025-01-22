@@ -9,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
 
 interface CalendarEvent {
   id: string;
@@ -24,26 +23,6 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
-
-  // Listen for messages from the popup window
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data === 'google-auth-success') {
-        console.log('Received auth success message, refreshing session');
-        const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
-        if (error) {
-          console.error('Error refreshing session:', error);
-        } else {
-          console.log('Session refreshed:', newSession);
-          // Force a full page reload to ensure all states are fresh
-          window.location.reload();
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -68,28 +47,7 @@ const CalendarView = () => {
           description: "Please try again or contact support if the issue persists.",
           variant: "destructive",
         });
-        throw error;
       }
-      
-      if (data?.url) {
-        // Open auth in a popup window
-        const authWindow = window.open(
-          data.url, 
-          '_blank', 
-          'width=800,height=600'
-        );
-        
-        if (authWindow) {
-          // Poll for window closure
-          const checkWindow = setInterval(() => {
-            if (authWindow.closed) {
-              clearInterval(checkWindow);
-              // The message event listener will handle the refresh
-            }
-          }, 500);
-        }
-      }
-      
     } catch (error: any) {
       console.error("Calendar connection error:", error);
       toast({
@@ -115,10 +73,35 @@ const CalendarView = () => {
         throw new Error('No session available');
       }
 
-      console.log("Provider token status:", currentSession.provider_token ? "Present" : "Missing");
-      console.log("Session:", currentSession);
-
+      // Check if we have a provider token
       if (!currentSession.provider_token) {
+        // Check if user has previously connected Google Calendar
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error("Error getting user:", userError);
+          throw userError;
+        }
+
+        // If user has Google linked but no provider token, try to refresh the session
+        if (user?.app_metadata?.provider === 'google') {
+          console.log("Attempting to refresh session to get provider token...");
+          const { data: { session: refreshedSession }, error: refreshError } = 
+            await supabase.auth.refreshSession();
+          
+          if (refreshError) {
+            console.error("Error refreshing session:", refreshError);
+            throw refreshError;
+          }
+
+          // If we got a provider token after refresh, use it
+          if (refreshedSession?.provider_token) {
+            console.log("Successfully refreshed provider token");
+            return fetchCalendarEvents(refreshedSession.provider_token);
+          }
+        }
+
+        // If we still don't have a token, prompt to connect
         toast({
           title: "Google Calendar Access Required",
           description: "Please connect your Google Calendar to view your events.",
@@ -140,30 +123,35 @@ const CalendarView = () => {
         throw new Error('No Google access token available');
       }
 
-      console.log('Calling calendar function with session token');
-      const { data, error } = await supabase.functions.invoke('calendar', {
-        body: {
-          action: 'list',
-          timeMin: new Date().toISOString(),
-          timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          access_token: currentSession.provider_token
-        }
-      });
-
-      if (error) {
-        console.error('Error fetching calendar events:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch calendar events. Please try signing out and back in.",
-          variant: "destructive",
-        });
-        throw error;
-      }
-
-      return data?.events || [];
+      return fetchCalendarEvents(currentSession.provider_token);
     },
     enabled: !!session
   });
+
+  // Separate function to fetch calendar events
+  const fetchCalendarEvents = async (provider_token: string) => {
+    console.log('Calling calendar function with provider token');
+    const { data, error } = await supabase.functions.invoke('calendar', {
+      body: {
+        action: 'list',
+        timeMin: new Date().toISOString(),
+        timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        access_token: provider_token
+      }
+    });
+
+    if (error) {
+      console.error('Error fetching calendar events:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch calendar events. Please try signing out and back in.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+
+    return data?.events || [];
+  };
 
   const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
     return {
@@ -183,37 +171,6 @@ const CalendarView = () => {
       events: events.filter(e => days[new Date(e.start_time).getDay()] === day),
     }));
   };
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center space-y-4">
-          <h2 className="text-lg font-semibold text-red-600">Unable to load calendar</h2>
-          <p className="text-sm text-gray-600">
-            {!session?.provider_token ? 
-              "Please connect your Google Calendar to view your events" : 
-              "There was an error loading your calendar. Please try again."}
-          </p>
-          {!session?.provider_token && (
-            <Button 
-              onClick={handleGoogleSignIn}
-              className="flex items-center gap-2"
-            >
-              <img 
-                src="https://www.google.com/favicon.ico" 
-                alt="Google" 
-                className="w-4 h-4"
-              />
-              Connect Google Calendar
-            </Button>
-          )}
-          <Button onClick={() => navigate("/")} className="mt-4">
-            Go Back
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Sheet open={true}>
