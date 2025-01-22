@@ -38,15 +38,13 @@ const CalendarView = () => {
         throw new Error('No session available');
       }
 
-      // Get the current session token for Supabase authentication
-      const { data: { session: currentSupabaseSession } } = await supabase.auth.getSession();
-      if (!currentSupabaseSession) {
+      if (!currentSession.provider_token) {
         toast({
-          title: "Session Error",
-          description: "Unable to verify your session. Please sign in again.",
+          title: "Google Calendar Access Error",
+          description: "Unable to access your Google Calendar. Please sign out and sign in again.",
           variant: "destructive",
         });
-        throw new Error('No Supabase session available');
+        throw new Error('No Google access token available');
       }
 
       console.log('Calling calendar function with session token');
@@ -55,7 +53,7 @@ const CalendarView = () => {
           action: 'list',
           timeMin: new Date().toISOString(),
           timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-          access_token: currentSession.provider_token // Send Google access token in the body
+          access_token: currentSession.provider_token
         }
       });
 
