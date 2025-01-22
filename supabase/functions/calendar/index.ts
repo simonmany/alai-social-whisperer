@@ -19,21 +19,26 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the user's session from the request authorization header
-    const authHeader = req.headers.get('authorization')?.split('Bearer ')[1];
+    // Get the authorization header and validate it
+    const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       console.error('No authorization header provided');
       throw new Error('No authorization header');
     }
 
-    // Get the user's session
-    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession(authHeader);
-    if (sessionError || !sessionData.session) {
+    // Extract the JWT token from the Authorization header
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Get the user's session using the JWT token
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
+    
+    if (sessionError || !session) {
       console.error('Error getting user session:', sessionError);
-      throw new Error('Error getting user session');
+      throw new Error('Invalid session');
     }
 
-    const { user, provider_token } = sessionData.session;
+    // Get the provider token from the session
+    const { provider_token } = session;
     if (!provider_token) {
       console.error('No provider token found in session');
       throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
@@ -74,7 +79,7 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
-        user_id: user.id,
+        user_id: session.user.id,
       })) || [];
 
       // Store events in Supabase
