@@ -1,20 +1,16 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Button } from "@/components/ui/button";
-import { Calendar, Users, UserRound, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { ChatMessage } from "@/components/ChatMessage";
-import { ChatInput } from "@/components/ChatInput";
-import { SuggestedPrompt } from "@/components/SuggestedPrompt";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { generateChatResponse } from "@/utils/openai";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { MainNavigation } from "@/components/MainNavigation";
+import { ChatContainer } from "@/components/ChatContainer";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
-import { generateChatResponse } from "@/utils/openai";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   content: string;
@@ -38,36 +34,6 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.data === 'google-auth-success') {
-        console.log('Received auth success message from popup');
-        navigate('/calendar');
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [navigate]);
-
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Sign out error:", error);
-        toast({
-          title: "Error signing out",
-          description: "Please try again",
-          variant: "destructive",
-        });
-      }
-      navigate("/auth");
-    } catch (error: any) {
-      console.error("Sign out error:", error);
-      navigate("/auth");
-    }
-  };
-
   const handleGoogleSignIn = async () => {
     try {
       setIsConnectingCalendar(true);
@@ -85,19 +51,7 @@ const Index = () => {
         }
       });
 
-      if (error) {
-        console.error("Google auth error:", error);
-        toast({
-          title: "Error connecting to Google Calendar",
-          description: "Please try again or contact support if the issue persists.",
-          variant: "destructive",
-        });
-        throw error;
-      }
-      
-      if (data?.url) {
-        window.location.href = data.url;
-      }
+      if (error) throw error;
       
     } catch (error: any) {
       console.error("Calendar connection error:", error);
@@ -106,7 +60,6 @@ const Index = () => {
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
-    } finally {
       setIsConnectingCalendar(false);
     }
   };
@@ -160,78 +113,20 @@ const Index = () => {
   return (
     <div className={containerClasses}>
       <div className={contentClasses}>
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
-              <Calendar className="h-5 w-5" />
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleGoogleSignIn}
-              disabled={isConnectingCalendar}
-              className="flex items-center gap-2"
-            >
-              <img 
-                src="https://www.google.com/favicon.ico" 
-                alt="Google" 
-                className="w-4 h-4"
-              />
-              {isConnectingCalendar ? "Connecting..." : "Connect Calendar"}
-            </Button>
-          </div>
-          <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
-            <Users className="h-5 w-5" />
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setIsProfileOpen(true)}>
-              <UserRound className="h-5 w-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleSignOut}>
-              <LogOut className="h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
-          {messages.map((message, index) => (
-            <ChatMessage
-              key={index}
-              content={message.content}
-              isAl={message.isAl}
-              animate={index === messages.length - 1}
-            />
-          ))}
-          {isLoading && (
-            <div className="self-start text-sm text-gray-500 animate-pulse">
-              Al is typing...
-            </div>
-          )}
-        </div>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
-            <div className="flex gap-2 flex-wrap">
-              <SuggestedPrompt
-                text="plan me a hang"
-                onClick={() => handleSuggestedPrompt("plan me a hang")}
-              />
-              <SuggestedPrompt
-                text="talk about a hang"
-                onClick={() => handleSuggestedPrompt("talk about a hang")}
-              />
-              <SuggestedPrompt
-                text="Set a new goal"
-                onClick={() => handleSuggestedPrompt("Set a new goal")}
-              />
-              <SuggestedPrompt
-                text="add a new contact"
-                onClick={() => handleSuggestedPrompt("add a new contact")}
-              />
-            </div>
-          </div>
-          <ChatInput onSend={handleSend} />
-        </div>
+        <MainNavigation
+          isConnectingCalendar={isConnectingCalendar}
+          onProfileOpen={() => setIsProfileOpen(true)}
+          onGoogleSignIn={handleGoogleSignIn}
+        />
+        
+        <ChatContainer
+          messages={messages}
+          isLoading={isLoading}
+          onSend={handleSend}
+          onSuggestedPrompt={handleSuggestedPrompt}
+        />
       </div>
+
       <Profile open={isProfileOpen} onOpenChange={setIsProfileOpen} />
       <PlanningDialog 
         open={isPlanningOpen} 
