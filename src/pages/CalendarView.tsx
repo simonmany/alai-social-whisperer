@@ -34,6 +34,9 @@ const CalendarView = () => {
           action: 'list',
           timeMin: new Date().toISOString(),
           timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
+        },
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
         }
       });
 
