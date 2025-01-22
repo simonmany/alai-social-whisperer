@@ -36,6 +36,62 @@ export const MainNavigation = ({
     }
   };
 
+  const handleGoogleCalendarConnect = async () => {
+    try {
+      console.log("Starting Google Calendar connection...");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          skipBrowserRedirect: true
+        }
+      });
+
+      if (error) {
+        console.error("Google auth error:", error);
+        toast({
+          title: "Error connecting to Google Calendar",
+          description: "Please try again or contact support if the issue persists.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.url) {
+        const width = 600;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const newWindow = window.open(
+          data.url,
+          'googleAuthWindow',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+        
+        if (!newWindow) {
+          toast({
+            title: "Popup Blocked",
+            description: "Please allow popups for this site to connect your Google Calendar.",
+            variant: "destructive",
+          });
+        }
+      }
+      
+    } catch (error: any) {
+      console.error("Calendar connection error:", error);
+      toast({
+        title: "Error connecting to Google Calendar",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="flex justify-between items-center mb-6">
       <div className="flex gap-2">
@@ -44,7 +100,7 @@ export const MainNavigation = ({
         </Button>
         <Button 
           variant="outline" 
-          onClick={onGoogleSignIn}
+          onClick={handleGoogleCalendarConnect}
           disabled={isConnectingCalendar}
           className="flex items-center gap-2"
         >

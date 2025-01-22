@@ -24,63 +24,6 @@ const CalendarView = () => {
   const { session } = useAuth();
   const { toast } = useToast();
 
-  const handleGoogleSignIn = async () => {
-    try {
-      console.log("Starting Google Calendar connection...");
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          redirectTo: `${window.location.origin}/calendar`,
-          skipBrowserRedirect: true
-        }
-      });
-
-      if (error) {
-        console.error("Google auth error:", error);
-        toast({
-          title: "Error connecting to Google Calendar",
-          description: "Please try again or contact support if the issue persists.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      if (data?.url) {
-        const width = 600;
-        const height = 800;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        const newWindow = window.open(
-          data.url,
-          'googleAuthWindow',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-        
-        if (!newWindow) {
-          toast({
-            title: "Popup Blocked",
-            description: "Please allow popups for this site to connect your Google Calendar.",
-            variant: "destructive",
-          });
-        }
-      }
-      
-    } catch (error: any) {
-      console.error("Calendar connection error:", error);
-      toast({
-        title: "Error connecting to Google Calendar",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
-  };
-
   // Update query to depend on provider_token
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events', session?.provider_token],
@@ -128,20 +71,7 @@ const CalendarView = () => {
         toast({
           title: "Google Calendar Access Required",
           description: "Please connect your Google Calendar to view your events.",
-          action: (
-            <Button 
-              variant="outline" 
-              onClick={handleGoogleSignIn}
-              className="flex items-center gap-2"
-            >
-              <img 
-                src="https://www.google.com/favicon.ico" 
-                alt="Google" 
-                className="w-4 h-4"
-              />
-              Connect Calendar
-            </Button>
-          ),
+          variant: "destructive",
         });
         throw new Error('No Google access token available');
       }
@@ -229,19 +159,6 @@ const CalendarView = () => {
                     "Please connect your Google Calendar to view your events" : 
                     "There was an error loading your calendar. Please try again."}
                 </p>
-                {!session?.provider_token && (
-                  <Button 
-                    onClick={handleGoogleSignIn}
-                    className="flex items-center gap-2"
-                  >
-                    <img 
-                      src="https://www.google.com/favicon.ico" 
-                      alt="Google" 
-                      className="w-4 h-4"
-                    />
-                    Connect Google Calendar
-                  </Button>
-                )}
               </div>
             </div>
           ) : (
