@@ -64,16 +64,16 @@ const Index = () => {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-          }
+          },
+          redirectTo: `${window.location.origin}/calendar`
         }
       });
 
       if (error) throw error;
       
-      // If we have a URL, open it in the current window
+      // Open Google's consent page in a new window/tab
       if (data?.url) {
-        // After successful auth, user will be redirected to /calendar
-        window.location.href = data.url;
+        window.open(data.url, '_blank', 'noopener,noreferrer');
       }
       
     } catch (error: any) {
