@@ -36,7 +36,8 @@ const CalendarView = () => {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: `${window.location.origin}/calendar`
+          redirectTo: `${window.location.origin}/calendar`,
+          skipBrowserRedirect: true // This prevents automatic redirect
         }
       });
 
@@ -47,7 +48,14 @@ const CalendarView = () => {
           description: "Please try again or contact support if the issue persists.",
           variant: "destructive",
         });
+        return;
       }
+
+      // If we have the URL, open it in a new tab
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      }
+      
     } catch (error: any) {
       console.error("Calendar connection error:", error);
       toast({
