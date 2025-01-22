@@ -13,33 +13,33 @@ serve(async (req) => {
   }
 
   try {
+    // Get the authorization header
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      console.error('No authorization header provided');
+      throw new Error('Missing authorization header');
+    }
+
+    // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the authorization header and validate it
-    const authHeader = req.headers.get('authorization');
-    if (!authHeader) {
-      console.error('No authorization header provided');
-      throw new Error('No authorization header');
-    }
-
     // Get the JWT token from the Authorization header
     const token = authHeader.replace('Bearer ', '');
-    console.log('Got token from auth header');
-
-    // First verify the JWT is valid
+    
+    // First verify the JWT is valid and get the user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
     if (userError || !user) {
       console.error('Error getting user:', userError);
-      throw new Error('Invalid user token');
+      throw new Error('Invalid authorization token');
     }
 
-    console.log('Successfully verified user token for user:', user.id);
+    console.log('Successfully verified user token for:', user.id);
 
-    // Now get the session to access the provider token
+    // Get the session to access the provider token
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
     
     if (sessionError || !session) {
@@ -86,6 +86,7 @@ serve(async (req) => {
 
       // Transform events to our format
       const events = data.items?.map((event: any) => ({
+        id: event.id,
         title: event.summary || 'Untitled Event',
         description: event.description,
         start_time: event.start.dateTime || event.start.date,
@@ -93,25 +94,6 @@ serve(async (req) => {
         google_event_id: event.id,
         user_id: user.id,
       })) || [];
-
-      // Store events in Supabase
-      if (events.length > 0) {
-        const { error: upsertError } = await supabaseClient
-          .from('calendar_events')
-          .upsert(events, {
-            onConflict: 'google_event_id',
-            ignoreDuplicates: false
-          });
-
-        if (upsertError) {
-          console.error('Error storing events in Supabase:', upsertError);
-          throw upsertError;
-        }
-
-        console.log('Successfully stored events in Supabase');
-      } else {
-        console.log('No events to store');
-      }
 
       return new Response(
         JSON.stringify({ events }),
@@ -125,10 +107,16 @@ serve(async (req) => {
     throw new Error(`Unsupported action: ${action}`);
   } catch (error) {
     console.error('Error in calendar function:', error);
+    
+    // Determine if this is an auth error
+    const isAuthError = error.message.includes('auth') || 
+                       error.message.includes('token') || 
+                       error.message.includes('session');
+    
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: error.message.includes('token') ? 
+        details: isAuthError ? 
           'Please try reconnecting your Google Calendar' : 
           'An error occurred while fetching your calendar events'
       }),
