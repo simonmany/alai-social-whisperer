@@ -87,8 +87,8 @@ const Index = () => {
       }
       
       if (data?.url) {
-        // Instead of directly navigating, open in the same window
-        window.location.href = data.url;
+        // Open in a new tab/window
+        window.open(data.url, '_blank', 'width=800,height=600');
       }
       
     } catch (error: any) {
