@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase-js@2.38.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 serve(async (req) => {
@@ -47,8 +46,6 @@ serve(async (req) => {
       throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
     }
 
-    console.log('Successfully retrieved provider token');
-
     const { action, timeMin, timeMax } = await req.json();
     console.log('Calendar function called with action:', action);
 
@@ -75,7 +72,7 @@ serve(async (req) => {
       const data = await response.json();
       console.log('Retrieved events from Google Calendar:', data.items?.length);
 
-      // Transform and store events in Supabase
+      // Transform events to our format
       const events = data.items?.map((event: any) => ({
         title: event.summary || 'Untitled Event',
         description: event.description,
@@ -89,7 +86,7 @@ serve(async (req) => {
       if (events.length > 0) {
         const { error: upsertError } = await supabaseClient
           .from('calendar_events')
-          .upsert(events, { 
+          .upsert(events, {
             onConflict: 'google_event_id',
             ignoreDuplicates: false
           });
