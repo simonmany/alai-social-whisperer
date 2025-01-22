@@ -34,21 +34,65 @@ const Index = () => {
   const [isGoalsOpen, setIsGoalsOpen] = useState(false);
   const [isContactsOpen, setIsContactsOpen] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
+  const [authWindow, setAuthWindow] = useState<Window | null>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // Clean up auth window on unmount
   useEffect(() => {
+    return () => {
+      if (authWindow) {
+        authWindow.close();
+      }
+    };
+  }, [authWindow]);
+
+  useEffect(() => {
+    console.log('Setting up message listener');
+    
     const handleMessage = async (event: MessageEvent) => {
+      console.log('Received message:', event.data);
+      
+      // Only handle messages from our popup
       if (event.data === 'google-auth-success') {
-        console.log('Received auth success message from popup');
-        navigate('/calendar');
+        console.log('Received auth success message');
+        
+        try {
+          // Get the latest session
+          const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            throw sessionError;
+          }
+
+          if (session) {
+            console.log('Session refreshed successfully');
+            // Close the popup window if it's still open
+            if (authWindow && !authWindow.closed) {
+              authWindow.close();
+            }
+            setAuthWindow(null);
+            setIsConnectingCalendar(false);
+            navigate('/calendar');
+          }
+        } catch (error) {
+          console.error('Error handling auth success:', error);
+          toast({
+            title: "Error connecting to Google Calendar",
+            description: "Please try again",
+            variant: "destructive",
+          });
+        }
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [navigate]);
+    return () => {
+      console.log('Cleaning up message listener');
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [navigate, toast, authWindow]);
 
   const handleSignOut = async () => {
     try {
@@ -86,17 +130,35 @@ const Index = () => {
       });
 
       if (error) {
-        console.error("Google auth error:", error);
-        toast({
-          title: "Error connecting to Google Calendar",
-          description: "Please try again or contact support if the issue persists.",
-          variant: "destructive",
-        });
         throw error;
       }
       
       if (data?.url) {
-        window.location.href = data.url;
+        // Open auth in a popup window
+        const width = 600;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          data.url,
+          'google-auth',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+        
+        if (popup) {
+          setAuthWindow(popup);
+          // Poll for window closure
+          const checkWindow = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(checkWindow);
+              setAuthWindow(null);
+              setIsConnectingCalendar(false);
+            }
+          }, 500);
+        } else {
+          throw new Error('Popup blocked by browser');
+        }
       }
       
     } catch (error: any) {
@@ -106,7 +168,6 @@ const Index = () => {
         description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
-    } finally {
       setIsConnectingCalendar(false);
     }
   };
