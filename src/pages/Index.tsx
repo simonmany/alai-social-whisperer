@@ -46,22 +46,28 @@ const Index = () => {
           const { data: { session: currentSession } } = await supabase.auth.getSession();
           console.log('Current session before refresh:', currentSession);
 
-          const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
+          if (!currentSession) {
+            console.error('No current session found');
+            return;
+          }
+
+          // Instead of refreshing the entire session, just get the updated user
+          const { data: { user }, error } = await supabase.auth.getUser();
           
           if (error) {
-            console.error('Error refreshing session:', error);
+            console.error('Error getting updated user:', error);
             throw error;
           }
 
-          if (!newSession) {
-            console.error('No session after refresh');
-            throw new Error('Failed to refresh session');
+          if (!user) {
+            console.error('No user after update');
+            throw new Error('Failed to get updated user');
           }
 
-          console.log('Session refreshed successfully:', newSession);
-          console.log('Provider token status:', newSession.provider_token ? 'Present' : 'Missing');
-
-          window.location.reload();
+          console.log('User updated successfully:', user);
+          
+          // Instead of reloading, navigate to calendar view
+          navigate('/calendar');
         } catch (error) {
           console.error('Error handling auth success:', error);
           toast({
@@ -75,7 +81,7 @@ const Index = () => {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [toast]);
+  }, [toast, navigate]);
 
   const handleSignOut = async () => {
     try {
