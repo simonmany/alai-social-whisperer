@@ -26,14 +26,25 @@ serve(async (req) => {
       throw new Error('No authorization header');
     }
 
-    // Extract the JWT token from the Authorization header
-    const token = authHeader.replace('Bearer ', '');
+    // Get the JWT token from the Authorization header
+    const accessToken = authHeader.replace('Bearer ', '');
+    console.log('Attempting to get session with access token');
+
+    // Get user data from the access token
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(accessToken);
     
-    // Get the user's session using the JWT token
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
+    if (userError || !user) {
+      console.error('Error getting user:', userError);
+      throw new Error('Invalid user session');
+    }
+
+    console.log('Successfully retrieved user:', user.id);
+
+    // Get the user's session to retrieve provider token
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(accessToken);
     
     if (sessionError || !session) {
-      console.error('Error getting user session:', sessionError);
+      console.error('Error getting session:', sessionError);
       throw new Error('Invalid session');
     }
 
@@ -79,7 +90,7 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
-        user_id: session.user.id,
+        user_id: user.id,
       })) || [];
 
       // Store events in Supabase
