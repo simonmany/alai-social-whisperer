@@ -38,17 +38,14 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Add message listener for Google auth
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       if (event.data === 'google-auth-success') {
         console.log('Received auth success message from popup');
         try {
-          // First, get the current session
           const { data: { session: currentSession } } = await supabase.auth.getSession();
           console.log('Current session before refresh:', currentSession);
 
-          // Then refresh the session
           const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
           
           if (error) {
@@ -64,7 +61,6 @@ const Index = () => {
           console.log('Session refreshed successfully:', newSession);
           console.log('Provider token status:', newSession.provider_token ? 'Present' : 'Missing');
 
-          // Force a full page reload to ensure all states are fresh
           window.location.reload();
         } catch (error) {
           console.error('Error handling auth success:', error);
@@ -107,7 +103,12 @@ const Index = () => {
       setIsConnectingCalendar(true);
       console.log("Starting Google Calendar connection...");
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No active session');
+      }
+
+      const { data, error } = await supabase.auth.linkIdentity({
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
@@ -137,11 +138,9 @@ const Index = () => {
         );
         
         if (authWindow) {
-          // Poll for window closure
           const checkWindow = setInterval(() => {
             if (authWindow.closed) {
               clearInterval(checkWindow);
-              // The message event listener will handle the session refresh
             }
           }, 500);
         }
