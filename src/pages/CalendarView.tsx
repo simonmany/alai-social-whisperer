@@ -51,17 +51,24 @@ const CalendarView = () => {
         return;
       }
 
-      // Open in a new window instead of a new tab
       if (data?.url) {
         const width = 600;
         const height = 800;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
-        window.open(
+        const newWindow = window.open(
           data.url,
           'googleAuthWindow',
-          `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
+          `width=${width},height=${height},left=${left},top=${top}`
         );
+        
+        if (!newWindow) {
+          toast({
+            title: "Popup Blocked",
+            description: "Please allow popups for this site to connect your Google Calendar.",
+            variant: "destructive",
+          });
+        }
       }
       
     } catch (error: any) {
