@@ -4,11 +4,12 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
 
 interface CalendarEvent {
   id: string;
@@ -23,6 +24,21 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Listen for auth state changes from the popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data === 'google-auth-success') {
+        console.log('Received google-auth-success message');
+        // Invalidate and refetch calendar data
+        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [queryClient]);
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events', session?.provider_token],
