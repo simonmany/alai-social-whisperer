@@ -29,24 +29,33 @@ const CalendarView = () => {
     queryFn: async () => {
       const currentSession = session;
       
-      if (!currentSession?.access_token) {
+      if (!currentSession) {
         toast({
           title: "Authentication Error",
           description: "Please sign in again to access your calendar",
           variant: "destructive",
         });
-        throw new Error('No access token available');
+        throw new Error('No session available');
       }
 
-      console.log('Calling calendar function with access token');
+      // Get the current session token for Supabase authentication
+      const { data: { session: currentSupabaseSession } } = await supabase.auth.getSession();
+      if (!currentSupabaseSession) {
+        toast({
+          title: "Session Error",
+          description: "Unable to verify your session. Please sign in again.",
+          variant: "destructive",
+        });
+        throw new Error('No Supabase session available');
+      }
+
+      console.log('Calling calendar function with session token');
       const { data, error } = await supabase.functions.invoke('calendar', {
         body: {
           action: 'list',
           timeMin: new Date().toISOString(),
-          timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
-        },
-        headers: {
-          Authorization: `Bearer ${currentSession.access_token}`
+          timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+          access_token: currentSession.provider_token // Send Google access token in the body
         }
       });
 

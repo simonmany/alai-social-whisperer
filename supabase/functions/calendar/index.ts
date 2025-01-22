@@ -22,76 +22,45 @@ serve(async (req) => {
     );
     console.log('2. Supabase client initialized');
 
-    // Get the authorization header
+    // Get the JWT token from the Authorization header
     const authHeader = req.headers.get('authorization');
-    console.log('3. Auth header:', authHeader); // Added full header logging
-    console.log('3a. All request headers:', Object.fromEntries(req.headers.entries())); // Added all headers logging
-    
     if (!authHeader) {
-      console.error('No authorization header provided');
       throw new Error('Missing authorization header');
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    console.log('4. Token extracted from auth header');
-
-    // First verify the user is authenticated
-    console.log('5. Attempting to get user with token');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    console.log('6. User response received');
-    console.log('   User present:', !!user);
-    console.log('   User error:', userError);
+    // Verify the session
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(
+      authHeader.replace('Bearer ', '')
+    );
 
     if (userError || !user) {
       console.error('Error getting user:', userError);
-      throw new Error('Invalid authentication');
-    }
-
-    console.log('7. Successfully verified user:', user.id);
-
-    // Now get the session to access provider token
-    console.log('8. Getting session data');
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession();
-    console.log('9. Session response received');
-    console.log('   Session present:', !!session);
-    console.log('   Session error:', sessionError);
-
-    if (sessionError || !session) {
-      console.error('Error getting session:', sessionError);
       throw new Error('Invalid session');
     }
 
-    console.log('10. Successfully retrieved session for user:', session.user.id);
+    console.log('3. Successfully verified user:', user.id);
 
-    // Get the provider token from the session
-    const providerToken = session.provider_token;
-    console.log('11. Provider token present:', !!providerToken);
+    // Get request body
+    const { action, timeMin, timeMax, access_token } = await req.json();
     
-    if (!providerToken) {
-      console.error('No provider token found in session');
-      throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
+    if (!access_token) {
+      throw new Error('No Google access token provided');
     }
 
-    console.log('12. Successfully retrieved provider token');
-
-    const { action, timeMin, timeMax } = await req.json();
-    console.log('13. Calendar function called with action:', action);
-    console.log('    Time range:', { timeMin, timeMax });
-
     if (action === 'list') {
-      console.log('14. Fetching events from Google Calendar API');
+      console.log('4. Fetching events from Google Calendar API');
       
       const response = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
         {
           headers: {
-            'Authorization': `Bearer ${providerToken}`,
+            'Authorization': `Bearer ${access_token}`,
             'Content-Type': 'application/json',
           },
         }
       );
 
-      console.log('15. Google Calendar API response status:', response.status);
+      console.log('5. Google Calendar API response status:', response.status);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -100,7 +69,7 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      console.log('16. Retrieved events from Google Calendar:', data.items?.length);
+      console.log('6. Retrieved events from Google Calendar:', data.items?.length);
 
       // Transform events to our format
       const events = data.items?.map((event: any) => ({
@@ -110,10 +79,10 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
-        user_id: session.user.id,
+        user_id: user.id,
       })) || [];
 
-      console.log('17. Successfully transformed events data');
+      console.log('7. Successfully transformed events data');
 
       return new Response(
         JSON.stringify({ events }),
