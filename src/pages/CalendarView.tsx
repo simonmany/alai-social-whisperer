@@ -35,6 +35,7 @@ const CalendarView = () => {
           console.error('Error refreshing session:', error);
         } else {
           console.log('Session refreshed:', newSession);
+          // Force a full page reload to ensure all states are fresh
           window.location.reload();
         }
       }
@@ -71,7 +72,12 @@ const CalendarView = () => {
       }
       
       if (data?.url) {
-        const authWindow = window.open(data.url, '_blank', 'width=800,height=600');
+        // Open auth in a popup window
+        const authWindow = window.open(
+          data.url, 
+          '_blank', 
+          'width=800,height=600'
+        );
         
         if (authWindow) {
           // Poll for window closure
@@ -94,6 +100,7 @@ const CalendarView = () => {
     }
   };
 
+  // Update query to depend on provider_token
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events', session?.provider_token],
     queryFn: async () => {
