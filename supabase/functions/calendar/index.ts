@@ -19,12 +19,28 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { action, timeMin, timeMax, accessToken } = await req.json();
-    
-    if (!accessToken) {
-      throw new Error('No access token provided');
+    // Get the user's session from the request authorization header
+    const authHeader = req.headers.get('authorization')?.split('Bearer ')[1];
+    if (!authHeader) {
+      throw new Error('No authorization header');
     }
 
+    // Get the user's session
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader);
+    if (userError || !user) {
+      throw new Error('Error getting user session');
+    }
+
+    // Get the user's OAuth credentials
+    const { data: { provider_token }, error: providerError } = 
+      await supabaseClient.auth.getSession(authHeader);
+    
+    if (providerError || !provider_token) {
+      console.error('Error getting provider token:', providerError);
+      throw new Error('No access token available');
+    }
+
+    const { action, timeMin, timeMax } = await req.json();
     console.log('Calendar function called with action:', action);
 
     if (action === 'list') {
@@ -32,14 +48,16 @@ serve(async (req) => {
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
         {
           headers: {
-            'Authorization': `Bearer ${accessToken}`,
+            'Authorization': `Bearer ${provider_token}`,
             'Content-Type': 'application/json',
           },
         }
       );
 
       if (!response.ok) {
-        throw new Error(`Google Calendar API error: ${await response.text()}`);
+        const errorText = await response.text();
+        console.error('Google Calendar API error:', errorText);
+        throw new Error(`Google Calendar API error: ${errorText}`);
       }
 
       const data = await response.json();
@@ -52,18 +70,13 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
+        user_id: user.id,
       })) || [];
 
       // Store events in Supabase
       const { error: upsertError } = await supabaseClient
         .from('calendar_events')
-        .upsert(
-          events.map(event => ({
-            ...event,
-            user_id: (req as any).auth?.uid,
-          })),
-          { onConflict: 'google_event_id' }
-        );
+        .upsert(events, { onConflict: 'google_event_id' });
 
       if (upsertError) {
         console.error('Error storing events in Supabase:', upsertError);

@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useAuth } from "@/components/AuthProvider";
 
 interface CalendarEvent {
   id: string;
@@ -19,10 +20,15 @@ interface CalendarEvent {
 
 const CalendarView = () => {
   const navigate = useNavigate();
+  const { session } = useAuth();
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events'],
     queryFn: async () => {
+      if (!session?.access_token) {
+        throw new Error('No access token available');
+      }
+
       const { data, error } = await supabase.functions.invoke('calendar', {
         body: {
           action: 'list',
@@ -37,7 +43,8 @@ const CalendarView = () => {
       }
 
       return data?.events || [];
-    }
+    },
+    enabled: !!session?.access_token
   });
 
   const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
