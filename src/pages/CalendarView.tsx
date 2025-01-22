@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAuth } from "@/components/AuthProvider";
+import { useToast } from "@/hooks/use-toast";
 
 interface CalendarEvent {
   id: string;
@@ -21,14 +22,24 @@ interface CalendarEvent {
 const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
+  const { toast } = useToast();
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events'],
     queryFn: async () => {
-      if (!session?.access_token) {
+      // Get the current session token
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession?.access_token) {
+        toast({
+          title: "Authentication Error",
+          description: "Please sign in again to access your calendar",
+          variant: "destructive",
+        });
         throw new Error('No access token available');
       }
 
+      console.log('Calling calendar function with access token');
       const { data, error } = await supabase.functions.invoke('calendar', {
         body: {
           action: 'list',
@@ -36,18 +47,23 @@ const CalendarView = () => {
           timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days from now
         },
         headers: {
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: `Bearer ${currentSession.access_token}`
         }
       });
 
       if (error) {
         console.error('Error fetching calendar events:', error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch calendar events. Please try signing out and back in.",
+          variant: "destructive",
+        });
         throw error;
       }
 
       return data?.events || [];
     },
-    enabled: !!session?.access_token
+    enabled: !!session
   });
 
   const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
@@ -74,7 +90,7 @@ const CalendarView = () => {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <h2 className="text-lg font-semibold text-red-600">Error loading calendar</h2>
-          <p className="text-sm text-gray-600">Please try again later</p>
+          <p className="text-sm text-gray-600">Please try signing out and back in</p>
           <Button onClick={() => navigate("/")} className="mt-4">
             Go Back
           </Button>
