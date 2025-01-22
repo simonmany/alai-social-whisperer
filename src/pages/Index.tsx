@@ -42,20 +42,44 @@ const Index = () => {
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       if (event.data === 'google-auth-success') {
-        console.log('Received auth success message, refreshing session');
-        const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
-        if (error) {
-          console.error('Error refreshing session:', error);
-        } else {
-          console.log('Session refreshed:', newSession);
+        console.log('Received auth success message from popup');
+        try {
+          // First, get the current session
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          console.log('Current session before refresh:', currentSession);
+
+          // Then refresh the session
+          const { data: { session: newSession }, error } = await supabase.auth.refreshSession();
+          
+          if (error) {
+            console.error('Error refreshing session:', error);
+            throw error;
+          }
+
+          if (!newSession) {
+            console.error('No session after refresh');
+            throw new Error('Failed to refresh session');
+          }
+
+          console.log('Session refreshed successfully:', newSession);
+          console.log('Provider token status:', newSession.provider_token ? 'Present' : 'Missing');
+
+          // Force a full page reload to ensure all states are fresh
           window.location.reload();
+        } catch (error) {
+          console.error('Error handling auth success:', error);
+          toast({
+            title: "Error Connecting Calendar",
+            description: "Please try again or contact support if the issue persists.",
+            variant: "destructive",
+          });
         }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [toast]);
 
   const handleSignOut = async () => {
     try {
@@ -106,14 +130,18 @@ const Index = () => {
       }
       
       if (data?.url) {
-        const authWindow = window.open(data.url, '_blank', 'width=800,height=600');
+        const authWindow = window.open(
+          data.url, 
+          '_blank', 
+          'width=800,height=600'
+        );
         
         if (authWindow) {
           // Poll for window closure
           const checkWindow = setInterval(() => {
             if (authWindow.closed) {
               clearInterval(checkWindow);
-              // The message event listener will handle the refresh
+              // The message event listener will handle the session refresh
             }
           }, 500);
         }
