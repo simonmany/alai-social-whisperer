@@ -52,24 +52,6 @@ const Index = () => {
     }
   };
 
-  const handleSend = async (content: string) => {
-    setMessages((prev) => [...prev, { content, isAl: false }]);
-    setIsLoading(true);
-
-    try {
-      const response = await generateChatResponse(content);
-      setMessages((prev) => [...prev, { content: response, isAl: true }]);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate response. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleGoogleSignIn = async () => {
     try {
       setIsConnectingCalendar(true);
@@ -90,6 +72,7 @@ const Index = () => {
       if (error) throw error;
       
       if (data?.url) {
+        // Redirect to Google's consent page directly
         window.location.href = data.url;
       }
       
@@ -101,6 +84,24 @@ const Index = () => {
         variant: "destructive",
       });
       setIsConnectingCalendar(false);
+    }
+  };
+
+  const handleSend = async (content: string) => {
+    setMessages((prev) => [...prev, { content, isAl: false }]);
+    setIsLoading(true);
+
+    try {
+      const response = await generateChatResponse(content);
+      setMessages((prev) => [...prev, { content: response, isAl: true }]);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to generate response. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
