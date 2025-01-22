@@ -28,21 +28,24 @@ serve(async (req) => {
 
     // Get the JWT token from the Authorization header
     const token = authHeader.replace('Bearer ', '');
+    console.log('Attempting to get session with token');
 
-    // Get the session directly instead of getting user first
-    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
+    // Get the user session
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
     
-    if (sessionError || !session) {
-      console.error('Error getting session:', sessionError);
+    if (userError || !user) {
+      console.error('Error getting user:', userError);
       throw new Error('Invalid session');
     }
 
-    console.log('Successfully retrieved session');
+    console.log('Successfully retrieved user:', user.id);
 
-    // Get the provider token from the session
-    const providerToken = session.provider_token;
-    if (!providerToken) {
-      console.error('No provider token found in session');
+    // Get the provider token
+    const { data: { provider_token }, error: providerError } = 
+      await supabaseClient.auth.getSession(token);
+
+    if (providerError || !provider_token) {
+      console.error('Error getting provider token:', providerError);
       throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
     }
 
@@ -59,7 +62,7 @@ serve(async (req) => {
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
         {
           headers: {
-            'Authorization': `Bearer ${providerToken}`,
+            'Authorization': `Bearer ${provider_token}`,
             'Content-Type': 'application/json',
           },
         }
@@ -82,7 +85,7 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
-        user_id: session.user.id,
+        user_id: user.id,
       })) || [];
 
       return new Response(
@@ -112,7 +115,7 @@ serve(async (req) => {
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500,
+        status: isAuthError ? 401 : 500,
       }
     );
   }
