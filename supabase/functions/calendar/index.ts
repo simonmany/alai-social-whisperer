@@ -27,19 +27,16 @@ serve(async (req) => {
     }
 
     // Get the user's session
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader);
-    if (userError || !user) {
-      console.error('Error getting user session:', userError);
+    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession(authHeader);
+    if (sessionError || !sessionData.session) {
+      console.error('Error getting user session:', sessionError);
       throw new Error('Error getting user session');
     }
 
-    // Get the user's OAuth credentials
-    const { data: { provider_token }, error: providerError } = 
-      await supabaseClient.auth.getSession(authHeader);
-    
-    if (providerError || !provider_token) {
-      console.error('Error getting provider token:', providerError);
-      throw new Error('No access token available');
+    const { user, provider_token } = sessionData.session;
+    if (!provider_token) {
+      console.error('No provider token found in session');
+      throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
     }
 
     console.log('Successfully retrieved provider token');
@@ -81,19 +78,23 @@ serve(async (req) => {
       })) || [];
 
       // Store events in Supabase
-      const { error: upsertError } = await supabaseClient
-        .from('calendar_events')
-        .upsert(events, { 
-          onConflict: 'google_event_id',
-          ignoreDuplicates: false
-        });
+      if (events.length > 0) {
+        const { error: upsertError } = await supabaseClient
+          .from('calendar_events')
+          .upsert(events, { 
+            onConflict: 'google_event_id',
+            ignoreDuplicates: false
+          });
 
-      if (upsertError) {
-        console.error('Error storing events in Supabase:', upsertError);
-        throw upsertError;
+        if (upsertError) {
+          console.error('Error storing events in Supabase:', upsertError);
+          throw upsertError;
+        }
+
+        console.log('Successfully stored events in Supabase');
+      } else {
+        console.log('No events to store');
       }
-
-      console.log('Successfully stored events in Supabase');
 
       return new Response(
         JSON.stringify({ events }),
@@ -108,7 +109,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in calendar function:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'If this is a token error, please try reconnecting your Google Calendar'
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500,
