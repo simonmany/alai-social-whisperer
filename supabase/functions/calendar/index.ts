@@ -28,18 +28,8 @@ serve(async (req) => {
 
     // Get the JWT token from the Authorization header
     const token = authHeader.replace('Bearer ', '');
-    
-    // First verify the JWT is valid and get the user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-    
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      throw new Error('Invalid authorization token');
-    }
 
-    console.log('Successfully verified user token for:', user.id);
-
-    // Get the session to access the provider token
+    // Get the session directly instead of getting user first
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
     
     if (sessionError || !session) {
@@ -92,7 +82,7 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
-        user_id: user.id,
+        user_id: session.user.id,
       })) || [];
 
       return new Response(

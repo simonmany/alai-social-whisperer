@@ -27,8 +27,7 @@ const CalendarView = () => {
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events'],
     queryFn: async () => {
-      // Get the current session token
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const currentSession = session;
       
       if (!currentSession?.access_token) {
         toast({
