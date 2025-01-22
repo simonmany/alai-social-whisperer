@@ -13,48 +13,59 @@ serve(async (req) => {
   }
 
   try {
+    console.log('1. Starting calendar function execution');
+
     // Initialize Supabase client
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
+    console.log('2. Supabase client initialized');
 
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
+    console.log('3. Auth header present:', !!authHeader);
+    
     if (!authHeader) {
       console.error('No authorization header provided');
       throw new Error('Missing authorization header');
     }
 
     const token = authHeader.replace('Bearer ', '');
-    console.log('Getting user session with access token');
+    console.log('4. Token extracted from auth header');
 
     // Get the user session which includes the provider token
+    console.log('5. Attempting to get session with token');
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
+    console.log('6. Session response received');
+    console.log('   Session present:', !!session);
+    console.log('   Session error:', sessionError);
     
     if (sessionError || !session) {
       console.error('Error getting session:', sessionError);
       throw new Error('Invalid session');
     }
 
-    console.log('Successfully retrieved session for user:', session.user.id);
+    console.log('7. Successfully retrieved session for user:', session.user.id);
 
     // Get the provider token directly from the session
     const providerToken = session.provider_token;
+    console.log('8. Provider token present:', !!providerToken);
+    
     if (!providerToken) {
       console.error('No provider token found in session');
       throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
     }
 
-    console.log('Successfully retrieved provider token');
+    console.log('9. Successfully retrieved provider token');
 
     const { action, timeMin, timeMax } = await req.json();
-    console.log('Calendar function called with action:', action);
+    console.log('10. Calendar function called with action:', action);
+    console.log('    Time range:', { timeMin, timeMax });
 
     if (action === 'list') {
-      console.log('Fetching events from Google Calendar API');
-      console.log('Time range:', { timeMin, timeMax });
-
+      console.log('11. Fetching events from Google Calendar API');
+      
       const response = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
         {
@@ -65,6 +76,8 @@ serve(async (req) => {
         }
       );
 
+      console.log('12. Google Calendar API response status:', response.status);
+      
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Google Calendar API error:', errorText);
@@ -72,7 +85,7 @@ serve(async (req) => {
       }
 
       const data = await response.json();
-      console.log('Retrieved events from Google Calendar:', data.items?.length);
+      console.log('13. Retrieved events from Google Calendar:', data.items?.length);
 
       // Transform events to our format
       const events = data.items?.map((event: any) => ({
@@ -84,6 +97,8 @@ serve(async (req) => {
         google_event_id: event.id,
         user_id: session.user.id,
       })) || [];
+
+      console.log('14. Successfully transformed events data');
 
       return new Response(
         JSON.stringify({ events }),
