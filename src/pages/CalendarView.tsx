@@ -60,7 +60,7 @@ const CalendarView = () => {
         window.open(
           data.url,
           'googleAuthWindow',
-          `width=${width},height=${height},left=${left},top=${top}`
+          `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no`
         );
       }
       
