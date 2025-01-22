@@ -24,7 +24,8 @@ serve(async (req) => {
 
     // Get the authorization header
     const authHeader = req.headers.get('authorization');
-    console.log('3. Auth header present:', !!authHeader);
+    console.log('3. Auth header:', authHeader); // Added full header logging
+    console.log('3a. All request headers:', Object.fromEntries(req.headers.entries())); // Added all headers logging
     
     if (!authHeader) {
       console.error('No authorization header provided');
