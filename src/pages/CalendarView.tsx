@@ -24,61 +24,43 @@ const CalendarView = () => {
   const { session } = useAuth();
   const { toast } = useToast();
 
-  // Update query to depend on provider_token
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events', session?.provider_token],
     queryFn: async () => {
-      const currentSession = session;
-      
-      if (!currentSession) {
-        toast({
-          title: "Authentication Error",
-          description: "Please sign in again to access your calendar",
-          variant: "destructive",
-        });
+      if (!session) {
         throw new Error('No session available');
       }
 
-      // Check if we have a provider token
-      if (!currentSession.provider_token) {
-        // Check if user has previously connected Google Calendar
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError) {
-          console.error("Error getting user:", userError);
-          throw userError;
-        }
-
-        // If user has Google linked but no provider token, try to refresh the session
-        if (user?.app_metadata?.provider === 'google') {
-          console.log("Attempting to refresh session to get provider token...");
-          const { data: { session: refreshedSession }, error: refreshError } = 
-            await supabase.auth.refreshSession();
-          
-          if (refreshError) {
-            console.error("Error refreshing session:", refreshError);
-            throw refreshError;
-          }
-
-          // If we got a provider token after refresh, use it
-          if (refreshedSession?.provider_token) {
-            console.log("Successfully refreshed provider token");
-            return fetchCalendarEvents(refreshedSession.provider_token);
-          }
-        }
-
-        // If we still don't have a token, prompt to connect
-        toast({
-          title: "Google Calendar Access Required",
-          description: "Please connect your Google Calendar to view your events.",
-          variant: "destructive",
-        });
-        throw new Error('No Google access token available');
+      // If we have a provider token, use it directly
+      if (session.provider_token) {
+        return fetchCalendarEvents(session.provider_token);
       }
 
-      return fetchCalendarEvents(currentSession.provider_token);
+      // If no provider token but user is authenticated with Google
+      if (session.user?.app_metadata?.provider === 'google') {
+        const { data: { session: refreshedSession }, error: refreshError } = 
+          await supabase.auth.refreshSession();
+        
+        if (refreshError) {
+          console.error("Error refreshing session:", refreshError);
+          throw refreshError;
+        }
+
+        if (refreshedSession?.provider_token) {
+          return fetchCalendarEvents(refreshedSession.provider_token);
+        }
+      }
+
+      // If still no provider token, inform user to connect
+      toast({
+        title: "Google Calendar Access Required",
+        description: "Please connect your Google Calendar to view your events.",
+        variant: "destructive",
+      });
+      throw new Error('No Google access token available');
     },
-    enabled: !!session
+    enabled: !!session,
+    retry: false
   });
 
   // Separate function to fetch calendar events
