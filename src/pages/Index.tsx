@@ -40,29 +40,21 @@ const Index = () => {
 
   const handleSignOut = async () => {
     try {
-      // First, try to get the current session
       const { data: { session } } = await supabase.auth.getSession();
       
-      // If there's no session, just redirect to auth page
       if (!session) {
         navigate("/auth");
         return;
       }
 
-      // If there is a session, try to sign out
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Sign out error:", error);
-        // Even if there's an error, redirect to auth page
-        navigate("/auth");
-        return;
       }
-
-      // Successful sign out
+      
       navigate("/auth");
     } catch (error: any) {
       console.error("Sign out error:", error);
-      // If anything goes wrong, still redirect to auth page
       navigate("/auth");
     }
   };
@@ -86,11 +78,16 @@ const Index = () => {
 
       if (error) {
         console.error("Google auth error:", error);
+        toast({
+          title: "Error connecting to Google Calendar",
+          description: "Please try again or contact support if the issue persists.",
+          variant: "destructive",
+        });
         throw error;
       }
       
-      // Open Google's consent page in a new window/tab
       if (data?.url) {
+        // Instead of directly navigating, open in the same window
         window.location.href = data.url;
       }
       
@@ -98,7 +95,7 @@ const Index = () => {
       console.error("Calendar connection error:", error);
       toast({
         title: "Error connecting to Google Calendar",
-        description: error.message,
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
