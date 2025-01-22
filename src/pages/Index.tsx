@@ -43,30 +43,15 @@ const Index = () => {
       if (event.data === 'google-auth-success') {
         console.log('Received auth success message from popup');
         try {
-          const { data: { session: currentSession } } = await supabase.auth.getSession();
-          console.log('Current session before refresh:', currentSession);
+          const { data: { session } } = await supabase.auth.getSession();
+          console.log('Current session before refresh:', session);
 
-          if (!currentSession) {
+          if (!session) {
             console.error('No current session found');
             return;
           }
 
-          // Instead of refreshing the entire session, just get the updated user
-          const { data: { user }, error } = await supabase.auth.getUser();
-          
-          if (error) {
-            console.error('Error getting updated user:', error);
-            throw error;
-          }
-
-          if (!user) {
-            console.error('No user after update');
-            throw new Error('Failed to get updated user');
-          }
-
-          console.log('User updated successfully:', user);
-          
-          // Instead of reloading, navigate to calendar view
+          // Navigate to calendar view after successful connection
           navigate('/calendar');
         } catch (error) {
           console.error('Error handling auth success:', error);
@@ -109,12 +94,7 @@ const Index = () => {
       setIsConnectingCalendar(true);
       console.log("Starting Google Calendar connection...");
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No active session');
-      }
-
-      const { data, error } = await supabase.auth.linkIdentity({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
