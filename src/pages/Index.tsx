@@ -83,15 +83,13 @@ const Index = () => {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/calendar`
         }
       });
 
       if (error) throw error;
       
-      // The OAuth flow will redirect the user to Google's consent page
       if (data?.url) {
-        // Open in the same window since popup might be blocked
         window.location.href = data.url;
       }
       
