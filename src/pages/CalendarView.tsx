@@ -51,7 +51,16 @@ const CalendarView = () => {
       }
       
       if (data?.url) {
-        window.open(data.url, '_blank', 'width=800,height=600');
+        // Open in a new window and reload the current page when it closes
+        const authWindow = window.open(data.url, '_blank', 'width=800,height=600');
+        
+        // Check periodically if the window has been closed
+        const checkWindow = setInterval(() => {
+          if (authWindow?.closed) {
+            clearInterval(checkWindow);
+            window.location.reload(); // Reload to get fresh session
+          }
+        }, 500);
       }
       
     } catch (error: any) {
@@ -65,7 +74,7 @@ const CalendarView = () => {
   };
 
   const { data: events = [], isLoading, error } = useQuery({
-    queryKey: ['calendar-events'],
+    queryKey: ['calendar-events', session?.provider_token],
     queryFn: async () => {
       const currentSession = session;
       
@@ -78,8 +87,9 @@ const CalendarView = () => {
         throw new Error('No session available');
       }
 
+      console.log("Provider token status:", currentSession.provider_token ? "Present" : "Missing");
+
       if (!currentSession.provider_token) {
-        // Instead of showing an error toast, show a more helpful message
         toast({
           title: "Google Calendar Access Required",
           description: "Please connect your Google Calendar to view your events.",
@@ -148,9 +158,26 @@ const CalendarView = () => {
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h2 className="text-lg font-semibold text-red-600">Error loading calendar</h2>
-          <p className="text-sm text-gray-600">Please try signing out and back in</p>
+        <div className="text-center space-y-4">
+          <h2 className="text-lg font-semibold text-red-600">Unable to load calendar</h2>
+          <p className="text-sm text-gray-600">
+            {!session?.provider_token ? 
+              "Please connect your Google Calendar to view your events" : 
+              "There was an error loading your calendar. Please try again."}
+          </p>
+          {!session?.provider_token && (
+            <Button 
+              onClick={handleGoogleSignIn}
+              className="flex items-center gap-2"
+            >
+              <img 
+                src="https://www.google.com/favicon.ico" 
+                alt="Google" 
+                className="w-4 h-4"
+              />
+              Connect Google Calendar
+            </Button>
+          )}
           <Button onClick={() => navigate("/")} className="mt-4">
             Go Back
           </Button>
