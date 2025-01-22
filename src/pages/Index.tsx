@@ -40,15 +40,30 @@ const Index = () => {
 
   const handleSignOut = async () => {
     try {
+      // First, try to get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // If there's no session, just redirect to auth page
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+
+      // If there is a session, try to sign out
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error("Sign out error:", error);
+        // Even if there's an error, redirect to auth page
+        navigate("/auth");
+        return;
+      }
+
+      // Successful sign out
       navigate("/auth");
     } catch (error: any) {
-      toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("Sign out error:", error);
+      // If anything goes wrong, still redirect to auth page
+      navigate("/auth");
     }
   };
 
