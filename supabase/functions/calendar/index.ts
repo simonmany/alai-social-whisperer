@@ -22,12 +22,14 @@ serve(async (req) => {
     // Get the user's session from the request authorization header
     const authHeader = req.headers.get('authorization')?.split('Bearer ')[1];
     if (!authHeader) {
+      console.error('No authorization header provided');
       throw new Error('No authorization header');
     }
 
     // Get the user's session
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(authHeader);
     if (userError || !user) {
+      console.error('Error getting user session:', userError);
       throw new Error('Error getting user session');
     }
 
@@ -40,10 +42,15 @@ serve(async (req) => {
       throw new Error('No access token available');
     }
 
+    console.log('Successfully retrieved provider token');
+
     const { action, timeMin, timeMax } = await req.json();
     console.log('Calendar function called with action:', action);
 
     if (action === 'list') {
+      console.log('Fetching events from Google Calendar API');
+      console.log('Time range:', { timeMin, timeMax });
+
       const response = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
         {
@@ -65,7 +72,7 @@ serve(async (req) => {
 
       // Transform and store events in Supabase
       const events = data.items?.map((event: any) => ({
-        title: event.summary,
+        title: event.summary || 'Untitled Event',
         description: event.description,
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
@@ -76,12 +83,17 @@ serve(async (req) => {
       // Store events in Supabase
       const { error: upsertError } = await supabaseClient
         .from('calendar_events')
-        .upsert(events, { onConflict: 'google_event_id' });
+        .upsert(events, { 
+          onConflict: 'google_event_id',
+          ignoreDuplicates: false
+        });
 
       if (upsertError) {
         console.error('Error storing events in Supabase:', upsertError);
         throw upsertError;
       }
+
+      console.log('Successfully stored events in Supabase');
 
       return new Response(
         JSON.stringify({ events }),
