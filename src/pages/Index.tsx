@@ -42,46 +42,25 @@ const Index = () => {
     const handleMessage = async (event: MessageEvent) => {
       if (event.data === 'google-auth-success') {
         console.log('Received auth success message from popup');
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          console.log('Current session before refresh:', session);
-
-          if (!session) {
-            console.error('No current session found');
-            return;
-          }
-
-          // Navigate to calendar view after successful connection
-          navigate('/calendar');
-        } catch (error) {
-          console.error('Error handling auth success:', error);
-          toast({
-            title: "Error Connecting Calendar",
-            description: "Please try again or contact support if the issue persists.",
-            variant: "destructive",
-          });
-        }
+        navigate('/calendar');
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [toast, navigate]);
+  }, [navigate]);
 
   const handleSignOut = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate("/auth");
-        return;
-      }
-
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Sign out error:", error);
+        toast({
+          title: "Error signing out",
+          description: "Please try again",
+          variant: "destructive",
+        });
       }
-      
       navigate("/auth");
     } catch (error: any) {
       console.error("Sign out error:", error);
@@ -117,19 +96,7 @@ const Index = () => {
       }
       
       if (data?.url) {
-        const authWindow = window.open(
-          data.url, 
-          '_blank', 
-          'width=800,height=600'
-        );
-        
-        if (authWindow) {
-          const checkWindow = setInterval(() => {
-            if (authWindow.closed) {
-              clearInterval(checkWindow);
-            }
-          }, 500);
-        }
+        window.location.href = data.url;
       }
       
     } catch (error: any) {
