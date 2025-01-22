@@ -27,27 +27,20 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace('Bearer ', '');
-    console.log('Getting user with access token');
+    console.log('Getting user session with access token');
 
-    // Get the user first
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    // Get the user session which includes the provider token
+    const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
     
-    if (userError || !user) {
-      console.error('Error getting user:', userError);
-      throw new Error('Invalid user session');
-    }
-
-    console.log('Successfully retrieved user:', user.id);
-
-    // Now get the session data to access the provider token
-    const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
-    
-    if (sessionError) {
+    if (sessionError || !session) {
       console.error('Error getting session:', sessionError);
-      throw new Error('Failed to get session data');
+      throw new Error('Invalid session');
     }
 
-    const providerToken = sessionData?.session?.provider_token;
+    console.log('Successfully retrieved session for user:', session.user.id);
+
+    // Get the provider token directly from the session
+    const providerToken = session.provider_token;
     if (!providerToken) {
       console.error('No provider token found in session');
       throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
@@ -89,7 +82,7 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
-        user_id: user.id,
+        user_id: session.user.id,
       })) || [];
 
       return new Response(
