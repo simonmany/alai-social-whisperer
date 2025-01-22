@@ -24,6 +24,46 @@ const CalendarView = () => {
   const { session } = useAuth();
   const { toast } = useToast();
 
+  const handleGoogleSignIn = async () => {
+    try {
+      console.log("Starting Google Calendar connection...");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          redirectTo: `${window.location.origin}/calendar`
+        }
+      });
+
+      if (error) {
+        console.error("Google auth error:", error);
+        toast({
+          title: "Error connecting to Google Calendar",
+          description: "Please try again or contact support if the issue persists.",
+          variant: "destructive",
+        });
+        throw error;
+      }
+      
+      if (data?.url) {
+        window.open(data.url, '_blank', 'width=800,height=600');
+      }
+      
+    } catch (error: any) {
+      console.error("Calendar connection error:", error);
+      toast({
+        title: "Error connecting to Google Calendar",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events'],
     queryFn: async () => {
@@ -39,10 +79,24 @@ const CalendarView = () => {
       }
 
       if (!currentSession.provider_token) {
+        // Instead of showing an error toast, show a more helpful message
         toast({
-          title: "Google Calendar Access Error",
-          description: "Unable to access your Google Calendar. Please sign out and sign in again.",
-          variant: "destructive",
+          title: "Google Calendar Access Required",
+          description: "Please connect your Google Calendar to view your events.",
+          action: (
+            <Button 
+              variant="outline" 
+              onClick={handleGoogleSignIn}
+              className="flex items-center gap-2"
+            >
+              <img 
+                src="https://www.google.com/favicon.ico" 
+                alt="Google" 
+                className="w-4 h-4"
+              />
+              Connect Calendar
+            </Button>
+          ),
         });
         throw new Error('No Google access token available');
       }
@@ -129,6 +183,30 @@ const CalendarView = () => {
           {isLoading ? (
             <div className="flex items-center justify-center flex-1">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center flex-1 p-4">
+              <div className="text-center space-y-4">
+                <h3 className="text-lg font-semibold text-red-600">Unable to load calendar</h3>
+                <p className="text-sm text-gray-600">
+                  {!session?.provider_token ? 
+                    "Please connect your Google Calendar to view your events" : 
+                    "There was an error loading your calendar. Please try again."}
+                </p>
+                {!session?.provider_token && (
+                  <Button 
+                    onClick={handleGoogleSignIn}
+                    className="flex items-center gap-2"
+                  >
+                    <img 
+                      src="https://www.google.com/favicon.ico" 
+                      alt="Google" 
+                      className="w-4 h-4"
+                    />
+                    Connect Google Calendar
+                  </Button>
+                )}
+              </div>
             </div>
           ) : (
             <Tabs defaultValue="day" className="flex-1">
