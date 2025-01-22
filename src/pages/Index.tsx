@@ -69,11 +69,14 @@ const Index = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Google auth error:", error);
+        throw error;
+      }
       
       // Open Google's consent page in a new window/tab
       if (data?.url) {
-        window.open(data.url, '_blank', 'noopener,noreferrer');
+        window.location.href = data.url;
       }
       
     } catch (error: any) {
