@@ -38,7 +38,10 @@ export const MainNavigation = ({
 
   const handleGoogleCalendarConnect = async () => {
     try {
-      console.log("Starting Google Calendar connection...");
+      console.log("[Calendar] Starting Google Calendar connection flow...");
+      
+      const { data: session } = await supabase.auth.getSession();
+      console.log("[Calendar] Current session status:", session ? "Has session" : "No session");
       
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -53,7 +56,7 @@ export const MainNavigation = ({
       });
 
       if (error) {
-        console.error("Google auth error:", error);
+        console.error("[Calendar] Google auth error:", error);
         toast({
           title: "Error connecting to Google Calendar",
           description: "Please try again or contact support if the issue persists.",
@@ -62,11 +65,15 @@ export const MainNavigation = ({
         return;
       }
 
+      console.log("[Calendar] Auth URL generated:", data?.url ? "Yes" : "No");
+
       if (data?.url) {
         const width = 600;
         const height = 800;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        console.log("[Calendar] Opening auth popup...");
         const newWindow = window.open(
           data.url,
           'googleAuthWindow',
@@ -74,16 +81,19 @@ export const MainNavigation = ({
         );
         
         if (!newWindow) {
+          console.error("[Calendar] Popup blocked by browser");
           toast({
             title: "Popup Blocked",
             description: "Please allow popups for this site to connect your Google Calendar.",
             variant: "destructive",
           });
+        } else {
+          console.log("[Calendar] Auth popup opened successfully");
         }
       }
       
     } catch (error: any) {
-      console.error("Calendar connection error:", error);
+      console.error("[Calendar] Calendar connection error:", error);
       toast({
         title: "Error connecting to Google Calendar",
         description: error.message || "An unexpected error occurred",

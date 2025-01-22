@@ -26,32 +26,48 @@ const CalendarView = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  console.log("[CalendarView] Component mounted");
+  console.log("[CalendarView] Current session:", session ? "Present" : "Not present");
+  console.log("[CalendarView] Provider token:", session?.provider_token ? "Present" : "Not present");
+
   // Listen for auth state changes from the popup
   useEffect(() => {
+    console.log("[CalendarView] Setting up message listener");
+    
     const handleMessage = (event: MessageEvent) => {
+      console.log("[CalendarView] Received message:", event.data);
+      
       if (event.data === 'google-auth-success') {
-        console.log('Received google-auth-success message');
-        // Invalidate and refetch calendar data
+        console.log('[CalendarView] Received google-auth-success message');
+        console.log('[CalendarView] Invalidating calendar events query');
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
+    return () => {
+      console.log("[CalendarView] Cleaning up message listener");
+      window.removeEventListener('message', handleMessage);
+    };
   }, [queryClient]);
 
   const { data: events = [], isLoading, error } = useQuery({
     queryKey: ['calendar-events', session?.provider_token],
     queryFn: async () => {
+      console.log("[CalendarView] Starting calendar events fetch");
+      
       if (!session) {
+        console.log("[CalendarView] No session available, cannot fetch events");
         throw new Error('No session available');
       }
 
       // If we have a provider token, use it directly
       if (session.provider_token) {
+        console.log("[CalendarView] Provider token found, fetching calendar events");
         return fetchCalendarEvents(session.provider_token);
       }
 
+      console.log("[CalendarView] No provider token available");
       // If no provider token, inform user to connect
       toast({
         title: "Google Calendar Access Required",
@@ -66,7 +82,7 @@ const CalendarView = () => {
 
   // Separate function to fetch calendar events
   const fetchCalendarEvents = async (provider_token: string) => {
-    console.log('Calling calendar function with provider token');
+    console.log('[CalendarView] Calling calendar function with provider token');
     const { data, error } = await supabase.functions.invoke('calendar', {
       body: {
         action: 'list',
@@ -77,7 +93,7 @@ const CalendarView = () => {
     });
 
     if (error) {
-      console.error('Error fetching calendar events:', error);
+      console.error('[CalendarView] Error fetching calendar events:', error);
       toast({
         title: "Error",
         description: "Failed to fetch calendar events. Please try signing out and back in.",
@@ -86,6 +102,7 @@ const CalendarView = () => {
       throw error;
     }
 
+    console.log('[CalendarView] Successfully fetched events:', data?.events?.length || 0);
     return data?.events || [];
   };
 
