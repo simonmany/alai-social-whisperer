@@ -27,9 +27,19 @@ serve(async (req) => {
 
     // Get the JWT token from the Authorization header
     const token = authHeader.replace('Bearer ', '');
-    console.log('Attempting to get user session with token');
+    console.log('Got token from auth header');
 
-    // Get the user's session using the JWT token
+    // First verify the JWT is valid
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+    
+    if (userError || !user) {
+      console.error('Error getting user:', userError);
+      throw new Error('Invalid user token');
+    }
+
+    console.log('Successfully verified user token for user:', user.id);
+
+    // Now get the session to access the provider token
     const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession(token);
     
     if (sessionError || !session) {
@@ -37,7 +47,7 @@ serve(async (req) => {
       throw new Error('Invalid session');
     }
 
-    console.log('Successfully retrieved session for user:', session.user.id);
+    console.log('Successfully retrieved session');
 
     // Get the provider token from the session
     const providerToken = session.provider_token;
@@ -45,6 +55,8 @@ serve(async (req) => {
       console.error('No provider token found in session');
       throw new Error('No Google OAuth token available. Please reconnect your Google Calendar.');
     }
+
+    console.log('Successfully retrieved provider token');
 
     const { action, timeMin, timeMax } = await req.json();
     console.log('Calendar function called with action:', action);
@@ -79,7 +91,7 @@ serve(async (req) => {
         start_time: event.start.dateTime || event.start.date,
         end_time: event.end.dateTime || event.end.date,
         google_event_id: event.id,
-        user_id: session.user.id,
+        user_id: user.id,
       })) || [];
 
       // Store events in Supabase
@@ -116,7 +128,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message,
-        details: 'If this is a token error, please try reconnecting your Google Calendar'
+        details: error.message.includes('token') ? 
+          'Please try reconnecting your Google Calendar' : 
+          'An error occurred while fetching your calendar events'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
