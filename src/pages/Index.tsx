@@ -40,19 +40,8 @@ const Index = () => {
 
   const handleSignOut = async () => {
     try {
-      // First try to sign out normally
       const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        // If we get a 403 or session_not_found error, force navigate to auth
-        if (error.message.includes('403') || error.message.includes('session_not_found')) {
-          navigate('/auth');
-          return;
-        }
-        // For other errors, show the error message
-        throw error;
-      }
-      
+      if (error) throw error;
       navigate("/auth");
     } catch (error: any) {
       toast({
@@ -60,8 +49,6 @@ const Index = () => {
         description: error.message,
         variant: "destructive",
       });
-      // If there's any error, still try to navigate to auth page
-      navigate("/auth");
     }
   };
 
