@@ -49,6 +49,21 @@ export const GoogleCalendarAuth = () => {
     try {
       console.log("[Calendar] Starting Google Calendar connection flow...");
       
+      // First, create the popup window
+      const width = 600;
+      const height = 800;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+      
+      const popup = window.open('', 'google-auth', features);
+      if (!popup) {
+        throw new Error("Failed to open popup window. Please allow popups for this site.");
+      }
+
+      // Show loading message in popup
+      popup.document.write('<html><head><title>Connecting to Google Calendar...</title></head><body style="display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: sans-serif;"><div>Connecting to Google Calendar...</div></body></html>');
+      
       const { data: session } = await supabase.auth.getSession();
       console.log("[Calendar] Current session status:", session ? "Has session" : "No session");
       
@@ -66,17 +81,16 @@ export const GoogleCalendarAuth = () => {
 
       if (error) {
         console.error("[Calendar] Google auth error:", error);
+        popup.close();
         throw error;
       }
 
       if (data?.url) {
-        // Open the OAuth URL directly in a new window
-        const width = 600;
-        const height = 800;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
-        window.open(data.url, 'google-auth', features);
+        // Navigate the popup to the OAuth URL
+        popup.location.href = data.url;
+      } else {
+        popup.close();
+        throw new Error("No OAuth URL received");
       }
     } catch (error: any) {
       console.error("[Calendar] Calendar connection error:", error);
