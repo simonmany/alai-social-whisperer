@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      activities: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           created_at: string | null
@@ -48,6 +69,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          current_interests: Json | null
+          desired_interests: Json | null
           display_name: string | null
           goals: Json | null
           google_access_token: string | null
@@ -62,6 +85,8 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          current_interests?: Json | null
+          desired_interests?: Json | null
           display_name?: string | null
           goals?: Json | null
           google_access_token?: string | null
@@ -76,6 +101,8 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          current_interests?: Json | null
+          desired_interests?: Json | null
           display_name?: string | null
           goals?: Json | null
           google_access_token?: string | null

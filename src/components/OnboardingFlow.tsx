@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage } from "@/components/ChatMessage";
 import { PersonalityQuiz } from "@/components/PersonalityQuiz";
+import { InterestSelector } from "@/components/InterestSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
@@ -21,6 +22,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showInput, setShowInput] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
   const [showPersonalityQuiz, setShowPersonalityQuiz] = useState(false);
+  const [showCurrentInterests, setShowCurrentInterests] = useState(false);
+  const [showDesiredInterests, setShowDesiredInterests] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const { session } = useAuth();
   const { toast } = useToast();
@@ -147,7 +150,69 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     try {
       await supabase
         .from('profiles')
-        .update({ onboarding_completed: true })
+        .update({ 
+          personality_traits: traits,
+          personality_comments: comments 
+        })
+        .eq('id', session?.user.id);
+
+      setMessages(prev => [...prev, {
+        content: "Thanks for sharing! Now, let's talk about interests. What do you like to do for fun?",
+        isAl: true
+      }]);
+      
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          content: "Enter at least 3 activities.",
+          isAl: true
+        }]);
+        setShowCurrentInterests(true);
+      }, 1000);
+
+    } catch (error) {
+      toast({
+        title: "Error saving personality data",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCurrentInterestsComplete = async (interests: string[]) => {
+    setShowCurrentInterests(false);
+    
+    try {
+      await supabase
+        .from('profiles')
+        .update({ current_interests: interests })
+        .eq('id', session?.user.id);
+
+      setMessages(prev => [...prev, {
+        content: `That's a cool set of hobbies! Now, what is something you'd like to get into that you haven't done yet?`,
+        isAl: true
+      }]);
+      
+      setShowDesiredInterests(true);
+
+    } catch (error) {
+      toast({
+        title: "Error saving interests",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDesiredInterestsComplete = async (interests: string[]) => {
+    setShowDesiredInterests(false);
+    
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          desired_interests: interests,
+          onboarding_completed: true 
+        })
         .eq('id', session?.user.id);
 
       setMessages(prev => [...prev, {
@@ -156,6 +221,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       }]);
 
       setTimeout(onComplete, 2000);
+
     } catch (error) {
       toast({
         title: "Error completing onboarding",
@@ -210,6 +276,22 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       {showPersonalityQuiz && (
         <PersonalityQuiz onComplete={handlePersonalityComplete} />
+      )}
+
+      {showCurrentInterests && (
+        <InterestSelector
+          onComplete={handleCurrentInterestsComplete}
+          placeholder="Type to search activities..."
+          minSelections={3}
+        />
+      )}
+
+      {showDesiredInterests && (
+        <InterestSelector
+          onComplete={handleDesiredInterestsComplete}
+          placeholder="Type to search new activities..."
+          minSelections={1}
+        />
       )}
     </div>
   );
