@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateChatResponse } from "@/utils/openai";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MainNavigation } from "@/components/MainNavigation";
 import { ChatContainer } from "@/components/ChatContainer";
+import { OnboardingFlow } from "@/components/OnboardingFlow";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
+import { useAuth } from "@/components/AuthProvider";
 
 interface Message {
   content: string;
@@ -30,9 +32,33 @@ const Index = () => {
   const [isGoalsOpen, setIsGoalsOpen] = useState(false);
   const [isContactsOpen, setIsContactsOpen] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAuth();
+
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!session?.user.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) throw error;
+
+        setShowOnboarding(!data.onboarding_completed);
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [session?.user.id]);
 
   const handleGoogleSignIn = async () => {
     try {
@@ -119,12 +145,16 @@ const Index = () => {
           onGoogleSignIn={handleGoogleSignIn}
         />
         
-        <ChatContainer
-          messages={messages}
-          isLoading={isLoading}
-          onSend={handleSend}
-          onSuggestedPrompt={handleSuggestedPrompt}
-        />
+        {showOnboarding ? (
+          <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+        ) : (
+          <ChatContainer
+            messages={messages}
+            isLoading={isLoading}
+            onSend={handleSend}
+            onSuggestedPrompt={handleSuggestedPrompt}
+          />
+        )}
       </div>
 
       <Profile open={isProfileOpen} onOpenChange={setIsProfileOpen} />

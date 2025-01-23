@@ -48,19 +48,37 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          display_name: string | null
+          goals: Json | null
+          google_access_token: string | null
+          google_refresh_token: string | null
+          google_token_expires_at: string | null
           id: string
+          onboarding_completed: boolean | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
           avatar_url?: string | null
+          display_name?: string | null
+          goals?: Json | null
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
           id: string
+          onboarding_completed?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
           avatar_url?: string | null
+          display_name?: string | null
+          goals?: Json | null
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
           id?: string
+          onboarding_completed?: boolean | null
           updated_at?: string | null
           username?: string | null
         }
