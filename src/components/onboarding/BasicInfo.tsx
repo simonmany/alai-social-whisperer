@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage } from "@/components/ChatMessage";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ export const BasicInfo = ({ session, onComplete }: BasicInfoProps) => {
   const [showInput, setShowInput] = useState(false);
   const { toast } = useToast();
 
-  useState(() => {
+  useEffect(() => {
     const timer1 = setTimeout(() => {
       setMessages([{ content: "Welcome to Alai - your social intelligence.", isAl: true }]);
     }, 500);

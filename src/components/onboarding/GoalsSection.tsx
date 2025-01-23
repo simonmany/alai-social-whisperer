@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
 import { supabase } from "@/integrations/supabase/client";
