@@ -55,6 +55,8 @@ export type Database = {
           google_token_expires_at: string | null
           id: string
           onboarding_completed: boolean | null
+          personality_comments: string[] | null
+          personality_traits: Json | null
           updated_at: string | null
           username: string | null
         }
@@ -67,6 +69,8 @@ export type Database = {
           google_token_expires_at?: string | null
           id: string
           onboarding_completed?: boolean | null
+          personality_comments?: string[] | null
+          personality_traits?: Json | null
           updated_at?: string | null
           username?: string | null
         }
@@ -79,6 +83,8 @@ export type Database = {
           google_token_expires_at?: string | null
           id?: string
           onboarding_completed?: boolean | null
+          personality_comments?: string[] | null
+          personality_traits?: Json | null
           updated_at?: string | null
           username?: string | null
         }

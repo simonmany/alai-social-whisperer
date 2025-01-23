@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage } from "@/components/ChatMessage";
+import { PersonalityQuiz } from "@/components/PersonalityQuiz";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
@@ -19,6 +20,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [showInput, setShowInput] = useState(false);
   const [showGoals, setShowGoals] = useState(false);
+  const [showPersonalityQuiz, setShowPersonalityQuiz] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
   const { session } = useAuth();
   const { toast } = useToast();
@@ -112,24 +114,51 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     try {
       await supabase
         .from('profiles')
-        .update({ 
-          goals: selectedGoals,
-          onboarding_completed: true 
-        })
+        .update({ goals: selectedGoals })
         .eq('id', session?.user.id);
 
       setShowGoals(false);
       
       const goalsList = selectedGoals.join(", ");
       setMessages(prev => [...prev, {
-        content: `I can definitely help you ${goalsList.toLowerCase()}! Let's get started.`,
+        content: `Great choices! I can definitely help you ${goalsList.toLowerCase()}!`,
+        isAl: true
+      }]);
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          content: "Now, I'd like to understand your personality better. Let's do a quick quiz!",
+          isAl: true
+        }]);
+        setShowPersonalityQuiz(true);
+      }, 1500);
+    } catch (error) {
+      toast({
+        title: "Error saving goals",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePersonalityComplete = async (traits: Record<string, number>, comments: string[]) => {
+    setShowPersonalityQuiz(false);
+    
+    try {
+      await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', session?.user.id);
+
+      setMessages(prev => [...prev, {
+        content: "Thanks for sharing! I'll keep all of this in mind to help you achieve your social goals.",
         isAl: true
       }]);
 
       setTimeout(onComplete, 2000);
     } catch (error) {
       toast({
-        title: "Error saving goals",
+        title: "Error completing onboarding",
         description: "Please try again",
         variant: "destructive",
       });
@@ -177,6 +206,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             Continue
           </Button>
         </div>
+      )}
+
+      {showPersonalityQuiz && (
+        <PersonalityQuiz onComplete={handlePersonalityComplete} />
       )}
     </div>
   );
