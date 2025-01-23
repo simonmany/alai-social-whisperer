@@ -49,12 +49,6 @@ export const GoogleCalendarAuth = () => {
     try {
       console.log("[Calendar] Starting Google Calendar connection flow...");
       
-      // Open popup window immediately
-      const popup = window.open('about:blank', 'google-auth', 'width=600,height=800');
-      if (!popup) {
-        throw new Error("Failed to open popup window. Please allow popups for this site.");
-      }
-
       const { data: session } = await supabase.auth.getSession();
       console.log("[Calendar] Current session status:", session ? "Has session" : "No session");
       
@@ -72,13 +66,17 @@ export const GoogleCalendarAuth = () => {
 
       if (error) {
         console.error("[Calendar] Google auth error:", error);
-        popup.close();
         throw error;
       }
 
       if (data?.url) {
-        // Navigate the popup to the OAuth URL
-        popup.location.href = data.url;
+        // Open the OAuth URL directly in a new window
+        const width = 600;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`;
+        window.open(data.url, 'google-auth', features);
       }
     } catch (error: any) {
       console.error("[Calendar] Calendar connection error:", error);
