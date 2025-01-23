@@ -70,20 +70,29 @@ export const GoogleCalendarAuth = () => {
       }
 
       if (data?.url) {
+        // Calculate popup dimensions and position
         const width = 600;
         const height = 800;
         const left = window.screenX + (window.outerWidth - width) / 2;
         const top = window.screenY + (window.outerHeight - height) / 2;
         
-        const newWindow = window.open(
+        const popup = window.open(
           data.url,
           'googleAuthWindow',
-          `width=${width},height=${height},left=${left},top=${top}`
+          `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no,status=no`
         );
         
-        if (!newWindow) {
-          throw new Error("Popup blocked by browser");
+        if (!popup) {
+          throw new Error("Popup was blocked. Please allow popups for this site.");
         }
+
+        // Keep checking if the popup is closed
+        const checkPopup = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkPopup);
+            console.log("[Calendar] Auth popup was closed");
+          }
+        }, 1000);
       }
     } catch (error: any) {
       console.error("[Calendar] Calendar connection error:", error);
