@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage } from "@/components/ChatMessage";
 import { PersonalityQuiz } from "@/components/PersonalityQuiz";
 import { InterestSelector } from "@/components/InterestSelector";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
@@ -216,6 +218,184 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .eq('id', session?.user.id);
 
       setMessages(prev => [...prev, {
+        content: "Now for some details.",
+        isAl: true
+      }]);
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          content: "How old are you?",
+          isAl: true
+        }]);
+        setShowAge(true);
+      }, 1000);
+
+    } catch (error) {
+      toast({
+        title: "Error saving interests",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAgeSubmit = async (age: string) => {
+    const ageNum = parseInt(age);
+    if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+      toast({
+        title: "Invalid age",
+        description: "Please enter a valid age between 13 and 120",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setMessages(prev => [...prev, { content: age, isAl: false }]);
+    setShowAge(false);
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ age: ageNum })
+        .eq('id', session?.user.id);
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          content: "Where do you live?",
+          isAl: true
+        }]);
+        setShowCity(true);
+      }, 500);
+    } catch (error) {
+      toast({
+        title: "Error saving age",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCitySubmit = async (city: string) => {
+    setMessages(prev => [...prev, { content: city, isAl: false }]);
+    setShowCity(false);
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ city })
+        .eq('id', session?.user.id);
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          content: "What languages do you speak?",
+          isAl: true
+        }]);
+        setShowLanguages(true);
+      }, 500);
+    } catch (error) {
+      toast({
+        title: "Error saving city",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLanguagesComplete = async (languages: string[]) => {
+    setMessages(prev => [...prev, { 
+      content: languages.join(", "), 
+      isAl: false 
+    }]);
+    setShowLanguages(false);
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ languages })
+        .eq('id', session?.user.id);
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          content: "What's your relationship status?",
+          isAl: true
+        }]);
+        setShowRelationship(true);
+      }, 500);
+    } catch (error) {
+      toast({
+        title: "Error saving languages",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRelationshipSubmit = async (status: string) => {
+    setMessages(prev => [...prev, { content: status, isAl: false }]);
+    setShowRelationship(false);
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ relationship_status: status })
+        .eq('id', session?.user.id);
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          content: "What's your gender?",
+          isAl: true
+        }]);
+        setShowGender(true);
+      }, 500);
+    } catch (error) {
+      toast({
+        title: "Error saving relationship status",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGenderSubmit = async (gender: string) => {
+    setMessages(prev => [...prev, { content: gender, isAl: false }]);
+    setShowGender(false);
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ gender })
+        .eq('id', session?.user.id);
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, {
+          content: "What do you do for work?",
+          isAl: true
+        }]);
+        setShowOccupation(true);
+      }, 500);
+    } catch (error) {
+      toast({
+        title: "Error saving gender",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOccupationSubmit = async (occupation: string) => {
+    setMessages(prev => [...prev, { content: occupation, isAl: false }]);
+    setShowOccupation(false);
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          occupation,
+          onboarding_completed: true 
+        })
+        .eq('id', session?.user.id);
+
+      setMessages(prev => [...prev, {
         content: "Thanks for sharing! I'll keep all of this in mind to help you achieve your social goals.",
         isAl: true
       }]);
@@ -291,6 +471,66 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           onComplete={handleDesiredInterestsComplete}
           placeholder="Type to search new activities..."
           minSelections={1}
+        />
+      )}
+
+      {showAge && (
+        <ChatInput
+          onSend={handleAgeSubmit}
+          placeholder="Enter your age..."
+          type="number"
+        />
+      )}
+
+      {showCity && (
+        <ChatInput
+          onSend={handleCitySubmit}
+          placeholder="Enter your city..."
+        />
+      )}
+
+      {showLanguages && (
+        <LanguageSelector onComplete={handleLanguagesComplete} />
+      )}
+
+      {showRelationship && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {["Single", "Cuffed", "It's complicated"].map((status) => (
+              <Button
+                key={status}
+                variant="outline"
+                onClick={() => handleRelationshipSubmit(status)}
+                className="transition-colors"
+              >
+                {status}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showGender && (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {["Male", "Female", "Non-Binary"].map((gender) => (
+              <Button
+                key={gender}
+                variant="outline"
+                onClick={() => handleGenderSubmit(gender)}
+                className="transition-colors"
+              >
+                {gender}
+              </Button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showOccupation && (
+        <ChatInput
+          onSend={handleOccupationSubmit}
+          placeholder="What do you do for work?"
         />
       )}
     </div>

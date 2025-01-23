@@ -66,52 +66,88 @@ export type Database = {
         }
         Relationships: []
       }
+      languages: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          age: number | null
           avatar_url: string | null
+          city: string | null
           current_interests: Json | null
           desired_interests: Json | null
           display_name: string | null
+          gender: string | null
           goals: Json | null
           google_access_token: string | null
           google_refresh_token: string | null
           google_token_expires_at: string | null
           id: string
+          languages: Json | null
+          occupation: string | null
           onboarding_completed: boolean | null
           personality_comments: string[] | null
           personality_traits: Json | null
+          relationship_status: string | null
           updated_at: string | null
           username: string | null
         }
         Insert: {
+          age?: number | null
           avatar_url?: string | null
+          city?: string | null
           current_interests?: Json | null
           desired_interests?: Json | null
           display_name?: string | null
+          gender?: string | null
           goals?: Json | null
           google_access_token?: string | null
           google_refresh_token?: string | null
           google_token_expires_at?: string | null
           id: string
+          languages?: Json | null
+          occupation?: string | null
           onboarding_completed?: boolean | null
           personality_comments?: string[] | null
           personality_traits?: Json | null
+          relationship_status?: string | null
           updated_at?: string | null
           username?: string | null
         }
         Update: {
+          age?: number | null
           avatar_url?: string | null
+          city?: string | null
           current_interests?: Json | null
           desired_interests?: Json | null
           display_name?: string | null
+          gender?: string | null
           goals?: Json | null
           google_access_token?: string | null
           google_refresh_token?: string | null
           google_token_expires_at?: string | null
           id?: string
+          languages?: Json | null
+          occupation?: string | null
           onboarding_completed?: boolean | null
           personality_comments?: string[] | null
           personality_traits?: Json | null
+          relationship_status?: string | null
           updated_at?: string | null
           username?: string | null
         }
