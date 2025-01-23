@@ -14,11 +14,26 @@ const Auth = () => {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const validatePassword = (password: string) => {
+    if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      return false;
+    }
+    setPasswordError("");
+    return true;
+  };
+
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validatePassword(password)) {
+      return;
+    }
+    
     setLoading(true);
     
     try {
@@ -149,15 +164,23 @@ const Auth = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                   />
-                  <Input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <div className="space-y-1">
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        validatePassword(e.target.value);
+                      }}
+                      required
+                    />
+                    {passwordError && (
+                      <p className="text-sm text-red-500">{passwordError}</p>
+                    )}
+                  </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full" disabled={loading || !!passwordError}>
                   {loading ? "Signing up..." : "Sign Up"}
                 </Button>
               </form>
