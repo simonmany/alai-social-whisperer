@@ -49,23 +49,6 @@ export const GoogleCalendarAuth = () => {
     try {
       console.log("[Calendar] Starting Google Calendar connection flow...");
       
-      // Calculate popup dimensions and position
-      const width = 600;
-      const height = 800;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      
-      // Open the popup window first
-      const popup = window.open(
-        'about:blank',
-        'googleAuthWindow',
-        `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,location=no,status=no`
-      );
-      
-      if (!popup) {
-        throw new Error("Popup was blocked. Please allow popups for this site.");
-      }
-
       const { data: session } = await supabase.auth.getSession();
       console.log("[Calendar] Current session status:", session ? "Has session" : "No session");
       
@@ -77,27 +60,18 @@ export const GoogleCalendarAuth = () => {
             access_type: 'offline',
             prompt: 'consent',
           },
-          skipBrowserRedirect: true
+          redirectTo: `${window.location.origin}/calendar`
         }
       });
 
       if (error) {
         console.error("[Calendar] Google auth error:", error);
-        popup.close();
         throw error;
       }
 
       if (data?.url) {
-        // Navigate the popup to the OAuth URL
-        popup.location.href = data.url;
-        
-        // Keep checking if the popup is closed
-        const checkPopup = setInterval(() => {
-          if (popup.closed) {
-            clearInterval(checkPopup);
-            console.log("[Calendar] Auth popup was closed");
-          }
-        }, 1000);
+        // Redirect to the OAuth URL in the same window
+        window.location.href = data.url;
       }
     } catch (error: any) {
       console.error("[Calendar] Calendar connection error:", error);
