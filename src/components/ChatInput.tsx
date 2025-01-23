@@ -6,9 +6,14 @@ import { SendHorizontal } from "lucide-react";
 interface ChatInputProps {
   onSend: (message: string) => void;
   placeholder?: string;
+  type?: string;
 }
 
-export const ChatInput = ({ onSend, placeholder = "... or tell me what's on your mind!" }: ChatInputProps) => {
+export const ChatInput = ({ 
+  onSend, 
+  placeholder = "... or tell me what's on your mind!",
+  type = "text"
+}: ChatInputProps) => {
   const [message, setMessage] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -22,6 +27,7 @@ export const ChatInput = ({ onSend, placeholder = "... or tell me what's on your
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
       <Input
+        type={type}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder={placeholder}

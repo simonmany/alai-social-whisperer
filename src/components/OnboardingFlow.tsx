@@ -27,6 +27,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showCurrentInterests, setShowCurrentInterests] = useState(false);
   const [showDesiredInterests, setShowDesiredInterests] = useState(false);
   const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  // Add new state variables for demographic fields
+  const [showAge, setShowAge] = useState(false);
+  const [showCity, setShowCity] = useState(false);
+  const [showLanguages, setShowLanguages] = useState(false);
+  const [showRelationship, setShowRelationship] = useState(false);
+  const [showGender, setShowGender] = useState(false);
+  const [showOccupation, setShowOccupation] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
