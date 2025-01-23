@@ -38,18 +38,53 @@ serve(async (req) => {
 
     const { action, timeMin, timeMax, access_token } = await req.json();
     
-    if (!access_token) {
-      throw new Error('No Google access token provided');
-    }
+    if (action === 'store_tokens') {
+      console.log('4. Storing Google tokens');
+      const { tokens } = await req.json();
+      
+      const { error: updateError } = await supabaseClient
+        .from('profiles')
+        .update({
+          google_access_token: tokens.access_token,
+          google_refresh_token: tokens.refresh_token,
+          google_token_expires_at: tokens.expires_at
+        })
+        .eq('id', user.id);
 
+      if (updateError) {
+        throw updateError;
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     if (action === 'list') {
       console.log('4. Fetching events from Google Calendar API');
+      
+      // If no access token provided, try to get it from the profile
+      let finalAccessToken = access_token;
+      if (!finalAccessToken) {
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('google_access_token')
+          .eq('id', user.id)
+          .single();
+          
+        if (!profile?.google_access_token) {
+          throw new Error('No Google access token available');
+        }
+        
+        finalAccessToken = profile.google_access_token;
+      }
       
       const response = await fetch(
         `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`,
         {
           headers: {
-            'Authorization': `Bearer ${access_token}`,
+            'Authorization': `Bearer ${finalAccessToken}`,
             'Content-Type': 'application/json',
           },
         }
@@ -66,21 +101,18 @@ serve(async (req) => {
       const data = await response.json();
       console.log('6. Retrieved events from Google Calendar:', data.items?.length);
 
-      // Send success message to parent window
-      if (typeof window !== 'undefined') {
-        window.opener?.postMessage('google-auth-success', window.location.origin);
-      }
-
       return new Response(
-        JSON.stringify({ events: data.items?.map((event: any) => ({
-          id: event.id,
-          title: event.summary || 'Untitled Event',
-          description: event.description,
-          start_time: event.start.dateTime || event.start.date,
-          end_time: event.end.dateTime || event.end.date,
-          google_event_id: event.id,
-          user_id: user.id,
-        })) || [] }),
+        JSON.stringify({ 
+          events: data.items?.map((event: any) => ({
+            id: event.id,
+            title: event.summary || 'Untitled Event',
+            description: event.description,
+            start_time: event.start.dateTime || event.start.date,
+            end_time: event.end.dateTime || event.end.date,
+            google_event_id: event.id,
+            user_id: user.id,
+          })) || [] 
+        }),
         { 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
