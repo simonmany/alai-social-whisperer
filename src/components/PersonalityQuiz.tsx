@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
-import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -46,7 +45,7 @@ interface PersonalityQuizProps {
 
 export const PersonalityQuiz = ({ onComplete }: PersonalityQuizProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [sliderValue, setSliderValue] = useState(50);
+  const [selectedValue, setSelectedValue] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const [traits, setTraits] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<string[]>([]);
@@ -54,15 +53,24 @@ export const PersonalityQuiz = ({ onComplete }: PersonalityQuizProps) => {
   const { toast } = useToast();
 
   const handleNext = async () => {
+    if (selectedValue === null) {
+      toast({
+        title: "Please select an option",
+        description: "Choose where you fall on the spectrum",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const question = questions[currentQuestion];
-    const updatedTraits = { ...traits, [question.id]: sliderValue };
+    const updatedTraits = { ...traits, [question.id]: selectedValue };
     const updatedComments = comment ? [...comments, comment] : comments;
 
     if (currentQuestion < questions.length - 1) {
       setTraits(updatedTraits);
       setComments(updatedComments);
       setCurrentQuestion(prev => prev + 1);
-      setSliderValue(50);
+      setSelectedValue(null);
       setComment("");
     } else {
       try {
@@ -85,6 +93,24 @@ export const PersonalityQuiz = ({ onComplete }: PersonalityQuizProps) => {
     }
   };
 
+  const getButtonStyle = (value: number) => {
+    const isSelected = selectedValue === value;
+    const gradientColors = {
+      20: "#ea384c",
+      40: "#FEC6A1",
+      60: "#7E69AB",
+      80: "#33C3F0",
+      100: "#0EA5E9",
+    };
+    
+    return {
+      background: gradientColors[value as keyof typeof gradientColors],
+      opacity: isSelected ? 1 : 0.7,
+      transform: isSelected ? "scale(1.05)" : "scale(1)",
+      transition: "all 0.2s ease-in-out",
+    };
+  };
+
   const currentQ = questions[currentQuestion];
   const progress = ((currentQuestion + 1) / questions.length) * 100;
 
@@ -104,13 +130,19 @@ export const PersonalityQuiz = ({ onComplete }: PersonalityQuizProps) => {
               <span>{currentQ.leftLabel}</span>
               <span>{currentQ.rightLabel}</span>
             </div>
-            <Slider
-              value={[sliderValue]}
-              onValueChange={(value) => setSliderValue(value[0])}
-              max={100}
-              step={1}
-              className="w-full"
-            />
+            <div className="flex justify-between gap-2">
+              {[20, 40, 60, 80, 100].map((value) => (
+                <Button
+                  key={value}
+                  variant="outline"
+                  className="flex-1 h-12 transition-all"
+                  style={getButtonStyle(value)}
+                  onClick={() => setSelectedValue(value)}
+                >
+                  {value / 20}
+                </Button>
+              ))}
+            </div>
           </div>
           <ChatInput
             onSend={setComment}
