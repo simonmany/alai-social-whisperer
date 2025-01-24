@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MessageCircle, Settings, Share2, Target, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProfileProps {
   open: boolean;
@@ -10,6 +12,24 @@ interface ProfileProps {
 }
 
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
+  // Fetch user profile data
+  const { data: profileData } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return profile;
+    }
+  });
+
   const goals = [
     { type: "Connection", timeframe: "tomorrow", description: "catch up with Sean" },
     { type: "Activity", timeframe: "this week", description: "try a boxing class" },
@@ -34,15 +54,17 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           {/* Profile Info */}
           <div className="flex flex-col items-center space-y-2">
             <Avatar className="h-16 w-16">
-              <AvatarImage src="https://images.unsplash.com/photo-1649972904349-6e44c42644a7" />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarImage src={profileData?.avatar_url} />
+              <AvatarFallback>
+                {profileData?.display_name?.charAt(0) || 'U'}
+              </AvatarFallback>
             </Avatar>
             <div className="text-center">
-              <h2 className="text-lg font-semibold">Jane Doe</h2>
+              <h2 className="text-lg font-semibold">{profileData?.display_name || 'User'}</h2>
               <div className="flex gap-2 text-xs text-muted-foreground">
-                <span>@janedoe</span>
+                <span>@{profileData?.username || 'user'}</span>
                 <span>•</span>
-                <span>San Francisco</span>
+                <span>{profileData?.city || 'Location not set'}</span>
               </div>
             </div>
             <div className="flex gap-2">
