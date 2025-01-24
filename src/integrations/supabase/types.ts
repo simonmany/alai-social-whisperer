@@ -66,6 +66,30 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_history: {
+        Row: {
+          created_at: string
+          id: string
+          is_ai: boolean
+          message: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_ai?: boolean
+          message: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_ai?: boolean
+          message?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       languages: {
         Row: {
           created_at: string

@@ -2,8 +2,15 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const generateChatResponse = async (message: string) => {
   try {
+    const session = await supabase.auth.getSession();
+    const userId = session.data.session?.user.id;
+
+    if (!userId) {
+      throw new Error("User not authenticated");
+    }
+
     const { data, error } = await supabase.functions.invoke('chat', {
-      body: { message }
+      body: { message, userId }
     });
 
     if (error) {

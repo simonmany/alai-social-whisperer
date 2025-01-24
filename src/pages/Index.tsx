@@ -22,9 +22,7 @@ interface Message {
 const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
 
 const Index = () => {
-  const [messages, setMessages] = useState<Message[]>([
-    { content: WELCOME_MESSAGE, isAl: true },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
@@ -37,6 +35,38 @@ const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { session } = useAuth();
+
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!session?.user.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('chat_history')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        const historyMessages = data.map(msg => ({
+          content: msg.message,
+          isAl: msg.is_ai
+        }));
+
+        setMessages(historyMessages.length > 0 ? historyMessages : [{ content: WELCOME_MESSAGE, isAl: true }]);
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+        toast({
+          title: "Error loading chat history",
+          description: "Please try refreshing the page",
+          variant: "destructive",
+        });
+      }
+    };
+
+    loadChatHistory();
+  }, [session?.user.id, toast]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
