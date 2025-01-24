@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
   session: Session | null;
@@ -22,6 +23,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const updateProfileWithGoogleData = async (user: any) => {
     if (user?.app_metadata?.provider === 'google') {
@@ -36,6 +38,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const handleSessionError = (error: any) => {
+    console.error("Session error:", error);
+    setSession(null);
+    setLoading(false);
+    navigate("/auth");
+    toast({
+      title: "Session Error",
+      description: "Please sign in again",
+      variant: "destructive",
+    });
+  };
+
   useEffect(() => {
     console.log("Setting up auth subscriptions");
 
@@ -45,30 +59,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          console.error("Error getting initial session:", sessionError);
-          toast({
-            title: "Session Error",
-            description: "There was a problem with your session. Please sign in again.",
-            variant: "destructive",
-          });
-          // Clear the session on error
-          setSession(null);
-        } else {
-          console.log("Initial session check:", initialSession ? "Session exists" : "No session");
-          if (initialSession?.user) {
-            await updateProfileWithGoogleData(initialSession.user);
-          }
+          handleSessionError(sessionError);
+          return;
+        }
+
+        console.log("Initial session check:", initialSession ? "Session exists" : "No session");
+        if (initialSession?.user) {
+          await updateProfileWithGoogleData(initialSession.user);
           setSession(initialSession);
         }
       } catch (error) {
-        console.error("Unexpected error during auth initialization:", error);
-        toast({
-          title: "Authentication Error",
-          description: "There was an unexpected problem. Please try signing in again.",
-          variant: "destructive",
-        });
-        // Clear the session on error
-        setSession(null);
+        handleSessionError(error);
       } finally {
         setLoading(false);
       }
@@ -93,9 +94,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           title: "Signed in successfully",
           description: "Welcome back!",
         });
+        navigate("/");
       } else if (event === 'SIGNED_OUT') {
         console.log("User signed out, clearing session");
         setSession(null);
+        navigate("/auth");
         toast({
           title: "Signed out",
           description: "You have been signed out successfully.",
@@ -119,7 +122,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Cleaning up auth subscriptions");
       subscription.unsubscribe();
     };
-  }, [toast]);
+  }, [toast, navigate]);
 
   return (
     <AuthContext.Provider value={{ session, loading }}>
