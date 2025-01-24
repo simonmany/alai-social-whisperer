@@ -248,3 +248,5 @@ const CalendarView = () => {
     </Sheet>
   );
 };
+
+export default CalendarView;
