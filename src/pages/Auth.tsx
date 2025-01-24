@@ -47,6 +47,26 @@ const Auth = () => {
         },
       });
 
+      // If we get a 400 error with "User already registered", attempt to sign in
+      if (error?.status === 400 && error.message?.includes("already registered")) {
+        console.log("User already exists, attempting sign in");
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (signInError) {
+          throw signInError;
+        }
+
+        toast({
+          title: "Welcome back!",
+          description: "You've been signed in with your existing account.",
+        });
+        navigate("/");
+        return;
+      }
+
       if (error) throw error;
 
       setShowEmailConfirmation(true);
