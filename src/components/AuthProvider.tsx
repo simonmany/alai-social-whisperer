@@ -23,6 +23,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const updateProfileWithGoogleData = async (user: any) => {
+    if (user?.app_metadata?.provider === 'google') {
+      const { user_metadata } = user;
+      await supabase
+        .from('profiles')
+        .update({
+          avatar_url: user_metadata.avatar_url,
+          display_name: user_metadata.full_name,
+        })
+        .eq('id', user.id);
+    }
+  };
+
   useEffect(() => {
     console.log("Setting up auth subscriptions");
 
@@ -42,6 +55,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setSession(null);
         } else {
           console.log("Initial session check:", initialSession ? "Session exists" : "No session");
+          if (initialSession?.user) {
+            await updateProfileWithGoogleData(initialSession.user);
+          }
           setSession(initialSession);
         }
       } catch (error) {
@@ -69,6 +85,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (event === 'SIGNED_IN') {
         console.log("User signed in, updating session");
+        if (currentSession?.user) {
+          await updateProfileWithGoogleData(currentSession.user);
+        }
         setSession(currentSession);
         toast({
           title: "Signed in successfully",
@@ -86,6 +105,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setSession(currentSession);
       } else if (event === 'USER_UPDATED') {
         console.log("User updated, updating session");
+        if (currentSession?.user) {
+          await updateProfileWithGoogleData(currentSession.user);
+        }
         setSession(currentSession);
       }
 

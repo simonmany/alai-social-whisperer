@@ -43,6 +43,7 @@ const Auth = () => {
         options: {
           data: {
             username,
+            avatar_url: null, // Initialize avatar_url as null
           },
         },
       });
@@ -56,13 +57,25 @@ const Auth = () => {
 
         if (isUserExists) {
           console.log("User already exists, attempting sign in");
-          const { error: signInError } = await supabase.auth.signInWithPassword({
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
 
           if (signInError) {
             throw signInError;
+          }
+
+          // After successful sign in, update the profile with Google data if available
+          if (signInData.user?.app_metadata?.provider === 'google') {
+            const { user_metadata } = signInData.user;
+            await supabase
+              .from('profiles')
+              .update({
+                avatar_url: user_metadata.avatar_url,
+                display_name: user_metadata.full_name,
+              })
+              .eq('id', signInData.user.id);
           }
 
           toast({
@@ -101,7 +114,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -112,6 +125,18 @@ const Auth = () => {
           throw new Error("Please confirm your email before signing in. Check your inbox for the confirmation link.");
         }
         throw error;
+      }
+
+      // After successful sign in, update the profile with Google data if available
+      if (data.user?.app_metadata?.provider === 'google') {
+        const { user_metadata } = data.user;
+        await supabase
+          .from('profiles')
+          .update({
+            avatar_url: user_metadata.avatar_url,
+            display_name: user_metadata.full_name,
+          })
+          .eq('id', data.user.id);
       }
       
       navigate("/");
