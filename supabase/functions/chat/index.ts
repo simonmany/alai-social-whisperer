@@ -44,10 +44,13 @@ serve(async (req) => {
       .eq('id', userId)
       .single();
 
+    // Fetch upcoming calendar events for the next 30 days
     const { data: events } = await supabase
       .from('calendar_events')
       .select('*')
       .eq('user_id', userId)
+      .gte('start_time', new Date().toISOString())
+      .lte('start_time', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
       .order('start_time', { ascending: true });
 
     const { data: chatHistory } = await supabase
@@ -72,8 +75,15 @@ serve(async (req) => {
             role: 'system',
             content: `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
               - Profile: ${JSON.stringify(profile)}
-              - Calendar Events: ${JSON.stringify(events)}
+              - Calendar Events for the next 30 days: ${JSON.stringify(events)}
               - Recent Chat History: ${JSON.stringify(chatHistory)}
+              
+              When discussing calendar events, always format dates and times in a user-friendly way.
+              If asked about the calendar, you can:
+              - List upcoming events
+              - Suggest free time slots for new activities
+              - Help identify scheduling conflicts
+              - Provide summaries of the user's schedule
               
               Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`
           },
