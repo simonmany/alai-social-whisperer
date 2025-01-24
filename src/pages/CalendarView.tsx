@@ -4,12 +4,11 @@ import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
 import { dummyEvents } from "@/utils/dummyData";
 
 interface CalendarEvent {
@@ -25,69 +24,42 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // Listen for auth state changes from the popup
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data === 'google-auth-success') {
-        queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [queryClient]);
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ['calendar-events', session?.provider_token],
+    queryKey: ['calendar-events'],
     queryFn: async () => {
-      if (!session) {
-        throw new Error('No session available');
-      }
-
-      // If no provider token, return dummy events
-      if (!session.provider_token) {
-        console.log("No provider token found, using dummy events");
+      if (!session?.user?.id) {
+        console.log("No session, using dummy events");
         return dummyEvents;
       }
 
-      // If we have a provider token, fetch real calendar events
-      console.log("Provider token found, fetching calendar events");
-      return fetchCalendarEvents(session.provider_token);
-    },
-    enabled: !!session,
-    retry: false
-  });
+      try {
+        const { data, error } = await supabase
+          .from('calendar_events')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .gte('start_time', new Date().toISOString())
+          .lte('start_time', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
+          .order('start_time', { ascending: true });
 
-  // Separate function to fetch calendar events
-  const fetchCalendarEvents = async (provider_token: string) => {
-    try {
-      const { data, error } = await supabase.functions.invoke('calendar', {
-        body: {
-          action: 'list',
-          timeMin: new Date().toISOString(),
-          timeMax: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-          access_token: provider_token
+        if (error) {
+          console.error('Error fetching calendar events:', error);
+          toast({
+            title: "Error",
+            description: "Failed to fetch calendar events. Using dummy data instead.",
+            variant: "destructive",
+          });
+          return dummyEvents;
         }
-      });
 
-      if (error) {
-        console.error('Error fetching calendar events:', error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch calendar events. Please try signing out and back in.",
-          variant: "destructive",
-        });
-        throw error;
+        return data.length > 0 ? data : dummyEvents;
+      } catch (error) {
+        console.error('Exception in fetchCalendarEvents:', error);
+        return dummyEvents;
       }
-
-      return data?.events || [];
-    } catch (error) {
-      console.error('Exception in fetchCalendarEvents:', error);
-      throw error;
-    }
-  };
+    },
+    initialData: dummyEvents,
+  });
 
   const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
     return {
@@ -276,5 +248,3 @@ const CalendarView = () => {
     </Sheet>
   );
 };
-
-export default CalendarView;
