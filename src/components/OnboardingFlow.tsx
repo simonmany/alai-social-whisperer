@@ -8,42 +8,17 @@ import { useAuth } from "@/components/AuthProvider";
 import { BasicInfo } from "./onboarding/BasicInfo";
 import { GoalsSection } from "./onboarding/GoalsSection";
 import { DemographicsSection } from "./onboarding/DemographicsSection";
-import { Button } from "./ui/button";
-import { UserRound, Calendar } from "lucide-react";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
-  onProfileOpen: () => void;
-  onGoogleSignIn: () => void;
 }
 
-export const OnboardingFlow = ({ onComplete, onProfileOpen, onGoogleSignIn }: OnboardingFlowProps) => {
-  const [step, setStep] = useState<
-    'basic' | 
-    'profile-highlight' | 
-    'calendar-highlight' | 
-    'goals' | 
-    'personality' | 
-    'current-interests' | 
-    'desired-interests' | 
-    'demographics'
-  >('basic');
+export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
+  const [step, setStep] = useState<'basic' | 'goals' | 'personality' | 'current-interests' | 'desired-interests' | 'demographics'>('basic');
   const { session } = useAuth();
   const { toast } = useToast();
 
   const handleBasicInfoComplete = (name: string) => {
-    setTimeout(() => {
-      setStep('profile-highlight');
-    }, 500);
-  };
-
-  const handleProfileHighlightComplete = () => {
-    setTimeout(() => {
-      setStep('calendar-highlight');
-    }, 500);
-  };
-
-  const handleCalendarHighlightComplete = () => {
     setTimeout(() => {
       setStep('goals');
     }, 500);
@@ -114,59 +89,6 @@ export const OnboardingFlow = ({ onComplete, onProfileOpen, onGoogleSignIn }: On
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
         {step === 'basic' && (
           <BasicInfo session={session} onComplete={handleBasicInfoComplete} />
-        )}
-
-        {step === 'profile-highlight' && (
-          <>
-            <ChatMessage
-              content="Thanks for introducing yourself! I've created a profile for you here."
-              isAl={true}
-              animate={true}
-            />
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="lg"
-                className="animate-pulse border-2 border-primary"
-                onClick={() => {
-                  onProfileOpen();
-                  handleProfileHighlightComplete();
-                }}
-              >
-                <UserRound className="h-5 w-5 mr-2" />
-                View Your Profile
-              </Button>
-            </div>
-          </>
-        )}
-
-        {step === 'calendar-highlight' && (
-          <>
-            <ChatMessage
-              content="Connecting your calendar(s) helps me plan fun things for you. I'll never use it for anything else."
-              isAl={true}
-              animate={true}
-            />
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="lg"
-                className="animate-pulse border-2 border-primary flex items-center gap-2"
-                onClick={() => {
-                  onGoogleSignIn();
-                  handleCalendarHighlightComplete();
-                }}
-              >
-                <Calendar className="h-5 w-5" />
-                <img 
-                  src="https://www.google.com/favicon.ico" 
-                  alt="Google" 
-                  className="w-4 h-4"
-                />
-                Connect Calendar
-              </Button>
-            </div>
-          </>
         )}
 
         {step === 'goals' && (

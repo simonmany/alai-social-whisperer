@@ -146,11 +146,7 @@ const Index = () => {
         />
         
         {showOnboarding ? (
-          <OnboardingFlow 
-            onComplete={() => setShowOnboarding(false)} 
-            onProfileOpen={() => setIsProfileOpen(true)}
-            onGoogleSignIn={handleGoogleSignIn}
-          />
+          <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
         ) : (
           <ChatContainer
             messages={messages}
