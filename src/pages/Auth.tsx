@@ -47,8 +47,8 @@ const Auth = () => {
         },
       });
 
-      // If we get a 400 error with "User already registered", attempt to sign in
-      if (error?.status === 400 && error.message?.includes("already registered")) {
+      // Check for user_already_exists error code
+      if (error?.message && error.message.includes("User already registered")) {
         console.log("User already exists, attempting sign in");
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email,
