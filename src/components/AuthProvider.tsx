@@ -42,6 +42,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.error("Session error:", error);
     setSession(null);
     setLoading(false);
+    // Clear any existing session data
+    supabase.auth.signOut();
     navigate("/auth");
     toast({
       title: "Session Error",
