@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import { dummyEvents } from "@/utils/dummyData";
 
 interface CalendarEvent {
   id: string;
@@ -26,67 +27,34 @@ const CalendarView = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  console.log("[CalendarView] Component mounted or re-rendered");
-  console.log("[CalendarView] Current session:", session ? "Present" : "Not present");
-  console.log("[CalendarView] Provider token:", session?.provider_token ? "Present" : "Not present");
-  console.log("[CalendarView] Session details:", {
-    user: session?.user?.id,
-    hasProviderToken: !!session?.provider_token,
-    providerType: session?.user?.app_metadata?.provider
-  });
-
   // Listen for auth state changes from the popup
   useEffect(() => {
-    console.log("[CalendarView] Setting up message listener");
-    
     const handleMessage = (event: MessageEvent) => {
-      console.log("[CalendarView] Received message:", event.data);
-      console.log("[CalendarView] Message origin:", event.origin);
-      
       if (event.data === 'google-auth-success') {
-        console.log('[CalendarView] Received google-auth-success message');
-        console.log('[CalendarView] Current session before invalidation:', session);
-        console.log('[CalendarView] Invalidating calendar events query');
         queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
       }
     };
 
     window.addEventListener('message', handleMessage);
-    return () => {
-      console.log("[CalendarView] Cleaning up message listener");
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [queryClient, session]);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [queryClient]);
 
-  const { data: events = [], isLoading, error } = useQuery({
+  const { data: events = [], isLoading } = useQuery({
     queryKey: ['calendar-events', session?.provider_token],
     queryFn: async () => {
-      console.log("[CalendarView] Starting calendar events fetch");
-      console.log("[CalendarView] Query execution - session status:", session ? "Present" : "Not present");
-      
       if (!session) {
-        console.log("[CalendarView] No session available, cannot fetch events");
         throw new Error('No session available');
       }
 
-      // If we have a provider token, use it directly
-      if (session.provider_token) {
-        console.log("[CalendarView] Provider token found, fetching calendar events");
-        console.log("[CalendarView] Token details:", {
-          tokenLength: session.provider_token.length,
-          tokenPrefix: session.provider_token.substring(0, 10) + '...'
-        });
-        return fetchCalendarEvents(session.provider_token);
+      // If no provider token, return dummy events
+      if (!session.provider_token) {
+        console.log("No provider token found, using dummy events");
+        return dummyEvents;
       }
 
-      console.log("[CalendarView] No provider token available");
-      // If no provider token, inform user to connect
-      toast({
-        title: "Google Calendar Access Required",
-        description: "Please connect your Google Calendar to view your events.",
-        variant: "destructive",
-      });
-      throw new Error('No Google access token available');
+      // If we have a provider token, fetch real calendar events
+      console.log("Provider token found, fetching calendar events");
+      return fetchCalendarEvents(session.provider_token);
     },
     enabled: !!session,
     retry: false
@@ -94,7 +62,6 @@ const CalendarView = () => {
 
   // Separate function to fetch calendar events
   const fetchCalendarEvents = async (provider_token: string) => {
-    console.log('[CalendarView] Calling calendar function with provider token');
     try {
       const { data, error } = await supabase.functions.invoke('calendar', {
         body: {
@@ -106,7 +73,7 @@ const CalendarView = () => {
       });
 
       if (error) {
-        console.error('[CalendarView] Error fetching calendar events:', error);
+        console.error('Error fetching calendar events:', error);
         toast({
           title: "Error",
           description: "Failed to fetch calendar events. Please try signing out and back in.",
@@ -115,11 +82,9 @@ const CalendarView = () => {
         throw error;
       }
 
-      console.log('[CalendarView] Successfully fetched events:', data?.events?.length || 0);
-      console.log('[CalendarView] First event (if any):', data?.events?.[0]);
       return data?.events || [];
     } catch (error) {
-      console.error('[CalendarView] Exception in fetchCalendarEvents:', error);
+      console.error('Exception in fetchCalendarEvents:', error);
       throw error;
     }
   };
@@ -168,146 +133,144 @@ const CalendarView = () => {
             <div className="flex items-center justify-center flex-1">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : error ? (
+          ) : !session?.provider_token ? (
             <div className="flex items-center justify-center flex-1 p-4">
               <div className="text-center space-y-4">
-                <h3 className="text-lg font-semibold text-red-600">Unable to load calendar</h3>
-                <p className="text-sm text-gray-600">
-                  {!session?.provider_token ? 
-                    "Please connect your Google Calendar to view your events" : 
-                    "There was an error loading your calendar. Please try again."}
+                <h3 className="text-lg font-semibold text-muted-foreground">Sample Calendar View</h3>
+                <p className="text-sm text-muted-foreground">
+                  These are example events. Connect your Google Calendar to see your real events.
                 </p>
               </div>
             </div>
-          ) : (
-            <Tabs defaultValue="day" className="flex-1">
-              <div className="px-4 pt-4">
-                <TabsList className="w-full">
-                  <TabsTrigger value="day" className="flex-1">
-                    Day
-                  </TabsTrigger>
-                  <TabsTrigger value="week" className="flex-1">
-                    Week
-                  </TabsTrigger>
-                  <TabsTrigger value="month" className="flex-1">
-                    Month
-                  </TabsTrigger>
-                </TabsList>
-              </div>
+          ) : null}
 
-              <TabsContent value="day" className="flex-1 p-4">
-                <div className="space-y-6">
-                  {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
-                    <div key={timeOfDay} className="space-y-4">
-                      <h3 className="font-semibold capitalize text-muted-foreground">
-                        {timeOfDay}
-                      </h3>
-                      {timeEvents.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No events scheduled</p>
-                      ) : (
-                        timeEvents.map((event) => (
-                          <div
-                            key={event.id}
-                            className="p-4 rounded-lg border bg-card text-card-foreground"
-                          >
-                            <h3 className="font-medium">{event.title}</h3>
-                            {event.description && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {event.description}
-                              </p>
-                            )}
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(event.start_time), 'h:mm a')}
+          <Tabs defaultValue="day" className="flex-1">
+            <div className="px-4 pt-4">
+              <TabsList className="w-full">
+                <TabsTrigger value="day" className="flex-1">
+                  Day
+                </TabsTrigger>
+                <TabsTrigger value="week" className="flex-1">
+                  Week
+                </TabsTrigger>
+                <TabsTrigger value="month" className="flex-1">
+                  Month
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <TabsContent value="day" className="flex-1 p-4">
+              <div className="space-y-6">
+                {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
+                  <div key={timeOfDay} className="space-y-4">
+                    <h3 className="font-semibold capitalize text-muted-foreground">
+                      {timeOfDay}
+                    </h3>
+                    {timeEvents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No events scheduled</p>
+                    ) : (
+                      timeEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="p-4 rounded-lg border bg-card text-card-foreground"
+                        >
+                          <h3 className="font-medium">{event.title}</h3>
+                          {event.description && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {event.description}
                             </p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="week" className="flex-1 p-4">
-                <div className="space-y-6">
-                  {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
-                    <div key={day} className="space-y-4">
-                      <h3 className="font-semibold text-muted-foreground">{day}</h3>
-                      {dayEvents.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">No events scheduled</p>
-                      ) : (
-                        dayEvents.map((event) => (
-                          <div
-                            key={event.id}
-                            className="p-4 rounded-lg border bg-card text-card-foreground"
-                          >
-                            <h3 className="font-medium">{event.title}</h3>
-                            {event.description && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {event.description}
-                              </p>
-                            )}
-                            <p className="text-sm text-muted-foreground">
-                              {format(new Date(event.start_time), 'h:mm a')}
-                            </p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </TabsContent>
-
-              <TabsContent value="month" className="flex-1 p-4">
-                <Calendar
-                  mode="single"
-                  selected={new Date()}
-                  className="rounded-md border"
-                  components={{
-                    DayContent: ({ date }) => {
-                      const hasEvent = events.some(
-                        event =>
-                          new Date(event.start_time).getDate() === date.getDate() &&
-                          new Date(event.start_time).getMonth() === date.getMonth()
-                      );
-                      return (
-                        <div className="relative w-full h-full">
-                          <div>{date.getDate()}</div>
-                          {hasEvent && (
-                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
-                              <div className="h-1 w-1 bg-primary rounded-full" />
-                            </div>
                           )}
-                        </div>
-                      );
-                    },
-                  }}
-                />
-                <div className="mt-6 space-y-4">
-                  <h3 className="font-semibold text-muted-foreground">Upcoming</h3>
-                  {events.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No upcoming events</p>
-                  ) : (
-                    events.map((event) => (
-                      <div
-                        key={event.id}
-                        className="p-4 rounded-lg border bg-card text-card-foreground"
-                      >
-                        <h3 className="font-medium">{event.title}</h3>
-                        {event.description && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {event.description}
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(event.start_time), 'h:mm a')}
                           </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="week" className="flex-1 p-4">
+              <div className="space-y-6">
+                {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
+                  <div key={day} className="space-y-4">
+                    <h3 className="font-semibold text-muted-foreground">{day}</h3>
+                    {dayEvents.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No events scheduled</p>
+                    ) : (
+                      dayEvents.map((event) => (
+                        <div
+                          key={event.id}
+                          className="p-4 rounded-lg border bg-card text-card-foreground"
+                        >
+                          <h3 className="font-medium">{event.title}</h3>
+                          {event.description && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {event.description}
+                            </p>
+                          )}
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(event.start_time), 'h:mm a')}
+                          </p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="month" className="flex-1 p-4">
+              <Calendar
+                mode="single"
+                selected={new Date()}
+                className="rounded-md border"
+                components={{
+                  DayContent: ({ date }) => {
+                    const hasEvent = events.some(
+                      event =>
+                        new Date(event.start_time).getDate() === date.getDate() &&
+                        new Date(event.start_time).getMonth() === date.getMonth()
+                    );
+                    return (
+                      <div className="relative w-full h-full">
+                        <div>{date.getDate()}</div>
+                        {hasEvent && (
+                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
+                            <div className="h-1 w-1 bg-primary rounded-full" />
+                          </div>
                         )}
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(event.start_time), 'PPP p')}
-                        </p>
                       </div>
-                    ))
-                  )}
-                </div>
-              </TabsContent>
-            </Tabs>
-          )}
+                    );
+                  },
+                }}
+              />
+              <div className="mt-6 space-y-4">
+                <h3 className="font-semibold text-muted-foreground">Upcoming</h3>
+                {events.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming events</p>
+                ) : (
+                  events.map((event) => (
+                    <div
+                      key={event.id}
+                      className="p-4 rounded-lg border bg-card text-card-foreground"
+                    >
+                      <h3 className="font-medium">{event.title}</h3>
+                      {event.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {event.description}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(event.start_time), 'PPP p')}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       </SheetContent>
     </Sheet>
