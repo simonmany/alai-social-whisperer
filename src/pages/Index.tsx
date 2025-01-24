@@ -47,19 +47,25 @@ const Index = () => {
           .eq('user_id', session.user.id)
           .order('created_at', { ascending: true });
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching chat history:', error);
+          throw error;
+        }
 
-        const historyMessages = data.map(msg => ({
-          content: msg.message,
-          isAl: msg.is_ai
-        }));
-
-        setMessages(historyMessages.length > 0 ? historyMessages : [{ content: WELCOME_MESSAGE, isAl: true }]);
-      } catch (error) {
+        if (data && data.length > 0) {
+          const historyMessages = data.map(msg => ({
+            content: msg.message,
+            isAl: msg.is_ai
+          }));
+          setMessages(historyMessages);
+        } else {
+          setMessages([{ content: WELCOME_MESSAGE, isAl: true }]);
+        }
+      } catch (error: any) {
         console.error('Error loading chat history:', error);
         toast({
           title: "Error loading chat history",
-          description: "Please try refreshing the page",
+          description: error.message || "Please try refreshing the page",
           variant: "destructive",
         });
       }
@@ -121,16 +127,29 @@ const Index = () => {
   };
 
   const handleSend = async (content: string) => {
-    setMessages((prev) => [...prev, { content, isAl: false }]);
+    if (!session?.user.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to send messages",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Optimistically add user message to UI
+    setMessages(prev => [...prev, { content, isAl: false }]);
     setIsLoading(true);
 
     try {
       const response = await generateChatResponse(content);
-      setMessages((prev) => [...prev, { content: response, isAl: true }]);
-    } catch (error) {
+      
+      // Add AI response to UI
+      setMessages(prev => [...prev, { content: response, isAl: true }]);
+    } catch (error: any) {
+      console.error('Error generating response:', error);
       toast({
         title: "Error",
-        description: "Failed to generate response. Please try again.",
+        description: error.message || "Failed to generate response. Please try again.",
         variant: "destructive",
       });
     } finally {

@@ -25,34 +25,37 @@ serve(async (req) => {
     // Initialize Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Fetch user data
+    // Store user message in chat history
+    const { error: userMessageError } = await supabase
+      .from('chat_history')
+      .insert([
+        { user_id: userId, message, is_ai: false }
+      ]);
+
+    if (userMessageError) {
+      console.error('Error storing user message:', userMessageError);
+      throw userMessageError;
+    }
+
+    // Fetch user data and context
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    // Fetch calendar events
     const { data: events } = await supabase
       .from('calendar_events')
       .select('*')
       .eq('user_id', userId)
       .order('start_time', { ascending: true });
 
-    // Fetch recent chat history
     const { data: chatHistory } = await supabase
       .from('chat_history')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(10);
-
-    // Store user message in chat history
-    await supabase
-      .from('chat_history')
-      .insert([
-        { user_id: userId, message, is_ai: false }
-      ]);
 
     console.log('Sending request to OpenAI with context:', { profile, events, chatHistory });
 
@@ -63,7 +66,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           {
             role: 'system',
@@ -91,11 +94,16 @@ serve(async (req) => {
     const aiResponse = data.choices[0].message.content;
 
     // Store AI response in chat history
-    await supabase
+    const { error: aiMessageError } = await supabase
       .from('chat_history')
       .insert([
         { user_id: userId, message: aiResponse, is_ai: true }
       ]);
+
+    if (aiMessageError) {
+      console.error('Error storing AI message:', aiMessageError);
+      throw aiMessageError;
+    }
 
     return new Response(JSON.stringify({ 
       response: aiResponse 
