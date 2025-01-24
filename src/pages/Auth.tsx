@@ -47,27 +47,33 @@ const Auth = () => {
         },
       });
 
-      // Check for user_already_exists error code
-      if (error?.message && error.message.includes("User already registered")) {
-        console.log("User already exists, attempting sign in");
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+      if (error) {
+        // Parse the error message from the response body if it exists
+        const errorBody = error.message && JSON.parse(error.message);
+        const isUserExists = error.status === 422 || 
+                           errorBody?.code === "user_already_exists" ||
+                           error.message.includes("User already registered");
 
-        if (signInError) {
-          throw signInError;
+        if (isUserExists) {
+          console.log("User already exists, attempting sign in");
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (signInError) {
+            throw signInError;
+          }
+
+          toast({
+            title: "Welcome back!",
+            description: "You've been signed in with your existing account.",
+          });
+          navigate("/");
+          return;
         }
-
-        toast({
-          title: "Welcome back!",
-          description: "You've been signed in with your existing account.",
-        });
-        navigate("/");
-        return;
+        throw error;
       }
-
-      if (error) throw error;
 
       setShowEmailConfirmation(true);
       toast({
