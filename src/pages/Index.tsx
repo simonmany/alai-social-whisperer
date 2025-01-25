@@ -98,11 +98,9 @@ const Index = () => {
   }, [session?.user.id]);
 
   useEffect(() => {
-    // Handle prompt from calendar view
     const state = location.state as { prompt?: string };
     if (state?.prompt) {
       handleSend(state.prompt);
-      // Clear the location state
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state]);
@@ -147,14 +145,11 @@ const Index = () => {
       return;
     }
 
-    // Optimistically add user message to UI
     setMessages(prev => [...prev, { content, isAl: false }]);
     setIsLoading(true);
 
     try {
       const response = await generateChatResponse(content);
-      
-      // Add AI response to UI
       setMessages(prev => [...prev, { content: response, isAl: true }]);
     } catch (error: any) {
       console.error('Error generating response:', error);
@@ -168,8 +163,7 @@ const Index = () => {
     }
   };
 
-  const handlePlanSubmit = (activity: string, contact: string, time: string) => {
-    const message = `I want to ${activity} with ${contact} at ${time}`;
+  const handlePlanSubmit = (message: string) => {
     handleSend(message);
     setIsPlanningOpen(false);
   };
