@@ -166,6 +166,7 @@ const CalendarView = () => {
                   </div>
                 ))}
               </div>
+              <CalendarPrompts onPrompt={handlePrompt} type="day" />
             </TabsContent>
 
             <TabsContent value="week" className="flex-1 p-4">
@@ -196,6 +197,7 @@ const CalendarView = () => {
                   </div>
                 ))}
               </div>
+              <CalendarPrompts onPrompt={handlePrompt} type="week" />
             </TabsContent>
 
             <TabsContent value="month" className="flex-1 p-4">
@@ -246,10 +248,9 @@ const CalendarView = () => {
                   ))
                 )}
               </div>
+              <CalendarPrompts onPrompt={handlePrompt} type="month" />
             </TabsContent>
           </Tabs>
-
-          <CalendarPrompts onPrompt={handlePrompt} />
         </div>
       </SheetContent>
     </Sheet>
