@@ -44,13 +44,17 @@ serve(async (req) => {
       .eq('id', userId)
       .single();
 
-    // Fetch upcoming calendar events for the next 30 days
+    // Fetch calendar events for the next 30 days
+    const now = new Date();
+    const thirtyDaysFromNow = new Date();
+    thirtyDaysFromNow.setDate(now.getDate() + 30);
+
     const { data: events } = await supabase
       .from('calendar_events')
       .select('*')
       .eq('user_id', userId)
-      .gte('start_time', new Date().toISOString())
-      .lte('start_time', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
+      .gte('start_time', now.toISOString())
+      .lte('start_time', thirtyDaysFromNow.toISOString())
       .order('start_time', { ascending: true });
 
     const { data: chatHistory } = await supabase
@@ -60,7 +64,12 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    console.log('Sending request to OpenAI with context:', { profile, events, chatHistory });
+    // Format events for better readability
+    const formattedEvents = events?.map(event => ({
+      ...event,
+      start_time: new Date(event.start_time).toLocaleString(),
+      end_time: new Date(event.end_time).toLocaleString()
+    }));
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -69,28 +78,33 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
             content: `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
               - Profile: ${JSON.stringify(profile)}
-              - Calendar Events for the next 30 days: ${JSON.stringify(events)}
+              - Calendar Events for the next 30 days: ${JSON.stringify(formattedEvents)}
               - Recent Chat History: ${JSON.stringify(chatHistory)}
               
               When discussing calendar events, always format dates and times in a user-friendly way.
-              If asked about the calendar, you can:
+              If asked about the calendar or scheduling, you can:
               - List upcoming events
               - Suggest free time slots for new activities
               - Help identify scheduling conflicts
               - Provide summaries of the user's schedule
+              
+              When suggesting times for activities:
+              1. Check the existing calendar events to avoid conflicts
+              2. Suggest specific dates and times that work around existing commitments
+              3. Consider typical timing for the suggested activity (e.g., dinner in the evening)
               
               Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`
           },
           { role: 'user', content: message }
         ],
         temperature: 0.7,
-        max_tokens: 150,
+        max_tokens: 500,
       }),
     });
 
