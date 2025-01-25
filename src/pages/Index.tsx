@@ -193,28 +193,32 @@ const Index = () => {
     : "min-h-screen bg-gray-50 flex flex-col";
 
   const contentClasses = isMobile
-    ? "flex-1 container max-w-2xl py-8 flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16"
-    : "flex-1 container max-w-2xl py-8 flex flex-col";
+    ? "flex-1 container max-w-2xl flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16 relative"
+    : "flex-1 container max-w-2xl flex flex-col relative";
 
   return (
     <div className={containerClasses}>
       <div className={contentClasses}>
-        <MainNavigation
-          isConnectingCalendar={isConnectingCalendar}
-          onProfileOpen={() => setIsProfileOpen(true)}
-          onGoogleSignIn={handleGoogleSignIn}
-        />
-        
-        {showOnboarding ? (
-          <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
-        ) : (
-          <ChatContainer
-            messages={messages}
-            isLoading={isLoading}
-            onSend={handleSend}
-            onSuggestedPrompt={handleSuggestedPrompt}
+        <div className="absolute inset-x-0 top-0 z-10 bg-gray-50 py-8">
+          <MainNavigation
+            isConnectingCalendar={isConnectingCalendar}
+            onProfileOpen={() => setIsProfileOpen(true)}
+            onGoogleSignIn={handleGoogleSignIn}
           />
-        )}
+        </div>
+        
+        <div className="flex-1 overflow-y-auto pt-24">
+          {showOnboarding ? (
+            <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+          ) : (
+            <ChatContainer
+              messages={messages}
+              isLoading={isLoading}
+              onSend={handleSend}
+              onSuggestedPrompt={handleSuggestedPrompt}
+            />
+          )}
+        </div>
       </div>
 
       <Profile open={isProfileOpen} onOpenChange={setIsProfileOpen} />

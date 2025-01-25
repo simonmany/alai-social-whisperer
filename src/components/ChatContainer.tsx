@@ -21,8 +21,8 @@ export const ChatContainer = ({
   onSuggestedPrompt,
 }: ChatContainerProps) => {
   return (
-    <>
-      <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto space-y-4 mb-4">
         {messages.map((message, index) => (
           <ChatMessage
             key={index}
@@ -37,7 +37,7 @@ export const ChatContainer = ({
           </div>
         )}
       </div>
-      <div className="space-y-4">
+      <div className="sticky bottom-0 bg-gray-50 pt-4 space-y-4">
         <div className="space-y-2">
           <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
           <div className="flex gap-2 flex-wrap">
@@ -61,6 +61,6 @@ export const ChatContainer = ({
         </div>
         <ChatInput onSend={onSend} />
       </div>
-    </>
+    </div>
   );
 };
