@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 interface PlanningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (activity: string, contact: string, time: string) => void;
+  onSubmit: (message: string) => void;
 }
 
 const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) => {
@@ -14,13 +14,49 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [contact, setContact] = useState("");
   const [time, setTime] = useState("");
 
-  const handleSubmit = () => {
-    if (activity && contact && time) {
-      onSubmit(activity, contact, time);
-      setActivity("");
-      setContact("");
-      setTime("");
+  const generateMessage = () => {
+    const hasActivity = activity.trim() !== "";
+    const hasContact = contact.trim() !== "";
+    const hasTime = time.trim() !== "";
+
+    // All fields blank
+    if (!hasActivity && !hasContact && !hasTime) {
+      return "Find me something to do!";
     }
+
+    // Only one field filled
+    if (hasActivity && !hasContact && !hasTime) {
+      return `I want to ${activity}. Find me a person and a time!`;
+    }
+    if (!hasActivity && hasContact && !hasTime) {
+      return `I want to hang with ${contact}. Find us an activity and a time!`;
+    }
+    if (!hasActivity && !hasContact && hasTime) {
+      return `Find me a hang at ${time}`;
+    }
+
+    // Two fields filled
+    if (hasActivity && hasContact && !hasTime) {
+      return `Find me a time to ${activity} with ${contact}!`;
+    }
+    if (hasActivity && !hasContact && hasTime) {
+      return `Find me someone to ${activity} with at ${time}!`;
+    }
+    if (!hasActivity && hasContact && hasTime) {
+      return `Find me something to do with ${contact} at ${time}!`;
+    }
+
+    // All fields filled
+    return `I want to ${activity} with ${contact} at ${time}`;
+  };
+
+  const handleSubmit = () => {
+    const message = generateMessage();
+    onSubmit(message);
+    setActivity("");
+    setContact("");
+    setTime("");
+    onOpenChange(false);
   };
 
   return (
@@ -33,7 +69,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           <div className="grid gap-2">
             <label className="text-sm font-medium">I want to...</label>
             <Input
-              placeholder="Enter an activity"
+              placeholder="Enter an activity (optional)"
               value={activity}
               onChange={(e) => setActivity(e.target.value)}
             />
@@ -42,7 +78,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           <div className="grid gap-2">
             <label className="text-sm font-medium">with...</label>
             <Input
-              placeholder="Enter a person's name"
+              placeholder="Enter a person's name (optional)"
               value={contact}
               onChange={(e) => setContact(e.target.value)}
             />
@@ -51,16 +87,13 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           <div className="grid gap-2">
             <label className="text-sm font-medium">at...</label>
             <Input
-              placeholder="Enter a time"
+              placeholder="Enter a time (optional)"
               value={time}
               onChange={(e) => setTime(e.target.value)}
             />
           </div>
 
-          <Button 
-            onClick={handleSubmit}
-            disabled={!activity || !contact || !time}
-          >
+          <Button onClick={handleSubmit}>
             Submit
           </Button>
         </div>
