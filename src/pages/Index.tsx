@@ -197,14 +197,18 @@ const Index = () => {
     : "flex-1 container max-w-2xl py-8 flex flex-col";
 
   return (
-    <div className={containerClasses}>
-      <div className={contentClasses}>
-        <MainNavigation
-          isConnectingCalendar={isConnectingCalendar}
-          onProfileOpen={() => setIsProfileOpen(true)}
-          onGoogleSignIn={handleGoogleSignIn}
-        />
-        
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container max-w-2xl py-4">
+          <MainNavigation
+            isConnectingCalendar={isConnectingCalendar}
+            onProfileOpen={() => setIsProfileOpen(true)}
+            onGoogleSignIn={handleGoogleSignIn}
+          />
+        </div>
+      </div>
+
+      <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
           <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
         ) : (
