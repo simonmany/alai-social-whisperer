@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Chat } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 interface CalendarPromptsProps {
   onPrompt: (message: string) => void;
@@ -15,7 +15,7 @@ export const CalendarPrompts = ({ onPrompt }: CalendarPromptsProps) => {
           className="bg-primary text-primary-foreground hover:bg-primary/80 transition-colors"
           onClick={() => onPrompt("Tell me about my day")}
         >
-          <Chat className="mr-2" />
+          <MessageCircle className="mr-2" />
           About my day
         </Button>
         <Button
@@ -23,7 +23,7 @@ export const CalendarPrompts = ({ onPrompt }: CalendarPromptsProps) => {
           className="bg-primary text-primary-foreground hover:bg-primary/80 transition-colors"
           onClick={() => onPrompt("Tell me about my week")}
         >
-          <Chat className="mr-2" />
+          <MessageCircle className="mr-2" />
           About my week
         </Button>
         <Button
@@ -31,7 +31,7 @@ export const CalendarPrompts = ({ onPrompt }: CalendarPromptsProps) => {
           className="bg-primary text-primary-foreground hover:bg-primary/80 transition-colors"
           onClick={() => onPrompt("Tell me about my month")}
         >
-          <Chat className="mr-2" />
+          <MessageCircle className="mr-2" />
           About my month
         </Button>
       </div>
