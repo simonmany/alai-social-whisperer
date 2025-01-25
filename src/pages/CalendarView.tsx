@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { dummyEvents } from "@/utils/dummyData";
+import { CalendarPrompts } from "@/components/CalendarPrompts";
 
 interface CalendarEvent {
   id: string;
@@ -60,6 +61,10 @@ const CalendarView = () => {
     },
     initialData: dummyEvents,
   });
+
+  const handlePrompt = (message: string) => {
+    navigate('/', { state: { prompt: message } });
+  };
 
   const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
     return {
@@ -243,6 +248,8 @@ const CalendarView = () => {
               </div>
             </TabsContent>
           </Tabs>
+
+          <CalendarPrompts onPrompt={handlePrompt} />
         </div>
       </SheetContent>
     </Sheet>

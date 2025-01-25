@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateChatResponse } from "@/utils/openai";
@@ -33,6 +33,7 @@ const Index = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { session } = useAuth();
 
@@ -95,6 +96,16 @@ const Index = () => {
 
     checkOnboardingStatus();
   }, [session?.user.id]);
+
+  useEffect(() => {
+    // Handle prompt from calendar view
+    const state = location.state as { prompt?: string };
+    if (state?.prompt) {
+      handleSend(state.prompt);
+      // Clear the location state
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   const handleGoogleSignIn = async () => {
     try {
