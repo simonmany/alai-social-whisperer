@@ -2,7 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Users, UserRound, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { Goal } from "@/types/goals";
+import { checkMissingGoals } from "@/utils/goalUtils";
+import { Badge } from "@/components/ui/badge";
 
 interface MainNavigationProps {
   isConnectingCalendar: boolean;
@@ -17,6 +21,25 @@ export const MainNavigation = ({
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('goals')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return profile;
+    }
+  });
+
+  const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
 
   const handleSignOut = async () => {
     try {
@@ -126,9 +149,19 @@ export const MainNavigation = ({
         <Users className="h-5 w-5" />
       </Button>
       <div className="flex gap-2">
-        <Button variant="ghost" size="icon" onClick={onProfileOpen}>
-          <UserRound className="h-5 w-5" />
-        </Button>
+        <div className="relative">
+          <Button variant="ghost" size="icon" onClick={onProfileOpen}>
+            <UserRound className="h-5 w-5" />
+            {missingGoalsCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              >
+                {missingGoalsCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
         <Button variant="ghost" size="icon" onClick={handleSignOut}>
           <LogOut className="h-5 w-5" />
         </Button>

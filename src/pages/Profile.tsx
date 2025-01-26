@@ -9,22 +9,14 @@ import { useState } from "react";
 import GoalsDialog from "@/components/GoalsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Database, Json } from "@/integrations/supabase/types";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Goal } from "@/types/goals";
+import { checkMissingGoals } from "@/utils/goalUtils";
 
 interface ProfileProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-interface Goal {
-  [key: string]: string | boolean; // Make Goal compatible with Json type
-  type: string;
-  description: string;
-  timeframe: string;
-  completed: boolean;
-  created_at: string;
-}
-
-type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
@@ -48,6 +40,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   });
 
   const goals = (profileData?.goals as unknown as Goal[]) || [];
+  const { missingTimeframes } = checkMissingGoals(goals);
 
   const handleNewGoal = (message: string) => {
     setIsGoalsDialogOpen(false);
@@ -112,6 +105,16 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 <Button variant="outline" size="sm">Twitter</Button>
               </div>
             </div>
+
+            {/* Goals Alert */}
+            {missingTimeframes.length > 0 && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertDescription>
+                  You haven't set any goals for {missingTimeframes.join(', ')}. 
+                  Set some goals to track your social progress!
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Goals Section */}
             <Card>
