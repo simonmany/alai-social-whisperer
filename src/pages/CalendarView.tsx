@@ -107,22 +107,19 @@ const CalendarView = () => {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center flex-1">
+          <div className="flex items-center justify-center h-20">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         ) : !session?.provider_token ? (
-          <div className="flex items-center justify-center flex-1 p-4">
-            <div className="text-center space-y-4">
-              <h3 className="text-lg font-semibold text-muted-foreground">Sample Calendar View</h3>
-              <p className="text-sm text-muted-foreground">
-                These are example events. Connect your Google Calendar to see your real events.
-              </p>
-            </div>
+          <div className="px-4 py-2 bg-muted/50">
+            <p className="text-sm text-muted-foreground text-center">
+              Sample calendar events shown. Connect Google Calendar to see your events.
+            </p>
           </div>
         ) : null}
 
         <Tabs defaultValue="day" className="flex-1 flex flex-col overflow-hidden">
-          <div className="px-4 pt-4">
+          <div className="px-4 pt-2">
             <TabsList className="w-full">
               <TabsTrigger value="day" className="flex-1">Day</TabsTrigger>
               <TabsTrigger value="week" className="flex-1">Week</TabsTrigger>
@@ -132,7 +129,7 @@ const CalendarView = () => {
 
           <TabsContent value="day" className="flex-1 flex flex-col m-0 p-0 overflow-hidden">
             <ScrollArea className="flex-1 px-4">
-              <div className="space-y-6 min-h-[calc(100vh-12rem)]">
+              <div className="space-y-6">
                 {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
                   <div key={timeOfDay} className="space-y-4">
                     <h3 className="font-semibold capitalize text-muted-foreground">{timeOfDay}</h3>
@@ -163,7 +160,7 @@ const CalendarView = () => {
 
           <TabsContent value="week" className="flex-1 flex flex-col m-0 p-0 overflow-hidden">
             <ScrollArea className="flex-1 px-4">
-              <div className="space-y-6 min-h-[calc(100vh-12rem)]">
+              <div className="space-y-6">
                 {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
                   <div key={day} className="space-y-4">
                     <h3 className="font-semibold text-muted-foreground">{day}</h3>
@@ -193,7 +190,7 @@ const CalendarView = () => {
           </TabsContent>
 
           <TabsContent value="month" className="flex-1 flex flex-col m-0 p-0 overflow-hidden">
-            <div className="p-4">
+            <div className="px-4 pt-2">
               <Calendar
                 mode="single"
                 selected={new Date()}
@@ -219,7 +216,7 @@ const CalendarView = () => {
                 }}
               />
             </div>
-            <ScrollArea className="flex-1 px-4 mt-4">
+            <ScrollArea className="flex-1 px-4 mt-2">
               <div className="space-y-4">
                 <h3 className="font-semibold text-muted-foreground">Upcoming Events</h3>
                 {events.length === 0 ? (
