@@ -14,17 +14,19 @@ interface InterestSelectorProps {
   onComplete: (selectedInterests: string[]) => void;
   placeholder?: string;
   minSelections?: number;
+  initialSelections?: string[];
 }
 
 export const InterestSelector = ({ 
   onComplete, 
   placeholder = "Type to search or add new activities...",
-  minSelections = 3
+  minSelections = 3,
+  initialSelections = []
 }: InterestSelectorProps) => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>(initialSelections);
   const { toast } = useToast();
 
   useEffect(() => {

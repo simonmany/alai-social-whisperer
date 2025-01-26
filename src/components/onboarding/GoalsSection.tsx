@@ -6,11 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 
 interface GoalsSectionProps {
   session: any;
-  onComplete: () => void;
+  onComplete: (goals: string[]) => void;
+  initialGoals?: string[];
 }
 
-export const GoalsSection = ({ session, onComplete }: GoalsSectionProps) => {
-  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+export const GoalsSection = ({ session, onComplete, initialGoals }: GoalsSectionProps) => {
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals || []);
   const { toast } = useToast();
 
   const goals = [
@@ -45,7 +46,7 @@ export const GoalsSection = ({ session, onComplete }: GoalsSectionProps) => {
         .update({ goals: selectedGoals })
         .eq('id', session?.user.id);
 
-      onComplete();
+      onComplete(selectedGoals);
     } catch (error) {
       toast({
         title: "Error saving goals",

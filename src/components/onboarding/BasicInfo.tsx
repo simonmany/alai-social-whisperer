@@ -8,9 +8,10 @@ import { useToast } from "@/hooks/use-toast";
 interface BasicInfoProps {
   session: any;
   onComplete: (name: string) => void;
+  initialName?: string;
 }
 
-export const BasicInfo = ({ session, onComplete }: BasicInfoProps) => {
+export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) => {
   const [messages, setMessages] = useState<Array<{ content: string; isAl: boolean }>>([]);
   const [showInput, setShowInput] = useState(false);
   const { toast } = useToast();
@@ -32,6 +33,9 @@ export const BasicInfo = ({ session, onComplete }: BasicInfoProps) => {
         content: "First, let's get to know each other a bit better! What's your name?",
         isAl: true
       }]);
+      if (initialName) {
+        setMessages(prev => [...prev, { content: initialName, isAl: false }]);
+      }
       setShowInput(true);
     }, 3500);
 
@@ -40,7 +44,7 @@ export const BasicInfo = ({ session, onComplete }: BasicInfoProps) => {
       clearTimeout(timer2);
       clearTimeout(timer3);
     };
-  }, []);
+  }, [initialName]);
 
   const handleNameSubmit = async (name: string) => {
     setMessages(prev => [...prev, { content: name, isAl: false }]);
@@ -77,6 +81,7 @@ export const BasicInfo = ({ session, onComplete }: BasicInfoProps) => {
         <ChatInput
           onSend={handleNameSubmit}
           placeholder="Enter your name..."
+          initialValue={initialName}
         />
       )}
     </div>

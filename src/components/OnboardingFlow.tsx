@@ -15,18 +15,30 @@ interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
+interface OnboardingState {
+  name?: string;
+  goals?: string[];
+  personalityTraits?: Record<string, number>;
+  personalityComments?: string[];
+  currentInterests?: string[];
+  desiredInterests?: string[];
+}
+
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<'basic' | 'goals' | 'personality' | 'current-interests' | 'desired-interests' | 'demographics'>('basic');
+  const [state, setState] = useState<OnboardingState>({});
   const { session } = useAuth();
   const { toast } = useToast();
 
   const handleBasicInfoComplete = (name: string) => {
+    setState(prev => ({ ...prev, name }));
     setTimeout(() => {
       setStep('goals');
     }, 500);
   };
 
-  const handleGoalsComplete = () => {
+  const handleGoalsComplete = (goals: string[]) => {
+    setState(prev => ({ ...prev, goals }));
     setTimeout(() => {
       setStep('personality');
     }, 500);
@@ -42,6 +54,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         })
         .eq('id', session?.user.id);
 
+      setState(prev => ({ ...prev, personalityTraits: traits, personalityComments: comments }));
       setStep('current-interests');
     } catch (error) {
       toast({
@@ -59,6 +72,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .update({ current_interests: interests })
         .eq('id', session?.user.id);
 
+      setState(prev => ({ ...prev, currentInterests: interests }));
       setStep('desired-interests');
     } catch (error) {
       toast({
@@ -76,6 +90,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .update({ desired_interests: interests })
         .eq('id', session?.user.id);
 
+      setState(prev => ({ ...prev, desiredInterests: interests }));
       setStep('demographics');
     } catch (error) {
       toast({
@@ -123,11 +138,19 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
         {step === 'basic' && (
-          <BasicInfo session={session} onComplete={handleBasicInfoComplete} />
+          <BasicInfo 
+            session={session} 
+            onComplete={handleBasicInfoComplete}
+            initialName={state.name}
+          />
         )}
 
         {step === 'goals' && (
-          <GoalsSection session={session} onComplete={handleGoalsComplete} />
+          <GoalsSection 
+            session={session} 
+            onComplete={handleGoalsComplete}
+            initialGoals={state.goals}
+          />
         )}
 
         {step === 'personality' && (
@@ -137,7 +160,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               isAl={true}
               animate={true}
             />
-            <PersonalityQuiz onComplete={handlePersonalityComplete} />
+            <PersonalityQuiz 
+              onComplete={handlePersonalityComplete}
+              initialTraits={state.personalityTraits}
+              initialComments={state.personalityComments}
+            />
           </>
         )}
 
@@ -157,6 +184,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               onComplete={handleCurrentInterestsComplete}
               placeholder="Type to search activities..."
               minSelections={3}
+              initialSelections={state.currentInterests}
             />
           </>
         )}
@@ -172,6 +200,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               onComplete={handleDesiredInterestsComplete}
               placeholder="Type to search new activities..."
               minSelections={1}
+              initialSelections={state.desiredInterests}
             />
           </>
         )}

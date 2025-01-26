@@ -41,14 +41,18 @@ const questions: Question[] = [
 
 interface PersonalityQuizProps {
   onComplete: (traits: Record<string, number>, comments: string[]) => void;
+  initialTraits?: Record<string, number>;
+  initialComments?: string[];
 }
 
-export const PersonalityQuiz = ({ onComplete }: PersonalityQuizProps) => {
+export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: PersonalityQuizProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedValue, setSelectedValue] = useState<number | null>(null);
+  const [selectedValue, setSelectedValue] = useState<number | null>(
+    initialTraits ? initialTraits[questions[currentQuestion].id] : null
+  );
   const [comment, setComment] = useState("");
-  const [traits, setTraits] = useState<Record<string, number>>({});
-  const [comments, setComments] = useState<string[]>([]);
+  const [traits, setTraits] = useState<Record<string, number>>(initialTraits || {});
+  const [comments, setComments] = useState<string[]>(initialComments || []);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -70,7 +74,7 @@ export const PersonalityQuiz = ({ onComplete }: PersonalityQuizProps) => {
       setTraits(updatedTraits);
       setComments(updatedComments);
       setCurrentQuestion(prev => prev + 1);
-      setSelectedValue(null);
+      setSelectedValue(updatedTraits[questions[currentQuestion + 1].id] || null);
       setComment("");
     } else {
       try {
@@ -147,6 +151,7 @@ export const PersonalityQuiz = ({ onComplete }: PersonalityQuizProps) => {
           <ChatInput
             onSend={setComment}
             placeholder="say more, if you like..."
+            initialValue={comment}
           />
         </div>
       </div>
