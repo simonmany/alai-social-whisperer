@@ -12,15 +12,6 @@ import { DayView } from "@/components/calendar/DayView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
 
-interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  google_event_id?: string;
-}
-
 const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
@@ -69,9 +60,12 @@ const CalendarView = () => {
   return (
     <Sheet open={true}>
       <SheetContent
-        side="left"
+        side="right"
         className="w-full sm:w-[540px] p-0 flex flex-col h-full"
-        onPointerDownOutside={() => navigate("/")}
+        onPointerDownOutside={(e) => {
+          e.preventDefault();
+          navigate("/");
+        }}
         showCloseButton={false}
       >
         <div className="flex items-center p-4 border-b">
