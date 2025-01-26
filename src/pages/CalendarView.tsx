@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -169,15 +170,74 @@ const CalendarView = () => {
               <CalendarPrompts onPrompt={handlePrompt} type="day" />
             </TabsContent>
 
-            <TabsContent value="week" className="flex-1 p-4">
-              <div className="space-y-6">
-                {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
-                  <div key={day} className="space-y-4">
-                    <h3 className="font-semibold text-muted-foreground">{day}</h3>
-                    {dayEvents.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No events scheduled</p>
+            <TabsContent value="week" className="flex-1">
+              <ScrollArea className="h-[calc(100vh-12rem)]">
+                <div className="space-y-6 p-4">
+                  {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
+                    <div key={day} className="space-y-4">
+                      <h3 className="font-semibold text-muted-foreground">{day}</h3>
+                      {dayEvents.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No events scheduled</p>
+                      ) : (
+                        dayEvents.map((event) => (
+                          <div
+                            key={event.id}
+                            className="p-4 rounded-lg border bg-card text-card-foreground"
+                          >
+                            <h3 className="font-medium">{event.title}</h3>
+                            {event.description && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {event.description}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(event.start_time), 'h:mm a')}
+                            </p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+              <div className="p-4">
+                <CalendarPrompts onPrompt={handlePrompt} type="week" />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="month" className="flex-1">
+              <ScrollArea className="h-[calc(100vh-12rem)]">
+                <div className="p-4">
+                  <Calendar
+                    mode="single"
+                    selected={new Date()}
+                    className="rounded-md border"
+                    components={{
+                      DayContent: ({ date }) => {
+                        const hasEvent = events.some(
+                          event =>
+                            new Date(event.start_time).getDate() === date.getDate() &&
+                            new Date(event.start_time).getMonth() === date.getMonth()
+                        );
+                        return (
+                          <div className="relative w-full h-full">
+                            <div>{date.getDate()}</div>
+                            {hasEvent && (
+                              <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
+                                <div className="h-1 w-1 bg-primary rounded-full" />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      },
+                    }}
+                  />
+                  <div className="mt-6 space-y-4">
+                    <h3 className="font-semibold text-muted-foreground">Upcoming</h3>
+                    {events.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No upcoming events</p>
                     ) : (
-                      dayEvents.map((event) => (
+                      events.map((event) => (
                         <div
                           key={event.id}
                           className="p-4 rounded-lg border bg-card text-card-foreground"
@@ -189,66 +249,17 @@ const CalendarView = () => {
                             </p>
                           )}
                           <p className="text-sm text-muted-foreground">
-                            {format(new Date(event.start_time), 'h:mm a')}
+                            {format(new Date(event.start_time), 'PPP p')}
                           </p>
                         </div>
                       ))
                     )}
                   </div>
-                ))}
+                </div>
+              </ScrollArea>
+              <div className="p-4">
+                <CalendarPrompts onPrompt={handlePrompt} type="month" />
               </div>
-              <CalendarPrompts onPrompt={handlePrompt} type="week" />
-            </TabsContent>
-
-            <TabsContent value="month" className="flex-1 p-4">
-              <Calendar
-                mode="single"
-                selected={new Date()}
-                className="rounded-md border"
-                components={{
-                  DayContent: ({ date }) => {
-                    const hasEvent = events.some(
-                      event =>
-                        new Date(event.start_time).getDate() === date.getDate() &&
-                        new Date(event.start_time).getMonth() === date.getMonth()
-                    );
-                    return (
-                      <div className="relative w-full h-full">
-                        <div>{date.getDate()}</div>
-                        {hasEvent && (
-                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
-                            <div className="h-1 w-1 bg-primary rounded-full" />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  },
-                }}
-              />
-              <div className="mt-6 space-y-4">
-                <h3 className="font-semibold text-muted-foreground">Upcoming</h3>
-                {events.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No upcoming events</p>
-                ) : (
-                  events.map((event) => (
-                    <div
-                      key={event.id}
-                      className="p-4 rounded-lg border bg-card text-card-foreground"
-                    >
-                      <h3 className="font-medium">{event.title}</h3>
-                      {event.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {event.description}
-                        </p>
-                      )}
-                      <p className="text-sm text-muted-foreground">
-                        {format(new Date(event.start_time), 'PPP p')}
-                      </p>
-                    </div>
-                  ))
-                )}
-              </div>
-              <CalendarPrompts onPrompt={handlePrompt} type="month" />
             </TabsContent>
           </Tabs>
         </div>
