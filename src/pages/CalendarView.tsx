@@ -125,26 +125,18 @@ const CalendarView = () => {
           <Tabs defaultValue="day" className="flex-1 flex flex-col">
             <div className="px-4 pt-4">
               <TabsList className="w-full">
-                <TabsTrigger value="day" className="flex-1">
-                  Day
-                </TabsTrigger>
-                <TabsTrigger value="week" className="flex-1">
-                  Week
-                </TabsTrigger>
-                <TabsTrigger value="month" className="flex-1">
-                  Month
-                </TabsTrigger>
+                <TabsTrigger value="day" className="flex-1">Day</TabsTrigger>
+                <TabsTrigger value="week" className="flex-1">Week</TabsTrigger>
+                <TabsTrigger value="month" className="flex-1">Month</TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="day" className="flex-1 flex flex-col">
+            <TabsContent value="day" className="flex-1 flex flex-col px-0 m-0">
               <ScrollArea className="flex-1">
                 <div className="space-y-6 p-4">
                   {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
                     <div key={timeOfDay} className="space-y-4">
-                      <h3 className="font-semibold capitalize text-muted-foreground">
-                        {timeOfDay}
-                      </h3>
+                      <h3 className="font-semibold capitalize text-muted-foreground">{timeOfDay}</h3>
                       {timeEvents.length === 0 ? (
                         <p className="text-sm text-muted-foreground">No events scheduled</p>
                       ) : (
@@ -155,9 +147,7 @@ const CalendarView = () => {
                           >
                             <h3 className="font-medium">{event.title}</h3>
                             {event.description && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {event.description}
-                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                             )}
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(event.start_time), 'h:mm a')}
@@ -172,7 +162,7 @@ const CalendarView = () => {
               <CalendarPrompts onPrompt={handlePrompt} type="day" />
             </TabsContent>
 
-            <TabsContent value="week" className="flex-1 flex flex-col">
+            <TabsContent value="week" className="flex-1 flex flex-col px-0 m-0">
               <ScrollArea className="flex-1">
                 <div className="space-y-6 p-4">
                   {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
@@ -188,9 +178,7 @@ const CalendarView = () => {
                           >
                             <h3 className="font-medium">{event.title}</h3>
                             {event.description && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {event.description}
-                              </p>
+                              <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                             )}
                             <p className="text-sm text-muted-foreground">
                               {format(new Date(event.start_time), 'h:mm a')}
@@ -205,7 +193,7 @@ const CalendarView = () => {
               <CalendarPrompts onPrompt={handlePrompt} type="week" />
             </TabsContent>
 
-            <TabsContent value="month" className="flex-1 flex flex-col">
+            <TabsContent value="month" className="flex-1 flex flex-col px-0 m-0">
               <ScrollArea className="flex-1">
                 <div className="p-4">
                   <Calendar
@@ -244,9 +232,7 @@ const CalendarView = () => {
                         >
                           <h3 className="font-medium">{event.title}</h3>
                           {event.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {event.description}
-                            </p>
+                            <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
                           )}
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(event.start_time), 'PPP p')}
