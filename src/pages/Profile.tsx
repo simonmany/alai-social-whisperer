@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import GoalsDialog from "@/components/GoalsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Database } from "@/integrations/supabase/types";
+import { Database, Json } from "@/integrations/supabase/types";
 
 interface ProfileProps {
   open: boolean;
