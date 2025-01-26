@@ -63,7 +63,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         })} at ${selectedEvent.date.toLocaleTimeString([], {
           hour: "numeric",
           minute: "2-digit",
-        })}. It was ${feedback}. Can you ask me some follow-up questions about what we discussed and if I'd like to hang out with them again?`;
+        })}. It was ${feedback}.`;
         onSubmit(message);
         onOpenChange(false);
         // Reset state
