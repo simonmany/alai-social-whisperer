@@ -90,7 +90,7 @@ const CalendarView = () => {
     <Sheet open={true}>
       <SheetContent
         side="left"
-        className="w-full sm:w-[540px] p-0 flex flex-col"
+        className="w-full sm:w-[540px] p-0 flex flex-col h-full"
         onPointerDownOutside={() => navigate("/")}
         showCloseButton={false}
       >
@@ -121,7 +121,7 @@ const CalendarView = () => {
           </div>
         ) : null}
 
-        <Tabs defaultValue="day" className="flex-1 flex flex-col">
+        <Tabs defaultValue="day" className="flex-1 flex flex-col overflow-hidden">
           <div className="px-4 pt-4">
             <TabsList className="w-full">
               <TabsTrigger value="day" className="flex-1">Day</TabsTrigger>
@@ -130,9 +130,9 @@ const CalendarView = () => {
             </TabsList>
           </div>
 
-          <TabsContent value="day" className="flex-1 flex flex-col m-0 overflow-hidden">
+          <TabsContent value="day" className="flex-1 flex flex-col m-0 p-0 overflow-hidden">
             <ScrollArea className="flex-1 px-4">
-              <div className="space-y-6 min-h-[calc(100vh-16rem)]">
+              <div className="space-y-6 min-h-[calc(100vh-12rem)]">
                 {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
                   <div key={timeOfDay} className="space-y-4">
                     <h3 className="font-semibold capitalize text-muted-foreground">{timeOfDay}</h3>
@@ -158,14 +158,12 @@ const CalendarView = () => {
                 ))}
               </div>
             </ScrollArea>
-            <div className="mt-auto border-t">
-              <CalendarPrompts onPrompt={handlePrompt} type="day" />
-            </div>
+            <CalendarPrompts onPrompt={handlePrompt} type="day" />
           </TabsContent>
 
-          <TabsContent value="week" className="flex-1 flex flex-col m-0 overflow-hidden">
+          <TabsContent value="week" className="flex-1 flex flex-col m-0 p-0 overflow-hidden">
             <ScrollArea className="flex-1 px-4">
-              <div className="space-y-6 min-h-[calc(100vh-16rem)]">
+              <div className="space-y-6 min-h-[calc(100vh-12rem)]">
                 {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
                   <div key={day} className="space-y-4">
                     <h3 className="font-semibold text-muted-foreground">{day}</h3>
@@ -191,12 +189,10 @@ const CalendarView = () => {
                 ))}
               </div>
             </ScrollArea>
-            <div className="mt-auto border-t">
-              <CalendarPrompts onPrompt={handlePrompt} type="week" />
-            </div>
+            <CalendarPrompts onPrompt={handlePrompt} type="week" />
           </TabsContent>
 
-          <TabsContent value="month" className="flex-1 flex flex-col m-0 overflow-hidden">
+          <TabsContent value="month" className="flex-1 flex flex-col m-0 p-0 overflow-hidden">
             <div className="p-4">
               <Calendar
                 mode="single"
@@ -223,7 +219,7 @@ const CalendarView = () => {
                 }}
               />
             </div>
-            <ScrollArea className="flex-1 px-4">
+            <ScrollArea className="flex-1 px-4 mt-4">
               <div className="space-y-4">
                 <h3 className="font-semibold text-muted-foreground">Upcoming Events</h3>
                 {events.length === 0 ? (
@@ -246,9 +242,7 @@ const CalendarView = () => {
                 )}
               </div>
             </ScrollArea>
-            <div className="mt-auto border-t">
-              <CalendarPrompts onPrompt={handlePrompt} type="month" />
-            </div>
+            <CalendarPrompts onPrompt={handlePrompt} type="month" />
           </TabsContent>
         </Tabs>
       </SheetContent>
