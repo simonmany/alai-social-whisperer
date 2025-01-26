@@ -8,6 +8,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { BasicInfo } from "./onboarding/BasicInfo";
 import { GoalsSection } from "./onboarding/GoalsSection";
 import { DemographicsSection } from "./onboarding/DemographicsSection";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -84,8 +86,41 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const handleBack = () => {
+    switch (step) {
+      case 'goals':
+        setStep('basic');
+        break;
+      case 'personality':
+        setStep('goals');
+        break;
+      case 'current-interests':
+        setStep('personality');
+        break;
+      case 'desired-interests':
+        setStep('current-interests');
+        break;
+      case 'demographics':
+        setStep('desired-interests');
+        break;
+    }
+  };
+
+  const showBackButton = step !== 'basic';
+
   return (
     <div className="flex flex-col h-full">
+      {showBackButton && (
+        <Button
+          variant="ghost"
+          className="self-start mb-4"
+          onClick={handleBack}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
+      )}
+      
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
         {step === 'basic' && (
           <BasicInfo session={session} onComplete={handleBasicInfoComplete} />
