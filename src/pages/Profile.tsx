@@ -22,11 +22,19 @@ interface Goal {
   created_at: string;
 }
 
+interface Profile {
+  id: string;
+  username?: string;
+  avatar_url?: string;
+  display_name?: string;
+  city?: string;
+  goals: Goal[];
+}
+
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  // Fetch user profile data including goals
   const { data: profileData } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -40,7 +48,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
         .single();
 
       if (error) throw error;
-      return profile;
+      return profile as Profile;
     }
   });
 

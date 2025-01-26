@@ -3,6 +3,18 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
+interface Goal {
+  type: string;
+  description: string;
+  timeframe: string;
+  completed: boolean;
+  created_at: string;
+}
+
+interface Profile {
+  goals: Goal[];
+}
+
 interface GoalsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,7 +35,7 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
         .single();
 
       if (error) throw error;
-      return profile;
+      return profile as Profile;
     }
   });
 
@@ -31,7 +43,7 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const newGoal = {
+    const newGoal: Goal = {
       type: "Connection",
       description: goalType.toLowerCase(),
       timeframe: "today",
