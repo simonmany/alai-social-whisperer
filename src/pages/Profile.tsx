@@ -7,10 +7,17 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import GoalsDialog from "@/components/GoalsDialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProfileProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+interface Goal {
+  type: string;
+  description: string;
+  completed?: boolean;
 }
 
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
@@ -39,16 +46,22 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     setIsGoalsDialogOpen(false);
   };
 
+  const handleGoalComplete = async (timeframe: string, goal: Goal) => {
+    const message = `I've completed my goal to ${goal.description}! Can you help me set a new goal?`;
+    // Send message to AI through chat interface
+    setIsGoalsDialogOpen(true);
+  };
+
   // Organize goals by timeframe
   const goals = {
     today: [
-      { type: "Connection", description: "catch up with Sean" },
+      { type: "Connection", description: "catch up with Sean", completed: false },
     ],
     thisWeek: [
-      { type: "Activity", description: "try a boxing class" },
+      { type: "Activity", description: "try a boxing class", completed: false },
     ],
     thisMonth: [
-      { type: "Connection", description: "meet someone new" },
+      { type: "Connection", description: "meet someone new", completed: false },
     ],
   };
 
@@ -101,33 +114,66 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
               <CardContent className="space-y-4">
                 {/* Today's Goals */}
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">Today</h3>
+                  <h3 className="text-sm font-bold text-primary mb-2">Today</h3>
                   {goals.today.map((goal, index) => (
-                    <div key={index} className="mb-2">
-                      <div className="text-sm font-medium">{goal.type}</div>
-                      <div className="text-xs text-muted-foreground">{goal.description}</div>
+                    <div key={index} className="mb-2 flex items-start gap-2">
+                      <Checkbox
+                        checked={goal.completed}
+                        onCheckedChange={() => handleGoalComplete('today', goal)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                          {goal.type}
+                        </div>
+                        <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
+                          {goal.description}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 {/* This Week's Goals */}
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">This Week</h3>
+                  <h3 className="text-sm font-bold text-primary mb-2">This Week</h3>
                   {goals.thisWeek.map((goal, index) => (
-                    <div key={index} className="mb-2">
-                      <div className="text-sm font-medium">{goal.type}</div>
-                      <div className="text-xs text-muted-foreground">{goal.description}</div>
+                    <div key={index} className="mb-2 flex items-start gap-2">
+                      <Checkbox
+                        checked={goal.completed}
+                        onCheckedChange={() => handleGoalComplete('thisWeek', goal)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                          {goal.type}
+                        </div>
+                        <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
+                          {goal.description}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
 
                 {/* This Month's Goals */}
                 <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">This Month</h3>
+                  <h3 className="text-sm font-bold text-primary mb-2">This Month</h3>
                   {goals.thisMonth.map((goal, index) => (
-                    <div key={index} className="mb-2">
-                      <div className="text-sm font-medium">{goal.type}</div>
-                      <div className="text-xs text-muted-foreground">{goal.description}</div>
+                    <div key={index} className="mb-2 flex items-start gap-2">
+                      <Checkbox
+                        checked={goal.completed}
+                        onCheckedChange={() => handleGoalComplete('thisMonth', goal)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                          {goal.type}
+                        </div>
+                        <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
+                          {goal.description}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
