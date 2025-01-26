@@ -127,7 +127,7 @@ const CalendarView = () => {
             </TabsList>
           </div>
 
-          <TabsContent value="day" className="flex-1 flex flex-col mt-0">
+          <TabsContent value="day" className="flex-1 flex flex-col mt-0 overflow-hidden">
             <ScrollArea className="flex-1 px-4 h-[calc(100vh-16rem)]">
               <div className="space-y-4 pb-4">
                 {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
@@ -162,7 +162,7 @@ const CalendarView = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="week" className="flex-1 flex flex-col mt-0">
+          <TabsContent value="week" className="flex-1 flex flex-col mt-0 overflow-hidden">
             <ScrollArea className="flex-1 px-4 h-[calc(100vh-16rem)]">
               <div className="space-y-4 pb-4">
                 {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
@@ -197,7 +197,7 @@ const CalendarView = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="month" className="flex-1 flex flex-col mt-0">
+          <TabsContent value="month" className="flex-1 flex flex-col mt-0 overflow-hidden">
             <div className="px-4">
               <Calendar
                 mode="single"
