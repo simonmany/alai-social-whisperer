@@ -243,8 +243,9 @@ const CalendarView = () => {
                         {format(new Date(event.start_time), 'PPP p')}
                       </p>
                     </div>
-                  ))}
-                </div>
+                  ))
+                )}
+              </div>
             </ScrollArea>
             <div className="mt-auto border-t">
               <CalendarPrompts onPrompt={handlePrompt} type="month" />
