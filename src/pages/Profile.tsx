@@ -22,6 +22,17 @@ interface Goal {
 
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
+  const [goals, setGoals] = useState({
+    today: [
+      { type: "Connection", description: "catch up with Sean", completed: false },
+    ],
+    thisWeek: [
+      { type: "Activity", description: "try a boxing class", completed: false },
+    ],
+    thisMonth: [
+      { type: "Connection", description: "meet someone new", completed: false },
+    ],
+  });
 
   // Fetch user profile data
   const { data: profileData } = useQuery({
@@ -46,23 +57,18 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     setIsGoalsDialogOpen(false);
   };
 
-  const handleGoalComplete = async (timeframe: string, goal: Goal) => {
+  const handleGoalComplete = async (timeframe: string, goalIndex: number) => {
+    // Update the goals state to mark the goal as completed
+    setGoals(prevGoals => {
+      const updatedGoals = { ...prevGoals };
+      updatedGoals[timeframe as keyof typeof goals][goalIndex].completed = true;
+      return updatedGoals;
+    });
+
+    const goal = goals[timeframe as keyof typeof goals][goalIndex];
     const message = `I've completed my goal to ${goal.description}! Can you help me set a new goal?`;
     // Send message to AI through chat interface
     setIsGoalsDialogOpen(true);
-  };
-
-  // Organize goals by timeframe
-  const goals = {
-    today: [
-      { type: "Connection", description: "catch up with Sean", completed: false },
-    ],
-    thisWeek: [
-      { type: "Activity", description: "try a boxing class", completed: false },
-    ],
-    thisMonth: [
-      { type: "Connection", description: "meet someone new", completed: false },
-    ],
   };
 
   const stats = {
@@ -119,7 +125,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                     <div key={index} className="mb-2 flex items-start gap-2">
                       <Checkbox
                         checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete('today', goal)}
+                        onCheckedChange={() => handleGoalComplete('today', index)}
                         className="mt-1"
                       />
                       <div>
@@ -141,7 +147,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                     <div key={index} className="mb-2 flex items-start gap-2">
                       <Checkbox
                         checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete('thisWeek', goal)}
+                        onCheckedChange={() => handleGoalComplete('thisWeek', index)}
                         className="mt-1"
                       />
                       <div>
@@ -163,7 +169,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                     <div key={index} className="mb-2 flex items-start gap-2">
                       <Checkbox
                         checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete('thisMonth', goal)}
+                        onCheckedChange={() => handleGoalComplete('thisMonth', index)}
                         className="mt-1"
                       />
                       <div>
