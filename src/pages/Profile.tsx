@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { MessageCircle, Settings, Share2, Target, Users } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import GoalsDialog from "@/components/GoalsDialog";
@@ -17,24 +17,16 @@ interface ProfileProps {
 interface Goal {
   type: string;
   description: string;
-  completed?: boolean;
+  completed: boolean;
+  timeframe: string;
+  created_at: string;
 }
 
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
-  const [goals, setGoals] = useState({
-    today: [
-      { type: "Connection", description: "catch up with Sean", completed: false },
-    ],
-    thisWeek: [
-      { type: "Activity", description: "try a boxing class", completed: false },
-    ],
-    thisMonth: [
-      { type: "Connection", description: "meet someone new", completed: false },
-    ],
-  });
+  const queryClient = useQueryClient();
 
-  // Fetch user profile data
+  // Fetch user profile data including goals
   const { data: profileData } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -52,23 +44,33 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     }
   });
 
+  const goals = profileData?.goals || [];
+
   const handleNewGoal = (message: string) => {
     // This will be handled by the chat interface
     setIsGoalsDialogOpen(false);
   };
 
-  const handleGoalComplete = async (timeframe: string, goalIndex: number) => {
-    // Update the goals state to mark the goal as completed
-    setGoals(prevGoals => {
-      const updatedGoals = { ...prevGoals };
-      updatedGoals[timeframe as keyof typeof goals][goalIndex].completed = true;
-      return updatedGoals;
-    });
+  const handleGoalComplete = async (goalIndex: number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-    const goal = goals[timeframe as keyof typeof goals][goalIndex];
-    const message = `I've completed my goal to ${goal.description}! Can you help me set a new goal?`;
-    // Send message to AI through chat interface
-    setIsGoalsDialogOpen(true);
+    const updatedGoals = [...goals];
+    updatedGoals[goalIndex].completed = true;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ goals: updatedGoals })
+      .eq('id', user.id);
+
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      setIsGoalsDialogOpen(true);
+    }
+  };
+
+  const filterGoalsByTimeframe = (timeframe: string) => {
+    return goals.filter((goal: Goal) => goal.timeframe === timeframe);
   };
 
   const stats = {
@@ -121,11 +123,11 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 {/* Today's Goals */}
                 <div>
                   <h3 className="text-sm font-bold text-primary mb-2">Today</h3>
-                  {goals.today.map((goal, index) => (
+                  {filterGoalsByTimeframe('today').map((goal: Goal, index: number) => (
                     <div key={index} className="mb-2 flex items-start gap-2">
                       <Checkbox
                         checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete('today', index)}
+                        onCheckedChange={() => handleGoalComplete(index)}
                         className="mt-1"
                       />
                       <div>
@@ -143,11 +145,11 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 {/* This Week's Goals */}
                 <div>
                   <h3 className="text-sm font-bold text-primary mb-2">This Week</h3>
-                  {goals.thisWeek.map((goal, index) => (
+                  {filterGoalsByTimeframe('week').map((goal: Goal, index: number) => (
                     <div key={index} className="mb-2 flex items-start gap-2">
                       <Checkbox
                         checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete('thisWeek', index)}
+                        onCheckedChange={() => handleGoalComplete(index)}
                         className="mt-1"
                       />
                       <div>
@@ -165,11 +167,11 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 {/* This Month's Goals */}
                 <div>
                   <h3 className="text-sm font-bold text-primary mb-2">This Month</h3>
-                  {goals.thisMonth.map((goal, index) => (
+                  {filterGoalsByTimeframe('month').map((goal: Goal, index: number) => (
                     <div key={index} className="mb-2 flex items-start gap-2">
                       <Checkbox
                         checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete('thisMonth', index)}
+                        onCheckedChange={() => handleGoalComplete(index)}
                         className="mt-1"
                       />
                       <div>

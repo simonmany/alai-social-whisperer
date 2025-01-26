@@ -1,5 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 
 interface GoalsDialogProps {
   open: boolean;
@@ -8,9 +10,47 @@ interface GoalsDialogProps {
 }
 
 const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
-  const handleGoalSelect = (goal: string) => {
-    onSubmit(`I want to ${goal.toLowerCase()}`);
-    onOpenChange(false);
+  const { data: profile } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('goals')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return profile;
+    }
+  });
+
+  const handleGoalSelect = async (goalType: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const newGoal = {
+      type: "Connection",
+      description: goalType.toLowerCase(),
+      timeframe: "today",
+      completed: false,
+      created_at: new Date().toISOString()
+    };
+
+    const currentGoals = profile?.goals || [];
+    const updatedGoals = [...currentGoals, newGoal];
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ goals: updatedGoals })
+      .eq('id', user.id);
+
+    if (!error) {
+      onSubmit(`I want to ${goalType.toLowerCase()}`);
+      onOpenChange(false);
+    }
   };
 
   const goals = [
