@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import GoalsDialog from "@/components/GoalsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Database } from "@/integrations/supabase/types";
 
 interface ProfileProps {
   open: boolean;
@@ -22,14 +23,7 @@ interface Goal {
   created_at: string;
 }
 
-interface Profile {
-  id: string;
-  username?: string;
-  avatar_url?: string;
-  display_name?: string;
-  city?: string;
-  goals: Goal[];
-}
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
@@ -48,14 +42,13 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
         .single();
 
       if (error) throw error;
-      return profile as Profile;
+      return profile;
     }
   });
 
-  const goals = profileData?.goals || [];
+  const goals = (profileData?.goals as Goal[]) || [];
 
   const handleNewGoal = (message: string) => {
-    // This will be handled by the chat interface
     setIsGoalsDialogOpen(false);
   };
 

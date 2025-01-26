@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Database } from "@/integrations/supabase/types";
 
 interface Goal {
   type: string;
@@ -11,9 +12,7 @@ interface Goal {
   created_at: string;
 }
 
-interface Profile {
-  goals: Goal[];
-}
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface GoalsDialogProps {
   open: boolean;
@@ -35,7 +34,7 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
         .single();
 
       if (error) throw error;
-      return profile as Profile;
+      return profile;
     }
   });
 
@@ -51,7 +50,7 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
       created_at: new Date().toISOString()
     };
 
-    const currentGoals = profile?.goals || [];
+    const currentGoals = (profile?.goals as Goal[]) || [];
     const updatedGoals = [...currentGoals, newGoal];
 
     const { error } = await supabase
