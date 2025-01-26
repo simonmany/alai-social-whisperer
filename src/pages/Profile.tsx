@@ -16,10 +16,11 @@ interface ProfileProps {
 }
 
 interface Goal {
+  [key: string]: string | boolean; // Make Goal compatible with Json type
   type: string;
   description: string;
-  completed: boolean;
   timeframe: string;
+  completed: boolean;
   created_at: string;
 }
 
@@ -46,7 +47,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     }
   });
 
-  const goals = (profileData?.goals as Goal[]) || [];
+  const goals = (profileData?.goals as unknown as Goal[]) || [];
 
   const handleNewGoal = (message: string) => {
     setIsGoalsDialogOpen(false);
@@ -61,7 +62,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: updatedGoals })
+      .update({ goals: updatedGoals as unknown as Json[] })
       .eq('id', user.id);
 
     if (!error) {

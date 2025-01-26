@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Database } from "@/integrations/supabase/types";
 
 interface Goal {
+  [key: string]: string | boolean; // Make Goal compatible with Json type
   type: string;
   description: string;
   timeframe: string;
@@ -50,12 +51,12 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
       created_at: new Date().toISOString()
     };
 
-    const currentGoals = (profile?.goals as Goal[]) || [];
+    const currentGoals = (profile?.goals as unknown as Goal[]) || [];
     const updatedGoals = [...currentGoals, newGoal];
 
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: updatedGoals })
+      .update({ goals: updatedGoals as unknown as Json[] })
       .eq('id', user.id);
 
     if (!error) {
