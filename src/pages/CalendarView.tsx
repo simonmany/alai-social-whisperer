@@ -131,8 +131,8 @@ const CalendarView = () => {
           </div>
 
           <TabsContent value="day" className="flex-1 flex flex-col m-0 overflow-hidden">
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-6">
+            <ScrollArea className="flex-1 px-4">
+              <div className="space-y-6 min-h-[calc(100vh-16rem)]">
                 {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
                   <div key={timeOfDay} className="space-y-4">
                     <h3 className="font-semibold capitalize text-muted-foreground">{timeOfDay}</h3>
@@ -158,14 +158,14 @@ const CalendarView = () => {
                 ))}
               </div>
             </ScrollArea>
-            <div className="p-4 border-t mt-auto">
+            <div className="mt-auto border-t">
               <CalendarPrompts onPrompt={handlePrompt} type="day" />
             </div>
           </TabsContent>
 
           <TabsContent value="week" className="flex-1 flex flex-col m-0 overflow-hidden">
-            <ScrollArea className="flex-1">
-              <div className="p-4 space-y-6">
+            <ScrollArea className="flex-1 px-4">
+              <div className="space-y-6 min-h-[calc(100vh-16rem)]">
                 {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
                   <div key={day} className="space-y-4">
                     <h3 className="font-semibold text-muted-foreground">{day}</h3>
@@ -191,62 +191,62 @@ const CalendarView = () => {
                 ))}
               </div>
             </ScrollArea>
-            <div className="p-4 border-t mt-auto">
+            <div className="mt-auto border-t">
               <CalendarPrompts onPrompt={handlePrompt} type="week" />
             </div>
           </TabsContent>
 
           <TabsContent value="month" className="flex-1 flex flex-col m-0 overflow-hidden">
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                <Calendar
-                  mode="single"
-                  selected={new Date()}
-                  className="rounded-md border"
-                  components={{
-                    DayContent: ({ date }) => {
-                      const hasEvent = events.some(
-                        event =>
-                          new Date(event.start_time).getDate() === date.getDate() &&
-                          new Date(event.start_time).getMonth() === date.getMonth()
-                      );
-                      return (
-                        <div className="relative w-full h-full">
-                          <div>{date.getDate()}</div>
-                          {hasEvent && (
-                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
-                              <div className="h-1 w-1 bg-primary rounded-full" />
-                            </div>
-                          )}
-                        </div>
-                      );
-                    },
-                  }}
-                />
-                <div className="mt-6 space-y-4">
-                  <h3 className="font-semibold text-muted-foreground">Upcoming</h3>
-                  {events.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No upcoming events</p>
-                  ) : (
-                    events.map((event) => (
-                      <div
-                        key={event.id}
-                        className="p-4 rounded-lg border bg-card text-card-foreground"
-                      >
-                        <h3 className="font-medium">{event.title}</h3>
-                        {event.description && (
-                          <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+            <div className="p-4">
+              <Calendar
+                mode="single"
+                selected={new Date()}
+                className="rounded-md border"
+                components={{
+                  DayContent: ({ date }) => {
+                    const hasEvent = events.some(
+                      event =>
+                        new Date(event.start_time).getDate() === date.getDate() &&
+                        new Date(event.start_time).getMonth() === date.getMonth()
+                    );
+                    return (
+                      <div className="relative w-full h-full">
+                        <div>{date.getDate()}</div>
+                        {hasEvent && (
+                          <div className="absolute bottom-1 left-1/2 -translate-x-1/2">
+                            <div className="h-1 w-1 bg-primary rounded-full" />
+                          </div>
                         )}
-                        <p className="text-sm text-muted-foreground">
-                          {format(new Date(event.start_time), 'PPP p')}
-                        </p>
                       </div>
-                    ))
-                  )}
-                </div>
+                    );
+                  },
+                }}
+              />
+            </div>
+            <ScrollArea className="flex-1 px-4">
+              <div className="space-y-4">
+                <h3 className="font-semibold text-muted-foreground">Upcoming Events</h3>
+                {events.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming events</p>
+                ) : (
+                  events.map((event) => (
+                    <div
+                      key={event.id}
+                      className="p-4 rounded-lg border bg-card text-card-foreground"
+                    >
+                      <h3 className="font-medium">{event.title}</h3>
+                      {event.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{event.description}</p>
+                      )}
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(event.start_time), 'PPP p')}
+                      </p>
+                    </div>
+                  ))
+                )}
               </div>
             </ScrollArea>
-            <div className="p-4 border-t mt-auto">
+            <div className="mt-auto border-t">
               <CalendarPrompts onPrompt={handlePrompt} type="month" />
             </div>
           </TabsContent>
