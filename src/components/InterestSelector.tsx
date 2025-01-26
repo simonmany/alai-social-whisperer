@@ -18,7 +18,7 @@ interface InterestSelectorProps {
 
 export const InterestSelector = ({ 
   onComplete, 
-  placeholder = "Type to search activities...",
+  placeholder = "Type to search or add new activities...",
   minSelections = 3
 }: InterestSelectorProps) => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -70,6 +70,62 @@ export const InterestSelector = ({
     setFilteredActivities([]);
   };
 
+  const createNewActivity = async (name: string) => {
+    const { data, error } = await supabase
+      .from('activities')
+      .insert({ name })
+      .select()
+      .single();
+
+    if (error) {
+      toast({
+        title: "Error creating activity",
+        description: error.message,
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    setActivities(prev => [...prev, data]);
+    return data;
+  };
+
+  const handleInputKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      const inputValue = searchTerm.trim();
+      if (!inputValue) return;
+
+      // Handle multiple entries
+      const newActivities = inputValue.split(',').map(act => act.trim()).filter(Boolean);
+
+      for (const activityName of newActivities) {
+        if (!activityName) continue;
+
+        // Check if activity exists
+        const existingActivity = activities.find(
+          a => a.name.toLowerCase() === activityName.toLowerCase()
+        );
+
+        if (existingActivity) {
+          // Add existing activity
+          if (!selectedActivities.includes(existingActivity.name)) {
+            setSelectedActivities(prev => [...prev, existingActivity.name]);
+          }
+        } else {
+          // Create new activity
+          const newActivity = await createNewActivity(activityName);
+          if (newActivity) {
+            setSelectedActivities(prev => [...prev, newActivity.name]);
+          }
+        }
+      }
+
+      setSearchTerm("");
+      setFilteredActivities([]);
+    }
+  };
+
   const handleSubmit = () => {
     if (selectedActivities.length < minSelections) {
       toast({
@@ -87,6 +143,7 @@ export const InterestSelector = ({
       <Input
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
+        onKeyDown={handleInputKeyDown}
         placeholder={placeholder}
       />
       
