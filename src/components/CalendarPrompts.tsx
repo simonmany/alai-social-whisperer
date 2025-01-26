@@ -15,11 +15,11 @@ export const CalendarPrompts = ({ onPrompt, type }: CalendarPromptsProps) => {
 
   return (
     <div className="space-y-4 p-4 border-t">
-      <p className="text-sm text-muted-foreground italic">Ask Al about your schedule...</p>
-      <div className="flex flex-wrap gap-2">
+      <p className="text-sm text-muted-foreground italic text-center">Ask Al about your schedule...</p>
+      <div className="flex justify-center w-full">
         <Button
           variant="outline"
-          className="bg-primary text-primary-foreground hover:bg-primary/80 transition-colors"
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/80 transition-colors"
           onClick={() => onPrompt(prompts[type])}
         >
           <MessageCircle className="mr-2" />
