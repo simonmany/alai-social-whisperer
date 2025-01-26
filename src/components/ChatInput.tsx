@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SendHorizontal } from "lucide-react";
@@ -7,14 +7,20 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   placeholder?: string;
   type?: string;
+  initialValue?: string;
 }
 
 export const ChatInput = ({ 
   onSend, 
   placeholder = "... or tell me what's on your mind!",
-  type = "text"
+  type = "text",
+  initialValue = ""
 }: ChatInputProps) => {
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState(initialValue);
+
+  useEffect(() => {
+    setMessage(initialValue);
+  }, [initialValue]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
