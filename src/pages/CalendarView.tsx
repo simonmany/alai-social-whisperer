@@ -122,7 +122,7 @@ const CalendarView = () => {
             </div>
           ) : null}
 
-          <Tabs defaultValue="day" className="flex-1">
+          <Tabs defaultValue="day" className="flex-1 flex flex-col">
             <div className="px-4 pt-4">
               <TabsList className="w-full">
                 <TabsTrigger value="day" className="flex-1">
@@ -137,41 +137,43 @@ const CalendarView = () => {
               </TabsList>
             </div>
 
-            <TabsContent value="day" className="flex-1 p-4">
-              <div className="space-y-6">
-                {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
-                  <div key={timeOfDay} className="space-y-4">
-                    <h3 className="font-semibold capitalize text-muted-foreground">
-                      {timeOfDay}
-                    </h3>
-                    {timeEvents.length === 0 ? (
-                      <p className="text-sm text-muted-foreground">No events scheduled</p>
-                    ) : (
-                      timeEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          className="p-4 rounded-lg border bg-card text-card-foreground"
-                        >
-                          <h3 className="font-medium">{event.title}</h3>
-                          {event.description && (
-                            <p className="text-sm text-muted-foreground mt-1">
-                              {event.description}
+            <TabsContent value="day" className="flex-1 flex flex-col">
+              <ScrollArea className="flex-1">
+                <div className="space-y-6 p-4">
+                  {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
+                    <div key={timeOfDay} className="space-y-4">
+                      <h3 className="font-semibold capitalize text-muted-foreground">
+                        {timeOfDay}
+                      </h3>
+                      {timeEvents.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No events scheduled</p>
+                      ) : (
+                        timeEvents.map((event) => (
+                          <div
+                            key={event.id}
+                            className="p-4 rounded-lg border bg-card text-card-foreground"
+                          >
+                            <h3 className="font-medium">{event.title}</h3>
+                            {event.description && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {event.description}
+                              </p>
+                            )}
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(event.start_time), 'h:mm a')}
                             </p>
-                          )}
-                          <p className="text-sm text-muted-foreground">
-                            {format(new Date(event.start_time), 'h:mm a')}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                ))}
-              </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
               <CalendarPrompts onPrompt={handlePrompt} type="day" />
             </TabsContent>
 
-            <TabsContent value="week" className="flex-1">
-              <ScrollArea className="h-[calc(100vh-12rem)]">
+            <TabsContent value="week" className="flex-1 flex flex-col">
+              <ScrollArea className="flex-1">
                 <div className="space-y-6 p-4">
                   {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
                     <div key={day} className="space-y-4">
@@ -200,13 +202,11 @@ const CalendarView = () => {
                   ))}
                 </div>
               </ScrollArea>
-              <div className="p-4">
-                <CalendarPrompts onPrompt={handlePrompt} type="week" />
-              </div>
+              <CalendarPrompts onPrompt={handlePrompt} type="week" />
             </TabsContent>
 
-            <TabsContent value="month" className="flex-1">
-              <ScrollArea className="h-[calc(100vh-12rem)]">
+            <TabsContent value="month" className="flex-1 flex flex-col">
+              <ScrollArea className="flex-1">
                 <div className="p-4">
                   <Calendar
                     mode="single"
@@ -257,9 +257,7 @@ const CalendarView = () => {
                   </div>
                 </div>
               </ScrollArea>
-              <div className="p-4">
-                <CalendarPrompts onPrompt={handlePrompt} type="month" />
-              </div>
+              <CalendarPrompts onPrompt={handlePrompt} type="month" />
             </TabsContent>
           </Tabs>
         </div>
