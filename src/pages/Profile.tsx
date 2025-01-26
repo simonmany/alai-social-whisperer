@@ -75,6 +75,46 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     mostSeenFriend: "Alex Chen",
   };
 
+  const renderTimeframeSection = (timeframe: string, title: string) => {
+    const timeframeGoals = filterGoalsByTimeframe(timeframe);
+    const hasGoals = timeframeGoals.length > 0;
+
+    return (
+      <div>
+        <h3 className="text-sm font-bold text-primary mb-2">{title}</h3>
+        {!hasGoals ? (
+          <Alert 
+            variant="destructive" 
+            className="mb-2 cursor-pointer hover:bg-destructive/90 transition-colors"
+            onClick={() => setIsGoalsDialogOpen(true)}
+          >
+            <AlertDescription className="text-sm">
+              Goal Missing! Set now?
+            </AlertDescription>
+          </Alert>
+        ) : (
+          timeframeGoals.map((goal: Goal, index: number) => (
+            <div key={index} className="mb-2 flex items-start gap-2">
+              <Checkbox
+                checked={goal.completed}
+                onCheckedChange={() => handleGoalComplete(index)}
+                className="mt-1"
+              />
+              <div>
+                <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                  {goal.type}
+                </div>
+                <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
+                  {goal.description}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  };
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
@@ -125,71 +165,9 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Today's Goals */}
-                <div>
-                  <h3 className="text-sm font-bold text-primary mb-2">Today</h3>
-                  {filterGoalsByTimeframe('today').map((goal: Goal, index: number) => (
-                    <div key={index} className="mb-2 flex items-start gap-2">
-                      <Checkbox
-                        checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete(index)}
-                        className="mt-1"
-                      />
-                      <div>
-                        <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
-                          {goal.type}
-                        </div>
-                        <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
-                          {goal.description}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* This Week's Goals */}
-                <div>
-                  <h3 className="text-sm font-bold text-primary mb-2">This Week</h3>
-                  {filterGoalsByTimeframe('week').map((goal: Goal, index: number) => (
-                    <div key={index} className="mb-2 flex items-start gap-2">
-                      <Checkbox
-                        checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete(index)}
-                        className="mt-1"
-                      />
-                      <div>
-                        <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
-                          {goal.type}
-                        </div>
-                        <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
-                          {goal.description}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* This Month's Goals */}
-                <div>
-                  <h3 className="text-sm font-bold text-primary mb-2">This Month</h3>
-                  {filterGoalsByTimeframe('month').map((goal: Goal, index: number) => (
-                    <div key={index} className="mb-2 flex items-start gap-2">
-                      <Checkbox
-                        checked={goal.completed}
-                        onCheckedChange={() => handleGoalComplete(index)}
-                        className="mt-1"
-                      />
-                      <div>
-                        <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
-                          {goal.type}
-                        </div>
-                        <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
-                          {goal.description}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                {renderTimeframeSection('today', 'Today')}
+                {renderTimeframeSection('week', 'This Week')}
+                {renderTimeframeSection('month', 'This Month')}
               </CardContent>
             </Card>
 
@@ -229,11 +207,6 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 </div>
               </CardContent>
             </Card>
-
-            <Button size="sm" className="w-full gap-2">
-              <MessageCircle className="h-4 w-4" />
-              Ask Al about your stats
-            </Button>
 
             {/* Actions */}
             <div className="flex flex-col gap-2">
