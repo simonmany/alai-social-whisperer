@@ -1,29 +1,22 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Settings, Share2, Target, Users } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import GoalsDialog from "@/components/GoalsDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Database, Json } from "@/integrations/supabase/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
-import { Button } from "@/components/ui/button";
-import { ProfileHeader } from "@/components/profile/ProfileHeader";
-import { GoalsSection } from "@/components/profile/GoalsSection";
-import { StatsSection } from "@/components/profile/StatsSection";
-import { ActionsSection } from "@/components/profile/ActionsSection";
+import { AvatarUpload } from "@/components/AvatarUpload";
 
 interface ProfileProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
-
-const stats = {
-  connections: 42,
-  weeklyHangs: 2.5,
-  timeBetweenHangs: "4.2 days",
-  mostSeenFriend: "Alex Chen",
-};
 
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
@@ -42,9 +35,15 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
         .single();
 
       if (error) throw error;
+      
+      console.log('Profile data fetched:', profile);
       return profile;
     }
   });
+
+  // Explicitly convert to string or undefined
+  const avatarUrl = typeof profileData?.avatar_url === 'string' ? profileData.avatar_url : undefined;
+  console.log('Avatar URL being passed to AvatarUpload:', avatarUrl, typeof avatarUrl);
 
   const handleAvatarUpdate = (newUrl: string) => {
     queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -66,13 +65,64 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: updatedGoals })
+      .update({ goals: updatedGoals as unknown as Json[] })
       .eq('id', user.id);
 
     if (!error) {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
       setIsGoalsDialogOpen(true);
     }
+  };
+
+  const filterGoalsByTimeframe = (timeframe: string) => {
+    return goals.filter((goal: Goal) => goal.timeframe === timeframe);
+  };
+
+  const stats = {
+    connections: 42,
+    weeklyHangs: 2.5,
+    timeBetweenHangs: "4.2 days",
+    mostSeenFriend: "Alex Chen",
+  };
+
+  const renderTimeframeSection = (timeframe: string, title: string) => {
+    const timeframeGoals = filterGoalsByTimeframe(timeframe);
+    const hasGoals = timeframeGoals.length > 0;
+
+    return (
+      <div>
+        <h3 className="text-sm font-bold text-primary mb-2">{title}</h3>
+        {!hasGoals ? (
+          <Alert 
+            variant="destructive" 
+            className="mb-2 cursor-pointer hover:bg-destructive/90 transition-colors"
+            onClick={() => setIsGoalsDialogOpen(true)}
+          >
+            <AlertDescription className="text-sm">
+              Goal Missing! Set now?
+            </AlertDescription>
+          </Alert>
+        ) : (
+          timeframeGoals.map((goal: Goal, index: number) => (
+            <div key={index} className="mb-2 flex items-start gap-2">
+              <Checkbox
+                checked={goal.completed}
+                onCheckedChange={() => handleGoalComplete(index)}
+                className="mt-1"
+              />
+              <div>
+                <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                  {goal.type}
+                </div>
+                <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
+                  {goal.description}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
   };
 
   return (
@@ -84,11 +134,29 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           </SheetHeader>
 
           <div className="space-y-3">
-            <ProfileHeader 
-              profile={profileData}
-              onAvatarUpdate={handleAvatarUpdate}
-            />
+            {/* Profile Info */}
+            <div className="flex flex-col items-center space-y-2">
+              <AvatarUpload
+                url={avatarUrl}
+                onUploadComplete={handleAvatarUpdate}
+                fallback={profileData?.display_name?.charAt(0) || 'U'}
+                size="lg"
+              />
+              <div className="text-center">
+                <h2 className="text-lg font-semibold">{profileData?.display_name || 'User'}</h2>
+                <div className="flex gap-2 text-xs text-muted-foreground">
+                  <span>@{profileData?.username || 'user'}</span>
+                  <span>•</span>
+                  <span>{profileData?.city || 'Location not set'}</span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">Instagram</Button>
+                <Button variant="outline" size="sm">Twitter</Button>
+              </div>
+            </div>
 
+            {/* Goals Alert */}
             {missingTimeframes.length > 0 && (
               <Alert variant="destructive" className="mb-4">
                 <AlertDescription>
@@ -98,12 +166,20 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
               </Alert>
             )}
 
-            <GoalsSection
-              goals={goals}
-              onGoalComplete={handleGoalComplete}
-              onSetNewGoal={() => setIsGoalsDialogOpen(true)}
-              missingTimeframes={missingTimeframes}
-            />
+            {/* Goals Section */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Goals
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {renderTimeframeSection('today', 'Today')}
+                {renderTimeframeSection('week', 'This Week')}
+                {renderTimeframeSection('month', 'This Month')}
+              </CardContent>
+            </Card>
 
             <Button 
               size="sm" 
@@ -114,8 +190,45 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
               Set a new goal
             </Button>
 
-            <StatsSection stats={stats} />
-            <ActionsSection />
+            {/* Stats Section */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-2 gap-2">
+                <div>
+                  <div className="text-sm font-medium">Connections</div>
+                  <div className="text-lg font-semibold">{stats.connections}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">Weekly Hangs</div>
+                  <div className="text-lg font-semibold">{stats.weeklyHangs}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">Time Between Hangs</div>
+                  <div className="text-lg font-semibold">{stats.timeBetweenHangs}</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">Most Seen Friend</div>
+                  <div className="text-lg font-semibold">{stats.mostSeenFriend}</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2">
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
+              <Button variant="outline" className="w-full justify-start gap-2">
+                <Share2 className="h-4 w-4" />
+                Integrations
+              </Button>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
