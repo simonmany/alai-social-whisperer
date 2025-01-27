@@ -1,6 +1,8 @@
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Button } from "@/components/ui/button";
-import { Profile } from "@/types/database";
+import { Database } from "@/integrations/supabase/types";
+
+type Profile = Database['public']['Tables']['profiles']['Row'];
 
 interface ProfileHeaderProps {
   profile: Profile | null;
