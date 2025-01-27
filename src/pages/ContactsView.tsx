@@ -6,6 +6,8 @@ import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Contact {
   id: number;
@@ -62,6 +64,30 @@ const ContactsView = () => {
   const [selectedGroup, setSelectedGroup] = useState<string>("Inner orbit");
   const navigate = useNavigate();
 
+  const { data: profileData } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      console.log('Fetching profile data for contacts view...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+
+      console.log('Profile data fetched for contacts:', profile);
+      return profile;
+    },
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+  });
+
   const filteredContacts = SAMPLE_CONTACTS.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
     (selectedGroup === "" || contact.group === selectedGroup)
@@ -95,8 +121,12 @@ const ContactsView = () => {
             {/* Center Avatar */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <Avatar className="h-24 w-24">
-                <AvatarImage src="/placeholder.svg" alt="Your profile" />
-                <AvatarFallback>YOU</AvatarFallback>
+                {profileData?.avatar_url && (
+                  <AvatarImage src={profileData.avatar_url} alt="Your profile" />
+                )}
+                <AvatarFallback>
+                  {profileData?.display_name?.charAt(0) || 'Y'}
+                </AvatarFallback>
               </Avatar>
             </div>
 
