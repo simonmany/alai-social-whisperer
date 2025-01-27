@@ -27,6 +27,7 @@ interface GoalsDialogProps {
 const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [activityInput, setActivityInput] = useState("");
+  const [peopleCount, setPeopleCount] = useState("");
   const [timeframe, setTimeframe] = useState<string | null>(null);
 
   const { data: profile } = useQuery({
@@ -47,7 +48,7 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
   });
 
   const handleGoalSelect = async (goalType: string) => {
-    if (goalType === "try something new") {
+    if (goalType === "try something new" || goalType === "Meet new people") {
       setSelectedGoal(goalType);
     } else {
       const { data: { user } } = await supabase.auth.getUser();
@@ -79,18 +80,24 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
   const handleBack = () => {
     setSelectedGoal(null);
     setActivityInput("");
+    setPeopleCount("");
     setTimeframe(null);
   };
 
-  const handleSubmitActivity = async () => {
+  const handleSubmit = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    let description = activityInput;
-    if (!description) {
-      onSubmit("Can you suggest a new activity for me to try?");
-      onOpenChange(false);
-      return;
+    let description = "";
+    let type = "";
+
+    if (selectedGoal === "try something new") {
+      description = activityInput || "a new activity";
+      type = "Activity";
+    } else if (selectedGoal === "Meet new people") {
+      const count = parseInt(peopleCount) || 1;
+      description = `meet ${count} new ${count === 1 ? 'person' : 'people'}`;
+      type = "Social";
     }
 
     const timeframeMap: { [key: string]: string } = {
@@ -100,7 +107,7 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
     };
 
     const newGoal: Goal = {
-      type: "Activity",
+      type,
       description,
       timeframe: timeframeMap[timeframe || ""] || "today",
       completed: false,
@@ -116,7 +123,11 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
       .eq('id', user.id);
 
     if (!error) {
-      onSubmit(`I want to try ${description}`);
+      if (selectedGoal === "try something new") {
+        onSubmit(activityInput ? `I want to try ${description}` : "Can you suggest a new activity for me to try?");
+      } else {
+        onSubmit(`I want to ${description}`);
+      }
       onOpenChange(false);
     }
   };
@@ -127,6 +138,74 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
     "Catch up with old friends",
     "Plan a gathering or trip",
   ];
+
+  const renderContent = () => {
+    if (!selectedGoal) {
+      return goals.map((goal) => (
+        <Button
+          key={goal}
+          variant="outline"
+          className="text-left h-auto py-4 px-6"
+          onClick={() => handleGoalSelect(goal)}
+        >
+          {goal}
+        </Button>
+      ));
+    }
+
+    return (
+      <div className="space-y-6">
+        {selectedGoal === "try something new" && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">What would you like to try?</p>
+            <Input
+              placeholder="Type your activity here..."
+              value={activityInput}
+              onChange={(e) => setActivityInput(e.target.value)}
+            />
+          </div>
+        )}
+
+        {selectedGoal === "Meet new people" && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">How many people would you like to meet? (1-10)</p>
+            <Input
+              type="number"
+              min="1"
+              max="10"
+              placeholder="Enter a number between 1-10"
+              value={peopleCount}
+              onChange={(e) => setPeopleCount(e.target.value)}
+            />
+          </div>
+        )}
+        
+        <div className="space-y-2">
+          <p className="text-sm font-medium">How soon would you like to {selectedGoal === "try something new" ? "try this" : "meet them"}?</p>
+          <div className="flex gap-2">
+            {["ASAP", "this week", "this month"].map((option) => (
+              <Button
+                key={option}
+                variant={timeframe === option ? "default" : "outline"}
+                onClick={() => setTimeframe(option)}
+                className="flex-1"
+              >
+                {option}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        <Button 
+          className="w-full"
+          onClick={handleSubmit}
+          disabled={!timeframe || (selectedGoal === "Meet new people" && (!peopleCount || parseInt(peopleCount) < 1 || parseInt(peopleCount) > 10))}
+        >
+          {selectedGoal === "try something new" && !activityInput ? "Suggest something" : "Submit"}
+        </Button>
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -142,57 +221,11 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
             </Button>
           ) : null}
           <DialogTitle className="text-center text-xl">
-            {selectedGoal ? "Let's try something new!" : "Yes! I love new goals. What would you like to do?"}
+            {selectedGoal ? `Let's ${selectedGoal}!` : "Yes! I love new goals. What would you like to do?"}
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3 mt-4">
-          {!selectedGoal ? (
-            goals.map((goal) => (
-              <Button
-                key={goal}
-                variant="outline"
-                className="text-left h-auto py-4 px-6"
-                onClick={() => handleGoalSelect(goal)}
-              >
-                {goal}
-              </Button>
-            ))
-          ) : (
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <p className="text-sm font-medium">What would you like to try?</p>
-                <Input
-                  placeholder="Type your activity here..."
-                  value={activityInput}
-                  onChange={(e) => setActivityInput(e.target.value)}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm font-medium">How soon would you like to try this?</p>
-                <div className="flex gap-2">
-                  {["ASAP", "this week", "this month"].map((option) => (
-                    <Button
-                      key={option}
-                      variant={timeframe === option ? "default" : "outline"}
-                      onClick={() => setTimeframe(option)}
-                      className="flex-1"
-                    >
-                      {option}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              <Button 
-                className="w-full"
-                onClick={handleSubmitActivity}
-                disabled={!timeframe}
-              >
-                {activityInput ? "Submit" : "Suggest something"}
-              </Button>
-            </div>
-          )}
+          {renderContent()}
         </div>
       </DialogContent>
     </Dialog>
