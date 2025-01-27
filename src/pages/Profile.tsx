@@ -23,10 +23,9 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: profileData, isLoading } = useQuery({
+  const { data: profileData } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      console.log('Fetching profile data...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
@@ -36,11 +35,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        throw error;
-      }
-
+      if (error) throw error;
+      
       console.log('Profile data fetched:', profile);
       return profile;
     },
@@ -48,8 +44,6 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   });
 
   const handleAvatarUpdate = (newUrl: string) => {
-    console.log('Avatar URL updated:', newUrl);
-    // Invalidate and refetch profile data
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
@@ -140,14 +134,12 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           <div className="space-y-3">
             {/* Profile Info */}
             <div className="flex flex-col items-center space-y-2">
-              {!isLoading && (
-                <AvatarUpload
-                  url={profileData?.avatar_url || undefined}
-                  onUploadComplete={handleAvatarUpdate}
-                  fallback={profileData?.display_name?.charAt(0) || 'U'}
-                  size="lg"
-                />
-              )}
+              <AvatarUpload
+                url={profileData?.avatar_url ?? undefined}
+                onUploadComplete={handleAvatarUpdate}
+                fallback={profileData?.display_name?.charAt(0) || 'U'}
+                size="lg"
+              />
               <div className="text-center">
                 <h2 className="text-lg font-semibold">{profileData?.display_name || 'User'}</h2>
                 <div className="flex gap-2 text-xs text-muted-foreground">
