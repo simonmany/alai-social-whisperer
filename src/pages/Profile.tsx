@@ -12,7 +12,6 @@ import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate } from "react-router-dom";
 
 interface ProfileProps {
   open: boolean;
@@ -22,7 +21,6 @@ interface ProfileProps {
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -79,7 +77,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
   const handleNewGoal = () => {
     onOpenChange(false); // Close the profile sheet
-    navigate('/', { state: { prompt: "Set a new goal" } }); // Navigate to index with prompt
+    setIsGoalsDialogOpen(true); // Open the goals dialog
   };
 
   const stats = {
