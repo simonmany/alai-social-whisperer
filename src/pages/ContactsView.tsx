@@ -6,6 +6,10 @@ import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { AvatarUpload } from "@/components/AvatarUpload";
+import { useToast } from "@/hooks/use-toast";
 
 interface Contact {
   id: number;
@@ -61,6 +65,36 @@ const ContactsView = () => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string>("Inner orbit");
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: profileData, isLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      console.log('Fetching profile data...');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+
+      console.log('Profile data fetched:', profile);
+      return profile;
+    }
+  });
+
+  const handleAvatarUpdate = (newUrl: string) => {
+    console.log('Avatar URL updated:', newUrl);
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+  };
 
   const filteredContacts = SAMPLE_CONTACTS.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -94,17 +128,21 @@ const ContactsView = () => {
           <div className="flex-1 relative">
             {/* Center Avatar */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src="/placeholder.svg" alt="Your profile" />
-                <AvatarFallback>YOU</AvatarFallback>
-              </Avatar>
+              {!isLoading && (
+                <AvatarUpload
+                  url={profileData?.avatar_url || undefined}
+                  onUploadComplete={handleAvatarUpdate}
+                  fallback={profileData?.display_name?.charAt(0) || 'U'}
+                  size="lg"
+                />
+              )}
             </div>
 
             {/* Orbiting Contacts */}
             <div className="relative h-full">
               {filteredContacts.map((contact, index) => {
                 const angle = (index * 2 * Math.PI) / filteredContacts.length;
-                const radius = 140; // Orbit radius in pixels
+                const radius = 140;
                 const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
                 const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
 
