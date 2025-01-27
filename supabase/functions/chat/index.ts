@@ -88,6 +88,11 @@ serve(async (req) => {
       2. Suggest specific dates and times that work around existing commitments
       3. Consider typical timing for the suggested activity (e.g., dinner in the evening)
 
+      When users mention meeting someone new or talk about a contact:
+      1. Extract the person's name and any contact information shared
+      2. If they mention meeting someone new, respond in a way that shows interest in the new connection
+      3. Ask follow-up questions about the person if not much information was shared
+
       When users provide feedback about a social interaction or "hang":
       1. Ask thoughtful follow-up questions about:
          - The quality of the conversation and connection
@@ -100,6 +105,15 @@ serve(async (req) => {
 
       Ask these questions one at a time to not overwhelm the user. Keep a natural conversational flow.
       
+      Your response should be in this format:
+      {
+        "text": "your conversational response here",
+        "contact": {
+          "name": "extracted name if someone new was mentioned, otherwise null",
+          "email": "extracted email if shared, otherwise null"
+        }
+      }
+      
       Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -109,7 +123,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: message }
@@ -124,13 +138,37 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const aiResponse = data.choices[0].message.content;
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(data.choices[0].message.content);
+    } catch (e) {
+      console.error('Error parsing AI response:', e);
+      parsedResponse = {
+        text: data.choices[0].message.content,
+        contact: { name: null, email: null }
+      };
+    }
+
+    // If a new contact was detected, save it to the database
+    if (parsedResponse.contact && parsedResponse.contact.name) {
+      const { error: contactError } = await supabase
+        .from('contacts')
+        .insert([{
+          user_id: userId,
+          name: parsedResponse.contact.name,
+          email: parsedResponse.contact.email
+        }]);
+
+      if (contactError) {
+        console.error('Error storing contact:', contactError);
+      }
+    }
 
     // Store AI response in chat history
     const { error: aiMessageError } = await supabase
       .from('chat_history')
       .insert([
-        { user_id: userId, message: aiResponse, is_ai: true }
+        { user_id: userId, message: parsedResponse.text, is_ai: true }
       ]);
 
     if (aiMessageError) {
@@ -139,7 +177,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ 
-      response: aiResponse 
+      response: parsedResponse.text 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
