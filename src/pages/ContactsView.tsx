@@ -67,7 +67,6 @@ const ContactsView = () => {
   const { data: profileData } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      console.log('Fetching profile data for contacts view...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
@@ -75,14 +74,9 @@ const ContactsView = () => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        throw error;
-      }
-
-      console.log('Profile data fetched for contacts:', profile);
+      if (error) throw error;
       return profile;
     },
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes

@@ -8,9 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import GoalsDialog from "@/components/GoalsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Database, Json } from "@/integrations/supabase/types";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Goal } from "@/types/goals";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 
@@ -26,7 +25,6 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      console.log('Fetching profile data...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
@@ -34,26 +32,19 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        throw error;
-      }
-
-      console.log('Profile data fetched:', profile);
+      if (error) throw error;
       return profile;
     },
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
   });
 
   const handleAvatarUpdate = (newUrl: string) => {
-    console.log('Avatar URL updated:', newUrl);
-    // Invalidate and refetch profile data
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
-  const goals = (profileData?.goals as unknown as Goal[]) || [];
+  const goals = (profileData?.goals as Goal[]) || [];
   const { missingTimeframes } = checkMissingGoals(goals);
 
   const handleNewGoal = (message: string) => {
