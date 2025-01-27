@@ -13,6 +13,7 @@ import FeedbackDialog from "@/components/FeedbackDialog";
 import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface Message {
   content: string;
@@ -36,6 +37,7 @@ const Index = () => {
   const location = useLocation();
   const { toast } = useToast();
   const { session } = useAuth();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -168,6 +170,13 @@ const Index = () => {
     setIsPlanningOpen(false);
   };
 
+  const handleGoalSubmit = (message: string) => {
+    handleSend(message);
+    setIsGoalsOpen(false);
+    // Invalidate and refetch profile data to update goals
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+  };
+
   const handleSuggestedPrompt = (prompt: string) => {
     if (prompt === "plan me a hang") {
       setIsPlanningOpen(true);
@@ -229,7 +238,7 @@ const Index = () => {
       <GoalsDialog
         open={isGoalsOpen}
         onOpenChange={setIsGoalsOpen}
-        onSubmit={handleSend}
+        onSubmit={handleGoalSubmit}
       />
       <ContactsDialog
         open={isContactsOpen}

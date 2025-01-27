@@ -12,6 +12,7 @@ import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
+import { generateChatResponse } from "@/utils/openai";
 
 interface ProfileProps {
   open: boolean;
@@ -78,6 +79,29 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const handleNewGoal = () => {
     onOpenChange(false); // Close the profile sheet
     setIsGoalsDialogOpen(true); // Open the goals dialog
+  };
+
+  const handleGoalSubmit = async (message: string) => {
+    // First, send the message to the AI
+    try {
+      const response = await generateChatResponse(message);
+      // Store the message in chat history
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('chat_history')
+        .insert([
+          { user_id: user.id, message, is_ai: false },
+          { user_id: user.id, message: response, is_ai: true }
+        ]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+
+    // Close the dialog and invalidate the profile query to refresh goals
+    setIsGoalsDialogOpen(false);
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
   const stats = {
@@ -251,10 +275,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       <GoalsDialog
         open={isGoalsDialogOpen}
         onOpenChange={setIsGoalsDialogOpen}
-        onSubmit={() => {
-          setIsGoalsDialogOpen(false);
-          queryClient.invalidateQueries({ queryKey: ['profile'] });
-        }}
+        onSubmit={handleGoalSubmit}
       />
     </>
   );
