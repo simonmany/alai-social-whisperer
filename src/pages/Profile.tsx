@@ -12,6 +12,7 @@ import { Database, Json } from "@/integrations/supabase/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
+import { AvatarUpload } from "@/components/AvatarUpload";
 
 interface ProfileProps {
   open: boolean;
@@ -38,6 +39,10 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       return profile;
     }
   });
+
+  const handleAvatarUpdate = (newUrl: string) => {
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+  };
 
   const goals = (profileData?.goals as unknown as Goal[]) || [];
   const { missingTimeframes } = checkMissingGoals(goals);
@@ -126,12 +131,12 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           <div className="space-y-3">
             {/* Profile Info */}
             <div className="flex flex-col items-center space-y-2">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={profileData?.avatar_url} />
-                <AvatarFallback>
-                  {profileData?.display_name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarUpload
+                url={profileData?.avatar_url}
+                onUploadComplete={handleAvatarUpdate}
+                fallback={profileData?.display_name?.charAt(0) || 'U'}
+                size="lg"
+              />
               <div className="text-center">
                 <h2 className="text-lg font-semibold">{profileData?.display_name || 'User'}</h2>
                 <div className="flex gap-2 text-xs text-muted-foreground">
