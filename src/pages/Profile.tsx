@@ -7,12 +7,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import GoalsDialog from "@/components/GoalsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Database, Json } from "@/integrations/supabase/types";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileProps {
   open: boolean;
@@ -22,8 +22,8 @@ interface ProfileProps {
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  // Enable suspense and staleTime to prevent unnecessary refetches
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -59,10 +59,6 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const goals = (profileData?.goals as unknown as Goal[]) || [];
   const { missingTimeframes } = checkMissingGoals(goals);
 
-  const handleNewGoal = (message: string) => {
-    setIsGoalsDialogOpen(false);
-  };
-
   const handleGoalComplete = async (goalIndex: number) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -72,7 +68,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: updatedGoals as unknown as Json[] })
+      .update({ goals: updatedGoals })
       .eq('id', user.id);
 
     if (!error) {
@@ -81,8 +77,9 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     }
   };
 
-  const filterGoalsByTimeframe = (timeframe: string) => {
-    return goals.filter((goal: Goal) => goal.timeframe === timeframe);
+  const handleNewGoal = () => {
+    onOpenChange(false); // Close the profile sheet
+    navigate('/', { state: { prompt: "Set a new goal" } }); // Navigate to index with prompt
   };
 
   const stats = {
@@ -93,7 +90,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   };
 
   const renderTimeframeSection = (timeframe: string, title: string) => {
-    const timeframeGoals = filterGoalsByTimeframe(timeframe);
+    const timeframeGoals = goals.filter((goal: Goal) => goal.timeframe === timeframe);
     const hasGoals = timeframeGoals.length > 0;
 
     return (
@@ -103,7 +100,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           <Alert 
             variant="destructive" 
             className="mb-2 cursor-pointer hover:bg-destructive/90 transition-colors"
-            onClick={() => setIsGoalsDialogOpen(true)}
+            onClick={handleNewGoal}
           >
             <AlertDescription className="text-sm">
               Goal Missing! Set now?
@@ -147,7 +144,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 <Skeleton className="h-24 w-24 rounded-full" />
               ) : (
                 <AvatarUpload
-                  url={profileData?.avatar_url ?? undefined}
+                  url={profileData?.avatar_url}
                   onUploadComplete={handleAvatarUpdate}
                   fallback={profileData?.display_name?.charAt(0) || 'U'}
                   size="lg"
@@ -204,7 +201,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
             <Button 
               size="sm" 
               className="w-full gap-2"
-              onClick={() => setIsGoalsDialogOpen(true)}
+              onClick={handleNewGoal}
             >
               <MessageCircle className="h-4 w-4" />
               Set a new goal
@@ -256,7 +253,10 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       <GoalsDialog
         open={isGoalsDialogOpen}
         onOpenChange={setIsGoalsDialogOpen}
-        onSubmit={handleNewGoal}
+        onSubmit={() => {
+          setIsGoalsDialogOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['profile'] });
+        }}
       />
     </>
   );
