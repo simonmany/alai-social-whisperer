@@ -23,6 +23,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
+  // Enable suspense and staleTime to prevent unnecessary refetches
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -39,11 +40,20 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       
       console.log('Profile data fetched:', profile);
       return profile;
-    }
+    },
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    retry: 2
   });
 
-  const handleAvatarUpdate = (newUrl: string) => {
-    queryClient.invalidateQueries({ queryKey: ['profile'] });
+  const handleAvatarUpdate = async (newUrl: string) => {
+    // Immediately update the cache with the new URL
+    queryClient.setQueryData(['profile'], (oldData: any) => ({
+      ...oldData,
+      avatar_url: newUrl
+    }));
+    
+    // Then invalidate to refetch fresh data
+    await queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
   const goals = (profileData?.goals as unknown as Goal[]) || [];
@@ -137,7 +147,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 <Skeleton className="h-24 w-24 rounded-full" />
               ) : (
                 <AvatarUpload
-                  url={profileData?.avatar_url ?? undefined}
+                  url={profileData?.avatar_url}
                   onUploadComplete={handleAvatarUpdate}
                   fallback={profileData?.display_name?.charAt(0) || 'U'}
                   size="lg"
