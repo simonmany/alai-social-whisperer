@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { useToast } from "@/hooks/use-toast";
 
 interface Contact {
   id: number;
@@ -64,30 +65,43 @@ const ContactsView = () => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string>("Inner orbit");
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const { data: profileData, isLoading } = useQuery({
+  const { data: profileData, isLoading, error } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      console.log('Fetching profile data...');
+      console.log('Starting profile fetch...');
       const { data: { user } } = await supabase.auth.getUser();
+      
       if (!user) {
-        console.log('No user found');
+        console.error('No user found in auth');
         throw new Error('No user found');
       }
 
-      const { data: profile, error } = await supabase
+      console.log('User found:', user.id);
+
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
-        .maybeSingle();
+        .single();
 
       if (error) {
         console.error('Error fetching profile:', error);
         throw error;
       }
 
-      console.log('Profile data fetched:', profile);
-      return profile;
+      console.log('Profile fetched successfully:', data);
+      return data;
+    },
+    retry: 1,
+    onError: (error) => {
+      console.error('Query error:', error);
+      toast({
+        title: "Error loading profile",
+        description: "Please try refreshing the page",
+        variant: "destructive",
+      });
     },
   });
 
@@ -104,8 +118,13 @@ const ContactsView = () => {
       .toUpperCase();
   };
 
-  console.log('Current profile data:', profileData);
-  console.log('Avatar URL:', profileData?.avatar_url);
+  if (error) {
+    console.error('Render error:', error);
+  }
+
+  console.log('Render - Profile Data:', profileData);
+  console.log('Render - Avatar URL:', profileData?.avatar_url);
+  console.log('Render - Loading:', isLoading);
 
   return (
     <div className="fixed inset-0 bg-background animate-slide-in-top">
@@ -126,20 +145,19 @@ const ContactsView = () => {
           <div className="flex-1 relative">
             {/* Center Avatar */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              {!isLoading && (
+              {!isLoading && profileData && (
                 <AvatarUpload
-                  url={profileData?.avatar_url || undefined}
+                  url={profileData.avatar_url}
                   onUploadComplete={(url) => {
                     console.log('Avatar upload complete, new URL:', url);
                     window.location.reload();
                   }}
-                  fallback={profileData?.display_name?.charAt(0) || 'Y'}
+                  fallback={profileData.display_name?.charAt(0) || 'Y'}
                   size="lg"
                 />
               )}
             </div>
 
-            {/* Orbiting Contacts */}
             <div className="relative h-full">
               {filteredContacts.map((contact, index) => {
                 const angle = (index * 2 * Math.PI) / filteredContacts.length;
@@ -182,6 +200,7 @@ const ContactsView = () => {
                 );
               })}
             </div>
+
           </div>
 
           {/* Ask Al Button */}
