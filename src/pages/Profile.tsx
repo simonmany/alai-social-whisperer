@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProfileProps {
   open: boolean;
@@ -22,7 +23,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: profileData } = useQuery({
+  const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -132,19 +133,32 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           <div className="space-y-3">
             {/* Profile Info */}
             <div className="flex flex-col items-center space-y-2">
-              <AvatarUpload
-                url={profileData?.avatar_url ?? undefined}
-                onUploadComplete={handleAvatarUpdate}
-                fallback={profileData?.display_name?.charAt(0) || 'U'}
-                size="lg"
-              />
+              {isLoading ? (
+                <Skeleton className="h-24 w-24 rounded-full" />
+              ) : (
+                <AvatarUpload
+                  url={profileData?.avatar_url ?? undefined}
+                  onUploadComplete={handleAvatarUpdate}
+                  fallback={profileData?.display_name?.charAt(0) || 'U'}
+                  size="lg"
+                />
+              )}
               <div className="text-center">
-                <h2 className="text-lg font-semibold">{profileData?.display_name || 'User'}</h2>
-                <div className="flex gap-2 text-xs text-muted-foreground">
-                  <span>@{profileData?.username || 'user'}</span>
-                  <span>•</span>
-                  <span>{profileData?.city || 'Location not set'}</span>
-                </div>
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                ) : (
+                  <>
+                    <h2 className="text-lg font-semibold">{profileData?.display_name || 'User'}</h2>
+                    <div className="flex gap-2 text-xs text-muted-foreground">
+                      <span>@{profileData?.username || 'user'}</span>
+                      <span>•</span>
+                      <span>{profileData?.city || 'Location not set'}</span>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button variant="outline" size="sm">Instagram</Button>
