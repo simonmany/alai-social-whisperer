@@ -54,7 +54,7 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
 
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
           upsert: true,
@@ -66,10 +66,13 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
         .from('avatars')
         .getPublicUrl(filePath);
 
-      await supabase
+      // Update the profile with the new avatar URL
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
+
+      if (updateError) throw updateError;
 
       onUploadComplete(publicUrl);
 
