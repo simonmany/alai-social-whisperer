@@ -41,8 +41,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     }
   });
 
-  // Explicitly convert to string or undefined
-  const avatarUrl = typeof profileData?.avatar_url === 'string' ? profileData.avatar_url : undefined;
+  // Convert null to undefined and ensure string type
+  const avatarUrl = profileData?.avatar_url || undefined;
   console.log('Avatar URL being passed to AvatarUpload:', avatarUrl, typeof avatarUrl);
 
   const handleAvatarUpdate = (newUrl: string) => {
