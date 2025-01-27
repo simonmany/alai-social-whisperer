@@ -21,6 +21,8 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
+  console.log('AvatarUpload rendered with URL:', url); // Debug log
+
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
@@ -114,9 +116,19 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
         disabled={uploading}
       />
       <Avatar className={`${sizeClasses[size]} relative`}>
-        {url ? (
-          <AvatarImage src={url} alt="Profile" />
-        ) : null}
+        {url && (
+          <>
+            <AvatarImage 
+              src={url} 
+              alt="Profile"
+              onError={(e) => {
+                console.error('Error loading avatar image:', e);
+                const img = e.target as HTMLImageElement;
+                console.log('Failed URL:', img.src);
+              }}
+            />
+          </>
+        )}
         <AvatarFallback>{fallback}</AvatarFallback>
         {uploading && (
           <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
