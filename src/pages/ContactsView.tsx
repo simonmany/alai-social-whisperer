@@ -65,11 +65,15 @@ const ContactsView = () => {
   const [selectedGroup, setSelectedGroup] = useState<string>("Inner orbit");
   const navigate = useNavigate();
 
-  const { data: profileData } = useQuery({
+  const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
+      console.log('Fetching profile data...');
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) {
+        console.log('No user found');
+        throw new Error('No user found');
+      }
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -77,7 +81,12 @@ const ContactsView = () => {
         .eq('id', user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
+
+      console.log('Profile data fetched:', profile);
       return profile;
     },
   });
@@ -94,6 +103,9 @@ const ContactsView = () => {
       .join("")
       .toUpperCase();
   };
+
+  console.log('Current profile data:', profileData);
+  console.log('Avatar URL:', profileData?.avatar_url);
 
   return (
     <div className="fixed inset-0 bg-background animate-slide-in-top">
@@ -114,15 +126,17 @@ const ContactsView = () => {
           <div className="flex-1 relative">
             {/* Center Avatar */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <AvatarUpload
-                url={profileData?.avatar_url || undefined}
-                onUploadComplete={(url) => {
-                  // Refetch profile data after upload
-                  window.location.reload();
-                }}
-                fallback={profileData?.display_name?.charAt(0) || 'Y'}
-                size="lg"
-              />
+              {!isLoading && (
+                <AvatarUpload
+                  url={profileData?.avatar_url || undefined}
+                  onUploadComplete={(url) => {
+                    console.log('Avatar upload complete, new URL:', url);
+                    window.location.reload();
+                  }}
+                  fallback={profileData?.display_name?.charAt(0) || 'Y'}
+                  size="lg"
+                />
+              )}
             </div>
 
             {/* Orbiting Contacts */}
