@@ -12,6 +12,7 @@ import { Goal } from "@/types/goals";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { Json } from "@/integrations/supabase/types";
 
 interface ProfileProps {
   open: boolean;
