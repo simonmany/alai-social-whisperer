@@ -21,7 +21,7 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
-  console.log('AvatarUpload rendered with URL:', url); // Keep this for debugging
+  console.log('AvatarUpload rendered with URL:', url, typeof url); // Enhanced logging
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
