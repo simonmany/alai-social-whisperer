@@ -54,6 +54,8 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
 
+      console.log('Uploading file to path:', filePath);
+
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
@@ -62,9 +64,13 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
 
       if (uploadError) throw uploadError;
 
+      console.log('File uploaded successfully');
+
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
+
+      console.log('Generated public URL:', publicUrl);
 
       // Update the profile with the new avatar URL
       const { error: updateError } = await supabase
@@ -72,7 +78,12 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('Error updating profile:', updateError);
+        throw updateError;
+      }
+
+      console.log('Profile updated with new avatar URL');
 
       onUploadComplete(publicUrl);
 
