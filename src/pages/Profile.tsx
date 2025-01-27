@@ -43,11 +43,13 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
       console.log('Profile data fetched:', profile);
       return profile;
-    }
+    },
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
   });
 
   const handleAvatarUpdate = (newUrl: string) => {
     console.log('Avatar URL updated:', newUrl);
+    // Invalidate and refetch profile data
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
