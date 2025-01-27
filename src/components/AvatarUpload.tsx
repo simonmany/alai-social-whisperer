@@ -114,7 +114,9 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
         disabled={uploading}
       />
       <Avatar className={`${sizeClasses[size]} relative`}>
-        <AvatarImage src={url || undefined} />
+        {url ? (
+          <AvatarImage src={url} alt="Profile" />
+        ) : null}
         <AvatarFallback>{fallback}</AvatarFallback>
         {uploading && (
           <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
