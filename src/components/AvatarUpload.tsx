@@ -21,7 +21,7 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
-  console.log('AvatarUpload rendered with URL:', url);
+  console.log('AvatarUpload rendered with URL:', url); // Keep this for debugging
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -56,8 +56,6 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
       const fileExt = file.name.split('.').pop();
       const filePath = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
 
-      console.log('Uploading file to path:', filePath);
-
       const { error: uploadError } = await supabase.storage
         .from('avatars')
         .upload(filePath, file, {
@@ -66,27 +64,17 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
 
       if (uploadError) throw uploadError;
 
-      console.log('File uploaded successfully');
-
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(filePath);
-
-      console.log('Generated public URL:', publicUrl);
 
       // Update the profile with the new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
-        .eq('id', user.id)
-        .select();
+        .eq('id', user.id);
 
-      if (updateError) {
-        console.error('Error updating profile:', updateError);
-        throw updateError;
-      }
-
-      console.log('Profile updated with new avatar URL');
+      if (updateError) throw updateError;
 
       onUploadComplete(publicUrl);
 
