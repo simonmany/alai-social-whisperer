@@ -41,8 +41,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     }
   });
 
-  // Convert null to undefined and ensure string type
-  const avatarUrl = profileData?.avatar_url || undefined;
+  // Match the working implementation from ContactsView
+  const avatarUrl = profileData?.avatar_url ?? undefined;
   console.log('Avatar URL being passed to AvatarUpload:', avatarUrl, typeof avatarUrl);
 
   const handleAvatarUpdate = (newUrl: string) => {
