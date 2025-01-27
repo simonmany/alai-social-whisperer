@@ -147,7 +147,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 <Skeleton className="h-24 w-24 rounded-full" />
               ) : (
                 <AvatarUpload
-                  url={profileData?.avatar_url}
+                  url={profileData?.avatar_url ?? undefined}
                   onUploadComplete={handleAvatarUpdate}
                   fallback={profileData?.display_name?.charAt(0) || 'U'}
                   size="lg"
