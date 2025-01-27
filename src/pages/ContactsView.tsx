@@ -20,32 +20,21 @@ interface Contact {
 }
 
 const SAMPLE_CONTACTS: Contact[] = [
-  // Inner orbit
   { id: 1, name: "Alice Johnson", email: "alice@example.com", image: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7", group: "Inner orbit" },
   { id: 2, name: "Bob Wilson", email: "bob@example.com", image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b", group: "Inner orbit" },
   { id: 3, name: "Carol Smith", email: "carol@example.com", image: "https://images.unsplash.com/photo-1518770660439-4636190af475", group: "Inner orbit" },
-  
-  // Oldest friends
   { id: 4, name: "David Brown", email: "david@example.com", image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6", group: "oldest friends" },
   { id: 5, name: "Emma Davis", email: "emma@example.com", image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d", group: "oldest friends" },
   { id: 6, name: "Frank Miller", email: "frank@example.com", image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158", group: "oldest friends" },
-  
-  // College friends
   { id: 7, name: "Grace Lee", email: "grace@example.com", image: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81", group: "college friends" },
   { id: 8, name: "Henry Wang", email: "henry@example.com", image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c", group: "college friends" },
   { id: 9, name: "Ivy Chen", email: "ivy@example.com", image: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7", group: "college friends" },
-  
-  // Work contacts
   { id: 10, name: "Jack Thompson", email: "jack@example.com", image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b", group: "Work contacts" },
   { id: 11, name: "Karen White", email: "karen@example.com", image: "https://images.unsplash.com/photo-1518770660439-4636190af475", group: "Work contacts" },
   { id: 12, name: "Leo Martinez", email: "leo@example.com", image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6", group: "Work contacts" },
-  
-  // Golf friends
   { id: 13, name: "Mike Anderson", email: "mike@example.com", image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d", group: "golf friends" },
   { id: 14, name: "Nancy Clark", email: "nancy@example.com", image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158", group: "golf friends" },
   { id: 15, name: "Oliver Scott", email: "oliver@example.com", image: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81", group: "golf friends" },
-  
-  // Family
   { id: 16, name: "Patricia Johnson", email: "patricia@example.com", image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c", group: "Family" },
   { id: 17, name: "Quinn Johnson", email: "quinn@example.com", image: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7", group: "Family" },
   { id: 18, name: "Robert Johnson", email: "robert@example.com", image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b", group: "Family" },
@@ -68,10 +57,9 @@ const ContactsView = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: profileData, isLoading } = useQuery({
+  const { data: profileData } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
-      console.log('Fetching profile data...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
@@ -81,18 +69,14 @@ const ContactsView = () => {
         .eq('id', user.id)
         .single();
 
-      if (error) {
-        console.error('Error fetching profile:', error);
-        throw error;
-      }
-
+      if (error) throw error;
+      
       console.log('Profile data fetched:', profile);
       return profile;
     }
   });
 
   const handleAvatarUpdate = (newUrl: string) => {
-    console.log('Avatar URL updated:', newUrl);
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
@@ -128,14 +112,12 @@ const ContactsView = () => {
           <div className="flex-1 relative">
             {/* Center Avatar */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              {!isLoading && (
-                <AvatarUpload
-                  url={profileData?.avatar_url || undefined}
-                  onUploadComplete={handleAvatarUpdate}
-                  fallback={profileData?.display_name?.charAt(0) || 'U'}
-                  size="lg"
-                />
-              )}
+              <AvatarUpload
+                url={profileData?.avatar_url ?? undefined}
+                onUploadComplete={handleAvatarUpdate}
+                fallback={profileData?.display_name?.charAt(0) || 'U'}
+                size="lg"
+              />
             </div>
 
             {/* Orbiting Contacts */}
