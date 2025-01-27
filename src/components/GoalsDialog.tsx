@@ -1,14 +1,17 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Database, Json } from "@/integrations/supabase/types";
+import { GoalTypeSelector } from "./goals/GoalTypeSelector";
+import { NewActivityForm } from "./goals/NewActivityForm";
+import { MeetPeopleForm } from "./goals/MeetPeopleForm";
+import { CatchUpForm } from "./goals/CatchUpForm";
+import { TimeframeSelector } from "./goals/TimeframeSelector";
 
 interface Goal {
-  [key: string]: string | boolean;
   type: string;
   description: string;
   timeframe: string;
@@ -45,23 +48,6 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
 
       if (error) throw error;
       return profile;
-    }
-  });
-
-  // Fetch contacts for suggestions
-  const { data: contacts } = useQuery({
-    queryKey: ['contacts'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
-      // This is a placeholder - you'll need to implement the actual contacts fetching
-      // based on your data structure
-      return [
-        { id: 1, name: "Alice Johnson" },
-        { id: 2, name: "Bob Wilson" },
-        { id: 3, name: "Carol Smith" }
-      ];
     }
   });
 
@@ -156,119 +142,6 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
     }
   };
 
-  const goals = [
-    "try something new",
-    "Meet new people",
-    "Catch up with old friends",
-    "Plan a gathering or trip",
-  ];
-
-  const renderContent = () => {
-    if (!selectedGoal) {
-      return goals.map((goal) => (
-        <Button
-          key={goal}
-          variant="outline"
-          className="text-left h-auto py-4 px-6"
-          onClick={() => handleGoalSelect(goal)}
-        >
-          {goal}
-        </Button>
-      ));
-    }
-
-    return (
-      <div className="space-y-6">
-        {selectedGoal === "try something new" && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">What would you like to try?</p>
-            <Input
-              placeholder="Type your activity here..."
-              value={activityInput}
-              onChange={(e) => setActivityInput(e.target.value)}
-            />
-          </div>
-        )}
-
-        {selectedGoal === "Meet new people" && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">How many people would you like to meet? (1-10)</p>
-            <Input
-              type="number"
-              min="1"
-              max="10"
-              placeholder="Enter a number between 1-10"
-              value={peopleCount}
-              onChange={(e) => setPeopleCount(e.target.value)}
-            />
-          </div>
-        )}
-
-        {selectedGoal === "Catch up with old friends" && (
-          <div className="space-y-2">
-            <p className="text-sm font-medium">Who would you like to catch up with?</p>
-            <Input
-              placeholder="Type a name..."
-              value={friendInput}
-              onChange={(e) => setFriendInput(e.target.value)}
-            />
-            {contacts && contacts.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                <p className="font-medium mb-1">Suggestions:</p>
-                {contacts.map((contact) => (
-                  <p
-                    key={contact.id}
-                    className="italic cursor-pointer hover:text-foreground"
-                    onClick={() => setFriendInput(contact.name)}
-                  >
-                    • {contact.name}
-                  </p>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        
-        <div className="space-y-2">
-          <p className="text-sm font-medium">
-            {selectedGoal === "try something new" 
-              ? "How soon would you like to try this?"
-              : selectedGoal === "Meet new people"
-              ? "When would you like to meet them?"
-              : "When would you like to catch up?"}
-          </p>
-          <div className="flex gap-2">
-            {["ASAP", "this week", "this month"].map((option) => (
-              <Button
-                key={option}
-                variant={timeframe === option ? "default" : "outline"}
-                onClick={() => setTimeframe(option)}
-                className="flex-1"
-              >
-                {option}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <Button 
-          className="w-full"
-          onClick={handleSubmit}
-          disabled={
-            !timeframe || 
-            (selectedGoal === "Meet new people" && (!peopleCount || parseInt(peopleCount) < 1 || parseInt(peopleCount) > 10))
-          }
-        >
-          {selectedGoal === "try something new" && !activityInput 
-            ? "Suggest something" 
-            : selectedGoal === "Catch up with old friends" && !friendInput
-            ? "Suggest someone"
-            : "Submit"}
-        </Button>
-      </div>
-    );
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -287,7 +160,53 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
           </DialogTitle>
         </DialogHeader>
         <div className="flex flex-col gap-3 mt-4">
-          {renderContent()}
+          {!selectedGoal ? (
+            <GoalTypeSelector onSelect={handleGoalSelect} />
+          ) : (
+            <div className="space-y-6">
+              {selectedGoal === "try something new" && (
+                <NewActivityForm
+                  activityInput={activityInput}
+                  onChange={setActivityInput}
+                />
+              )}
+
+              {selectedGoal === "Meet new people" && (
+                <MeetPeopleForm
+                  peopleCount={peopleCount}
+                  onChange={setPeopleCount}
+                />
+              )}
+
+              {selectedGoal === "Catch up with old friends" && (
+                <CatchUpForm
+                  friendInput={friendInput}
+                  onChange={setFriendInput}
+                />
+              )}
+              
+              <TimeframeSelector
+                selectedGoal={selectedGoal}
+                timeframe={timeframe}
+                onSelect={setTimeframe}
+              />
+
+              <Button 
+                className="w-full"
+                onClick={handleSubmit}
+                disabled={
+                  !timeframe || 
+                  (selectedGoal === "Meet new people" && (!peopleCount || parseInt(peopleCount) < 1 || parseInt(peopleCount) > 10))
+                }
+              >
+                {selectedGoal === "try something new" && !activityInput 
+                  ? "Suggest something" 
+                  : selectedGoal === "Catch up with old friends" && !friendInput
+                  ? "Suggest someone"
+                  : "Submit"}
+              </Button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
