@@ -10,7 +10,8 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader = ({ profile, onAvatarUpdate }: ProfileHeaderProps) => {
-  const avatarUrl = typeof profile?.avatar_url === 'string' ? profile.avatar_url : undefined;
+  // Ensure we only pass a string or undefined, not null
+  const avatarUrl = profile?.avatar_url || undefined;
 
   return (
     <div className="flex flex-col items-center space-y-2">
