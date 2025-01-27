@@ -41,10 +41,6 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     }
   });
 
-  // Match the working implementation from ContactsView
-  const avatarUrl = profileData?.avatar_url ?? undefined;
-  console.log('Avatar URL being passed to AvatarUpload:', avatarUrl, typeof avatarUrl);
-
   const handleAvatarUpdate = (newUrl: string) => {
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
@@ -137,7 +133,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
             {/* Profile Info */}
             <div className="flex flex-col items-center space-y-2">
               <AvatarUpload
-                url={avatarUrl}
+                url={profileData?.avatar_url ?? undefined}
                 onUploadComplete={handleAvatarUpdate}
                 fallback={profileData?.display_name?.charAt(0) || 'U'}
                 size="lg"
