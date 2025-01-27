@@ -28,6 +28,7 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
   const [selectedGoal, setSelectedGoal] = useState<string | null>(null);
   const [activityInput, setActivityInput] = useState("");
   const [peopleCount, setPeopleCount] = useState("");
+  const [friendInput, setFriendInput] = useState("");
   const [timeframe, setTimeframe] = useState<string | null>(null);
 
   const { data: profile } = useQuery({
@@ -47,8 +48,25 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
     }
   });
 
+  // Fetch contacts for suggestions
+  const { data: contacts } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      // This is a placeholder - you'll need to implement the actual contacts fetching
+      // based on your data structure
+      return [
+        { id: 1, name: "Alice Johnson" },
+        { id: 2, name: "Bob Wilson" },
+        { id: 3, name: "Carol Smith" }
+      ];
+    }
+  });
+
   const handleGoalSelect = async (goalType: string) => {
-    if (goalType === "try something new" || goalType === "Meet new people") {
+    if (goalType === "try something new" || goalType === "Meet new people" || goalType === "Catch up with old friends") {
       setSelectedGoal(goalType);
     } else {
       const { data: { user } } = await supabase.auth.getUser();
@@ -81,6 +99,7 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
     setSelectedGoal(null);
     setActivityInput("");
     setPeopleCount("");
+    setFriendInput("");
     setTimeframe(null);
   };
 
@@ -97,6 +116,9 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
     } else if (selectedGoal === "Meet new people") {
       const count = parseInt(peopleCount) || 1;
       description = `meet ${count} new ${count === 1 ? 'person' : 'people'}`;
+      type = "Social";
+    } else if (selectedGoal === "Catch up with old friends") {
+      description = friendInput || "catch up with a friend";
       type = "Social";
     }
 
@@ -125,8 +147,10 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
     if (!error) {
       if (selectedGoal === "try something new") {
         onSubmit(activityInput ? `I want to try ${description}` : "Can you suggest a new activity for me to try?");
-      } else {
+      } else if (selectedGoal === "Meet new people") {
         onSubmit(`I want to ${description}`);
+      } else if (selectedGoal === "Catch up with old friends") {
+        onSubmit(friendInput ? `I want to catch up with ${friendInput}` : "Can you suggest someone I should catch up with?");
       }
       onOpenChange(false);
     }
@@ -179,9 +203,40 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
             />
           </div>
         )}
+
+        {selectedGoal === "Catch up with old friends" && (
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Who would you like to catch up with?</p>
+            <Input
+              placeholder="Type a name..."
+              value={friendInput}
+              onChange={(e) => setFriendInput(e.target.value)}
+            />
+            {contacts && contacts.length > 0 && (
+              <div className="text-sm text-muted-foreground">
+                <p className="font-medium mb-1">Suggestions:</p>
+                {contacts.map((contact) => (
+                  <p
+                    key={contact.id}
+                    className="italic cursor-pointer hover:text-foreground"
+                    onClick={() => setFriendInput(contact.name)}
+                  >
+                    • {contact.name}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="space-y-2">
-          <p className="text-sm font-medium">How soon would you like to {selectedGoal === "try something new" ? "try this" : "meet them"}?</p>
+          <p className="text-sm font-medium">
+            {selectedGoal === "try something new" 
+              ? "How soon would you like to try this?"
+              : selectedGoal === "Meet new people"
+              ? "When would you like to meet them?"
+              : "When would you like to catch up?"}
+          </p>
           <div className="flex gap-2">
             {["ASAP", "this week", "this month"].map((option) => (
               <Button
@@ -199,9 +254,16 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
         <Button 
           className="w-full"
           onClick={handleSubmit}
-          disabled={!timeframe || (selectedGoal === "Meet new people" && (!peopleCount || parseInt(peopleCount) < 1 || parseInt(peopleCount) > 10))}
+          disabled={
+            !timeframe || 
+            (selectedGoal === "Meet new people" && (!peopleCount || parseInt(peopleCount) < 1 || parseInt(peopleCount) > 10))
+          }
         >
-          {selectedGoal === "try something new" && !activityInput ? "Suggest something" : "Submit"}
+          {selectedGoal === "try something new" && !activityInput 
+            ? "Suggest something" 
+            : selectedGoal === "Catch up with old friends" && !friendInput
+            ? "Suggest someone"
+            : "Submit"}
         </Button>
       </div>
     );
