@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { AvatarUpload } from "@/components/AvatarUpload";
 
 interface Contact {
   id: number;
@@ -79,7 +80,6 @@ const ContactsView = () => {
       if (error) throw error;
       return profile;
     },
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
   });
 
   const filteredContacts = SAMPLE_CONTACTS.filter((contact) =>
@@ -114,14 +114,15 @@ const ContactsView = () => {
           <div className="flex-1 relative">
             {/* Center Avatar */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <Avatar className="h-24 w-24">
-                {profileData?.avatar_url && (
-                  <AvatarImage src={profileData.avatar_url} alt="Your profile" />
-                )}
-                <AvatarFallback>
-                  {profileData?.display_name?.charAt(0) || 'Y'}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarUpload
+                url={profileData?.avatar_url || undefined}
+                onUploadComplete={(url) => {
+                  // Refetch profile data after upload
+                  window.location.reload();
+                }}
+                fallback={profileData?.display_name?.charAt(0) || 'Y'}
+                size="lg"
+              />
             </div>
 
             {/* Orbiting Contacts */}
