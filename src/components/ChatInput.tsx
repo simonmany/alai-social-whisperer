@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { SendHorizontal } from "lucide-react";
 
 interface ChatInputProps {
@@ -30,14 +30,24 @@ export const ChatInput = ({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (message.trim()) {
+        onSend(message);
+        setMessage("");
+      }
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
-      <Input
-        type={type}
+      <Textarea
         value={message}
         onChange={(e) => setMessage(e.target.value)}
+        onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="flex-1"
+        className="flex-1 min-h-[44px] resize-none"
       />
       <Button type="submit" size="icon">
         <SendHorizontal className="h-4 w-4" />
