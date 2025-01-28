@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ChevronUp, MessageCircle, Plus } from "lucide-react";
+import { Search, ChevronUp, Plus, Sun } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,19 @@ interface Contact {
   email: string | null;
   closeness: number;
 }
+
+// Emoji mapping for different group types
+const groupEmojis: Record<string, string> = {
+  "All contacts": "🌌",
+  "Family": "👨‍👩‍👧‍👦",
+  "Friends": "🤝",
+  "Work": "💼",
+  "Gym": "💪",
+  "School": "🎓",
+  "Investment": "📈",
+  "Sports": "⚽",
+  "Social": "🎉"
+};
 
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,15 +96,17 @@ const ContactsView = () => {
     }
   });
 
-  const handleAvatarUpdate = (newUrl: string) => {
-    queryClient.invalidateQueries({ queryKey: ['profile'] });
-  };
-
   const getContactGroups = (contactId: string) => {
     const membershipIds = groupMemberships
       .filter(m => m.contact_id === contactId)
       .map(m => m.group_id);
     return groups.filter(g => membershipIds.includes(g.id));
+  };
+
+  const getContactEmoji = (contactId: string) => {
+    const contactGroups = getContactGroups(contactId);
+    if (contactGroups.length === 0) return "🪐";
+    return groupEmojis[contactGroups[0].name] || "🌍";
   };
 
   const filteredContacts = contacts.filter((contact) => {
@@ -113,14 +128,18 @@ const ContactsView = () => {
     return <div>Loading...</div>;
   }
 
-  const handleGroupCreated = () => {
-    queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
-    queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
-  };
-
   return (
-    <div className="fixed inset-0 bg-background animate-slide-in-top">
-      <div className="container max-w-2xl mx-auto p-4 h-full">
+    <div className="fixed inset-0 bg-black bg-opacity-90 animate-fade-in overflow-hidden">
+      {/* Galaxy background with stars effect */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900 via-slate-900 to-black opacity-50" />
+        <div className="absolute inset-0" style={{
+          background: 'radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px)',
+          backgroundSize: '100px 100px',
+        }} />
+      </div>
+
+      <div className="container max-w-2xl mx-auto p-4 h-full relative z-10">
         <div className="relative flex flex-col h-full">
           <div className="relative mb-8">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -128,57 +147,73 @@ const ContactsView = () => {
               placeholder="Search contacts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
+              className="pl-9 bg-black/50 border-purple-500/50 text-white"
             />
           </div>
 
           <div className="flex-1 relative">
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <AvatarUpload
-                url={profileData?.avatar_url ?? undefined}
-                onUploadComplete={handleAvatarUpdate}
-                fallback={profileData?.display_name?.charAt(0) || 'U'}
-                size="lg"
-              />
+            {/* Central user avatar with sun icon */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+              <div className="relative">
+                <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
+                <AvatarUpload
+                  url={profileData?.avatar_url ?? undefined}
+                  onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
+                  fallback={<Sun className="h-8 w-8 text-yellow-500" />}
+                  size="lg"
+                />
+              </div>
             </div>
 
+            {/* Orbiting contacts */}
             <div className="relative h-full">
               {filteredContacts.map((contact, index) => {
                 const angle = (index * 2 * Math.PI) / filteredContacts.length;
                 const radius = 140 * (1 - contact.closeness * 0.5);
                 const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
                 const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
+                const orbitDuration = 20 + (radius / 20); // Slower orbits for outer planets
 
                 return (
                   <Drawer key={contact.id}>
                     <DrawerTrigger asChild>
                       <button
                         className="absolute -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
-                        style={{ left, top }}
+                        style={{
+                          left,
+                          top,
+                          animation: `orbit ${orbitDuration}s linear infinite`,
+                        }}
                         onClick={() => setSelectedContact(contact)}
                       >
-                        <Avatar className="h-16 w-16">
-                          <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+                        <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
+                          <AvatarFallback className="text-xl">
+                            {getContactEmoji(contact.id)}
+                          </AvatarFallback>
                         </Avatar>
+                        <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
+                          {contact.name}
+                        </div>
                       </button>
                     </DrawerTrigger>
-                    <DrawerContent>
+                    <DrawerContent className="bg-black/90 border-purple-500/50">
                       <div className="p-4 space-y-4">
                         <div className="flex items-center space-x-4">
-                          <Avatar className="h-20 w-20">
-                            <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+                          <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
+                            <AvatarFallback className="text-2xl">
+                              {getContactEmoji(contact.id)}
+                            </AvatarFallback>
                           </Avatar>
                           <div>
-                            <h2 className="text-2xl font-bold">{contact.name}</h2>
+                            <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
                             {contact.email && (
-                              <p className="text-muted-foreground">{contact.email}</p>
+                              <p className="text-purple-300">{contact.email}</p>
                             )}
-                            <p className="text-sm text-muted-foreground mt-2">
-                              Closeness: {(contact.closeness * 100).toFixed(0)}%
+                            <p className="text-sm text-purple-400 mt-2">
+                              Orbit Distance: {((1 - contact.closeness) * 100).toFixed(0)}%
                             </p>
                           </div>
                         </div>
-                        
                         <ContactGroupsManager contactId={contact.id} />
                       </div>
                     </DrawerContent>
@@ -189,23 +224,31 @@ const ContactsView = () => {
           </div>
 
           <div className="flex justify-center gap-2 mt-8 mb-4">
-            <Button variant="outline" className="w-full max-w-sm" onClick={() => setIsGroupDialogOpen(true)}>
+            <Button
+              variant="outline"
+              className="w-full max-w-sm bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+              onClick={() => setIsGroupDialogOpen(true)}
+            >
               <Plus className="mr-2" />
               Create New Group
             </Button>
           </div>
 
           <div className="space-y-2 mb-16">
-            <h3 className="text-lg font-semibold mb-4">Contact Groups</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">Contact Groups</h3>
             <div className="flex flex-wrap gap-2">
               {groups.map((group) => (
                 <Badge
                   key={group.id}
                   variant={selectedGroup === group.name ? "default" : "outline"}
-                  className="cursor-pointer hover:bg-accent"
+                  className={`cursor-pointer hover:bg-purple-800/50 ${
+                    selectedGroup === group.name
+                      ? "bg-purple-600"
+                      : "bg-purple-900/50 border-purple-500/50"
+                  }`}
                   onClick={() => setSelectedGroup(group.name)}
                 >
-                  {group.name}
+                  {groupEmojis[group.name] || "🌍"} {group.name}
                 </Badge>
               ))}
             </div>
@@ -214,7 +257,7 @@ const ContactsView = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="fixed bottom-4 left-1/2 -translate-x-1/2"
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50"
             onClick={() => navigate("/")}
           >
             <ChevronUp className="h-6 w-6" />
@@ -226,8 +269,24 @@ const ContactsView = () => {
         open={isGroupDialogOpen}
         onOpenChange={setIsGroupDialogOpen}
         contacts={contacts}
-        onGroupCreated={handleGroupCreated}
+        onGroupCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+          queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
+        }}
       />
+
+      <style>
+        {`
+          @keyframes orbit {
+            from {
+              transform: rotate(0deg) translateX(var(--orbit-radius)) rotate(0deg);
+            }
+            to {
+              transform: rotate(360deg) translateX(var(--orbit-radius)) rotate(-360deg);
+            }
+          }
+        `}
+      </style>
     </div>
   );
 };
