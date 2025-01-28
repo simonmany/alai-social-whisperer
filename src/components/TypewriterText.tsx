@@ -14,7 +14,7 @@ export const TypewriterText = ({
   onComplete, 
   className,
   delay = 0,
-  typingSpeed = 50 
+  typingSpeed = 25  // Changed from 50 to 25 for 2x speed
 }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
