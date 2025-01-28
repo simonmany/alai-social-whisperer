@@ -70,10 +70,10 @@ export const ChatContainer = ({
         <Button
           variant="outline"
           size="icon"
-          className="fixed bottom-32 right-8 rounded-full shadow-lg z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          className="fixed bottom-24 right-4 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90 text-primary-foreground"
           onClick={scrollToBottom}
         >
-          <ChevronDown className="h-4 w-4" />
+          <ChevronDown className="h-6 w-6" />
         </Button>
       )}
       
