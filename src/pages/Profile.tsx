@@ -18,9 +18,10 @@ import { useToast } from "@/hooks/use-toast";
 interface ProfileProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onSend?: (message: string) => void;
 }
 
-const Profile = ({ open, onOpenChange }: ProfileProps) => {
+const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -43,6 +44,18 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     staleTime: 1000 * 60 * 5,
     retry: 2
   });
+
+  const handleGoalSubmit = async (message: string) => {
+    if (onSend) {
+      onSend(message);
+      setIsGoalsDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      toast({
+        title: "Goal added",
+        description: "Your new goal has been set successfully",
+      });
+    }
+  };
 
   const handleAvatarUpdate = async (newUrl: string) => {
     queryClient.setQueryData(['profile'], (oldData: any) => ({
@@ -102,44 +115,6 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const handleNewGoal = () => {
     onOpenChange(false);
     setIsGoalsDialogOpen(true);
-  };
-
-  const handleGoalSubmit = async (message: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Store user message in chat history
-      await supabase
-        .from('chat_history')
-        .insert([
-          { user_id: user.id, message, is_ai: false }
-        ]);
-
-      // Generate and store AI response
-      const response = await generateChatResponse(message);
-      
-      await supabase
-        .from('chat_history')
-        .insert([
-          { user_id: user.id, message: response, is_ai: true }
-        ]);
-
-      setIsGoalsDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      
-      toast({
-        title: "Goal added",
-        description: "Your new goal has been set successfully",
-      });
-    } catch (error) {
-      console.error('Error handling goal submission:', error);
-      toast({
-        title: "Error",
-        description: "Failed to set goal. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   const stats = {

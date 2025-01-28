@@ -173,7 +173,6 @@ const Index = () => {
   const handleGoalSubmit = (message: string) => {
     handleSend(message);
     setIsGoalsOpen(false);
-    // Invalidate and refetch profile data to update goals
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
@@ -224,7 +223,11 @@ const Index = () => {
         )}
       </div>
 
-      <Profile open={isProfileOpen} onOpenChange={setIsProfileOpen} />
+      <Profile 
+        open={isProfileOpen} 
+        onOpenChange={setIsProfileOpen}
+        onSend={handleSend}
+      />
       <PlanningDialog 
         open={isPlanningOpen} 
         onOpenChange={setIsPlanningOpen}
