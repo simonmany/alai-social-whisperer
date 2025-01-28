@@ -171,6 +171,32 @@ export type Database = {
         }
         Relationships: []
       }
+      event_feedback_status: {
+        Row: {
+          created_at: string | null
+          event_id: string
+          feedback_sent: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          event_id: string
+          feedback_sent?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          event_id?: string
+          feedback_sent?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_feedback_status_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: true
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       languages: {
         Row: {
           created_at: string
@@ -263,7 +289,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_completed_events: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      schedule_evening_checkin: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      schedule_morning_checkin: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
