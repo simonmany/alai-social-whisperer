@@ -8,13 +8,15 @@ interface ChatInputProps {
   placeholder?: string;
   type?: string;
   initialValue?: string;
+  showSendButton?: boolean;
 }
 
 export const ChatInput = ({ 
   onSend, 
   placeholder = "... or tell me what's on your mind!",
   type = "text",
-  initialValue = ""
+  initialValue = "",
+  showSendButton = true
 }: ChatInputProps) => {
   const [message, setMessage] = useState(initialValue);
 
@@ -49,9 +51,11 @@ export const ChatInput = ({
         placeholder={placeholder}
         className="flex-1 min-h-[44px] resize-none"
       />
-      <Button type="submit" size="icon">
-        <SendHorizontal className="h-4 w-4" />
-      </Button>
+      {showSendButton && (
+        <Button type="submit" size="icon">
+          <SendHorizontal className="h-4 w-4" />
+        </Button>
+      )}
     </form>
   );
 };

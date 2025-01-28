@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
+import { TypewriterText } from "@/components/TypewriterText";
 import { PersonalityQuiz } from "@/components/PersonalityQuiz";
 import { InterestSelector } from "@/components/InterestSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +11,8 @@ import { GoalsSection } from "./onboarding/GoalsSection";
 import { DemographicsSection } from "./onboarding/DemographicsSection";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { generateChatResponse } from "@/utils/openai";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -27,6 +30,9 @@ interface OnboardingState {
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<'basic' | 'goals' | 'personality' | 'current-interests' | 'desired-interests' | 'demographics'>('basic');
   const [state, setState] = useState<OnboardingState>({});
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [personalityResponse, setPersonalityResponse] = useState<string>("");
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -55,6 +61,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .eq('id', session?.user.id);
 
       setState(prev => ({ ...prev, personalityTraits: traits, personalityComments: comments }));
+      
+      // Generate AI response
+      setIsLoadingAi(true);
+      const prompt = `Based on these personality quiz answers ${JSON.stringify(traits)} and comments ${JSON.stringify(comments)}, give a very brief (max 50 words) insight about this person's personality. Keep it friendly and positive.`;
+      const response = await generateChatResponse(prompt);
+      setPersonalityResponse(response);
+      setIsLoadingAi(false);
+      
       setStep('current-interests');
     } catch (error) {
       toast({
@@ -155,31 +169,49 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'personality' && (
           <>
-            <ChatMessage
-              content="Now, I'd like to understand your personality better. Let's do a quick quiz!"
-              isAl={true}
-              animate={true}
-            />
-            <PersonalityQuiz 
-              onComplete={handlePersonalityComplete}
-              initialTraits={state.personalityTraits}
-              initialComments={state.personalityComments}
-            />
+            <div className="text-lg">
+              <TypewriterText
+                text="Now, I'd like to understand your personality better. Let's do a quick quiz!"
+                delay={0}
+                onComplete={() => setShowQuiz(true)}
+              />
+            </div>
+            <div className={cn(
+              "transition-opacity duration-500",
+              showQuiz ? "opacity-100" : "opacity-0"
+            )}>
+              <PersonalityQuiz 
+                onComplete={handlePersonalityComplete}
+                initialTraits={state.personalityTraits}
+                initialComments={state.personalityComments}
+              />
+            </div>
           </>
         )}
 
         {step === 'current-interests' && (
           <>
-            <ChatMessage
-              content="Thanks for sharing! Now, let's talk about interests. What do you like to do for fun?"
-              isAl={true}
-              animate={true}
-            />
-            <ChatMessage
-              content="Enter at least 3 activities."
-              isAl={true}
-              animate={true}
-            />
+            {isLoadingAi ? (
+              <div className="text-sm text-gray-500 animate-pulse">
+                Analyzing your personality...
+              </div>
+            ) : personalityResponse && (
+              <div className="bg-primary/10 p-4 rounded-lg mb-6">
+                <TypewriterText text={personalityResponse} />
+              </div>
+            )}
+            <div className="text-lg">
+              <TypewriterText
+                text="Thanks for sharing! Now, let's talk about interests. What do you like to do for fun?"
+                delay={0}
+              />
+            </div>
+            <div className="text-lg">
+              <TypewriterText
+                text="Enter at least 3 activities."
+                delay={1000}
+              />
+            </div>
             <InterestSelector
               onComplete={handleCurrentInterestsComplete}
               placeholder="Type to search activities..."
@@ -191,11 +223,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'desired-interests' && (
           <>
-            <ChatMessage
-              content="That's a cool set of hobbies! Now, what is something you'd like to get into that you haven't done yet?"
-              isAl={true}
-              animate={true}
-            />
+            <div className="text-lg">
+              <TypewriterText
+                text="That's a cool set of hobbies! Now, what is something you'd like to get into that you haven't done yet?"
+                delay={0}
+              />
+            </div>
             <InterestSelector
               onComplete={handleDesiredInterestsComplete}
               placeholder="Type to search new activities..."

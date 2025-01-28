@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
+import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 interface GoalsSectionProps {
   session: any;
@@ -12,6 +14,7 @@ interface GoalsSectionProps {
 
 export const GoalsSection = ({ session, onComplete, initialGoals }: GoalsSectionProps) => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals || []);
+  const [showOptions, setShowOptions] = useState(false);
   const { toast } = useToast();
 
   const goals = [
@@ -58,13 +61,19 @@ export const GoalsSection = ({ session, onComplete, initialGoals }: GoalsSection
 
   return (
     <div className="space-y-4">
-      <ChatMessage
-        content="Next, let's talk about your goals. Which of these are you interested in? You can choose multiple."
-        isAl={true}
-        animate={true}
-      />
+      <div className="text-lg">
+        <TypewriterText
+          text="Next, let's talk about your goals. Which of these are you interested in? You can choose multiple."
+          delay={250}
+          typingSpeed={25}
+          onComplete={() => setShowOptions(true)}
+        />
+      </div>
       
-      <div className="flex flex-wrap gap-2">
+      <div className={cn(
+        "flex flex-wrap gap-2 transition-opacity duration-500",
+        showOptions ? "opacity-100" : "opacity-0"
+      )}>
         {goals.map((goal) => (
           <Button
             key={goal}
@@ -79,7 +88,10 @@ export const GoalsSection = ({ session, onComplete, initialGoals }: GoalsSection
       
       <Button 
         onClick={handleGoalsSubmit}
-        className="w-full"
+        className={cn(
+          "w-full transition-opacity duration-500",
+          showOptions ? "opacity-100" : "opacity-0"
+        )}
       >
         Continue
       </Button>

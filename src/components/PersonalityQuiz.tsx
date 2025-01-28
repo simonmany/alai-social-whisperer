@@ -1,9 +1,11 @@
-import { useState } from "react";
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { TypewriterText } from "@/components/TypewriterText";
+import { cn } from "@/lib/utils";
 
 interface Question {
   id: number;
@@ -53,6 +55,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
   const [comment, setComment] = useState("");
   const [traits, setTraits] = useState<Record<string, number>>(initialTraits || {});
   const [comments, setComments] = useState<string[]>(initialComments || []);
+  const [showInitialContent, setShowInitialContent] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -127,8 +130,17 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
             style={{ width: `${progress}%` }}
           />
         </div>
-        <h3 className="text-lg font-medium">{currentQ.text}</h3>
-        <div className="space-y-6">
+        <TypewriterText 
+          text={currentQ.text} 
+          onComplete={() => setShowInitialContent(true)}
+          delay={250}
+          typingSpeed={25}
+        />
+        <div className={cn(
+          "space-y-6",
+          currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
+          currentQuestion === 0 ? "transition-opacity duration-500" : ""
+        )}>
           <div className="space-y-4">
             <div className="flex justify-between text-sm text-gray-500">
               <span>{currentQ.leftLabel}</span>
@@ -149,15 +161,24 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
             </div>
           </div>
           <ChatInput
-            onSend={setComment}
+            onSend={(newComment) => {
+              setComment(newComment);
+            }}
             placeholder="say more, if you like..."
             initialValue={comment}
+            showSendButton={false}
           />
         </div>
       </div>
-      <Button onClick={handleNext} className="w-full">
-        {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
-      </Button>
+
+      <div className={cn(
+        currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
+        currentQuestion === 0 ? "transition-opacity duration-500" : ""
+      )}>
+        <Button onClick={handleNext} className="w-full">
+          {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
+        </Button>
+      </div>
     </div>
   );
 };
