@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ChevronUp, MessageCircle } from "lucide-react";
+import { Search, ChevronUp, MessageCircle, Plus } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { useToast } from "@/hooks/use-toast";
+import GroupManagementDialog from "@/components/GroupManagementDialog";
+import ContactGroupsManager from "@/components/ContactGroupsManager";
 
 interface Contact {
   id: string;
@@ -33,6 +35,7 @@ const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string>("All contacts");
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -92,6 +95,10 @@ const ContactsView = () => {
     return <div>Loading...</div>;
   }
 
+  const handleGroupCreated = () => {
+    queryClient.invalidateQueries({ queryKey: ['contacts'] });
+  };
+
   return (
     <div className="fixed inset-0 bg-background animate-slide-in-top">
       <div className="container max-w-2xl mx-auto p-4 h-full">
@@ -147,14 +154,13 @@ const ContactsView = () => {
                             {contact.email && (
                               <p className="text-muted-foreground">{contact.email}</p>
                             )}
-                            <Badge variant="secondary" className="mt-2">
-                              {contact.group}
-                            </Badge>
                             <p className="text-sm text-muted-foreground mt-2">
                               Closeness: {(contact.closeness * 100).toFixed(0)}%
                             </p>
                           </div>
                         </div>
+                        
+                        <ContactGroupsManager contactId={contact.id} />
                       </div>
                     </DrawerContent>
                   </Drawer>
@@ -163,10 +169,10 @@ const ContactsView = () => {
             </div>
           </div>
 
-          <div className="flex justify-center mt-8 mb-4">
-            <Button variant="outline" className="w-full max-w-sm">
-              <MessageCircle className="mr-2" />
-              Ask Al about this group
+          <div className="flex justify-center gap-2 mt-8 mb-4">
+            <Button variant="outline" className="w-full max-w-sm" onClick={() => setIsGroupDialogOpen(true)}>
+              <Plus className="mr-2" />
+              Create New Group
             </Button>
           </div>
 
@@ -196,6 +202,13 @@ const ContactsView = () => {
           </Button>
         </div>
       </div>
+
+      <GroupManagementDialog
+        open={isGroupDialogOpen}
+        onOpenChange={setIsGroupDialogOpen}
+        contacts={contacts}
+        onGroupCreated={handleGroupCreated}
+      />
     </div>
   );
 };
