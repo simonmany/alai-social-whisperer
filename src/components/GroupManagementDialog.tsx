@@ -7,7 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UserPlus, Check } from "lucide-react";
+import { UserPlus } from "lucide-react";
 
 interface Contact {
   id: string;
@@ -42,10 +42,17 @@ const GroupManagementDialog = ({
     }
 
     try {
+      // Get the current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
       // Create the group
       const { data: groupData, error: groupError } = await supabase
         .from('contact_groups')
-        .insert([{ name: groupName }])
+        .insert({
+          name: groupName,
+          user_id: user.id,
+        })
         .select()
         .single();
 
@@ -73,6 +80,7 @@ const GroupManagementDialog = ({
       setGroupName("");
       setSelectedContacts([]);
     } catch (error) {
+      console.error('Error creating group:', error);
       toast({
         title: "Error",
         description: "Failed to create group",
