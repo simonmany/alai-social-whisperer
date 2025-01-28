@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ChevronUp, Plus, Sun } from "lucide-react";
+import { Search, ChevronUp, Plus } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,18 +20,11 @@ interface Contact {
   closeness: number;
 }
 
-// Emoji mapping for different group types
-const groupEmojis: Record<string, string> = {
-  "All contacts": "🌌",
-  "Family": "👨‍👩‍👧‍👦",
-  "Friends": "🤝",
-  "Work": "💼",
-  "Gym": "💪",
-  "School": "🎓",
-  "Investment": "📈",
-  "Sports": "⚽",
-  "Social": "🎉"
-};
+interface Group {
+  id: string;
+  name: string;
+  emoji?: string | null;
+}
 
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,7 +73,7 @@ const ContactsView = () => {
         .select('*');
 
       if (error) throw error;
-      return [{ id: 'all', name: 'All contacts' }, ...data];
+      return [{ id: 'all', name: 'All contacts', emoji: '🌌' }, ...data];
     }
   });
 
@@ -103,10 +96,10 @@ const ContactsView = () => {
     return groups.filter(g => membershipIds.includes(g.id));
   };
 
-  const getContactEmoji = (contactId: string): string => {
+  const getContactEmoji = (contactId: string): string | null => {
     const contactGroups = getContactGroups(contactId);
-    if (contactGroups.length === 0) return "🪐";
-    return groupEmojis[contactGroups[0].name] || "🌍";
+    if (contactGroups.length === 0) return null;
+    return contactGroups[0].emoji || null;
   };
 
   const filteredContacts = contacts.filter((contact) => {
@@ -175,6 +168,7 @@ const ContactsView = () => {
                 const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
                 const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
                 const orbitDuration = 20 + (radius / 20);
+                const contactEmoji = getContactEmoji(contact.id);
 
                 return (
                   <Drawer key={contact.id}>
@@ -194,10 +188,12 @@ const ContactsView = () => {
                               {getInitials(contact.name)}
                             </AvatarFallback>
                           </Avatar>
-                          {/* Emoji badge on the border */}
-                          <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
-                            {getContactEmoji(contact.id)}
-                          </div>
+                          {/* Only show emoji badge if contact has a group */}
+                          {contactEmoji && (
+                            <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
+                              {contactEmoji}
+                            </div>
+                          )}
                         </div>
                         <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
                           {contact.name}
@@ -256,7 +252,7 @@ const ContactsView = () => {
                   }`}
                   onClick={() => setSelectedGroup(group.name)}
                 >
-                  {groupEmojis[group.name] || "🌍"} {group.name}
+                  {group.emoji || "👥"} {group.name}
                 </Badge>
               ))}
             </div>

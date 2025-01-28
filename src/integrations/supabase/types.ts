@@ -123,18 +123,21 @@ export type Database = {
       contact_groups: {
         Row: {
           created_at: string
+          emoji: string | null
           id: string
           name: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          emoji?: string | null
           id?: string
           name: string
           user_id: string
         }
         Update: {
           created_at?: string
+          emoji?: string | null
           id?: string
           name?: string
           user_id?: string

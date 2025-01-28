@@ -28,6 +28,7 @@ const GroupManagementDialog = ({
   onGroupCreated 
 }: GroupManagementDialogProps) => {
   const [groupName, setGroupName] = useState("");
+  const [groupEmoji, setGroupEmoji] = useState("👥");
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
   const { toast } = useToast();
 
@@ -52,6 +53,7 @@ const GroupManagementDialog = ({
         .insert({
           name: groupName,
           user_id: user.id,
+          emoji: groupEmoji,
         })
         .select()
         .single();
@@ -78,6 +80,7 @@ const GroupManagementDialog = ({
       onGroupCreated();
       onOpenChange(false);
       setGroupName("");
+      setGroupEmoji("👥");
       setSelectedContacts([]);
     } catch (error) {
       console.error('Error creating group:', error);
@@ -104,6 +107,16 @@ const GroupManagementDialog = ({
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
               placeholder="Enter group name..."
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="emoji">Group Emoji</Label>
+            <Input
+              id="emoji"
+              value={groupEmoji}
+              onChange={(e) => setGroupEmoji(e.target.value)}
+              placeholder="Enter emoji..."
             />
           </div>
 
