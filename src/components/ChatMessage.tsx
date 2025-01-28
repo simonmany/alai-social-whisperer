@@ -10,7 +10,7 @@ export const ChatMessage = ({ content, isAl, animate = true }: ChatMessageProps)
   return (
     <div
       className={cn(
-        "mb-4 max-w-[80%]",
+        "mb-4 max-w-[80%] text-lg", // Added text-lg for larger font size
         isAl ? "self-start" : "self-end",
         animate && (isAl ? "animate-slide-in-left" : "animate-slide-in-right")
       )}
