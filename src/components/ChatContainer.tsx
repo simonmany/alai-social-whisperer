@@ -67,14 +67,16 @@ export const ChatContainer = ({
       </div>
       
       {showScrollButton && (
-        <Button
-          variant="outline"
-          size="icon"
-          className="fixed bottom-[120px] right-8 rounded-full shadow-lg z-[100] bg-primary hover:bg-primary/90 text-primary-foreground"
-          onClick={scrollToBottom}
-        >
-          <ChevronDown className="h-6 w-6" />
-        </Button>
+        <div className="fixed inset-0 pointer-events-none z-[9999]">
+          <Button
+            variant="outline"
+            size="icon"
+            className="absolute bottom-[120px] right-8 rounded-full shadow-lg pointer-events-auto bg-primary hover:bg-primary/90 text-primary-foreground"
+            onClick={scrollToBottom}
+          >
+            <ChevronDown className="h-6 w-6" />
+          </Button>
+        </div>
       )}
       
       <div className="space-y-4">
