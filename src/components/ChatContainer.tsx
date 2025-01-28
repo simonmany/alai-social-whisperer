@@ -64,18 +64,19 @@ export const ChatContainer = ({
           </div>
         )}
         <div ref={messagesEndRef} />
-        
-        {showScrollButton && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="fixed bottom-32 right-8 rounded-full shadow-lg"
-            onClick={scrollToBottom}
-          >
-            <ChevronDown className="h-4 w-4" />
-          </Button>
-        )}
       </div>
+      
+      {showScrollButton && (
+        <Button
+          variant="outline"
+          size="icon"
+          className="fixed bottom-32 right-8 rounded-full shadow-lg z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+          onClick={scrollToBottom}
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      )}
+      
       <div className="space-y-4">
         <div className="space-y-2">
           <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
