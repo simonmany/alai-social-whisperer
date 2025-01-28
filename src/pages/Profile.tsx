@@ -106,16 +106,22 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
   const handleGoalSubmit = async (message: string) => {
     try {
-      // First generate and store the AI response
-      const response = await generateChatResponse(message);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Store both the user message and AI response in chat history
+      // Store user message in chat history
       await supabase
         .from('chat_history')
         .insert([
-          { user_id: user.id, message, is_ai: false },
+          { user_id: user.id, message, is_ai: false }
+        ]);
+
+      // Generate and store AI response
+      const response = await generateChatResponse(message);
+      
+      await supabase
+        .from('chat_history')
+        .insert([
           { user_id: user.id, message: response, is_ai: true }
         ]);
 
