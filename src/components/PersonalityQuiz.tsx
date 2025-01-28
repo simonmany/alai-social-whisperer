@@ -102,11 +102,11 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
       setTraits(updatedTraits);
       setComments(updatedComments);
       setTimeout(() => {
+        setShowQuestionContent(false);
         setCurrentQuestion(prev => prev + 1);
         setSelectedValue(updatedTraits[questions[currentQuestion + 1].id] || null);
         setComment("");
         setAiResponse("");
-        setShowQuestionContent(false); // Reset for next question
       }, 2000); // Give user time to read AI response before moving on
     } else {
       try {
@@ -167,7 +167,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
         />
         <div className={cn(
           "space-y-6 transition-opacity duration-500",
-          showQuestionContent ? "opacity-100" : "opacity-0"
+          showQuestionContent ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
           <div className="space-y-4">
             <div className="flex justify-between text-sm text-gray-500">
@@ -213,7 +213,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
 
       <div className={cn(
         "transition-opacity duration-500",
-        showQuestionContent ? "opacity-100" : "opacity-0"
+        showQuestionContent ? "opacity-100" : "opacity-0 pointer-events-none"
       )}>
         <Button onClick={handleNext} className="w-full">
           {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
