@@ -116,7 +116,7 @@ const ContactsView = () => {
     return matchesSearch && matchesGroup;
   });
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string): string => {
     return name
       .split(" ")
       .map((n) => n[0])
@@ -186,11 +186,17 @@ const ContactsView = () => {
                         }}
                         onClick={() => setSelectedContact(contact)}
                       >
-                        <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
-                          <AvatarFallback>
+                        <div className="relative">
+                          <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
+                            <AvatarFallback>
+                              {getInitials(contact.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          {/* Emoji badge on the border */}
+                          <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
                             {getContactEmoji(contact.id)}
-                          </AvatarFallback>
-                        </Avatar>
+                          </div>
+                        </div>
                         <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
                           {contact.name}
                         </div>
@@ -201,7 +207,7 @@ const ContactsView = () => {
                         <div className="flex items-center space-x-4">
                           <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
                             <AvatarFallback>
-                              {getContactEmoji(contact.id)}
+                              {getInitials(contact.name)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
