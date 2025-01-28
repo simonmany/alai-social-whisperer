@@ -179,8 +179,9 @@ const ContactsView = () => {
           </div>
 
           <div className="flex-1 relative">
-            {/* Central user avatar */}
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+            {/* Container for the orbit system */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              {/* Central user avatar */}
               <div className="relative">
                 <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
                 <AvatarUpload
@@ -190,29 +191,23 @@ const ContactsView = () => {
                   size="lg"
                 />
               </div>
-            </div>
 
-            {/* Orbiting contacts */}
-            <div className="relative h-full">
+              {/* Orbiting contacts */}
               {filteredContacts.map((contact, index) => {
                 const angle = (index * 2 * Math.PI) / filteredContacts.length;
                 const radius = 140 * (1 - contact.closeness * 0.5);
-                const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
-                const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
-                const orbitDuration = 20 + (radius / 20);
-                const contactEmoji = getContactEmoji(contact.id);
+                const x = Math.cos(angle) * radius;
+                const y = Math.sin(angle) * radius;
 
                 return (
                   <Drawer key={contact.id}>
                     <DrawerTrigger asChild>
                       <button
-                        className="absolute -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
+                        className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
                         style={{
-                          left,
-                          top,
-                          animation: `orbit ${orbitDuration}s linear infinite`,
+                          left: `calc(50% + ${x}px)`,
+                          top: `calc(50% + ${y}px)`,
                         }}
-                        onClick={() => setSelectedContact(contact)}
                       >
                         <div className="relative">
                           <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
@@ -220,10 +215,9 @@ const ContactsView = () => {
                               {getInitials(contact.name)}
                             </AvatarFallback>
                           </Avatar>
-                          {/* Only show emoji badge if contact has a group */}
-                          {contactEmoji && (
+                          {getContactEmoji(contact.id) && (
                             <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
-                              {contactEmoji}
+                              {getContactEmoji(contact.id)}
                             </div>
                           )}
                         </div>
