@@ -12,6 +12,7 @@ import { DemographicsSection } from "./onboarding/DemographicsSection";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { generateChatResponse } from "@/utils/openai";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -30,6 +31,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<'basic' | 'goals' | 'personality' | 'current-interests' | 'desired-interests' | 'demographics'>('basic');
   const [state, setState] = useState<OnboardingState>({});
   const [showQuiz, setShowQuiz] = useState(false);
+  const [personalityResponse, setPersonalityResponse] = useState<string>("");
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -58,6 +61,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .eq('id', session?.user.id);
 
       setState(prev => ({ ...prev, personalityTraits: traits, personalityComments: comments }));
+      
+      // Generate AI response
+      setIsLoadingAi(true);
+      const prompt = `Based on these personality quiz answers ${JSON.stringify(traits)} and comments ${JSON.stringify(comments)}, give a very brief (max 50 words) insight about this person's personality. Keep it friendly and positive.`;
+      const response = await generateChatResponse(prompt);
+      setPersonalityResponse(response);
+      setIsLoadingAi(false);
+      
       setStep('current-interests');
     } catch (error) {
       toast({
@@ -180,6 +191,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'current-interests' && (
           <>
+            {isLoadingAi ? (
+              <div className="text-sm text-gray-500 animate-pulse">
+                Analyzing your personality...
+              </div>
+            ) : personalityResponse && (
+              <div className="bg-primary/10 p-4 rounded-lg mb-6">
+                <TypewriterText text={personalityResponse} />
+              </div>
+            )}
             <div className="text-lg">
               <TypewriterText
                 text="Thanks for sharing! Now, let's talk about interests. What do you like to do for fun?"

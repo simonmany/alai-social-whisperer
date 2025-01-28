@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { TypewriterText } from "@/components/TypewriterText";
-import { generateChatResponse } from "@/utils/openai";
 import { cn } from "@/lib/utils";
 
 interface Question {
@@ -56,30 +55,9 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
   const [comment, setComment] = useState("");
   const [traits, setTraits] = useState<Record<string, number>>(initialTraits || {});
   const [comments, setComments] = useState<string[]>(initialComments || []);
-  const [aiResponse, setAiResponse] = useState<string>("");
-  const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [showQuestionContent, setShowQuestionContent] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
-
-  const getAIResponse = async (question: Question, value: number, userComment: string) => {
-    setIsLoadingAi(true);
-    try {
-      const prompt = `The user is answering a personality quiz. For the question "${question.text}", they selected ${value/20} out of 5 (where 1 is more "${question.leftLabel}" and 5 is more "${question.rightLabel}")${userComment ? ` and added this comment: "${userComment}"` : ''}. Give a brief, friendly response about what this might say about their personality. Keep it to 1-2 sentences.`;
-      
-      const response = await generateChatResponse(prompt);
-      setAiResponse(response);
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      toast({
-        title: "Error getting AI response",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoadingAi(false);
-    }
-  };
 
   const handleNext = async () => {
     if (selectedValue === null) {
@@ -95,19 +73,15 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
     const updatedTraits = { ...traits, [question.id]: selectedValue };
     const updatedComments = comment ? [...comments, comment] : comments;
 
-    // Get AI response before moving to next question
-    await getAIResponse(question, selectedValue, comment);
-
     if (currentQuestion < questions.length - 1) {
       setTraits(updatedTraits);
       setComments(updatedComments);
+      setShowQuestionContent(false);
       setTimeout(() => {
-        setShowQuestionContent(false);
         setCurrentQuestion(prev => prev + 1);
         setSelectedValue(updatedTraits[questions[currentQuestion + 1].id] || null);
         setComment("");
-        setAiResponse("");
-      }, 2000); // Give user time to read AI response before moving on
+      }, 500);
     } else {
       try {
         await supabase
@@ -198,18 +172,6 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
           />
         </div>
       </div>
-      
-      {isLoadingAi && (
-        <div className="text-sm text-gray-500 animate-pulse">
-          Al is thinking...
-        </div>
-      )}
-      
-      {aiResponse && (
-        <div className="bg-primary/10 p-4 rounded-lg">
-          <TypewriterText text={aiResponse} />
-        </div>
-      )}
 
       <div className={cn(
         "transition-opacity duration-500",
