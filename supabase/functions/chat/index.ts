@@ -22,10 +22,8 @@ serve(async (req) => {
       throw new Error('Missing environment variables');
     }
 
-    // Initialize Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Store user message in chat history
     const { error: userMessageError } = await supabase
       .from('chat_history')
       .insert([
@@ -37,14 +35,12 @@ serve(async (req) => {
       throw userMessageError;
     }
 
-    // Fetch user data and context
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
 
-    // Fetch calendar events for the next 30 days
     const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
@@ -64,7 +60,6 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    // Format events for better readability
     const formattedEvents = events?.map(event => ({
       ...event,
       start_time: new Date(event.start_time).toLocaleString(),
@@ -77,41 +72,33 @@ serve(async (req) => {
       - Recent Chat History: ${JSON.stringify(chatHistory)}
       
       When discussing calendar events, always format dates and times in a user-friendly way.
-      If asked about the calendar or scheduling, you can:
-      - List upcoming events
-      - Suggest free time slots for new activities
-      - Help identify scheduling conflicts
-      - Provide summaries of the user's schedule
       
-      When suggesting times for activities:
-      1. Check the existing calendar events to avoid conflicts
-      2. Suggest specific dates and times that work around existing commitments
-      3. Consider typical timing for the suggested activity (e.g., dinner in the evening)
-
-      When users mention meeting someone new or talk about a contact:
-      1. Extract the person's name and any contact information shared
-      2. If they mention meeting someone new, respond in a way that shows interest in the new connection
-      3. Ask follow-up questions about the person if not much information was shared
-
-      When users provide feedback about a social interaction or "hang":
-      1. Ask thoughtful follow-up questions about:
-         - The quality of the conversation and connection
-         - Any interesting topics or shared interests discovered
-         - Their comfort level and engagement during the interaction
-         - Whether they'd like to plan another hang with these people
-      2. Look for patterns in their social preferences
-      3. Use their feedback to make better suggestions for future social activities
-      4. If they express any concerns or negative experiences, provide empathetic support and constructive suggestions
-
-      Ask these questions one at a time to not overwhelm the user. Keep a natural conversational flow.
+      When users mention meeting someone new or multiple people:
+      1. Extract each person's information separately
+      2. For each person mentioned, identify:
+         - Their full name
+         - Their relationship or role (e.g., "basketball friend", "fellow investor")
+         - Any contact information shared
+      3. Return an array of contacts, where each contact has:
+         - name: the person's full name
+         - relationship: their relationship to the user
+         - email: their email if provided, otherwise null
       
       Your response should be in this format:
       {
         "text": "your conversational response here",
-        "contact": {
-          "name": "extracted name if someone new was mentioned, otherwise null",
-          "email": "extracted email if shared, otherwise null"
-        }
+        "contacts": [
+          {
+            "name": "person 1 name",
+            "relationship": "their relationship",
+            "email": "email if provided or null"
+          },
+          {
+            "name": "person 2 name",
+            "relationship": "their relationship",
+            "email": "email if provided or null"
+          }
+        ]
       }
       
       Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
@@ -145,26 +132,29 @@ serve(async (req) => {
       console.error('Error parsing AI response:', e);
       parsedResponse = {
         text: data.choices[0].message.content,
-        contact: { name: null, email: null }
+        contacts: []
       };
     }
 
-    // If a new contact was detected, save it to the database
-    if (parsedResponse.contact && parsedResponse.contact.name) {
-      const { error: contactError } = await supabase
-        .from('contacts')
-        .insert([{
-          user_id: userId,
-          name: parsedResponse.contact.name,
-          email: parsedResponse.contact.email
-        }]);
+    // Handle multiple contacts
+    if (parsedResponse.contacts && Array.isArray(parsedResponse.contacts)) {
+      for (const contact of parsedResponse.contacts) {
+        if (contact.name) {
+          const { error: contactError } = await supabase
+            .from('contacts')
+            .insert([{
+              user_id: userId,
+              name: contact.name,
+              email: contact.email || null
+            }]);
 
-      if (contactError) {
-        console.error('Error storing contact:', contactError);
+          if (contactError) {
+            console.error('Error storing contact:', contactError);
+          }
+        }
       }
     }
 
-    // Store AI response in chat history
     const { error: aiMessageError } = await supabase
       .from('chat_history')
       .insert([
