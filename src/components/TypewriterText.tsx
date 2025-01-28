@@ -18,8 +18,11 @@ export const TypewriterText = ({
 }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [hasTyped, setHasTyped] = useState(false);
 
   useEffect(() => {
+    if (hasTyped) return; // Don't run the effect if we've already typed the text
+
     let timeout: NodeJS.Timeout;
     let intervalId: NodeJS.Timeout;
     
@@ -35,6 +38,7 @@ export const TypewriterText = ({
         } else {
           clearInterval(intervalId);
           setIsTyping(false);
+          setHasTyped(true); // Mark that we've completed typing
           onComplete?.();
         }
       }, typingSpeed);
@@ -46,7 +50,7 @@ export const TypewriterText = ({
       clearTimeout(timeout);
       clearInterval(intervalId);
     };
-  }, [text, onComplete, delay, typingSpeed]); // Added all dependencies
+  }, [text, onComplete, delay, typingSpeed, hasTyped]); // Added hasTyped dependency
 
   return (
     <div className={cn("relative inline-block font-cormorant", className)}>
