@@ -13,8 +13,8 @@ export const TypewriterText = ({
   text, 
   onComplete, 
   className,
-  delay = 0,
-  typingSpeed = 25  // Changed from 50 to 25 for 2x speed
+  delay = 250, // Changed from default delay to 250ms
+  typingSpeed = 25
 }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -22,7 +22,7 @@ export const TypewriterText = ({
 
   useEffect(() => {
     if (hasTyped) {
-      setDisplayedText(text); // If we've already typed, just show the full text
+      setDisplayedText(text);
       return;
     }
 
@@ -32,7 +32,7 @@ export const TypewriterText = ({
     timeout = setTimeout(() => {
       setIsTyping(true);
       let currentIndex = 0;
-      setDisplayedText(''); // Reset text when starting new animation
+      setDisplayedText('');
       
       intervalId = setInterval(() => {
         if (currentIndex < text.length) {
@@ -48,12 +48,11 @@ export const TypewriterText = ({
 
     }, delay);
 
-    // Cleanup function to clear both timeout and interval
     return () => {
       clearTimeout(timeout);
       clearInterval(intervalId);
     };
-  }, [text, onComplete, delay, typingSpeed, hasTyped]); // Added hasTyped dependency
+  }, [text, onComplete, delay, typingSpeed, hasTyped]);
 
   return (
     <div className={cn("relative inline-block font-cormorant", className)}>
