@@ -172,7 +172,7 @@ const ContactsView = () => {
                 const radius = 140 * (1 - contact.closeness * 0.5);
                 const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
                 const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
-                const orbitDuration = 20 + (radius / 20); // Slower orbits for outer planets
+                const orbitDuration = 20 + (radius / 20);
 
                 return (
                   <Drawer key={contact.id}>
