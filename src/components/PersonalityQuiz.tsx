@@ -55,7 +55,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
   const [comment, setComment] = useState("");
   const [traits, setTraits] = useState<Record<string, number>>(initialTraits || {});
   const [comments, setComments] = useState<string[]>(initialComments || []);
-  const [showQuestionContent, setShowQuestionContent] = useState(false);
+  const [showInitialContent, setShowInitialContent] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -76,12 +76,9 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
     if (currentQuestion < questions.length - 1) {
       setTraits(updatedTraits);
       setComments(updatedComments);
-      setShowQuestionContent(false);
-      setTimeout(() => {
-        setCurrentQuestion(prev => prev + 1);
-        setSelectedValue(updatedTraits[questions[currentQuestion + 1].id] || null);
-        setComment("");
-      }, 500);
+      setCurrentQuestion(prev => prev + 1);
+      setSelectedValue(updatedTraits[questions[currentQuestion + 1].id] || null);
+      setComment("");
     } else {
       try {
         await supabase
@@ -135,13 +132,14 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
         </div>
         <TypewriterText 
           text={currentQ.text} 
-          onComplete={() => setShowQuestionContent(true)}
+          onComplete={() => setShowInitialContent(true)}
           delay={250}
           typingSpeed={25}
         />
         <div className={cn(
-          "space-y-6 transition-opacity duration-500",
-          showQuestionContent ? "opacity-100" : "opacity-0 pointer-events-none"
+          "space-y-6",
+          currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
+          currentQuestion === 0 ? "transition-opacity duration-500" : ""
         )}>
           <div className="space-y-4">
             <div className="flex justify-between text-sm text-gray-500">
@@ -174,8 +172,8 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
       </div>
 
       <div className={cn(
-        "transition-opacity duration-500",
-        showQuestionContent ? "opacity-100" : "opacity-0 pointer-events-none"
+        currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
+        currentQuestion === 0 ? "transition-opacity duration-500" : ""
       )}>
         <Button onClick={handleNext} className="w-full">
           {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
