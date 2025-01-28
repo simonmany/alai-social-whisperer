@@ -13,27 +13,6 @@ interface ChatInputProps {
 
 export const ChatInput = ({ 
   onSend, 
-  placeholder = "... or tell meI'll help modify the `PersonalityQuiz` component to remove the send button from the `ChatInput` while maintaining all the functionality through the "Next" button.
-
-<lov-code>
-Let's update the `ChatInput` component to make the send button optional:
-
-<lov-write file_path="src/components/ChatInput.tsx">
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { SendHorizontal } from "lucide-react";
-
-interface ChatInputProps {
-  onSend: (message: string) => void;
-  placeholder?: string;
-  type?: string;
-  initialValue?: string;
-  showSendButton?: boolean;
-}
-
-export const ChatInput = ({ 
-  onSend, 
   placeholder = "... or tell me what's on your mind!",
   type = "text",
   initialValue = "",
