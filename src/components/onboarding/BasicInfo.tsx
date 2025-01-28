@@ -53,15 +53,17 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
 
   return (
     <div className="space-y-8">
-      {screens.slice(0, currentScreen + 1).map((text, index) => (
-        <div key={index} className="text-lg">
-          <TypewriterText
-            text={text}
-            onComplete={() => handleScreenComplete(index)}
-            delay={index * 500}
-            className="text-left"
-          />
-        </div>
+      {screens.map((text, index) => (
+        index <= currentScreen && (
+          <div key={index} className="text-lg">
+            <TypewriterText
+              text={text}
+              onComplete={() => handleScreenComplete(index)}
+              delay={index * 1000}
+              className="text-left"
+            />
+          </div>
+        )
       ))}
       
       {showInput && (
