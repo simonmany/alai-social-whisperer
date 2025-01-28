@@ -184,6 +184,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
             }}
             placeholder="say more, if you like..."
             initialValue={comment}
+            showSendButton={false}
           />
         </div>
       </div>
