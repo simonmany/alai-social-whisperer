@@ -92,6 +92,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          closeness: number | null
           created_at: string
           email: string | null
           id: string
@@ -99,6 +100,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          closeness?: number | null
           created_at?: string
           email?: string | null
           id?: string
@@ -106,6 +108,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          closeness?: number | null
           created_at?: string
           email?: string | null
           id?: string

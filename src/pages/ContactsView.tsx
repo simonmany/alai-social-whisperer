@@ -12,35 +12,16 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { useToast } from "@/hooks/use-toast";
 
 interface Contact {
-  id: number;
+  id: string;
   name: string;
   image?: string;
-  email: string;
+  email: string | null;
   group: string;
+  closeness: number;
 }
 
-const SAMPLE_CONTACTS: Contact[] = [
-  { id: 1, name: "Alice Johnson", email: "alice@example.com", image: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7", group: "Inner orbit" },
-  { id: 2, name: "Bob Wilson", email: "bob@example.com", image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b", group: "Inner orbit" },
-  { id: 3, name: "Carol Smith", email: "carol@example.com", image: "https://images.unsplash.com/photo-1518770660439-4636190af475", group: "Inner orbit" },
-  { id: 4, name: "David Brown", email: "david@example.com", image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6", group: "oldest friends" },
-  { id: 5, name: "Emma Davis", email: "emma@example.com", image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d", group: "oldest friends" },
-  { id: 6, name: "Frank Miller", email: "frank@example.com", image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158", group: "oldest friends" },
-  { id: 7, name: "Grace Lee", email: "grace@example.com", image: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81", group: "college friends" },
-  { id: 8, name: "Henry Wang", email: "henry@example.com", image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c", group: "college friends" },
-  { id: 9, name: "Ivy Chen", email: "ivy@example.com", image: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7", group: "college friends" },
-  { id: 10, name: "Jack Thompson", email: "jack@example.com", image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b", group: "Work contacts" },
-  { id: 11, name: "Karen White", email: "karen@example.com", image: "https://images.unsplash.com/photo-1518770660439-4636190af475", group: "Work contacts" },
-  { id: 12, name: "Leo Martinez", email: "leo@example.com", image: "https://images.unsplash.com/photo-1461749280684-dccba630e2f6", group: "Work contacts" },
-  { id: 13, name: "Mike Anderson", email: "mike@example.com", image: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d", group: "golf friends" },
-  { id: 14, name: "Nancy Clark", email: "nancy@example.com", image: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158", group: "golf friends" },
-  { id: 15, name: "Oliver Scott", email: "oliver@example.com", image: "https://images.unsplash.com/photo-1605810230434-7631ac76ec81", group: "golf friends" },
-  { id: 16, name: "Patricia Johnson", email: "patricia@example.com", image: "https://images.unsplash.com/photo-1519389950473-47ba0277781c", group: "Family" },
-  { id: 17, name: "Quinn Johnson", email: "quinn@example.com", image: "https://images.unsplash.com/photo-1649972904349-6e44c42644a7", group: "Family" },
-  { id: 18, name: "Robert Johnson", email: "robert@example.com", image: "https://images.unsplash.com/photo-1488590528505-98d2b5aba04b", group: "Family" },
-];
-
 const CONTACT_GROUPS = [
+  "All contacts",
   "Inner orbit",
   "oldest friends",
   "college friends",
@@ -52,7 +33,7 @@ const CONTACT_GROUPS = [
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<string>("Inner orbit");
+  const [selectedGroup, setSelectedGroup] = useState<string>("All contacts");
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -70,9 +51,24 @@ const ContactsView = () => {
         .single();
 
       if (error) throw error;
-      
-      console.log('Profile data fetched:', profile);
       return profile;
+    }
+  });
+
+  const { data: contacts = [], isLoading } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .order('closeness', { ascending: false });
+
+      if (error) throw error;
+      
+      return data.map(contact => ({
+        ...contact,
+        group: CONTACT_GROUPS[Math.floor(Math.random() * (CONTACT_GROUPS.length - 1)) + 1], // Skip "All contacts"
+      }));
     }
   });
 
@@ -80,9 +76,9 @@ const ContactsView = () => {
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
-  const filteredContacts = SAMPLE_CONTACTS.filter((contact) =>
+  const filteredContacts = contacts.filter((contact) =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    (selectedGroup === "" || contact.group === selectedGroup)
+    (selectedGroup === "All contacts" || contact.group === selectedGroup)
   );
 
   const getInitials = (name: string) => {
@@ -93,11 +89,14 @@ const ContactsView = () => {
       .toUpperCase();
   };
 
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="fixed inset-0 bg-background animate-slide-in-top">
       <div className="container max-w-2xl mx-auto p-4 h-full">
         <div className="relative flex flex-col h-full">
-          {/* Search Bar */}
           <div className="relative mb-8">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
@@ -108,9 +107,7 @@ const ContactsView = () => {
             />
           </div>
 
-          {/* Orbital Layout */}
           <div className="flex-1 relative">
-            {/* Center Avatar */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
               <AvatarUpload
                 url={profileData?.avatar_url ?? undefined}
@@ -120,11 +117,11 @@ const ContactsView = () => {
               />
             </div>
 
-            {/* Orbiting Contacts */}
             <div className="relative h-full">
               {filteredContacts.map((contact, index) => {
+                // Calculate position based on closeness
                 const angle = (index * 2 * Math.PI) / filteredContacts.length;
-                const radius = 140;
+                const radius = 140 * (1 - contact.closeness * 0.5); // Closer contacts are nearer to center
                 const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
                 const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
 
@@ -151,10 +148,15 @@ const ContactsView = () => {
                           </Avatar>
                           <div>
                             <h2 className="text-2xl font-bold">{contact.name}</h2>
-                            <p className="text-muted-foreground">{contact.email}</p>
+                            {contact.email && (
+                              <p className="text-muted-foreground">{contact.email}</p>
+                            )}
                             <Badge variant="secondary" className="mt-2">
                               {contact.group}
                             </Badge>
+                            <p className="text-sm text-muted-foreground mt-2">
+                              Closeness: {(contact.closeness * 100).toFixed(0)}%
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -165,7 +167,6 @@ const ContactsView = () => {
             </div>
           </div>
 
-          {/* Ask Al Button */}
           <div className="flex justify-center mt-8 mb-4">
             <Button variant="outline" className="w-full max-w-sm">
               <MessageCircle className="mr-2" />
@@ -173,7 +174,6 @@ const ContactsView = () => {
             </Button>
           </div>
 
-          {/* Contact Groups */}
           <div className="space-y-2 mb-16">
             <h3 className="text-lg font-semibold mb-4">Contact Groups</h3>
             <div className="flex flex-wrap gap-2">
@@ -190,7 +190,6 @@ const ContactsView = () => {
             </div>
           </div>
 
-          {/* Back to Chat Button */}
           <Button
             variant="ghost"
             size="icon"
