@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { MessageCircle, Settings, Share2, Target, Users } from "lucide-react";
+import { MessageCircle, Settings, Share2, Target, Users, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import GoalsDialog from "@/components/GoalsDialog";
@@ -13,6 +13,7 @@ import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateChatResponse } from "@/utils/openai";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProfileProps {
   open: boolean;
@@ -22,6 +23,7 @@ interface ProfileProps {
 const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -36,22 +38,17 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
         .single();
 
       if (error) throw error;
-      
-      console.log('Profile data fetched:', profile);
       return profile;
     },
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    staleTime: 1000 * 60 * 5,
     retry: 2
   });
 
   const handleAvatarUpdate = async (newUrl: string) => {
-    // Immediately update the cache with the new URL
     queryClient.setQueryData(['profile'], (oldData: any) => ({
       ...oldData,
       avatar_url: newUrl
     }));
-    
-    // Then invalidate to refetch fresh data
     await queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
@@ -76,16 +73,40 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
     }
   };
 
+  const handleDeleteGoal = async (goalIndex: number) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const updatedGoals = goals.filter((_, index) => index !== goalIndex);
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({ goals: updatedGoals })
+      .eq('id', user.id);
+
+    if (!error) {
+      toast({
+        title: "Goal deleted",
+        description: "Your goal has been removed successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to delete goal. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNewGoal = () => {
-    onOpenChange(false); // Close the profile sheet
-    setIsGoalsDialogOpen(true); // Open the goals dialog
+    onOpenChange(false);
+    setIsGoalsDialogOpen(true);
   };
 
   const handleGoalSubmit = async (message: string) => {
-    // First, send the message to the AI
     try {
       const response = await generateChatResponse(message);
-      // Store the message in chat history
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -95,13 +116,22 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           { user_id: user.id, message, is_ai: false },
           { user_id: user.id, message: response, is_ai: true }
         ]);
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
 
-    // Close the dialog and invalidate the profile query to refresh goals
-    setIsGoalsDialogOpen(false);
-    queryClient.invalidateQueries({ queryKey: ['profile'] });
+      setIsGoalsDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      
+      toast({
+        title: "Goal added",
+        description: "Your new goal has been set successfully",
+      });
+    } catch (error) {
+      console.error('Error handling goal submission:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set goal. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const stats = {
@@ -136,7 +166,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 onCheckedChange={() => handleGoalComplete(index)}
                 className="mt-1"
               />
-              <div>
+              <div className="flex-1">
                 <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
                   {goal.type}
                 </div>
@@ -144,6 +174,14 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                   {goal.description}
                 </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6"
+                onClick={() => handleDeleteGoal(index)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
           ))
         )}
