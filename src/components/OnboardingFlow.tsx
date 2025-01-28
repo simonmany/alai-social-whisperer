@@ -11,6 +11,7 @@ import { GoalsSection } from "./onboarding/GoalsSection";
 import { DemographicsSection } from "./onboarding/DemographicsSection";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -28,6 +29,7 @@ interface OnboardingState {
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<'basic' | 'goals' | 'personality' | 'current-interests' | 'desired-interests' | 'demographics'>('basic');
   const [state, setState] = useState<OnboardingState>({});
+  const [showQuiz, setShowQuiz] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -160,13 +162,19 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <TypewriterText
                 text="Now, I'd like to understand your personality better. Let's do a quick quiz!"
                 delay={0}
+                onComplete={() => setShowQuiz(true)}
               />
             </div>
-            <PersonalityQuiz 
-              onComplete={handlePersonalityComplete}
-              initialTraits={state.personalityTraits}
-              initialComments={state.personalityComments}
-            />
+            <div className={cn(
+              "transition-opacity duration-500",
+              showQuiz ? "opacity-100" : "opacity-0"
+            )}>
+              <PersonalityQuiz 
+                onComplete={handlePersonalityComplete}
+                initialTraits={state.personalityTraits}
+                initialComments={state.personalityComments}
+              />
+            </div>
           </>
         )}
 
