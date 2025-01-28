@@ -21,7 +21,10 @@ export const TypewriterText = ({
   const [hasTyped, setHasTyped] = useState(false);
 
   useEffect(() => {
-    if (hasTyped) return; // Don't run the effect if we've already typed the text
+    if (hasTyped) {
+      setDisplayedText(text); // If we've already typed, just show the full text
+      return;
+    }
 
     let timeout: NodeJS.Timeout;
     let intervalId: NodeJS.Timeout;
@@ -38,7 +41,7 @@ export const TypewriterText = ({
         } else {
           clearInterval(intervalId);
           setIsTyping(false);
-          setHasTyped(true); // Mark that we've completed typing
+          setHasTyped(true);
           onComplete?.();
         }
       }, typingSpeed);
