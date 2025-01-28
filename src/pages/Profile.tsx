@@ -117,13 +117,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     setIsGoalsDialogOpen(true);
   };
 
-  const stats = {
-    connections: 42,
-    weeklyHangs: 2.5,
-    timeBetweenHangs: "4.2 days",
-    mostSeenFriend: "Alex Chen",
-  };
-
   const renderTimeframeSection = (timeframe: string, title: string) => {
     const timeframeGoals = goals.filter((goal: Goal) => goal.timeframe === timeframe);
     const hasGoals = timeframeGoals.length > 0;
