@@ -7,6 +7,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { MainNavigation } from "@/components/MainNavigation";
 import { ChatContainer } from "@/components/ChatContainer";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
+import { Button } from "@/components/ui/button";
+import { Redo } from "lucide-react";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
@@ -222,6 +224,16 @@ const Index = () => {
           />
         )}
       </div>
+
+      <Button
+        variant="outline"
+        size="sm"
+        className="fixed bottom-4 left-4 gap-2"
+        onClick={() => setShowOnboarding(true)}
+      >
+        <Redo className="h-4 w-4" />
+        Restart Onboarding
+      </Button>
 
       <Profile 
         open={isProfileOpen} 

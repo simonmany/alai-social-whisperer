@@ -72,10 +72,45 @@ export const InterestSelector = ({
     setFilteredActivities([]);
   };
 
+  const validateActivityName = (name: string): boolean => {
+    // Check for common SQL injection patterns
+    const sqlPatterns = [
+      /(\b(select|insert|update|delete|drop|union|exec|declare|alter)\b)|(--)|(;)|(\/\*|\*\/)|(')/gi,
+      /(\b(table|database|schema)\b)/gi,
+      /(\b(waitfor|delay|sleep)\b)/gi
+    ];
+
+    // Test for any SQL injection patterns
+    return !sqlPatterns.some(pattern => pattern.test(name));
+  };
+
   const createNewActivity = async (name: string) => {
+    // Validate input
+    if (!validateActivityName(name)) {
+      toast({
+        title: "Invalid activity name",
+        description: "Please enter a valid activity name without special characters",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    // Additional sanitization: only allow alphanumeric characters, spaces, and basic punctuation
+    const sanitizedName = name.replace(/[^a-zA-Z0-9\s\-_.,!?]/g, '').trim();
+    
+    if (sanitizedName !== name) {
+      toast({
+        title: "Activity name modified",
+        description: "Some special characters were removed for security",
+        variant: "default",
+      });
+    }
+
+    // TODO (ari) fuzzy-match to existing activities to avoid activity proliferation
+
     const { data, error } = await supabase
       .from('activities')
-      .insert({ name })
+      .insert({ name: sanitizedName })
       .select()
       .single();
 
