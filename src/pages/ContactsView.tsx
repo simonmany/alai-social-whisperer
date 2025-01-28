@@ -27,6 +27,11 @@ interface Group {
   emoji?: string | null;
 }
 
+interface GroupMembership {
+  contact_id: string;
+  group_id: string;
+}
+
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -72,7 +77,7 @@ const ContactsView = () => {
       }
       
       console.log('Fetched contacts:', data);
-      return data;
+      return data as Contact[];
     },
     enabled: !!session?.user?.id,
   });
@@ -88,23 +93,22 @@ const ContactsView = () => {
         .eq('user_id', session.user.id);
 
       if (error) throw error;
-      return [{ id: 'all', name: 'All contacts', emoji: '🌌' }, ...data];
+      return [{ id: 'all', name: 'All contacts', emoji: '🌌' }, ...data] as Group[];
     },
     enabled: !!session?.user?.id,
   });
 
-  const { data: groupMemberships = [] } = useQuery({
+  const { data: groupMemberships = [] } = useQuery<GroupMembership[]>({
     queryKey: ['group_memberships', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return [];
 
       const { data, error } = await supabase
         .from('contact_group_memberships')
-        .select('*')
-        .eq('user_id', session.user.id);
+        .select('*');
 
       if (error) throw error;
-      return data;
+      return data as GroupMembership[];
     },
     enabled: !!session?.user?.id,
   });
