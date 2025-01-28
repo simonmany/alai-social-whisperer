@@ -9,7 +9,6 @@ import GoalsDialog from "@/components/GoalsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Goal } from "@/types/goals";
-import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { generateChatResponse } from "@/utils/openai";
@@ -106,10 +105,12 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
   const handleGoalSubmit = async (message: string) => {
     try {
+      // First generate and store the AI response
       const response = await generateChatResponse(message);
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Store both the user message and AI response in chat history
       await supabase
         .from('chat_history')
         .insert([
