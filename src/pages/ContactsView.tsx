@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 interface Contact {
   id: string;
   name: string;
-  image?: string;
   email: string | null;
   group: string;
   closeness: number;
@@ -119,9 +118,8 @@ const ContactsView = () => {
 
             <div className="relative h-full">
               {filteredContacts.map((contact, index) => {
-                // Calculate position based on closeness
                 const angle = (index * 2 * Math.PI) / filteredContacts.length;
-                const radius = 140 * (1 - contact.closeness * 0.5); // Closer contacts are nearer to center
+                const radius = 140 * (1 - contact.closeness * 0.5);
                 const left = `calc(50% + ${Math.cos(angle) * radius}px)`;
                 const top = `calc(50% + ${Math.sin(angle) * radius}px)`;
 
@@ -134,7 +132,6 @@ const ContactsView = () => {
                         onClick={() => setSelectedContact(contact)}
                       >
                         <Avatar className="h-16 w-16">
-                          <AvatarImage src={contact.image} alt={contact.name} />
                           <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
                         </Avatar>
                       </button>
@@ -143,7 +140,6 @@ const ContactsView = () => {
                       <div className="p-4 space-y-4">
                         <div className="flex items-center space-x-4">
                           <Avatar className="h-20 w-20">
-                            <AvatarImage src={contact.image} alt={contact.name} />
                             <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
                           </Avatar>
                           <div>
