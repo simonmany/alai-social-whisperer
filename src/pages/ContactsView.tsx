@@ -129,14 +129,16 @@ const ContactsView = () => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-90 animate-fade-in overflow-hidden">
-      {/* Galaxy background with stars effect */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-purple-900 via-slate-900 to-black opacity-50" />
-        <div className="absolute inset-0" style={{
-          background: 'radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px)',
-          backgroundSize: '100px 100px',
-        }} />
+    <div className="fixed inset-0 overflow-hidden">
+      {/* Galaxy background */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
+        style={{ 
+          backgroundImage: 'url("/lovable-uploads/2d5625f4-eacc-494d-b391-4d338902ebb4.png")',
+          backgroundSize: 'cover'
+        }}
+      >
+        <div className="absolute inset-0 bg-black bg-opacity-50" /> {/* Overlay to ensure content visibility */}
       </div>
 
       <div className="container max-w-2xl mx-auto p-4 h-full relative z-10">
