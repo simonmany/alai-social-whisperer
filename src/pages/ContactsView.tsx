@@ -17,19 +17,8 @@ interface Contact {
   id: string;
   name: string;
   email: string | null;
-  group: string;
   closeness: number;
 }
-
-const CONTACT_GROUPS = [
-  "All contacts",
-  "Inner orbit",
-  "oldest friends",
-  "college friends",
-  "Work contacts",
-  "golf friends",
-  "Family"
-];
 
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,7 +46,7 @@ const ContactsView = () => {
     }
   });
 
-  const { data: contacts = [], isLoading } = useQuery({
+  const { data: contacts = [], isLoading: isLoadingContacts } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -66,11 +55,31 @@ const ContactsView = () => {
         .order('closeness', { ascending: false });
 
       if (error) throw error;
-      
-      return data.map(contact => ({
-        ...contact,
-        group: CONTACT_GROUPS[Math.floor(Math.random() * (CONTACT_GROUPS.length - 1)) + 1], // Skip "All contacts"
-      }));
+      return data;
+    }
+  });
+
+  const { data: groups = [], isLoading: isLoadingGroups } = useQuery({
+    queryKey: ['contact_groups'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contact_groups')
+        .select('*');
+
+      if (error) throw error;
+      return [{ id: 'all', name: 'All contacts' }, ...data];
+    }
+  });
+
+  const { data: groupMemberships = [] } = useQuery({
+    queryKey: ['group_memberships'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contact_group_memberships')
+        .select('*');
+
+      if (error) throw error;
+      return data;
     }
   });
 
@@ -78,10 +87,19 @@ const ContactsView = () => {
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
-  const filteredContacts = contacts.filter((contact) =>
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    (selectedGroup === "All contacts" || contact.group === selectedGroup)
-  );
+  const getContactGroups = (contactId: string) => {
+    const membershipIds = groupMemberships
+      .filter(m => m.contact_id === contactId)
+      .map(m => m.group_id);
+    return groups.filter(g => membershipIds.includes(g.id));
+  };
+
+  const filteredContacts = contacts.filter((contact) => {
+    const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesGroup = selectedGroup === "All contacts" || 
+      getContactGroups(contact.id).some(g => g.name === selectedGroup);
+    return matchesSearch && matchesGroup;
+  });
 
   const getInitials = (name: string) => {
     return name
@@ -91,12 +109,13 @@ const ContactsView = () => {
       .toUpperCase();
   };
 
-  if (isLoading) {
+  if (isLoadingContacts || isLoadingGroups) {
     return <div>Loading...</div>;
   }
 
   const handleGroupCreated = () => {
-    queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+    queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
   };
 
   return (
@@ -179,14 +198,14 @@ const ContactsView = () => {
           <div className="space-y-2 mb-16">
             <h3 className="text-lg font-semibold mb-4">Contact Groups</h3>
             <div className="flex flex-wrap gap-2">
-              {CONTACT_GROUPS.map((group) => (
+              {groups.map((group) => (
                 <Badge
-                  key={group}
-                  variant={selectedGroup === group ? "default" : "outline"}
+                  key={group.id}
+                  variant={selectedGroup === group.name ? "default" : "outline"}
                   className="cursor-pointer hover:bg-accent"
-                  onClick={() => setSelectedGroup(group)}
+                  onClick={() => setSelectedGroup(group.name)}
                 >
-                  {group}
+                  {group.name}
                 </Badge>
               ))}
             </div>
