@@ -103,7 +103,7 @@ const ContactsView = () => {
     return groups.filter(g => membershipIds.includes(g.id));
   };
 
-  const getContactEmoji = (contactId: string) => {
+  const getContactEmoji = (contactId: string): string => {
     const contactGroups = getContactGroups(contactId);
     if (contactGroups.length === 0) return "🪐";
     return groupEmojis[contactGroups[0].name] || "🌍";
@@ -187,7 +187,7 @@ const ContactsView = () => {
                         onClick={() => setSelectedContact(contact)}
                       >
                         <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
-                          <AvatarFallback className="text-xl">
+                          <AvatarFallback>
                             {getContactEmoji(contact.id)}
                           </AvatarFallback>
                         </Avatar>
@@ -200,7 +200,7 @@ const ContactsView = () => {
                       <div className="p-4 space-y-4">
                         <div className="flex items-center space-x-4">
                           <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
-                            <AvatarFallback className="text-2xl">
+                            <AvatarFallback>
                               {getContactEmoji(contact.id)}
                             </AvatarFallback>
                           </Avatar>
