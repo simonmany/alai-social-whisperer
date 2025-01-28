@@ -12,6 +12,7 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { useToast } from "@/hooks/use-toast";
 import GroupManagementDialog from "@/components/GroupManagementDialog";
 import ContactGroupsManager from "@/components/ContactGroupsManager";
+import { useAuth } from "@/components/AuthProvider";
 
 interface Contact {
   id: string;
@@ -34,6 +35,7 @@ const ContactsView = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data: profileData } = useQuery({
     queryKey: ['profile'],
@@ -52,41 +54,59 @@ const ContactsView = () => {
     }
   });
 
-  const { data: contacts = [], isLoading: isLoadingContacts } = useQuery({
-    queryKey: ['contacts'],
+  const { data: contacts = [], isLoading: isLoadingContacts, error: contactsError } = useQuery({
+    queryKey: ['contacts', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+      
+      console.log('Fetching contacts for user:', session.user.id);
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
+        .eq('user_id', session.user.id)
         .order('closeness', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        throw error;
+      }
+      
+      console.log('Fetched contacts:', data);
       return data;
-    }
+    },
+    enabled: !!session?.user?.id,
   });
 
   const { data: groups = [], isLoading: isLoadingGroups } = useQuery({
-    queryKey: ['contact_groups'],
+    queryKey: ['contact_groups', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
       const { data, error } = await supabase
         .from('contact_groups')
-        .select('*');
+        .select('*')
+        .eq('user_id', session.user.id);
 
       if (error) throw error;
       return [{ id: 'all', name: 'All contacts', emoji: '🌌' }, ...data];
-    }
+    },
+    enabled: !!session?.user?.id,
   });
 
   const { data: groupMemberships = [] } = useQuery({
-    queryKey: ['group_memberships'],
+    queryKey: ['group_memberships', session?.user?.id],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
       const { data, error } = await supabase
         .from('contact_group_memberships')
-        .select('*');
+        .select('*')
+        .eq('user_id', session.user.id);
 
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!session?.user?.id,
   });
 
   const getContactGroups = (contactId: string) => {
@@ -117,8 +137,16 @@ const ContactsView = () => {
       .toUpperCase();
   };
 
+  if (contactsError) {
+    toast({
+      title: "Error loading contacts",
+      description: "There was a problem loading your contacts. Please try again.",
+      variant: "destructive",
+    });
+  }
+
   if (isLoadingContacts || isLoadingGroups) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center h-screen text-white">Loading...</div>;
   }
 
   return (
