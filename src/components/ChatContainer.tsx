@@ -44,10 +44,10 @@ export const ChatContainer = ({
   }, [messages]); // Scroll when messages change
 
   return (
-    <>
+    <div className="relative flex flex-col h-full">
       <div 
         ref={containerRef}
-        className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4 relative"
+        className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4"
         onScroll={handleScroll}
       >
         {messages.map((message, index) => (
@@ -70,7 +70,7 @@ export const ChatContainer = ({
         <Button
           variant="outline"
           size="icon"
-          className="fixed bottom-24 right-4 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90 text-primary-foreground"
+          className="fixed bottom-[120px] right-8 rounded-full shadow-lg z-[100] bg-primary hover:bg-primary/90 text-primary-foreground"
           onClick={scrollToBottom}
         >
           <ChevronDown className="h-6 w-6" />
@@ -101,6 +101,6 @@ export const ChatContainer = ({
         </div>
         <ChatInput onSend={onSend} />
       </div>
-    </>
+    </div>
   );
 };
