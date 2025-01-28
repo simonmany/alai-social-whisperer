@@ -18,6 +18,9 @@ export default {
       },
     },
     extend: {
+      backgroundImage: {
+        'galaxy': "url('/lovable-uploads/9999f226-6b5f-43a4-bbd6-db911b3e0531.png')",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
