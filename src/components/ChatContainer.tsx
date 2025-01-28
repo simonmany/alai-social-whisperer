@@ -1,6 +1,9 @@
+import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
+import { Button } from "@/components/ui/button";
+import { ChevronDown } from "lucide-react";
 
 interface Message {
   content: string;
@@ -20,9 +23,33 @@ export const ChatContainer = ({
   onSend,
   onSuggestedPrompt,
 }: ChatContainerProps) => {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleScroll = () => {
+    if (!containerRef.current) return;
+    
+    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    setShowScrollButton(!isNearBottom);
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]); // Scroll when messages change
+
   return (
     <>
-      <div className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4">
+      <div 
+        ref={containerRef}
+        className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4 relative"
+        onScroll={handleScroll}
+      >
         {messages.map((message, index) => (
           <ChatMessage
             key={index}
@@ -35,6 +62,18 @@ export const ChatContainer = ({
           <div className="self-start text-sm text-gray-500 animate-pulse">
             Al is typing...
           </div>
+        )}
+        <div ref={messagesEndRef} />
+        
+        {showScrollButton && (
+          <Button
+            variant="outline"
+            size="icon"
+            className="fixed bottom-32 right-8 rounded-full shadow-lg"
+            onClick={scrollToBottom}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
         )}
       </div>
       <div className="space-y-4">
