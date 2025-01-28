@@ -138,7 +138,7 @@ const ContactsView = () => {
           backgroundSize: 'cover'
         }}
       >
-        <div className="absolute inset-0 bg-black bg-opacity-50" /> {/* Overlay to ensure content visibility */}
+        <div className="absolute inset-0 bg-black bg-opacity-50" />
       </div>
 
       <div className="container max-w-2xl mx-auto p-4 h-full relative z-10">
@@ -154,14 +154,14 @@ const ContactsView = () => {
           </div>
 
           <div className="flex-1 relative">
-            {/* Central user avatar with sun icon */}
+            {/* Central user avatar */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
               <div className="relative">
                 <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
                 <AvatarUpload
                   url={profileData?.avatar_url ?? undefined}
                   onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
-                  fallback={<Sun className="h-8 w-8 text-yellow-500" />}
+                  fallback={getInitials(profileData?.display_name || 'U')}
                   size="lg"
                 />
               </div>
