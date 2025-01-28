@@ -21,12 +21,14 @@ export const TypewriterText = ({
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
+    let intervalId: NodeJS.Timeout;
     
     timeout = setTimeout(() => {
       setIsTyping(true);
       let currentIndex = 0;
+      setDisplayedText(''); // Reset text when starting new animation
       
-      const intervalId = setInterval(() => {
+      intervalId = setInterval(() => {
         if (currentIndex < text.length) {
           setDisplayedText(text.slice(0, currentIndex + 1));
           currentIndex++;
@@ -37,11 +39,14 @@ export const TypewriterText = ({
         }
       }, typingSpeed);
 
-      return () => clearInterval(intervalId);
     }, delay);
 
-    return () => clearTimeout(timeout);
-  }, [text, onComplete, delay, typingSpeed]);
+    // Cleanup function to clear both timeout and interval
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(intervalId);
+    };
+  }, [text, onComplete, delay, typingSpeed]); // Added all dependencies
 
   return (
     <div className={cn("relative inline-block font-cormorant", className)}>
