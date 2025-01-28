@@ -16,7 +16,7 @@ export const ChatMessage = ({ content, isAl, animate = true }: ChatMessageProps)
       )}
     >
       {isAl ? (
-        <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
+        <div className="text-foreground px-4 py-2 rounded-lg bg-white/10 backdrop-blur-sm shadow-sm">
           {content}
         </div>
       ) : (
