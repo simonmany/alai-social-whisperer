@@ -66,8 +66,8 @@ export const ChatContainer = ({
         <div ref={messagesEndRef} />
       </div>
       
-      {showScrollButton && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50">
+      <div className="sticky bottom-4 left-0 right-0 flex justify-center z-50">
+        {showScrollButton && (
           <Button
             variant="outline"
             size="icon"
@@ -76,8 +76,8 @@ export const ChatContainer = ({
           >
             <ChevronDown className="h-6 w-6" />
           </Button>
-        </div>
-      )}
+        )}
+      </div>
       
       <div className="space-y-4">
         <div className="space-y-2">
