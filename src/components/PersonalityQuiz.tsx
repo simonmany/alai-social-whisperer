@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { TypewriterText } from "@/components/TypewriterText";
 import { generateChatResponse } from "@/utils/openai";
+import { cn } from "@/lib/utils";
 
 interface Question {
   id: number;
@@ -57,6 +58,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
   const [comments, setComments] = useState<string[]>(initialComments || []);
   const [aiResponse, setAiResponse] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [showQuestionContent, setShowQuestionContent] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -104,6 +106,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
         setSelectedValue(updatedTraits[questions[currentQuestion + 1].id] || null);
         setComment("");
         setAiResponse("");
+        setShowQuestionContent(false); // Reset for next question
       }, 2000); // Give user time to read AI response before moving on
     } else {
       try {
@@ -156,8 +159,16 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
             style={{ width: `${progress}%` }}
           />
         </div>
-        <h3 className="text-lg font-medium">{currentQ.text}</h3>
-        <div className="space-y-6">
+        <TypewriterText 
+          text={currentQ.text} 
+          onComplete={() => setShowQuestionContent(true)}
+          delay={250}
+          typingSpeed={25}
+        />
+        <div className={cn(
+          "space-y-6 transition-opacity duration-500",
+          showQuestionContent ? "opacity-100" : "opacity-0"
+        )}>
           <div className="space-y-4">
             <div className="flex justify-between text-sm text-gray-500">
               <span>{currentQ.leftLabel}</span>
@@ -200,9 +211,14 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
         </div>
       )}
 
-      <Button onClick={handleNext} className="w-full">
-        {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
-      </Button>
+      <div className={cn(
+        "transition-opacity duration-500",
+        showQuestionContent ? "opacity-100" : "opacity-0"
+      )}>
+        <Button onClick={handleNext} className="w-full">
+          {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
+        </Button>
+      </div>
     </div>
   );
 };
