@@ -26,7 +26,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
     if (screenIndex < screens.length - 1) {
       setTimeout(() => {
         setCurrentScreen(screenIndex + 1);
-      }, 500);
+      }, 250); // Match the delay with TypewriterText
     } else {
       setShowInput(true);
     }
@@ -59,7 +59,8 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
             <TypewriterText
               text={text}
               onComplete={() => handleScreenComplete(index)}
-              delay={index * 1000}
+              delay={250}
+              typingSpeed={25}
               className="text-left"
             />
           </div>

@@ -13,8 +13,8 @@ export const TypewriterText = ({
   text, 
   onComplete, 
   className,
-  delay = 250, // Changed from default delay to 250ms
-  typingSpeed = 25
+  delay = 250, // Changed default delay to 250ms
+  typingSpeed = 25  // Set default typing speed to 25ms
 }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);

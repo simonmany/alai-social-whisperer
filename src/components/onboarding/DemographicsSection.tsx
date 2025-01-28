@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { TypewriterText } from "@/components/TypewriterText";
 
 interface DemographicsSectionProps {
   session: any;
@@ -134,7 +135,13 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     <div className="space-y-4">
       {step === 'age' && (
         <>
-          <ChatMessage content="How old are you?" isAl={true} animate={true} />
+          <div className="text-lg">
+            <TypewriterText
+              text="How old are you?"
+              delay={250}
+              typingSpeed={25}
+            />
+          </div>
           <ChatInput
             onSend={handleAgeSubmit}
             placeholder="Enter your age..."
@@ -145,7 +152,13 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'city' && (
         <>
-          <ChatMessage content="Where do you live?" isAl={true} animate={true} />
+          <div className="text-lg">
+            <TypewriterText
+              text="Where do you live?"
+              delay={250}
+              typingSpeed={25}
+            />
+          </div>
           <ChatInput
             onSend={handleCitySubmit}
             placeholder="Enter your city..."
@@ -155,14 +168,26 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'languages' && (
         <>
-          <ChatMessage content="What languages do you speak?" isAl={true} animate={true} />
+          <div className="text-lg">
+            <TypewriterText
+              text="What languages do you speak?"
+              delay={250}
+              typingSpeed={25}
+            />
+          </div>
           <LanguageSelector onComplete={handleLanguagesComplete} />
         </>
       )}
 
       {step === 'relationship' && (
         <>
-          <ChatMessage content="What's your relationship status?" isAl={true} animate={true} />
+          <div className="text-lg">
+            <TypewriterText
+              text="What's your relationship status?"
+              delay={250}
+              typingSpeed={25}
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             {["Single", "Cuffed", "It's complicated"].map((status) => (
               <Button
@@ -180,7 +205,13 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'gender' && (
         <>
-          <ChatMessage content="What's your gender?" isAl={true} animate={true} />
+          <div className="text-lg">
+            <TypewriterText
+              text="What's your gender?"
+              delay={250}
+              typingSpeed={25}
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             {["Male", "Female", "Non-Binary"].map((gender) => (
               <Button
@@ -198,7 +229,13 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'occupation' && (
         <>
-          <ChatMessage content="What do you do for work?" isAl={true} animate={true} />
+          <div className="text-lg">
+            <TypewriterText
+              text="What do you do for work?"
+              delay={250}
+              typingSpeed={25}
+            />
+          </div>
           <ChatInput
             onSend={handleOccupationSubmit}
             placeholder="What do you do for work?"
