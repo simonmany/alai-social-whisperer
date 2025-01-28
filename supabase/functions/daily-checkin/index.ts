@@ -15,19 +15,33 @@ serve(async (req) => {
   try {
     console.log('Starting daily check-in function');
     
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Get environment variables
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Missing environment variables');
+    }
+
+    console.log('Creating Supabase client with URL:', supabaseUrl);
+    
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     const { type, event_id, user_id, event_title } = await req.json();
     console.log('Check-in type:', type);
 
     if (type === 'morning') {
       // Get all users and their events for today
-      const { data: profiles } = await supabaseClient
+      const { data: profiles, error: profilesError } = await supabaseClient
         .from('profiles')
         .select('id, display_name');
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log(`Processing morning check-in for ${profiles?.length || 0} profiles`);
 
       for (const profile of profiles || []) {
         const today = new Date();
@@ -35,13 +49,18 @@ serve(async (req) => {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const { data: events } = await supabaseClient
+        const { data: events, error: eventsError } = await supabaseClient
           .from('calendar_events')
           .select('*')
           .eq('user_id', profile.id)
           .gte('start_time', today.toISOString())
           .lt('start_time', tomorrow.toISOString())
           .order('start_time', { ascending: true });
+
+        if (eventsError) {
+          console.error('Error fetching events:', eventsError);
+          continue;
+        }
 
         if (events && events.length > 0) {
           // Find gaps in schedule (>2 hours)
@@ -67,35 +86,56 @@ serve(async (req) => {
             `• ${gap.duration.toFixed(1)} hours between ${gap.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} and ${gap.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
           ).join('\n')}\n\nWould you like to plan any hangs during these times?` : ''}`;
 
-          await supabaseClient
+          const { error: insertError } = await supabaseClient
             .from('chat_history')
             .insert([
               { user_id: profile.id, message, is_ai: true }
             ]);
+
+          if (insertError) {
+            console.error('Error inserting chat message:', insertError);
+          }
         }
       }
     } else if (type === 'evening') {
       // Send evening check-in message to all users
-      const { data: profiles } = await supabaseClient
+      const { data: profiles, error: profilesError } = await supabaseClient
         .from('profiles')
         .select('id');
 
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
+      }
+
+      console.log(`Processing evening check-in for ${profiles?.length || 0} profiles`);
+
       for (const profile of profiles || []) {
         const message = "Hey! How was your day? I'd love to hear about it.";
-        await supabaseClient
+        const { error: insertError } = await supabaseClient
           .from('chat_history')
           .insert([
             { user_id: profile.id, message, is_ai: true }
           ]);
+
+        if (insertError) {
+          console.error('Error inserting chat message:', insertError);
+        }
       }
     } else if (type === 'post-event' && event_id && user_id) {
       // Send post-event check-in message
+      console.log(`Processing post-event check-in for event: ${event_title}`);
+      
       const message = `Hey! How was ${event_title}? I'd love to hear about it.`;
-      await supabaseClient
+      const { error: insertError } = await supabaseClient
         .from('chat_history')
         .insert([
           { user_id, message, is_ai: true }
         ]);
+
+      if (insertError) {
+        console.error('Error inserting chat message:', insertError);
+      }
     }
 
     return new Response(JSON.stringify({ status: 'success' }), {
