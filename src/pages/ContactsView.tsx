@@ -280,7 +280,7 @@ const ContactsView = () => {
                   className={`cursor-pointer hover:bg-purple-800/50 ${
                     selectedGroup === group.name
                       ? "bg-purple-600"
-                      : "bg-purple-900/50 border-purple-500/50"
+                      : "bg-purple-900/50 border-purple-500/50 text-purple-100"
                   }`}
                   onClick={() => setSelectedGroup(group.name)}
                 >
