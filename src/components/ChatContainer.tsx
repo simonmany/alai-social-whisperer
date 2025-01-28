@@ -41,10 +41,10 @@ export const ChatContainer = ({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]); // Scroll when messages change
+  }, [messages]);
 
   return (
-    <div className="relative flex flex-col h-full">
+    <div className="relative flex flex-col h-full min-h-[calc(100vh-12rem)]">
       <div 
         ref={containerRef}
         className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4"
@@ -67,11 +67,11 @@ export const ChatContainer = ({
       </div>
       
       {showScrollButton && (
-        <div className="fixed inset-0 pointer-events-none z-[9999]">
+        <div className="absolute bottom-[120px] right-8 z-50">
           <Button
             variant="outline"
             size="icon"
-            className="absolute bottom-[120px] right-8 rounded-full shadow-lg pointer-events-auto bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
             onClick={scrollToBottom}
           >
             <ChevronDown className="h-6 w-6" />
