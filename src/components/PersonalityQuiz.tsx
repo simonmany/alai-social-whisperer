@@ -93,13 +93,18 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
     const updatedTraits = { ...traits, [question.id]: selectedValue };
     const updatedComments = comment ? [...comments, comment] : comments;
 
+    // Get AI response before moving to next question
+    await getAIResponse(question, selectedValue, comment);
+
     if (currentQuestion < questions.length - 1) {
       setTraits(updatedTraits);
       setComments(updatedComments);
-      setCurrentQuestion(prev => prev + 1);
-      setSelectedValue(updatedTraits[questions[currentQuestion + 1].id] || null);
-      setComment("");
-      setAiResponse("");
+      setTimeout(() => {
+        setCurrentQuestion(prev => prev + 1);
+        setSelectedValue(updatedTraits[questions[currentQuestion + 1].id] || null);
+        setComment("");
+        setAiResponse("");
+      }, 2000); // Give user time to read AI response before moving on
     } else {
       try {
         await supabase
@@ -165,10 +170,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
                   variant="outline"
                   className="flex-1 h-12 transition-all"
                   style={getButtonStyle(value)}
-                  onClick={() => {
-                    setSelectedValue(value);
-                    getAIResponse(currentQ, value, comment);
-                  }}
+                  onClick={() => setSelectedValue(value)}
                 >
                   {value / 20}
                 </Button>
@@ -178,9 +180,6 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
           <ChatInput
             onSend={(newComment) => {
               setComment(newComment);
-              if (selectedValue) {
-                getAIResponse(currentQ, selectedValue, newComment);
-              }
             }}
             placeholder="say more, if you like..."
             initialValue={comment}
