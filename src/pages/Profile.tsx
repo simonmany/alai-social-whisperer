@@ -26,20 +26,36 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  // First query to get auth user data
+  const { data: userData } = useQuery({
+    queryKey: ['auth-user'],
+    queryFn: async () => {
+      console.log("Fetching auth user data...");
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        console.error("Error fetching auth user:", error);
+        throw error;
+      }
+      console.log("Auth user data:", user);
+      return user;
+    },
+    enabled: open, // Only run when profile is open
+  });
+
+  // Second query to get profile data
   const { data: profileData, isLoading } = useQuery({
-    queryKey: ['profile'],
+    queryKey: ['profile', userData?.id],
     queryFn: async () => {
       console.log("Fetching profile data...");
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("No user found");
-        throw new Error('No user found');
+      if (!userData?.id) {
+        console.error("No user ID available");
+        throw new Error('No user ID available');
       }
 
       const { data: profile, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', userData.id)
         .single();
 
       if (error) {
@@ -50,6 +66,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       console.log("Profile data fetched:", profile);
       return profile;
     },
+    enabled: !!userData?.id && open, // Only run when we have a user ID and profile is open
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 2
   });
@@ -77,9 +94,15 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const goals = (profileData?.goals as unknown as Goal[]) || [];
   const { missingTimeframes } = checkMissingGoals(goals);
 
+  // Get the best available display name and avatar URL
+  const displayName = profileData?.display_name || userData?.user_metadata?.name || 'User';
+  const avatarUrl = profileData?.avatar_url || userData?.user_metadata?.avatar_url;
+  const username = profileData?.username || 
+                  userData?.user_metadata?.username || 
+                  displayName.toLowerCase().replace(/\s+/g, '');
+
   const handleGoalComplete = async (goalIndex: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!userData?.id) return;
 
     const updatedGoals = [...goals];
     updatedGoals[goalIndex].completed = true;
@@ -87,7 +110,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     const { error } = await supabase
       .from('profiles')
       .update({ goals: updatedGoals })
-      .eq('id', user.id);
+      .eq('id', userData.id);
 
     if (!error) {
       queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -96,15 +119,14 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   };
 
   const handleDeleteGoal = async (goalIndex: number) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!userData?.id) return;
 
     const updatedGoals = goals.filter((_, index) => index !== goalIndex);
 
     const { error } = await supabase
       .from('profiles')
       .update({ goals: updatedGoals })
-      .eq('id', user.id);
+      .eq('id', userData.id);
 
     if (!error) {
       toast({
@@ -189,9 +211,9 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 <Skeleton className="h-24 w-24 rounded-full" />
               ) : (
                 <AvatarUpload
-                  url={profileData?.avatar_url}
+                  url={avatarUrl}
                   onUploadComplete={handleAvatarUpdate}
-                  fallback={profileData?.display_name?.charAt(0) || 'U'}
+                  fallback={displayName?.charAt(0) || 'U'}
                   size="lg"
                 />
               )}
@@ -203,11 +225,9 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-lg font-semibold">
-                      {profileData?.display_name || 'User'}
-                    </h2>
+                    <h2 className="text-lg font-semibold">{displayName}</h2>
                     <div className="flex gap-2 text-xs text-muted-foreground">
-                      <span>@{profileData?.username || profileData?.display_name?.toLowerCase().replace(/\s+/g, '') || 'user'}</span>
+                      <span>@{username}</span>
                       <span>•</span>
                       <span>{profileData?.city || 'Location not set'}</span>
                     </div>
