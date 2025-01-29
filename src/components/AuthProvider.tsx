@@ -27,6 +27,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const updateProfileWithGoogleData = async (user: any) => {
     console.log("Checking if update needed for Google data...");
+    console.log("User metadata:", user);
+    console.log("App metadata:", user?.app_metadata);
+    console.log("Provider:", user?.app_metadata?.provider);
+    
     if (user?.app_metadata?.provider === 'google') {
       console.log("User authenticated with Google, updating profile...");
       const { user_metadata, app_metadata } = user;
@@ -44,7 +48,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           display_name: user_metadata.full_name,
           google_access_token: app_metadata.provider_token,
           google_refresh_token: app_metadata.provider_refresh_token,
-          google_token_expires_at: new Date(Date.now() + 3600 * 1000), // Token expires in 1 hour
+          google_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(), // Token expires in 1 hour
         })
         .eq('id', user.id)
         .select();
