@@ -28,18 +28,26 @@ const CalendarView = () => {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['calendar-events'],
     queryFn: async () => {
+      console.log("Starting calendar events fetch...");
+      
       if (!session?.user?.id) {
-        console.log("No session found");
+        console.log("No session found, returning empty events array");
         return [];
       }
 
       try {
         // First, check if we need to sync with Google Calendar
-        const { data: profile } = await supabase
+        console.log("Checking Google Calendar token...");
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('google_access_token, google_token_expires_at')
           .eq('id', session.user.id)
           .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          return [];
+        }
 
         if (profile?.google_access_token) {
           console.log("Found Google Calendar token, syncing events...");
@@ -48,6 +56,7 @@ const CalendarView = () => {
           thirtyDaysFromNow.setDate(now.getDate() + 30);
 
           // Call the calendar edge function to sync events
+          console.log("Calling calendar edge function...");
           const { data: syncResponse, error: syncError } = await supabase.functions.invoke('calendar', {
             body: {
               action: 'list',
@@ -64,11 +73,14 @@ const CalendarView = () => {
               variant: "destructive",
             });
           } else {
-            console.log("Successfully synced with Google Calendar");
+            console.log("Successfully synced with Google Calendar", syncResponse);
           }
+        } else {
+          console.log("No Google Calendar token found");
         }
 
         // Fetch events from our database
+        console.log("Fetching events from database...");
         const { data: calendarEvents, error } = await supabase
           .from('calendar_events')
           .select('*')
@@ -87,14 +99,15 @@ const CalendarView = () => {
           return [];
         }
 
-        return calendarEvents;
+        console.log(`Found ${calendarEvents?.length || 0} events in database`);
+        return calendarEvents || [];
       } catch (error) {
         console.error('Exception in fetchCalendarEvents:', error);
         return [];
       }
     },
-    refetchOnMount: true, // Refresh when component mounts
-    refetchOnWindowFocus: true, // Also refresh when window regains focus
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   const handlePrompt = (message: string) => {
