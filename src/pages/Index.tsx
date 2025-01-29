@@ -192,7 +192,7 @@ const Index = () => {
     }
   };
 
-  console.log('Session:', session)
+  console.log('Session:', session);
 
   const containerClasses = isMobile
     ? "min-h-screen bg-black flex flex-col"
