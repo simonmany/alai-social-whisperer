@@ -39,12 +39,25 @@ const Auth = () => {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: `${window.location.origin}/calendar`
+          redirectTo: `${window.location.origin}/calendar`,
+          skipBrowserRedirect: true // This enables popup behavior
         }
       });
 
       if (error) throw error;
       
+      // Open popup window for authentication
+      const popup = window.open(
+        data?.url,
+        'Google Sign In',
+        'width=600,height=800,left=' + (window.innerWidth - 600) / 2 + ',top=' + (window.innerHeight - 800) / 2
+      );
+
+      // Check if popup was blocked
+      if (!popup) {
+        throw new Error("Popup blocked. Please enable popups for this site.");
+      }
+
       console.log("Google auth initiated:", data);
     } catch (error: any) {
       console.error("Google auth error:", error);
