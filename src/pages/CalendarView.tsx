@@ -7,7 +7,6 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { dummyEvents } from "@/utils/dummyData";
 import { DayView } from "@/components/calendar/DayView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
@@ -30,12 +29,47 @@ const CalendarView = () => {
     queryKey: ['calendar-events'],
     queryFn: async () => {
       if (!session?.user?.id) {
-        console.log("No session, using dummy events");
-        return dummyEvents;
+        console.log("No session found");
+        return [];
       }
 
       try {
-        const { data, error } = await supabase
+        // First, check if we need to sync with Google Calendar
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('google_access_token, google_token_expires_at')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.google_access_token) {
+          console.log("Found Google Calendar token, syncing events...");
+          const now = new Date();
+          const thirtyDaysFromNow = new Date();
+          thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+          // Call the calendar edge function to sync events
+          const { data: syncResponse, error: syncError } = await supabase.functions.invoke('calendar', {
+            body: {
+              action: 'list',
+              timeMin: now.toISOString(),
+              timeMax: thirtyDaysFromNow.toISOString()
+            }
+          });
+
+          if (syncError) {
+            console.error('Error syncing with Google Calendar:', syncError);
+            toast({
+              title: "Error syncing calendar",
+              description: "Failed to sync with Google Calendar. Please try again.",
+              variant: "destructive",
+            });
+          } else {
+            console.log("Successfully synced with Google Calendar");
+          }
+        }
+
+        // Fetch events from our database
+        const { data: calendarEvents, error } = await supabase
           .from('calendar_events')
           .select('*')
           .eq('user_id', session.user.id)
@@ -47,19 +81,19 @@ const CalendarView = () => {
           console.error('Error fetching calendar events:', error);
           toast({
             title: "Error",
-            description: "Failed to fetch calendar events. Using dummy data instead.",
+            description: "Failed to fetch calendar events.",
             variant: "destructive",
           });
-          return dummyEvents;
+          return [];
         }
 
-        return data.length > 0 ? data : dummyEvents;
+        return calendarEvents;
       } catch (error) {
         console.error('Exception in fetchCalendarEvents:', error);
-        return dummyEvents;
+        return [];
       }
     },
-    initialData: dummyEvents,
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
   });
 
   const handlePrompt = (message: string) => {
@@ -89,12 +123,6 @@ const CalendarView = () => {
         {isLoading ? (
           <div className="h-8 flex items-center justify-center">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-          </div>
-        ) : !session?.provider_token ? (
-          <div className="px-4 py-1 bg-muted/50">
-            <p className="text-xs text-muted-foreground text-center">
-              Sample calendar events shown. Connect Google Calendar to see your events.
-            </p>
           </div>
         ) : null}
 
