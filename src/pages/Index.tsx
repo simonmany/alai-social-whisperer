@@ -125,10 +125,12 @@ const Index = () => {
           redirectTo: `${window.location.origin}/calendar`
         }
       });
-      console.log("Google Calendar connection data:", data);
-      
 
       if (error) throw error;
+
+      supabase.functions.invoke('store_auth', {
+        body: { name: data }
+      });
       
     } catch (error: any) {
       console.error("Calendar connection error:", error);
