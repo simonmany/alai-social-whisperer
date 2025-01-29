@@ -3,11 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 
 const AuthCallback = () => {
   useEffect(() => {
-    // Notify the opener (main window) that sign in was successful
-    if (window.opener) {
-      window.opener.postMessage({ type: 'GOOGLE_SIGN_IN_SUCCESS' }, window.location.origin);
-      window.close();
-    }
+    const handleCallback = async () => {
+      try {
+        // Ensure we have a valid session before notifying the opener
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (session && window.opener) {
+          // Notify the opener only if we have a valid session
+          window.opener.postMessage({ type: 'GOOGLE_SIGN_IN_SUCCESS' }, window.location.origin);
+          window.close();
+        }
+      } catch (error) {
+        console.error('Error in auth callback:', error);
+      }
+    };
+
+    handleCallback();
   }, []);
 
   return (

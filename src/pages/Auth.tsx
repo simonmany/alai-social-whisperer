@@ -25,12 +25,18 @@ const Auth = () => {
       // Verify the message is from our popup
       if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
         console.log("Received success message from popup");
-        // Refresh the session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (session) {
-          console.log("Session refreshed, navigating to home");
-          navigate("/");
-        } else if (error) {
+        try {
+          // Force a session refresh
+          const { data: { session }, error } = await supabase.auth.refreshSession();
+          if (error) throw error;
+          
+          if (session) {
+            console.log("Session refreshed successfully, navigating to home");
+            navigate("/");
+          } else {
+            throw new Error("No session after refresh");
+          }
+        } catch (error: any) {
           console.error("Error refreshing session:", error);
           toast({
             title: "Error signing in",
@@ -88,18 +94,15 @@ const Auth = () => {
           throw new Error("Popup blocked. Please enable popups for this site.");
         }
 
-        // Add a check for popup closure
-        const checkPopup = setInterval(() => {
+        // Poll for changes in auth state instead of just popup closure
+        const checkAuth = setInterval(async () => {
           if (popup.closed) {
-            clearInterval(checkPopup);
-            // Refresh the session when popup closes
-            supabase.auth.getSession().then(({ data: { session }, error }) => {
-              if (session) {
-                navigate("/");
-              } else if (error) {
-                console.error("Error checking session:", error);
-              }
-            });
+            clearInterval(checkAuth);
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              console.log("Session detected after popup closed");
+              navigate("/");
+            }
           }
         }, 500);
       }
@@ -356,6 +359,7 @@ const Auth = () => {
       </Card>
     </div>
   );
+
 };
 
 export default Auth;
