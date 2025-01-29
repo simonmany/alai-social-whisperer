@@ -29,8 +29,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
+      console.log("Fetching profile data...");
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) {
+        console.error("No user found");
+        throw new Error('No user found');
+      }
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -38,10 +42,15 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching profile:", error);
+        throw error;
+      }
+      
+      console.log("Profile data fetched:", profile);
       return profile;
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 2
   });
 
@@ -194,9 +203,11 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-lg font-semibold">{profileData?.display_name || 'User'}</h2>
+                    <h2 className="text-lg font-semibold">
+                      {profileData?.display_name || 'User'}
+                    </h2>
                     <div className="flex gap-2 text-xs text-muted-foreground">
-                      <span>@{profileData?.username || 'user'}</span>
+                      <span>@{profileData?.username || profileData?.display_name?.toLowerCase().replace(/\s+/g, '') || 'user'}</span>
                       <span>•</span>
                       <span>{profileData?.city || 'Location not set'}</span>
                     </div>
