@@ -93,7 +93,8 @@ const CalendarView = () => {
         return [];
       }
     },
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    refetchOnMount: true, // Refresh when component mounts
+    refetchOnWindowFocus: true, // Also refresh when window regains focus
   });
 
   const handlePrompt = (message: string) => {
