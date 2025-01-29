@@ -7,6 +7,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { useAuth } from "@/components/AuthProvider";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import AuthCallback from "./pages/AuthCallback";
 import CalendarView from "./pages/CalendarView";
 import ContactsView from "./pages/ContactsView";
 
@@ -36,6 +37,7 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route
               path="/"
               element={

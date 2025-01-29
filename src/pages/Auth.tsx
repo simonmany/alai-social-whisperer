@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,32 @@ const Auth = () => {
   const [passwordError, setPasswordError] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Listen for messages from the popup
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      // Verify the message is from our popup
+      if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
+        console.log("Received success message from popup");
+        // Refresh the session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (session) {
+          console.log("Session refreshed, navigating to home");
+          navigate("/");
+        } else if (error) {
+          console.error("Error refreshing session:", error);
+          toast({
+            title: "Error signing in",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate, toast]);
 
   const validatePassword = (password: string) => {
     if (password.length < 6) {
@@ -39,26 +65,46 @@ const Auth = () => {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: `${window.location.origin}/calendar`,
-          skipBrowserRedirect: true // This enables popup behavior
+          redirectTo: `${window.location.origin}/auth/callback`,
+          skipBrowserRedirect: true
         }
       });
 
       if (error) throw error;
       
-      // Open popup window for authentication
-      const popup = window.open(
-        data?.url,
-        'Google Sign In',
-        'width=600,height=800,left=' + (window.innerWidth - 600) / 2 + ',top=' + (window.innerHeight - 800) / 2
-      );
+      if (data?.url) {
+        const width = 600;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const popup = window.open(
+          data.url,
+          'Google Sign In',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
 
-      // Check if popup was blocked
-      if (!popup) {
-        throw new Error("Popup blocked. Please enable popups for this site.");
+        if (!popup) {
+          throw new Error("Popup blocked. Please enable popups for this site.");
+        }
+
+        // Add a check for popup closure
+        const checkPopup = setInterval(() => {
+          if (popup.closed) {
+            clearInterval(checkPopup);
+            // Refresh the session when popup closes
+            supabase.auth.getSession().then(({ data: { session }, error }) => {
+              if (session) {
+                navigate("/");
+              } else if (error) {
+                console.error("Error checking session:", error);
+              }
+            });
+          }
+        }, 500);
       }
 
-      console.log("Google auth initiated:", data);
+      console.log("Google auth initiated");
     } catch (error: any) {
       console.error("Google auth error:", error);
       toast({
