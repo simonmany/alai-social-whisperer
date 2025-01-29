@@ -26,15 +26,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   const updateProfileWithGoogleData = async (user: any) => {
+    console.log("Checking if update needed for Google data...");
     if (user?.app_metadata?.provider === 'google') {
-      const { user_metadata } = user;
-      await supabase
+      console.log("User authenticated with Google, updating profile...");
+      const { user_metadata, app_metadata } = user;
+      
+      // Log the available tokens
+      console.log("Available tokens:", {
+        provider_token: app_metadata?.provider_token ? "Present" : "Missing",
+        provider_refresh_token: app_metadata?.provider_refresh_token ? "Present" : "Missing",
+      });
+
+      const { data, error } = await supabase
         .from('profiles')
         .update({
           avatar_url: user_metadata.avatar_url,
           display_name: user_metadata.full_name,
+          google_access_token: app_metadata.provider_token,
+          google_refresh_token: app_metadata.provider_refresh_token,
+          google_token_expires_at: new Date(Date.now() + 3600 * 1000), // Token expires in 1 hour
         })
-        .eq('id', user.id);
+        .eq('id', user.id)
+        .select();
+
+      if (error) {
+        console.error("Error updating profile with Google data:", error);
+      } else {
+        console.log("Successfully updated profile with Google data:", data);
+      }
+    } else {
+      console.log("User not authenticated with Google, skipping profile update");
     }
   };
 
