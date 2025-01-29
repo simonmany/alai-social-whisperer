@@ -5,17 +5,27 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Ensure we have a valid session before notifying the opener
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        // Get the session immediately after the OAuth callback
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
         
         if (session && window.opener) {
-          // Notify the opener only if we have a valid session
-          window.opener.postMessage({ type: 'GOOGLE_SIGN_IN_SUCCESS' }, window.location.origin);
-          window.close();
+          // Force a session refresh to ensure we have all tokens
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError) throw refreshError;
+          
+          if (refreshData.session) {
+            // Notify the opener only if we have a valid session
+            window.opener.postMessage({ type: 'GOOGLE_SIGN_IN_SUCCESS' }, window.location.origin);
+            window.close();
+          }
         }
       } catch (error) {
         console.error('Error in auth callback:', error);
+        // If there's an error, still try to close the window
+        if (window.opener) {
+          window.close();
+        }
       }
     };
 

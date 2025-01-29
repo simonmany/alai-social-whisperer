@@ -69,7 +69,7 @@ const Auth = () => {
           scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
+            prompt: 'consent select_account',
           },
           redirectTo: `${window.location.origin}/auth/callback`,
           skipBrowserRedirect: true
@@ -94,15 +94,40 @@ const Auth = () => {
           throw new Error("Popup blocked. Please enable popups for this site.");
         }
 
-        // Poll for changes in auth state instead of just popup closure
+        // Poll for changes in auth state
         const checkAuth = setInterval(async () => {
-          if (popup.closed) {
-            clearInterval(checkAuth);
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              console.log("Session detected after popup closed");
-              navigate("/");
+          try {
+            if (popup.closed) {
+              clearInterval(checkAuth);
+              const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+              
+              if (sessionError) {
+                console.error("Session error:", sessionError);
+                throw sessionError;
+              }
+              
+              if (session) {
+                console.log("Session detected after popup closed");
+                // Force a session refresh to ensure we have the latest tokens
+                const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+                if (refreshError) {
+                  console.error("Refresh error:", refreshError);
+                  throw refreshError;
+                }
+                
+                if (refreshData.session) {
+                  navigate("/");
+                }
+              }
             }
+          } catch (checkError) {
+            console.error("Error checking auth state:", checkError);
+            clearInterval(checkAuth);
+            toast({
+              title: "Authentication Error",
+              description: "Please try signing in again",
+              variant: "destructive",
+            });
           }
         }, 500);
       }
