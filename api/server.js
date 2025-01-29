@@ -27,6 +27,7 @@ app.get('/api/test', (req, res) => {
 app.get("/auth/v1/callback", async function (req, res) {
   const code = req.query.code
   const next = req.query.next ?? "/"
+  console.log("Auth callback:", { code, next })
 
   if (code) {
     const supabase = createServerClient(

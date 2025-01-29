@@ -127,10 +127,6 @@ const Index = () => {
       });
 
       if (error) throw error;
-
-      supabase.functions.invoke('store_auth', {
-        body: { name: data }
-      });
       
     } catch (error: any) {
       console.error("Calendar connection error:", error);
@@ -195,6 +191,8 @@ const Index = () => {
       handleSend(prompt);
     }
   };
+
+  console.log('Session:', session)
 
   const containerClasses = isMobile
     ? "min-h-screen bg-black flex flex-col"
