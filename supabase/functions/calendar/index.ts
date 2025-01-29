@@ -39,6 +39,7 @@ serve(async (req) => {
     // Get the user's Google OAuth token
     let accessToken;
     if (user.app_metadata?.providers?.includes('google')) {
+      console.log(`refresh token present: ${user.app_metadata.refresh_token}`);
       const { data: { session }, error: refreshError } = await supabaseClient.auth.refreshSession({
         refresh_token: user.app_metadata.refresh_token,
       });

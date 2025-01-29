@@ -125,6 +125,8 @@ const Index = () => {
           redirectTo: `${window.location.origin}/calendar`
         }
       });
+      console.log("Google Calendar connection data:", data);
+      
 
       if (error) throw error;
       
