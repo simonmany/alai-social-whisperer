@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   const updateProfileWithGoogleData = async (user: any) => {
-    if (!user?.app_metadata?.provider === 'google') return;
+    if (user?.app_metadata?.provider !== 'google') return;
 
     console.log("Updating profile with Google data...");
     const { user_metadata, app_metadata } = user;
