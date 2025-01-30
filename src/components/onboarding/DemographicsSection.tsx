@@ -6,6 +6,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TypewriterText } from "@/components/TypewriterText";
+import Autocomplete from 'react-google-autocomplete';
 
 interface DemographicsSectionProps {
   session: any;
@@ -161,10 +162,27 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
           </div>
-          <ChatInput
-            onSend={handleCitySubmit}
-            placeholder="Enter your city..."
-          />
+          <div className="w-full max-w-md">
+            <Autocomplete
+              apiKey={import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+              onPlaceSelected={(place: any) => {
+                console.log('Selected place:', place);
+                if (place && typeof place === 'object') {
+                  const address = place.formatted_address || place.name || '';
+                  console.log('Using address:', address);
+                  if (address) {
+                    handleCitySubmit(address);
+                  }
+                }
+              }}
+              options={{
+                types: ['(cities)'],
+                fields: ['formatted_address']
+              }}
+              className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="Enter your city..."
+            />
+          </div>
         </>
       )}
 
