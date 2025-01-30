@@ -19,11 +19,13 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!openAIApiKey || !supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing environment variables');
       throw new Error('Missing environment variables');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Store user message first
     const { error: userMessageError } = await supabase
       .from('chat_history')
       .insert([
@@ -35,11 +37,12 @@ serve(async (req) => {
       throw userMessageError;
     }
 
+    // Fetch user profile and context
     const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     const now = new Date();
     const thirtyDaysFromNow = new Date();
@@ -92,16 +95,11 @@ serve(async (req) => {
             "name": "person 1 name",
             "relationship": "their relationship",
             "email": "email if provided or null"
-          },
-          {
-            "name": "person 2 name",
-            "relationship": "their relationship",
-            "email": "email if provided or null"
           }
         ]
-      }
-      
-      Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
+      }`;
+
+    console.log('Sending request to OpenAI with message:', message);
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -136,7 +134,19 @@ serve(async (req) => {
       };
     }
 
-    // Handle multiple contacts
+    // Store AI response
+    const { error: aiMessageError } = await supabase
+      .from('chat_history')
+      .insert([
+        { user_id: userId, message: parsedResponse.text, is_ai: true }
+      ]);
+
+    if (aiMessageError) {
+      console.error('Error storing AI message:', aiMessageError);
+      throw aiMessageError;
+    }
+
+    // Handle contacts if any were extracted
     if (parsedResponse.contacts && Array.isArray(parsedResponse.contacts)) {
       for (const contact of parsedResponse.contacts) {
         if (contact.name) {
@@ -153,17 +163,6 @@ serve(async (req) => {
           }
         }
       }
-    }
-
-    const { error: aiMessageError } = await supabase
-      .from('chat_history')
-      .insert([
-        { user_id: userId, message: parsedResponse.text, is_ai: true }
-      ]);
-
-    if (aiMessageError) {
-      console.error('Error storing AI message:', aiMessageError);
-      throw aiMessageError;
     }
 
     return new Response(JSON.stringify({ 
