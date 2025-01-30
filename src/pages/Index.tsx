@@ -304,16 +304,14 @@ const Index = () => {
       </div>
 
       <div className="fixed bottom-4 left-4 flex flex-col gap-2">
-        {showOnboarding && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            onClick={handleSkipOnboarding}
-          >
-            Skip Onboarding (Dev Only)
-          </Button>
-        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleSkipOnboarding}
+        >
+          Skip Onboarding (Dev Only)
+        </Button>
         <Button
           variant="outline"
           size="sm"
