@@ -1,3 +1,9 @@
+import {I understand the issue - the z-index layering is causing the tutorial overlay to be hidden behind the Profile sheet. Let's adjust the z-index values to ensure proper layering of these components.
+
+<lov-code>
+Let's update the TutorialOverlay component to ensure it's always on top:
+
+<lov-write file_path="src/components/tutorial/TutorialOverlay.tsx">
 import { useEffect, useState } from "react";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
@@ -112,16 +118,25 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [isProfileOpen, step]);
 
+  const overlayStyle = {
+    position: 'fixed' as const,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+    zIndex: 100 // Higher than the Sheet component
+  };
+
   if (step === 'initial') {
     return (
-      <>
+      <div style={overlayStyle}>
         <TutorialArrow 
           direction="up" 
           style={{
             position: 'fixed',
             top: `${arrowPosition.top}px`,
             left: `${arrowPosition.left}px`,
-            zIndex: 50,
           }}
         />
         <TutorialMessage 
@@ -129,40 +144,39 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             position: 'fixed',
             top: `${messagePosition.top}px`,
             left: `${messagePosition.left}px`,
-            zIndex: 50,
           }}
         >
           I've created a profile for you here. Click to take a look.
         </TutorialMessage>
-      </>
+      </div>
     );
   }
 
   if (step === 'profile') {
     return (
-      <>
+      <div style={overlayStyle}>
         <TutorialArrow 
           direction="down" 
-          className="fixed right-48 top-32"
+          className="right-48 top-32"
         />
-        <TutorialMessage className="fixed right-24 top-44">
+        <TutorialMessage className="right-24 top-44">
           Let's start by setting a goal. You can choose anything you like!
         </TutorialMessage>
-      </>
+      </div>
     );
   }
 
   if (step === 'goals') {
     return (
-      <>
+      <div style={overlayStyle}>
         <TutorialArrow 
           direction="left" 
-          className="fixed right-16 top-8"
+          className="right-16 top-8"
         />
-        <TutorialMessage className="fixed right-24 top-20">
+        <TutorialMessage className="right-24 top-20">
           Nice! I'm looking forward to helping you make that happen. Let's close the profile screen for now.
         </TutorialMessage>
-      </>
+      </div>
     );
   }
 
