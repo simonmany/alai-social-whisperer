@@ -22,37 +22,56 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   useEffect(() => {
     const updatePositions = () => {
-      // More specific selector to find the profile button
+      console.log('Updating positions...'); // Debug log
+      
+      // Try to find the profile button
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
+      console.log('Profile button found:', !!profileButton); // Debug log
       
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
-        console.log('Profile button position:', rect); // Debug log
+        console.log('Button rect:', {
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height
+        });
         
-        // Position arrow below the profile button
-        setArrowPosition({
+        // Calculate new positions
+        const newArrowPosition = {
           top: rect.bottom + 8,
-          left: rect.right - (rect.width / 2) - 20, // Align with the center-right of the button
+          left: rect.left + (rect.width / 2) - 20 // Center the 40px wide arrow
+        };
+        
+        const newMessagePosition = {
+          top: rect.bottom + 56, // Arrow (40px) + gaps
+          left: rect.left - 160 + (rect.width / 2) // Center the message
+        };
+        
+        console.log('New positions:', {
+          arrow: newArrowPosition,
+          message: newMessagePosition
         });
         
-        // Position message below the arrow
-        setMessagePosition({
-          top: rect.bottom + 56,
-          left: rect.right - 200, // Offset to the left of the button
-        });
+        setArrowPosition(newArrowPosition);
+        setMessagePosition(newMessagePosition);
       } else {
-        console.log('Profile button not found'); // Debug log
+        console.error('Profile button not found!');
       }
     };
 
-    // Initial delay to ensure button is rendered
-    const timeoutId = setTimeout(updatePositions, 100);
+    // Try multiple times to find the button
+    const attempts = [0, 100, 500, 1000]; // Try immediately, then after 100ms, 500ms, and 1000ms
+    attempts.forEach(delay => {
+      setTimeout(updatePositions, delay);
+    });
     
     // Update on window resize
     window.addEventListener('resize', updatePositions);
 
     return () => {
-      clearTimeout(timeoutId);
       window.removeEventListener('resize', updatePositions);
     };
   }, []);
@@ -89,17 +108,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       <>
         <TutorialArrow 
           direction="up" 
-          className="fixed"
           style={{
+            position: 'fixed',
             top: `${arrowPosition.top}px`,
             left: `${arrowPosition.left}px`,
+            zIndex: 50,
           }}
         />
         <TutorialMessage 
-          className="fixed"
           style={{
+            position: 'fixed',
             top: `${messagePosition.top}px`,
             left: `${messagePosition.left}px`,
+            zIndex: 50,
           }}
         >
           I've created a profile for you here. Click to take a look.
