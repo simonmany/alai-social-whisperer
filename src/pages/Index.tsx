@@ -396,14 +396,6 @@ const Index = () => {
     };
   };
 
-  const containerClasses = isMobile
-    ? "min-h-screen bg-black flex flex-col"
-    : "min-h-screen bg-gray-50 flex flex-col";
-
-  const contentClasses = isMobile
-    ? "flex-1 container max-w-2xl py-8 flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16"
-    : "flex-1 container max-w-2xl py-8 flex flex-col";
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -441,7 +433,8 @@ const Index = () => {
               onSend={handleSend}
               onSuggestedPrompt={handleSuggestedPrompt}
               disabled={!tutorialComplete}
-            />
+            >{/* Empty fragment as children */}</>
+            </ChatContainer>
           </>
         )}
       </div>
