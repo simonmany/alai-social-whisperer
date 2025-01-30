@@ -150,7 +150,13 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          instagram: string | null
+          linkedin: string | null
+          meeting_story: string | null
           name: string
+          phone: string | null
+          relationship: string | null
+          twitter: string | null
           user_id: string
         }
         Insert: {
@@ -158,7 +164,13 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          meeting_story?: string | null
           name: string
+          phone?: string | null
+          relationship?: string | null
+          twitter?: string | null
           user_id: string
         }
         Update: {
@@ -166,7 +178,13 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          meeting_story?: string | null
           name?: string
+          phone?: string | null
+          relationship?: string | null
+          twitter?: string | null
           user_id?: string
         }
         Relationships: []
