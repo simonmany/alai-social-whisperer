@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cn } from "@/lib/utils";
 
 interface TypewriterTextProps {
@@ -13,49 +13,52 @@ export const TypewriterText = ({
   text, 
   onComplete, 
   className,
-  delay = 250, // Changed default delay to 250ms
-  typingSpeed = 25  // Set default typing speed to 25ms
+  delay = 250,
+  typingSpeed = 25
 }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [hasTyped, setHasTyped] = useState(false);
+  const hasStartedRef = useRef(false);
+  const hasCompletedRef = useRef(false);
 
   useEffect(() => {
-    if (hasTyped) {
-      setDisplayedText(text);
-      return;
-    }
+    // Reset refs when text changes
+    hasStartedRef.current = false;
+    hasCompletedRef.current = false;
+    setDisplayedText('');
+    setIsTyping(false);
+  }, [text]);
 
-    let timeout: NodeJS.Timeout;
-    let intervalId: NodeJS.Timeout;
-    
-    timeout = setTimeout(() => {
+  useEffect(() => {
+    if (hasStartedRef.current || !text) return;
+    hasStartedRef.current = true;
+
+    const timeout = setTimeout(() => {
       setIsTyping(true);
       let currentIndex = 0;
-      setDisplayedText('');
       
-      intervalId = setInterval(() => {
+      const intervalId = setInterval(() => {
         if (currentIndex < text.length) {
           setDisplayedText(text.slice(0, currentIndex + 1));
           currentIndex++;
         } else {
           clearInterval(intervalId);
           setIsTyping(false);
-          setHasTyped(true);
-          onComplete?.();
+          if (!hasCompletedRef.current) {
+            hasCompletedRef.current = true;
+            onComplete?.();
+          }
         }
       }, typingSpeed);
 
+      return () => clearInterval(intervalId);
     }, delay);
 
-    return () => {
-      clearTimeout(timeout);
-      clearInterval(intervalId);
-    };
-  }, [text, onComplete, delay, typingSpeed, hasTyped]);
+    return () => clearTimeout(timeout);
+  }, [text, onComplete, delay, typingSpeed]);
 
   return (
-    <div className={cn("relative inline-block font-cormorant", className)}>
+    <div className={cn("relative inline-block", className)}>
       {displayedText}
       {isTyping && (
         <span className="ml-1 animate-[blink_1s_infinite]">|</span>
