@@ -21,7 +21,7 @@ interface MainNavigationProps {
 export const MainNavigation = ({
   onProfileOpen,
   hideButtons = false,
-  showProfileButton = false,
+  showProfileButton = true,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,48 +43,28 @@ export const MainNavigation = ({
     }
   });
 
-  useEffect(() => {
-    console.log("Profile button state:", { showProfileButton, hideButtons });
-  }, [showProfileButton, hideButtons]);
-
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
-
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Sign out error:", error);
-        toast({
-          title: "Error signing out",
-          description: "Please try again",
-          variant: "destructive",
-        });
-      }
-      navigate("/auth");
-    } catch (error: any) {
-      console.error("Sign out error:", error);
-      navigate("/auth");
-    }
-  };
 
   return (
     <div className="flex justify-end items-center mb-6">
-      <div className={cn(
-        "relative transition-opacity duration-300",
-        showProfileButton ? "opacity-100" : "opacity-0 pointer-events-none"
-      )}>
-        <Button variant="ghost" size="icon" onClick={onProfileOpen}>
-          <UserRound className="h-5 w-5" />
-          {missingGoalsCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-            >
-              {missingGoalsCount}
-            </Badge>
-          )}
-        </Button>
-      </div>
+      {!hideButtons && (
+        <div className={cn(
+          "relative transition-opacity duration-300",
+          showProfileButton ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}>
+          <Button variant="ghost" size="icon" onClick={onProfileOpen}>
+            <UserRound className="h-5 w-5" />
+            {missingGoalsCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+              >
+                {missingGoalsCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

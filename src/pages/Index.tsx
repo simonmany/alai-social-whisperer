@@ -276,7 +276,7 @@ const Index = () => {
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
             hideButtons={hideButtons}
-            showProfileButton={!showOnboarding || tutorialComplete}
+            showProfileButton={true}
           />
         </div>
       </div>
