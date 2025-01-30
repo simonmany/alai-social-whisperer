@@ -72,6 +72,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   }, []);
 
   useEffect(() => {
+    if (isProfileOpen && step === 'initial') {
+      setStep('profile');
+    }
+  }, [isProfileOpen, step]);
+
+  useEffect(() => {
     const updateTutorialStep = async () => {
       if (!session?.user.id) return;
       
@@ -105,12 +111,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     updateTutorialStep();
   }, [step, session?.user.id, onComplete, toast]);
-
-  useEffect(() => {
-    if (isProfileOpen && step === 'initial') {
-      setStep('profile');
-    }
-  }, [isProfileOpen, step]);
 
   const overlayStyle: React.CSSProperties = {
     position: 'fixed',
@@ -149,13 +149,29 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   if (step === 'profile') {
     return (
       <div style={overlayStyle}>
-        <TutorialArrow 
-          direction="down" 
-          className="right-48 top-32"
-        />
-        <TutorialMessage className="right-24 top-44">
-          Let's start by setting a goal. You can choose anything you like!
+        <TutorialMessage 
+          className="left-8 top-32 max-w-xs"
+        >
+          Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
         </TutorialMessage>
+        
+        {/* Arrow pointing to Today's goals */}
+        <TutorialArrow 
+          direction="right" 
+          className="right-[400px] top-[380px]"
+        />
+        
+        {/* Arrow pointing to This Week's goals */}
+        <TutorialArrow 
+          direction="right" 
+          className="right-[400px] top-[470px]"
+        />
+        
+        {/* Arrow pointing to This Month's goals */}
+        <TutorialArrow 
+          direction="right" 
+          className="right-[400px] top-[560px]"
+        />
       </div>
     );
   }
