@@ -433,7 +433,8 @@ const Index = () => {
               onSend={handleSend}
               onSuggestedPrompt={handleSuggestedPrompt}
               disabled={!tutorialComplete}
-            >{/* Empty fragment as children */}</>
+            >
+              <></>
             </ChatContainer>
           </>
         )}
