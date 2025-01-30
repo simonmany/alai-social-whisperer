@@ -62,7 +62,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       setState(prev => ({ ...prev, personalityTraits: traits, personalityComments: comments }));
       
-      // Generate AI response
       setIsLoadingAi(true);
       const prompt = `Based on these personality quiz answers ${JSON.stringify(traits)} and comments ${JSON.stringify(comments)}, give a very brief (max 50 words) insight about this person's personality. Keep it friendly and positive.`;
       const response = await generateChatResponse(prompt);
@@ -109,6 +108,26 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     } catch (error) {
       toast({
         title: "Error saving interests",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDemographicsComplete = async () => {
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_step: 'complete'
+        })
+        .eq('id', session?.user.id);
+      
+      onComplete();
+    } catch (error) {
+      toast({
+        title: "Error completing onboarding",
         description: "Please try again",
         variant: "destructive",
       });
@@ -239,7 +258,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         )}
 
         {step === 'demographics' && (
-          <DemographicsSection session={session} onComplete={onComplete} />
+          <DemographicsSection 
+            session={session} 
+            onComplete={handleDemographicsComplete} 
+          />
         )}
       </div>
     </div>

@@ -328,16 +328,16 @@ const Index = () => {
         {showOnboarding ? (
           <OnboardingFlow 
             onComplete={() => {
-              console.log("Onboarding complete, showing profile button");
               setShowOnboarding(false);
+              setHideButtons(false);
               setShowProfileButton(true);
             }} 
           />
         ) : (
           <>
-            {!tutorialComplete && (
+            {!tutorialComplete && showProfileButton && (
               <TutorialOverlay 
-                onComplete={() => setTutorialComplete(true)} 
+                onComplete={handleTutorialComplete} 
                 isProfileOpen={isProfileOpen}
               />
             )}
