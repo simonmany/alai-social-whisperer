@@ -242,7 +242,7 @@ const Index = () => {
             isConnectingCalendar={isConnectingCalendar}
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
-            hideButtons={!tutorialComplete && !showOnboarding}
+            hideButtons={showOnboarding}
             showProfileButton={showProfileButton}
           />
         </div>
@@ -252,6 +252,7 @@ const Index = () => {
         {showOnboarding ? (
           <OnboardingFlow 
             onComplete={() => {
+              console.log("Onboarding complete, showing profile button");
               setShowOnboarding(false);
               setShowProfileButton(true);
             }} 

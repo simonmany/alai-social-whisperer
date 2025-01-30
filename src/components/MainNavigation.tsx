@@ -62,7 +62,9 @@ export const MainNavigation = ({
     }
   };
 
+  // Only hide if explicitly told to hide
   if (hideButtons) {
+    console.log("Buttons hidden due to hideButtons prop");
     return null;
   }
 
@@ -81,6 +83,7 @@ export const MainNavigation = ({
           "relative transition-opacity duration-300",
           showProfileButton ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
+          {console.log("Profile button state:", { showProfileButton })}
           <Button variant="ghost" size="icon" onClick={onProfileOpen}>
             <UserRound className="h-5 w-5" />
             {missingGoalsCount > 0 && (
