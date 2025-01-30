@@ -73,7 +73,12 @@ export const MainNavigation = ({
       </div>
       <div className="flex-1 flex justify-end">
         <div className="relative">
-          <Button variant="ghost" size="icon" onClick={onProfileOpen}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onProfileOpen}
+            aria-label="Open profile"
+          >
             <UserRound className="h-5 w-5" />
             {missingGoalsCount > 0 && (
               <Badge 
