@@ -151,7 +151,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'initial') {
     return (
-      <div style={overlayStyle}>
+      <div style={overlayStyle} className="fixed inset-0">
         <TutorialArrow 
           direction="up" 
           style={{
@@ -175,13 +175,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'profile') {
     return (
-      <div style={overlayStyle}>
+      <div style={overlayStyle} className="fixed inset-0">
         {goalPositions.messagePosition && (
           <TutorialMessage 
             style={{
               position: 'fixed',
               top: `${goalPositions.messagePosition.top}px`,
               left: `${goalPositions.messagePosition.left}px`,
+              zIndex: 200
             }}
           >
             Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
@@ -229,7 +230,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'goals') {
     return (
-      <div style={overlayStyle}>
+      <div style={overlayStyle} className="fixed inset-0">
         <TutorialArrow 
           direction="left" 
           className="right-16 top-8"
