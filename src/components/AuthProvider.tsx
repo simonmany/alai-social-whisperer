@@ -26,125 +26,129 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   const updateProfileWithGoogleData = async (user: any) => {
-    console.log("Checking if update needed for Google data...");
-    console.log("User metadata:", user);
-    console.log("App metadata:", user?.app_metadata);
-    console.log("Provider:", user?.app_metadata?.provider);
+    if (!user?.app_metadata?.provider === 'google') return;
+
+    console.log("Updating profile with Google data...");
+    const { user_metadata, app_metadata } = user;
     
-    if (user?.app_metadata?.provider === 'google') {
-      console.log("User authenticated with Google, updating profile...");
-      const { user_metadata, app_metadata } = user;
-      
-      // Log the available tokens
-      console.log("Available tokens:", {
-        provider_token: app_metadata?.provider_token ? "Present" : "Missing",
-        provider_refresh_token: app_metadata?.provider_refresh_token ? "Present" : "Missing",
-      });
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        avatar_url: user_metadata.avatar_url,
+        display_name: user_metadata.full_name,
+        google_access_token: app_metadata.provider_token,
+        google_refresh_token: app_metadata.provider_refresh_token,
+        google_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+      })
+      .eq('id', user.id);
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .update({
-          avatar_url: user_metadata.avatar_url,
-          display_name: user_metadata.full_name,
-          google_access_token: app_metadata.provider_token,
-          google_refresh_token: app_metadata.provider_refresh_token,
-          google_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(), // Token expires in 1 hour
-        })
-        .eq('id', user.id)
-        .select();
-
-      if (error) {
-        console.error("Error updating profile with Google data:", error);
-      } else {
-        console.log("Successfully updated profile with Google data:", data);
-      }
-    } else {
-      console.log("User not authenticated with Google, skipping profile update");
+    if (error) {
+      console.error("Error updating profile with Google data:", error);
     }
   };
 
-  const handleSessionError = (error: any) => {
+  const handleSessionError = async (error: any) => {
     console.error("Session error:", error);
-    setSession(null);
+    
+    // Check if it's a refresh token error
+    const isRefreshTokenError = 
+      error.message?.includes('refresh_token_not_found') || 
+      error.message?.includes('Invalid Refresh Token');
+
+    if (isRefreshTokenError) {
+      console.log("Refresh token error detected, signing out...");
+      await supabase.auth.signOut();
+      setSession(null);
+      navigate("/auth");
+      toast({
+        title: "Session Expired",
+        description: "Please sign in again",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Authentication Error",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+    
     setLoading(false);
-    // Clear any existing session data
-    supabase.auth.signOut();
-    navigate("/auth");
-    toast({
-      title: "Session Error",
-      description: "Please sign in again",
-      variant: "destructive",
-    });
   };
 
   useEffect(() => {
     console.log("Setting up auth subscriptions");
 
-    // Get initial session
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session: initialSession }, error: sessionError } = 
+          await supabase.auth.getSession();
         
         if (sessionError) {
-          handleSessionError(sessionError);
+          await handleSessionError(sessionError);
           return;
         }
 
-        console.log("Initial session check:", initialSession ? "Session exists" : "No session");
         if (initialSession?.user) {
           await updateProfileWithGoogleData(initialSession.user);
           setSession(initialSession);
+        } else {
+          // If no session, redirect to auth page
+          navigate("/auth");
         }
       } catch (error) {
-        handleSessionError(error);
+        await handleSessionError(error);
       } finally {
         setLoading(false);
       }
     };
 
-    // Initialize auth
     initializeAuth();
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log("Auth state change:", event, currentSession ? "Session exists" : "No session");
+      console.log("Auth state change:", event);
       
-      if (event === 'SIGNED_IN') {
-        console.log("User signed in, updating session");
-        if (currentSession?.user) {
-          await updateProfileWithGoogleData(currentSession.user);
-        }
-        setSession(currentSession);
-        toast({
-          title: "Signed in successfully",
-          description: "Welcome back!",
-        });
-        navigate("/");
-      } else if (event === 'SIGNED_OUT') {
-        console.log("User signed out, clearing session");
-        setSession(null);
-        navigate("/auth");
-        toast({
-          title: "Signed out",
-          description: "You have been signed out successfully.",
-        });
-      } else if (event === 'TOKEN_REFRESHED') {
-        console.log("Token refreshed, updating session");
-        setSession(currentSession);
-      } else if (event === 'USER_UPDATED') {
-        console.log("User updated, updating session");
-        if (currentSession?.user) {
-          await updateProfileWithGoogleData(currentSession.user);
-        }
-        setSession(currentSession);
+      switch (event) {
+        case 'SIGNED_IN':
+          if (currentSession?.user) {
+            await updateProfileWithGoogleData(currentSession.user);
+            setSession(currentSession);
+            toast({
+              title: "Signed in successfully",
+              description: "Welcome back!",
+            });
+            navigate("/");
+          }
+          break;
+
+        case 'SIGNED_OUT':
+          setSession(null);
+          navigate("/auth");
+          toast({
+            title: "Signed out",
+            description: "You have been signed out successfully.",
+          });
+          break;
+
+        case 'TOKEN_REFRESHED':
+          if (currentSession) {
+            setSession(currentSession);
+          }
+          break;
+
+        case 'USER_UPDATED':
+          if (currentSession?.user) {
+            await updateProfileWithGoogleData(currentSession.user);
+            setSession(currentSession);
+          }
+          break;
       }
 
       setLoading(false);
     });
 
-    // Cleanup subscription
     return () => {
       console.log("Cleaning up auth subscriptions");
       subscription.unsubscribe();
