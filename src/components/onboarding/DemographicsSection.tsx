@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessage } from "@/components/ChatMessage";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TypewriterText } from "@/components/TypewriterText";
 import Autocomplete from 'react-google-autocomplete';
+import { useQuery } from "@tanstack/react-query";
 
 interface DemographicsSectionProps {
   session: any;
@@ -15,7 +16,32 @@ interface DemographicsSectionProps {
 
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
   const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
+  const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchMapsKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-maps-key');
+        if (error) throw error;
+        if (data?.apiKey) {
+          setMapsApiKey(data.apiKey);
+        }
+        console.log(data, error);
+      } catch (error) {
+        console.error('Error fetching Maps API key:', error);
+        toast({
+          title: "Error loading location selector",
+          description: "Please try again later",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (step === 'age') {
+      fetchMapsKey();
+    }
+  }, [step, toast]);
 
   const handleAgeSubmit = async (age: string) => {
     const ageNum = parseInt(age);
@@ -164,7 +190,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
           </div>
           <div className="w-full max-w-md">
             <Autocomplete
-              apiKey={import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+              apiKey={mapsApiKey}
               onPlaceSelected={(place: any) => {
                 console.log('Selected place:', place);
                 if (place && typeof place === 'object') {
