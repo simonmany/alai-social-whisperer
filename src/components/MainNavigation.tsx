@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { UserRound } from "lucide-react";
+import { UserRound, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -7,14 +7,12 @@ import { useQuery } from "@tanstack/react-query";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 interface MainNavigationProps {
   isConnectingCalendar: boolean;
   onProfileOpen: () => void;
   onGoogleSignIn: () => void;
   hideButtons?: boolean;
-  showProfileButton?: boolean;
 }
 
 export const MainNavigation = ({
@@ -44,19 +42,37 @@ export const MainNavigation = ({
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
 
   return (
-    <div className="flex justify-end items-center mb-6">
+    <div className="flex justify-end items-center gap-2 mb-6">
       {!hideButtons && (
-        <Button variant="ghost" size="icon" onClick={onProfileOpen}>
-          <UserRound className="h-5 w-5" />
-          {missingGoalsCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-            >
-              {missingGoalsCount}
-            </Badge>
-          )}
-        </Button>
+        <>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/calendar')}
+          >
+            <Calendar className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/contacts')}
+          >
+            <Users className="h-5 w-5" />
+          </Button>
+          <div className="relative">
+            <Button variant="ghost" size="icon" onClick={onProfileOpen}>
+              <UserRound className="h-5 w-5" />
+              {missingGoalsCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
+                >
+                  {missingGoalsCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );

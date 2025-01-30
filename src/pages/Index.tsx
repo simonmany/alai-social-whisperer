@@ -155,6 +155,7 @@ const Index = () => {
         if (error) throw error;
 
         setShowOnboarding(!data.onboarding_completed);
+        setHideButtons(!data.onboarding_completed);
       } catch (error) {
         console.error('Error checking onboarding status:', error);
       }
