@@ -264,7 +264,6 @@ const Index = () => {
 
     // Parse contact information if the message is from ContactsDialog
     const contactInfo = message.startsWith("I met ") ? parseContactInfo(message) : undefined;
-    console.log(contactInfo);
 
     const newMessage: Message = {
       content: message,
@@ -276,11 +275,11 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      const response = await generateChatResponse(message);
+      const response = await generateChatResponse(message, contactInfo);
       setMessages((prev) => [...prev, { 
         content: response, 
         isAl: true,
-        contactInfo: contactInfo // Keep the same contact info for AI's response
+        contactInfo // Keep the same contact info for AI's response
       }]);
     } catch (error: any) {
       console.error('Error generating response:', error);

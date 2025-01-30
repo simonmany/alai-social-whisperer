@@ -1,6 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export const generateChatResponse = async (message: string) => {
+interface ContactInfo {
+  name: string;
+  phone?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  meetingStory?: string;
+  relationship?: string;
+}
+
+export const generateChatResponse = async (message: string, contactInfo?: ContactInfo) => {
   try {
     const session = await supabase.auth.getSession();
     const userId = session.data.session?.user.id;
@@ -10,7 +20,7 @@ export const generateChatResponse = async (message: string) => {
     }
 
     const { data, error } = await supabase.functions.invoke('chat', {
-      body: { message, userId }
+      body: { message, userId, contactInfo }
     });
 
     if (error) {
