@@ -41,6 +41,20 @@ serve(async (req) => {
       .eq('id', userId)
       .single();
 
+    const profileData = {
+      username: profile.username,
+      goals: profile.goals,
+      personality_comments: profile.personality_comments,
+      current_interests: profile.current_interests,
+      desired_interests: profile.desired_interests,
+      age: profile.age,
+      city: profile.city,
+      languages: profile.languages,
+      relationship_status: profile.relationship_status,
+      gender: profile.gender,
+      occupation: profile.occupation,
+    };
+
     const now = new Date();
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
@@ -60,6 +74,11 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(10);
 
+    const chatMessages = chatHistory?.map(msg => ({
+      content: msg.message,
+      role: msg.is_ai ? 'assistant' : 'user'
+    }));
+
     const formattedEvents = events?.map(event => ({
       ...event,
       start_time: new Date(event.start_time).toLocaleString(),
@@ -67,9 +86,8 @@ serve(async (req) => {
     }));
 
     const systemPrompt = `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
-      - Profile: ${JSON.stringify(profile)}
+      - Profile: ${JSON.stringify(profileData)}
       - Calendar Events for the next 30 days: ${JSON.stringify(formattedEvents)}
-      - Recent Chat History: ${JSON.stringify(chatHistory)}
       
       When discussing calendar events, always format dates and times in a user-friendly way.
       
@@ -103,6 +121,13 @@ serve(async (req) => {
       
       Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
 
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...(chatMessages || []),
+      { role: 'user', content: message }
+    ];
+    console.log(messages)
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -110,11 +135,8 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
+        model: 'gpt-4o-mini',
+        messages: messages,
       }),
     });
 
