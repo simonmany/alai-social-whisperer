@@ -21,7 +21,10 @@ export const TutorialArrow = ({ direction = "up", className, style }: TutorialAr
         arrowStyles[direction],
         className
       )}
-      style={style}
+      style={{
+        ...style,
+        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))'
+      }}
     >
       <svg 
         width="40" 

@@ -109,7 +109,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'initial') {
     return (
-      <div style={overlayStyle}>
+      <div style={overlayStyle} className="z-[200]">
         <TutorialArrow 
           direction="up" 
           style={{
@@ -133,7 +133,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'profile') {
     return (
-      <div style={overlayStyle}>
+      <div style={overlayStyle} className="z-[200]">
         <TutorialMessage 
           className="right-[450px] top-32 max-w-xs"
         >
@@ -155,7 +155,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'goals') {
     return (
-      <div style={overlayStyle}>
+      <div style={overlayStyle} className="z-[200]">
         <TutorialArrow 
           direction="left" 
           className="right-16 top-8"
