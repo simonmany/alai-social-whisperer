@@ -112,13 +112,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [isProfileOpen, step]);
 
-  const overlayStyle = {
-    position: 'fixed' as const,
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    pointerEvents: 'none',
+    pointerEvents: 'none' as const,
     zIndex: 100 // Higher than the Sheet component
   };
 
