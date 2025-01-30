@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,32 +21,40 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { session } = useAuth();
 
   useEffect(() => {
-    // Find the profile button by its unique characteristics
-    const profileButton = document.querySelector('[aria-label="Open profile"]');
-    
     const updatePositions = () => {
+      // More specific selector to find the profile button
+      const profileButton = document.querySelector('button[aria-label="Open profile"]');
+      
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
+        console.log('Profile button position:', rect); // Debug log
         
         // Position arrow below the profile button
         setArrowPosition({
-          top: rect.bottom + 8, // 8px gap
-          left: rect.left + (rect.width / 2) - 20, // Center arrow (arrow width is 40px)
+          top: rect.bottom + 8,
+          left: rect.right - (rect.width / 2) - 20, // Align with the center-right of the button
         });
         
         // Position message below the arrow
         setMessagePosition({
-          top: rect.bottom + 56, // Arrow height (40px) + gaps
-          left: rect.left - 100, // Offset to center message
+          top: rect.bottom + 56,
+          left: rect.right - 200, // Offset to the left of the button
         });
+      } else {
+        console.log('Profile button not found'); // Debug log
       }
     };
 
-    // Update positions initially and on window resize
-    updatePositions();
+    // Initial delay to ensure button is rendered
+    const timeoutId = setTimeout(updatePositions, 100);
+    
+    // Update on window resize
     window.addEventListener('resize', updatePositions);
 
-    return () => window.removeEventListener('resize', updatePositions);
+    return () => {
+      clearTimeout(timeoutId);
+      window.removeEventListener('resize', updatePositions);
+    };
   }, []);
 
   useEffect(() => {
