@@ -17,10 +17,20 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
+import { ContactCard } from "@/components/ContactCard";
 
 interface Message {
   content: string;
   isAl: boolean;
+  contactInfo?: {
+    name: string;
+    phone?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+    meetingStory?: string;
+    relationship?: string;
+  };
 }
 
 const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
@@ -249,22 +259,29 @@ const Index = () => {
     }
   };
 
-  const handleSend = async (content: string) => {
-    if (!session?.user.id) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to send messages",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSend = async (message: string) => {
+    if (!message.trim()) return;
 
-    setMessages(prev => [...prev, { content, isAl: false }]);
+    // Parse contact information if the message is from ContactsDialog
+    const contactInfo = message.startsWith("I met ") ? parseContactInfo(message) : undefined;
+    console.log(contactInfo);
+
+    const newMessage: Message = {
+      content: message,
+      isAl: false,
+      contactInfo // Include contact info in user's message
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
     setIsLoading(true);
 
     try {
-      const response = await generateChatResponse(content);
-      setMessages(prev => [...prev, { content: response, isAl: true }]);
+      const response = await generateChatResponse(message);
+      setMessages((prev) => [...prev, { 
+        content: response, 
+        isAl: true,
+        contactInfo: contactInfo // Keep the same contact info for AI's response
+      }]);
     } catch (error: any) {
       console.error('Error generating response:', error);
       toast({
@@ -348,6 +365,36 @@ const Index = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const parseContactInfo = (message: string) => {
+    const nameMatch = message.match(/I met (.+?) (?:at|\.)/);
+    const meetingMatch = message.match(/at (.+?)\./);
+    const contactsMatch = message.match(/Their contacts are (.+?)\./);
+    const relationshipMatch = message.match(/They are\.\.\. (.+)$/);
+
+    if (!nameMatch) return undefined;
+
+    const contacts = contactsMatch?.[1] || "";
+    const contactInfo = {
+      name: nameMatch[1],
+      meetingStory: meetingMatch?.[1],
+      relationship: relationshipMatch?.[1],
+    };
+
+    // Parse individual contact methods
+    const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
+    const instagram = contacts.match(/📸 @([^💼🐦\s]+)/)?.[1]?.trim();
+    const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
+    const twitter = contacts.match(/🐦 @([^\s]+)/)?.[1]?.trim();
+
+    return {
+      ...contactInfo,
+      phone,
+      instagram,
+      linkedin,
+      twitter,
+    };
   };
 
   const containerClasses = isMobile

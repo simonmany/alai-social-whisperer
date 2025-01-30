@@ -9,6 +9,15 @@ import { cn } from "@/lib/utils";
 interface Message {
   content: string;
   isAl: boolean;
+  contactInfo?: {
+    name: string;
+    phone?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+    meetingStory?: string;
+    relationship?: string;
+  };
 }
 
 interface ChatContainerProps {
@@ -17,6 +26,7 @@ interface ChatContainerProps {
   onSend: (content: string) => void;
   onSuggestedPrompt: (prompt: string) => void;
   disabled?: boolean;
+  children: React.ReactNode;
 }
 
 export const ChatContainer = ({
@@ -25,6 +35,7 @@ export const ChatContainer = ({
   onSend,
   onSuggestedPrompt,
   disabled = false,
+  children,
 }: ChatContainerProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -62,6 +73,7 @@ export const ChatContainer = ({
             content={message.content}
             isAl={message.isAl}
             animate={index === messages.length - 1}
+            contactInfo={message.contactInfo}
           />
         ))}
         {isLoading && (
@@ -108,6 +120,7 @@ export const ChatContainer = ({
           </div>
         </div>
         <ChatInput onSend={onSend} />
+        {children}
       </div>
     </div>
   );
