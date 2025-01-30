@@ -15,40 +15,88 @@ interface Position {
   left: number;
 }
 
+interface GoalButtonPositions {
+  today: Position | null;
+  week: Position | null;
+  month: Position | null;
+  messagePosition: Position | null;
+}
+
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'complete'>('initial');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
+  const [goalPositions, setGoalPositions] = useState<GoalButtonPositions>({
+    today: null,
+    week: null,
+    month: null,
+    messagePosition: null
+  });
   const { session } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const updatePositions = () => {
+      // Find profile button for initial step
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      
-      if (profileButton) {
+      if (profileButton && step === 'initial') {
         const rect = profileButton.getBoundingClientRect();
-        
         setArrowPosition({
           top: rect.bottom + 8,
           left: rect.left + (rect.width / 2) - 20
         });
-        
         setMessagePosition({
           top: rect.bottom + 56,
           left: rect.left - 160 + (rect.width / 2)
         });
       }
+
+      // Find goal buttons for profile step
+      if (step === 'profile') {
+        const alerts = Array.from(document.querySelectorAll('.alert-destructive'));
+        const goalAlerts = alerts.filter(alert => 
+          (alert as HTMLElement).textContent?.includes('Goal Missing')
+        );
+
+        if (goalAlerts.length > 0) {
+          const positions: GoalButtonPositions = {
+            today: null,
+            week: null,
+            month: null,
+            messagePosition: null
+          };
+
+          goalAlerts.forEach((alert, index) => {
+            const rect = alert.getBoundingClientRect();
+            const timeframe = index === 0 ? 'today' : index === 1 ? 'week' : 'month';
+            positions[timeframe] = {
+              top: rect.top + (rect.height / 2) - 20,
+              left: rect.left - 48 // Position arrow to the left of the alert
+            };
+          });
+
+          // Position message next to the middle arrow
+          if (positions.week) {
+            positions.messagePosition = {
+              top: positions.week.top - 40,
+              left: positions.week.left - 320 // Position message to the left of the arrows
+            };
+          }
+
+          setGoalPositions(positions);
+        }
+      }
     };
 
+    // Update positions immediately and after a short delay
     const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
       setTimeout(updatePositions, delay);
     });
-    
+
     window.addEventListener('resize', updatePositions);
     return () => window.removeEventListener('resize', updatePositions);
-  }, []);
+  }, [step, isProfileOpen]);
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
@@ -91,9 +139,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     updateTutorialStep();
   }, [step, session?.user.id, onComplete, toast]);
 
+  const overlayStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    pointerEvents: 'none',
+    zIndex: 100
+  };
+
   if (step === 'initial') {
     return (
-      <div className="fixed inset-0 pointer-events-none">
+      <div style={overlayStyle} className="fixed inset-0">
         <TutorialArrow 
           direction="up" 
           style={{
@@ -117,35 +175,62 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'profile') {
     return (
-      <div className="fixed inset-0 pointer-events-none">
-        <TutorialMessage 
-          className="right-[450px] top-32 max-w-xs"
-        >
-          Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
-        </TutorialMessage>
+      <div style={overlayStyle} className="fixed inset-0">
+        {goalPositions.messagePosition && (
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${goalPositions.messagePosition.top}px`,
+              left: `${goalPositions.messagePosition.left}px`,
+              zIndex: 200
+            }}
+          >
+            Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
+          </TutorialMessage>
+        )}
         
-        {/* All arrows now use the same z-index as messages via the TutorialArrow component */}
-        <TutorialArrow 
-          direction="right" 
-          className="right-[400px] top-[380px]"
-        />
+        {goalPositions.today && (
+          <TutorialArrow 
+            direction="right" 
+            style={{
+              position: 'fixed',
+              top: `${goalPositions.today.top}px`,
+              left: `${goalPositions.today.left}px`,
+              zIndex: 200
+            }}
+          />
+        )}
         
-        <TutorialArrow 
-          direction="right" 
-          className="right-[400px] top-[470px]"
-        />
+        {goalPositions.week && (
+          <TutorialArrow 
+            direction="right" 
+            style={{
+              position: 'fixed',
+              top: `${goalPositions.week.top}px`,
+              left: `${goalPositions.week.left}px`,
+              zIndex: 200
+            }}
+          />
+        )}
         
-        <TutorialArrow 
-          direction="right" 
-          className="right-[400px] top-[560px]"
-        />
+        {goalPositions.month && (
+          <TutorialArrow 
+            direction="right" 
+            style={{
+              position: 'fixed',
+              top: `${goalPositions.month.top}px`,
+              left: `${goalPositions.month.left}px`,
+              zIndex: 200
+            }}
+          />
+        )}
       </div>
     );
   }
 
   if (step === 'goals') {
     return (
-      <div className="fixed inset-0 pointer-events-none">
+      <div style={overlayStyle} className="fixed inset-0">
         <TutorialArrow 
           direction="left" 
           className="right-16 top-8"
