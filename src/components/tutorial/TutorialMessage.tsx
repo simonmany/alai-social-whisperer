@@ -10,13 +10,10 @@ export const TutorialMessage = ({ children, className, style }: TutorialMessageP
   return (
     <div 
       className={cn(
-        "fixed bg-primary text-primary-foreground p-4 rounded-lg shadow-lg max-w-sm animate-fade-in pointer-events-auto",
+        "fixed bg-primary text-primary-foreground p-4 rounded-lg shadow-lg max-w-sm animate-fade-in pointer-events-auto z-[200]",
         className
       )}
-      style={{
-        ...style,
-        zIndex: 100 // Ensure it's above the Sheet component
-      }}
+      style={style}
     >
       {children}
     </div>

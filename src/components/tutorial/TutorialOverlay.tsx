@@ -118,8 +118,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     left: 0,
     right: 0,
     bottom: 0,
-    pointerEvents: 'none' as const,
-    zIndex: 100 // Higher than the Sheet component
+    pointerEvents: 'none',
+    zIndex: 100
   };
 
   if (step === 'initial') {
@@ -150,7 +150,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     return (
       <div style={overlayStyle}>
         <TutorialMessage 
-          className="left-8 top-32 max-w-xs"
+          className="right-[450px] top-32 max-w-xs"
         >
           Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
         </TutorialMessage>
@@ -158,19 +158,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         {/* Arrow pointing to Today's goals */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[380px]"
+          className="right-[400px] top-[380px] z-[200]"
         />
         
         {/* Arrow pointing to This Week's goals */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[470px]"
+          className="right-[400px] top-[470px] z-[200]"
         />
         
         {/* Arrow pointing to This Month's goals */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[560px]"
+          className="right-[400px] top-[560px] z-[200]"
         />
       </div>
     );
