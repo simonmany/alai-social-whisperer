@@ -44,6 +44,36 @@ const Index = () => {
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
+  const handleSkipOnboarding = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          has_completed_tutorial: true,
+          onboarding_step: 'complete'
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(false);
+      setTutorialComplete(true);
+      setShowProfileButton(true);
+      toast({
+        title: "Onboarding skipped",
+        description: "You can restart onboarding using the button in the bottom left",
+      });
+    } catch (error: any) {
+      console.error('Error skipping onboarding:', error);
+      toast({
+        title: "Error skipping onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     const loadChatHistory = async () => {
       if (!session?.user.id) return;
@@ -231,14 +261,6 @@ const Index = () => {
     setTutorialComplete(true);
   };
 
-  const containerClasses = isMobile
-    ? "min-h-screen bg-black flex flex-col"
-    : "min-h-screen bg-gray-50 flex flex-col";
-
-  const contentClasses = isMobile
-    ? "flex-1 container max-w-2xl py-8 flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16"
-    : "flex-1 container max-w-2xl py-8 flex flex-col";
-
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -255,13 +277,23 @@ const Index = () => {
 
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
-          <OnboardingFlow 
-            onComplete={() => {
-              console.log("Onboarding complete, showing profile button");
-              setShowOnboarding(false);
-              setShowProfileButton(true);
-            }} 
-          />
+          <div className="space-y-4">
+            <Button
+              variant="outline"
+              size="sm"
+              className="mb-4"
+              onClick={handleSkipOnboarding}
+            >
+              Skip Onboarding (Dev Only)
+            </Button>
+            <OnboardingFlow 
+              onComplete={() => {
+                console.log("Onboarding complete, showing profile button");
+                setShowOnboarding(false);
+                setShowProfileButton(true);
+              }} 
+            />
+          </div>
         ) : (
           <>
             {!tutorialComplete && (
