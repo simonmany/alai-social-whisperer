@@ -5,11 +5,11 @@ import {
   Sparkles,
   Music,
   Utensils,
-  Running,
   Instagram,
   Facebook,
   MessageCircle,
-  Video
+  Video,
+  ArrowUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -146,7 +146,7 @@ export const IntegrationsMenu = ({ onGoogleSignIn, isConnectingCalendar }: Integ
             disabled={isLoading}
             className="w-full justify-start gap-2"
           >
-            <Running className="h-4 w-4" />
+            <ArrowUp className="h-4 w-4" />
             Connect Strava
           </Button>
         </div>
