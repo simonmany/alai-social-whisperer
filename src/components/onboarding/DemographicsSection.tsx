@@ -122,6 +122,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         })
         .eq('id', session?.user.id);
 
+      // Immediately call onComplete to trigger the profile button show
       onComplete();
     } catch (error) {
       toast({
