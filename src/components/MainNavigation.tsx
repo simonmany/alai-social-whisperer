@@ -13,11 +13,13 @@ interface MainNavigationProps {
   onProfileOpen: () => void;
   onGoogleSignIn: () => void;
   hideButtons?: boolean;
+  showOnlyProfile?: boolean;
 }
 
 export const MainNavigation = ({
   onProfileOpen,
   hideButtons = false,
+  showOnlyProfile = false,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,45 +43,49 @@ export const MainNavigation = ({
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
 
+  if (hideButtons) {
+    return null;
+  }
+
   return (
     <div className="flex justify-between items-center gap-2 mb-6">
-      {!hideButtons && (
-        <>
-          <div className="flex-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/calendar')}
-            >
-              <Calendar className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="flex-1 flex justify-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/contacts')}
-            >
-              <Users className="h-5 w-5" />
-            </Button>
-          </div>
-          <div className="flex-1 flex justify-end">
-            <div className="relative">
-              <Button variant="ghost" size="icon" onClick={onProfileOpen}>
-                <UserRound className="h-5 w-5" />
-                {missingGoalsCount > 0 && (
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
-                  >
-                    {missingGoalsCount}
-                  </Badge>
-                )}
-              </Button>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="flex-1">
+        {!showOnlyProfile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/calendar')}
+          >
+            <Calendar className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
+      <div className="flex-1 flex justify-center">
+        {!showOnlyProfile && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/contacts')}
+          >
+            <Users className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
+      <div className="flex-1 flex justify-end">
+        <div className="relative">
+          <Button variant="ghost" size="icon" onClick={onProfileOpen}>
+            <UserRound className="h-5 w-5" />
+            {missingGoalsCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
+              >
+                {missingGoalsCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
