@@ -277,23 +277,13 @@ const Index = () => {
 
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
-          <div className="space-y-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="mb-4"
-              onClick={handleSkipOnboarding}
-            >
-              Skip Onboarding (Dev Only)
-            </Button>
-            <OnboardingFlow 
-              onComplete={() => {
-                console.log("Onboarding complete, showing profile button");
-                setShowOnboarding(false);
-                setShowProfileButton(true);
-              }} 
-            />
-          </div>
+          <OnboardingFlow 
+            onComplete={() => {
+              console.log("Onboarding complete, showing profile button");
+              setShowOnboarding(false);
+              setShowProfileButton(true);
+            }} 
+          />
         ) : (
           <>
             {!tutorialComplete && (
@@ -313,15 +303,27 @@ const Index = () => {
         )}
       </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="fixed bottom-4 left-4 gap-2"
-        onClick={() => setShowOnboarding(true)}
-      >
-        <Redo className="h-4 w-4" />
-        Restart Onboarding
-      </Button>
+      <div className="fixed bottom-4 left-4 flex flex-col gap-2">
+        {showOnboarding && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={handleSkipOnboarding}
+          >
+            Skip Onboarding (Dev Only)
+          </Button>
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => setShowOnboarding(true)}
+        >
+          <Redo className="h-4 w-4" />
+          Restart Onboarding
+        </Button>
+      </div>
 
       <Profile 
         open={isProfileOpen} 
