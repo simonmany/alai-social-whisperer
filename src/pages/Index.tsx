@@ -8,7 +8,7 @@ import { MainNavigation } from "@/components/MainNavigation";
 import { ChatContainer } from "@/components/ChatContainer";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { Button } from "@/components/ui/button";
-import { Redo } from "lucide-react";
+import { Redo, Play } from "lucide-react";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
@@ -44,6 +44,53 @@ const Index = () => {
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+
+  const handleStartTutorial = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      // If user is in onboarding, mark it as completed first
+      if (showOnboarding) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            onboarding_completed: true,
+            onboarding_step: 'initial',
+            has_completed_tutorial: false
+          })
+          .eq('id', session.user.id);
+
+        setShowOnboarding(false);
+        setTutorialComplete(false);
+        setHideButtons(false);
+        setShowProfileButton(true);
+      } else {
+        // Just restart the tutorial
+        await supabase
+          .from('profiles')
+          .update({ 
+            onboarding_step: 'initial',
+            has_completed_tutorial: false
+          })
+          .eq('id', session.user.id);
+
+        setTutorialComplete(false);
+        setShowProfileButton(true);
+      }
+      
+      toast({
+        title: "Tutorial started",
+        description: "Follow the instructions to learn how to use the app!",
+      });
+    } catch (error: any) {
+      console.error('Error starting tutorial:', error);
+      toast({
+        title: "Error starting tutorial",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSkipOnboarding = async () => {
     if (!session?.user.id) return;
@@ -354,6 +401,15 @@ const Index = () => {
       </div>
 
       <div className="fixed bottom-4 left-4 flex flex-col gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleStartTutorial}
+        >
+          <Play className="h-4 w-4" />
+          Start Tutorial
+        </Button>
         <Button
           variant="outline"
           size="sm"
