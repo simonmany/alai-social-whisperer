@@ -21,7 +21,7 @@ interface MainNavigationProps {
 export const MainNavigation = ({
   onProfileOpen,
   hideButtons = false,
-  showProfileButton = true,
+  showProfileButton = false,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -44,8 +44,8 @@ export const MainNavigation = ({
   });
 
   useEffect(() => {
-    console.log("Profile button state:", { showProfileButton });
-  }, [showProfileButton]);
+    console.log("Profile button state:", { showProfileButton, hideButtons });
+  }, [showProfileButton, hideButtons]);
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
 
@@ -67,22 +67,20 @@ export const MainNavigation = ({
     }
   };
 
-  // Only hide if explicitly told to hide
-  if (hideButtons) {
-    console.log("Buttons hidden due to hideButtons prop");
-    return null;
-  }
-
   return (
     <div className="flex justify-between items-center mb-6">
       <div className="flex gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
-          <Calendar className="h-5 w-5" />
-        </Button>
+        {!hideButtons && (
+          <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
+            <Calendar className="h-5 w-5" />
+          </Button>
+        )}
       </div>
-      <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
-        <Users className="h-5 w-5" />
-      </Button>
+      {!hideButtons && (
+        <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
+          <Users className="h-5 w-5" />
+        </Button>
+      )}
       <div className="flex gap-2">
         <div className={cn(
           "relative transition-opacity duration-300",
@@ -100,9 +98,11 @@ export const MainNavigation = ({
             )}
           </Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleSignOut}>
-          <LogOut className="h-5 w-5" />
-        </Button>
+        {!hideButtons && (
+          <Button variant="ghost" size="icon" onClick={handleSignOut}>
+            <LogOut className="h-5 w-5" />
+          </Button>
+        )}
       </div>
     </div>
   );
