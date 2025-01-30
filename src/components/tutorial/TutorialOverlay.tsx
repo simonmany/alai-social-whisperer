@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,9 +9,45 @@ interface TutorialOverlayProps {
   isProfileOpen?: boolean;
 }
 
+interface Position {
+  top: number;
+  left: number;
+}
+
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'complete'>('initial');
+  const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
+  const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const { session } = useAuth();
+
+  useEffect(() => {
+    // Find the profile button by its unique characteristics
+    const profileButton = document.querySelector('[aria-label="Open profile"]');
+    
+    const updatePositions = () => {
+      if (profileButton) {
+        const rect = profileButton.getBoundingClientRect();
+        
+        // Position arrow below the profile button
+        setArrowPosition({
+          top: rect.bottom + 8, // 8px gap
+          left: rect.left + (rect.width / 2) - 20, // Center arrow (arrow width is 40px)
+        });
+        
+        // Position message below the arrow
+        setMessagePosition({
+          top: rect.bottom + 56, // Arrow height (40px) + gaps
+          left: rect.left - 100, // Offset to center message
+        });
+      }
+    };
+
+    // Update positions initially and on window resize
+    updatePositions();
+    window.addEventListener('resize', updatePositions);
+
+    return () => window.removeEventListener('resize', updatePositions);
+  }, []);
 
   useEffect(() => {
     const updateTutorialStep = async () => {
@@ -34,7 +70,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     updateTutorialStep();
   }, [step, session?.user.id]);
 
-  // Progress to next step when profile is opened
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
       setStep('profile');
@@ -45,10 +80,20 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     return (
       <>
         <TutorialArrow 
-          direction="right" 
-          className="fixed right-20 top-7"
+          direction="up" 
+          className="fixed"
+          style={{
+            top: `${arrowPosition.top}px`,
+            left: `${arrowPosition.left}px`,
+          }}
         />
-        <TutorialMessage className="fixed right-32 top-16">
+        <TutorialMessage 
+          className="fixed"
+          style={{
+            top: `${messagePosition.top}px`,
+            left: `${messagePosition.left}px`,
+          }}
+        >
           I've created a profile for you here. Click to take a look.
         </TutorialMessage>
       </>

@@ -3,9 +3,10 @@ import { cn } from "@/lib/utils";
 interface TutorialArrowProps {
   direction?: "up" | "down" | "left" | "right";
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export const TutorialArrow = ({ direction = "up", className }: TutorialArrowProps) => {
+export const TutorialArrow = ({ direction = "up", className, style }: TutorialArrowProps) => {
   const arrowStyles = {
     up: "rotate-0",
     down: "rotate-180",
@@ -20,6 +21,7 @@ export const TutorialArrow = ({ direction = "up", className }: TutorialArrowProp
         arrowStyles[direction],
         className
       )}
+      style={style}
     >
       <svg 
         width="40" 
