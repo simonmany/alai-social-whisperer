@@ -37,8 +37,8 @@ export const TutorialOverlay = ({ onComplete }: TutorialOverlayProps) => {
     return (
       <>
         <TutorialArrow 
-          direction="right" 
-          className="right-20 top-8"
+          direction="left" 
+          className="right-12 top-8"
         />
         <TutorialMessage className="right-24 top-20">
           I've created a profile for you here. Let's take a look.

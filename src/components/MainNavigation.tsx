@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, UserRound, LogOut } from "lucide-react";
+import { UserRound, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -68,41 +68,22 @@ export const MainNavigation = ({
   };
 
   return (
-    <div className="flex justify-between items-center mb-6">
-      <div className="flex gap-2">
-        {!hideButtons && (
-          <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
-            <Calendar className="h-5 w-5" />
-          </Button>
-        )}
-      </div>
-      {!hideButtons && (
-        <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
-          <Users className="h-5 w-5" />
+    <div className="flex justify-end items-center mb-6">
+      <div className={cn(
+        "relative transition-opacity duration-300",
+        showProfileButton ? "opacity-100" : "opacity-0 pointer-events-none"
+      )}>
+        <Button variant="ghost" size="icon" onClick={onProfileOpen}>
+          <UserRound className="h-5 w-5" />
+          {missingGoalsCount > 0 && (
+            <Badge 
+              variant="destructive" 
+              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            >
+              {missingGoalsCount}
+            </Badge>
+          )}
         </Button>
-      )}
-      <div className="flex gap-2">
-        <div className={cn(
-          "relative transition-opacity duration-300",
-          showProfileButton ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}>
-          <Button variant="ghost" size="icon" onClick={onProfileOpen}>
-            <UserRound className="h-5 w-5" />
-            {missingGoalsCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-              >
-                {missingGoalsCount}
-              </Badge>
-            )}
-          </Button>
-        </div>
-        {!hideButtons && (
-          <Button variant="ghost" size="icon" onClick={handleSignOut}>
-            <LogOut className="h-5 w-5" />
-          </Button>
-        )}
       </div>
     </div>
   );
