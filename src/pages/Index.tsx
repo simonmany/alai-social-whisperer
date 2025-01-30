@@ -36,6 +36,7 @@ const Index = () => {
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tutorialComplete, setTutorialComplete] = useState(false);
+  const [showProfileButton, setShowProfileButton] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -233,6 +234,16 @@ const Index = () => {
     ? "flex-1 container max-w-2xl py-8 flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16"
     : "flex-1 container max-w-2xl py-8 flex flex-col";
 
+  useEffect(() => {
+    if (!showOnboarding && !tutorialComplete) {
+      // Add a small delay before showing the profile button
+      const timer = setTimeout(() => {
+        setShowProfileButton(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [showOnboarding, tutorialComplete]);
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -242,17 +253,24 @@ const Index = () => {
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
             hideButtons={!tutorialComplete && !showOnboarding}
+            showProfileButton={showProfileButton}
           />
         </div>
       </div>
 
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
-          <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+          <OnboardingFlow 
+            onComplete={() => {
+              setShowOnboarding(false);
+              // Reset showProfileButton when onboarding completes
+              setShowProfileButton(false);
+            }} 
+          />
         ) : (
           <>
             {!tutorialComplete && (
-              <TutorialOverlay onComplete={handleTutorialComplete} />
+              <TutorialOverlay onComplete={() => setTutorialComplete(true)} />
             )}
             <ChatContainer
               messages={messages}

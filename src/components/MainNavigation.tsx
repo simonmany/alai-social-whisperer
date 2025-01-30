@@ -7,17 +7,20 @@ import { useQuery } from "@tanstack/react-query";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface MainNavigationProps {
   isConnectingCalendar: boolean;
   onProfileOpen: () => void;
   onGoogleSignIn: () => void;
   hideButtons?: boolean;
+  showProfileButton?: boolean;
 }
 
 export const MainNavigation = ({
   onProfileOpen,
   hideButtons = false,
+  showProfileButton = true,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -74,7 +77,10 @@ export const MainNavigation = ({
         <Users className="h-5 w-5" />
       </Button>
       <div className="flex gap-2">
-        <div className="relative">
+        <div className={cn(
+          "relative transition-opacity duration-300",
+          showProfileButton ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}>
           <Button variant="ghost" size="icon" onClick={onProfileOpen}>
             <UserRound className="h-5 w-5" />
             {missingGoalsCount > 0 && (
