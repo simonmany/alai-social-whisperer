@@ -8,6 +8,7 @@ import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useEffect } from "react";
 
 interface MainNavigationProps {
   isConnectingCalendar: boolean;
@@ -41,6 +42,10 @@ export const MainNavigation = ({
       return profile;
     }
   });
+
+  useEffect(() => {
+    console.log("Profile button state:", { showProfileButton });
+  }, [showProfileButton]);
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
 
@@ -83,7 +88,6 @@ export const MainNavigation = ({
           "relative transition-opacity duration-300",
           showProfileButton ? "opacity-100" : "opacity-0 pointer-events-none"
         )}>
-          {console.log("Profile button state:", { showProfileButton })}
           <Button variant="ghost" size="icon" onClick={onProfileOpen}>
             <UserRound className="h-5 w-5" />
             {missingGoalsCount > 0 && (
