@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, userId } = await req.json();
+    const { message, userId, contactInfo } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
@@ -23,6 +23,28 @@ serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Save contact info if provided
+    if (contactInfo && contactInfo.name) {
+      const { error: contactError } = await supabase
+        .from('contacts')
+        .insert([{
+          user_id: userId,
+          name: contactInfo.name,
+          phone: contactInfo.phone,
+          instagram: contactInfo.instagram,
+          linkedin: contactInfo.linkedin,
+          twitter: contactInfo.twitter,
+          meeting_story: contactInfo.meetingStory,
+          relationship: contactInfo.relationship,
+          created_at: new Date().toISOString()
+        }]);
+
+      if (contactError) {
+        console.error('Error storing contact:', contactError);
+        // Don't throw the error, just log it and continue with the chat
+      }
+    }
 
     const { error: userMessageError } = await supabase
       .from('chat_history')
@@ -104,7 +126,6 @@ serve(async (req) => {
       
       Your response should be in this format:
       {
-        "text": "your conversational response here",
         "contacts": [
           {
             "name": "person 1 name",
@@ -158,24 +179,24 @@ serve(async (req) => {
       };
     }
 
-    // Handle multiple contacts
-    if (parsedResponse.contacts && Array.isArray(parsedResponse.contacts)) {
-      for (const contact of parsedResponse.contacts) {
-        if (contact.name) {
-          const { error: contactError } = await supabase
-            .from('contacts')
-            .insert([{
-              user_id: userId,
-              name: contact.name,
-              email: contact.email || null
-            }]);
+    // // Handle multiple contacts
+    // if (parsedResponse.contacts && Array.isArray(parsedResponse.contacts)) {
+    //   for (const contact of parsedResponse.contacts) {
+    //     if (contact.name) {
+    //       const { error: contactError } = await supabase
+    //         .from('contacts')
+    //         .insert([{
+    //           user_id: userId,
+    //           name: contact.name,
+    //           email: contact.email || null
+    //         }]);
 
-          if (contactError) {
-            console.error('Error storing contact:', contactError);
-          }
-        }
-      }
-    }
+    //       if (contactError) {
+    //         console.error('Error storing contact:', contactError);
+    //       }
+    //     }
+    //   }
+    // }
 
     const { error: aiMessageError } = await supabase
       .from('chat_history')
