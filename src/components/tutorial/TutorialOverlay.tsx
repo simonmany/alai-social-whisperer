@@ -15,61 +15,88 @@ interface Position {
   left: number;
 }
 
+interface GoalButtonPositions {
+  today: Position | null;
+  week: Position | null;
+  month: Position | null;
+  messagePosition: Position | null;
+}
+
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'complete'>('initial');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
+  const [goalPositions, setGoalPositions] = useState<GoalButtonPositions>({
+    today: null,
+    week: null,
+    month: null,
+    messagePosition: null
+  });
   const { session } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const updatePositions = () => {
-      console.log('Updating positions...'); // Debug log
-      
-      // Try to find the profile button
+      // Find profile button for initial step
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      console.log('Profile button found:', !!profileButton); // Debug log
-      
-      if (profileButton) {
+      if (profileButton && step === 'initial') {
         const rect = profileButton.getBoundingClientRect();
-        console.log('Button rect:', rect);
-        
-        // Calculate new positions
-        const newArrowPosition = {
+        setArrowPosition({
           top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20 // Center the 40px wide arrow
-        };
-        
-        const newMessagePosition = {
-          top: rect.bottom + 56, // Arrow (40px) + gaps
-          left: rect.left - 160 + (rect.width / 2) // Center the message
-        };
-        
-        console.log('New positions:', {
-          arrow: newArrowPosition,
-          message: newMessagePosition
+          left: rect.left + (rect.width / 2) - 20
         });
-        
-        setArrowPosition(newArrowPosition);
-        setMessagePosition(newMessagePosition);
-      } else {
-        console.error('Profile button not found!');
+        setMessagePosition({
+          top: rect.bottom + 56,
+          left: rect.left - 160 + (rect.width / 2)
+        });
+      }
+
+      // Find goal buttons for profile step
+      if (step === 'profile') {
+        const alerts = Array.from(document.querySelectorAll('.alert-destructive'));
+        const goalAlerts = alerts.filter(alert => 
+          (alert as HTMLElement).textContent?.includes('Goal Missing')
+        );
+
+        if (goalAlerts.length > 0) {
+          const positions: GoalButtonPositions = {
+            today: null,
+            week: null,
+            month: null,
+            messagePosition: null
+          };
+
+          goalAlerts.forEach((alert, index) => {
+            const rect = alert.getBoundingClientRect();
+            const timeframe = index === 0 ? 'today' : index === 1 ? 'week' : 'month';
+            positions[timeframe] = {
+              top: rect.top + (rect.height / 2) - 20,
+              left: rect.left - 48 // Position arrow to the left of the alert
+            };
+          });
+
+          // Position message next to the middle arrow
+          if (positions.week) {
+            positions.messagePosition = {
+              top: positions.week.top - 40,
+              left: positions.week.left - 320 // Position message to the left of the arrows
+            };
+          }
+
+          setGoalPositions(positions);
+        }
       }
     };
 
-    // Try multiple times to find the button
-    const attempts = [0, 100, 500, 1000]; // Try immediately, then after 100ms, 500ms, and 1000ms
+    // Update positions immediately and after a short delay
+    const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
       setTimeout(updatePositions, delay);
     });
-    
-    // Update on window resize
-    window.addEventListener('resize', updatePositions);
 
-    return () => {
-      window.removeEventListener('resize', updatePositions);
-    };
-  }, []);
+    window.addEventListener('resize', updatePositions);
+    return () => window.removeEventListener('resize', updatePositions);
+  }, [step, isProfileOpen]);
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
@@ -149,29 +176,53 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   if (step === 'profile') {
     return (
       <div style={overlayStyle}>
-        <TutorialMessage 
-          className="right-[450px] top-32 max-w-xs"
-        >
-          Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
-        </TutorialMessage>
+        {goalPositions.messagePosition && (
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${goalPositions.messagePosition.top}px`,
+              left: `${goalPositions.messagePosition.left}px`,
+            }}
+          >
+            Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
+          </TutorialMessage>
+        )}
         
-        {/* Arrow pointing to Today's goals */}
-        <TutorialArrow 
-          direction="right" 
-          className="right-[400px] top-[380px] z-[200]"
-        />
+        {goalPositions.today && (
+          <TutorialArrow 
+            direction="right" 
+            style={{
+              position: 'fixed',
+              top: `${goalPositions.today.top}px`,
+              left: `${goalPositions.today.left}px`,
+              zIndex: 200
+            }}
+          />
+        )}
         
-        {/* Arrow pointing to This Week's goals */}
-        <TutorialArrow 
-          direction="right" 
-          className="right-[400px] top-[470px] z-[200]"
-        />
+        {goalPositions.week && (
+          <TutorialArrow 
+            direction="right" 
+            style={{
+              position: 'fixed',
+              top: `${goalPositions.week.top}px`,
+              left: `${goalPositions.week.left}px`,
+              zIndex: 200
+            }}
+          />
+        )}
         
-        {/* Arrow pointing to This Month's goals */}
-        <TutorialArrow 
-          direction="right" 
-          className="right-[400px] top-[560px] z-[200]"
-        />
+        {goalPositions.month && (
+          <TutorialArrow 
+            direction="right" 
+            style={{
+              position: 'fixed',
+              top: `${goalPositions.month.top}px`,
+              left: `${goalPositions.month.left}px`,
+              zIndex: 200
+            }}
+          />
+        )}
       </div>
     );
   }
