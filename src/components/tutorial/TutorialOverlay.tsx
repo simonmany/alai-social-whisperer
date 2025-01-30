@@ -158,19 +158,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         {/* Arrow pointing to Today's goals */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[380px] z-[200]"
+          className="right-[400px] top-[380px]"
         />
         
         {/* Arrow pointing to This Week's goals */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[470px] z-[200]"
+          className="right-[400px] top-[470px]"
         />
         
         {/* Arrow pointing to This Month's goals */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[560px] z-[200]"
+          className="right-[400px] top-[560px]"
         />
       </div>
     );
