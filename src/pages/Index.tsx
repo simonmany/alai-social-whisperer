@@ -60,7 +60,6 @@ const Index = () => {
 
       setShowOnboarding(false);
       setTutorialComplete(true);
-      setShowProfileButton(true);
       setHideButtons(false);
       
       toast({
@@ -276,7 +275,6 @@ const Index = () => {
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
             hideButtons={hideButtons}
-            showProfileButton={true}
           />
         </div>
       </div>

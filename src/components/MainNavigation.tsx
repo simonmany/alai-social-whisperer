@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { UserRound, LogOut } from "lucide-react";
+import { UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +8,6 @@ import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 
 interface MainNavigationProps {
   isConnectingCalendar: boolean;
@@ -21,7 +20,6 @@ interface MainNavigationProps {
 export const MainNavigation = ({
   onProfileOpen,
   hideButtons = false,
-  showProfileButton = true,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -48,22 +46,17 @@ export const MainNavigation = ({
   return (
     <div className="flex justify-end items-center mb-6">
       {!hideButtons && (
-        <div className={cn(
-          "relative transition-opacity duration-300",
-          showProfileButton ? "opacity-100" : "opacity-0 pointer-events-none"
-        )}>
-          <Button variant="ghost" size="icon" onClick={onProfileOpen}>
-            <UserRound className="h-5 w-5" />
-            {missingGoalsCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
-              >
-                {missingGoalsCount}
-              </Badge>
-            )}
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" onClick={onProfileOpen}>
+          <UserRound className="h-5 w-5" />
+          {missingGoalsCount > 0 && (
+            <Badge 
+              variant="destructive" 
+              className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+            >
+              {missingGoalsCount}
+            </Badge>
+          )}
+        </Button>
       )}
     </div>
   );
