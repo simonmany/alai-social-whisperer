@@ -140,10 +140,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
         </TutorialMessage>
         
-        <TutorialArrow 
+        /*<TutorialArrow 
           direction="right" 
           className="right-[400px] top-[380px]"
-        />
+        />*/
         
         <TutorialArrow 
           direction="right" 
