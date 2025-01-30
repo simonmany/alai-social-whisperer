@@ -14,6 +14,7 @@ import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
+import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
 
 interface ProfileProps {
   open: boolean;
@@ -23,6 +24,8 @@ interface ProfileProps {
 
 const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
+  const [showIntegrations, setShowIntegrations] = useState(false);
+  const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -196,99 +199,191 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     );
   };
 
+  const handleGoogleCalendarConnect = async () => {
+    try {
+      setIsConnectingCalendar(true);
+      console.log("[Calendar] Starting Google Calendar connection flow...");
+      
+      const { data: session } = await supabase.auth.getSession();
+      console.log("[Calendar] Current session status:", session ? "Has session" : "No session");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          skipBrowserRedirect: true
+        }
+      });
+
+      if (error) {
+        console.error("[Calendar] Google auth error:", error);
+        toast({
+          title: "Error connecting to Google Calendar",
+          description: "Please try again or contact support if the issue persists.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      console.log("[Calendar] Auth URL generated:", data?.url ? "Yes" : "No");
+
+      if (data?.url) {
+        const width = 600;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        console.log("[Calendar] Opening auth popup...");
+        const newWindow = window.open(
+          data.url,
+          'googleAuthWindow',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+        
+        if (!newWindow) {
+          console.error("[Calendar] Popup blocked by browser");
+          toast({
+            title: "Popup Blocked",
+            description: "Please allow popups for this site to connect your Google Calendar.",
+            variant: "destructive",
+          });
+        } else {
+          console.log("[Calendar] Auth popup opened successfully");
+        }
+      }
+      
+    } catch (error: any) {
+      console.error("[Calendar] Calendar connection error:", error);
+      toast({
+        title: "Error connecting to Google Calendar",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnectingCalendar(false);
+    }
+  };
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="overflow-y-auto">
           <SheetHeader className="mb-2">
-            <SheetTitle>Profile</SheetTitle>
+            <SheetTitle>
+              {showIntegrations ? (
+                <Button 
+                  variant="ghost" 
+                  className="p-0 font-normal flex items-center gap-2"
+                  onClick={() => setShowIntegrations(false)}
+                >
+                  <X className="h-4 w-4" /> Back to Profile
+                </Button>
+              ) : (
+                "Profile"
+              )}
+            </SheetTitle>
           </SheetHeader>
 
-          <div className="space-y-3">
-            {/* Profile Info */}
-            <div className="flex flex-col items-center space-y-2">
-              {isLoading ? (
-                <Skeleton className="h-24 w-24 rounded-full" />
-              ) : (
-                <AvatarUpload
-                  url={avatarUrl}
-                  onUploadComplete={handleAvatarUpdate}
-                  fallback={displayName?.charAt(0) || 'U'}
-                  size="lg"
-                />
-              )}
-              <div className="text-center">
+          {showIntegrations ? (
+            <IntegrationsMenu
+              onGoogleSignIn={handleGoogleCalendarConnect}
+              isConnectingCalendar={isConnectingCalendar}
+            />
+          ) : (
+            <div className="space-y-3">
+              {/* Profile Info */}
+              <div className="flex flex-col items-center space-y-2">
                 {isLoading ? (
-                  <div className="space-y-2">
-                    <Skeleton className="h-6 w-32" />
-                    <Skeleton className="h-4 w-24" />
-                  </div>
+                  <Skeleton className="h-24 w-24 rounded-full" />
                 ) : (
-                  <>
-                    <h2 className="text-lg font-semibold">{displayName}</h2>
-                    <div className="flex gap-2 text-xs text-muted-foreground">
-                      <span>@{username}</span>
-                      <span>•</span>
-                      <span>{profileData?.city || 'Location not set'}</span>
-                    </div>
-                  </>
+                  <AvatarUpload
+                    url={avatarUrl}
+                    onUploadComplete={handleAvatarUpdate}
+                    fallback={displayName?.charAt(0) || 'U'}
+                    size="lg"
+                  />
                 )}
+                <div className="text-center">
+                  {isLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-6 w-32" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  ) : (
+                    <>
+                      <h2 className="text-lg font-semibold">{displayName}</h2>
+                      <div className="flex gap-2 text-xs text-muted-foreground">
+                        <span>@{username}</span>
+                        <span>•</span>
+                        <span>{profileData?.city || 'Location not set'}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm">Instagram</Button>
+                  <Button variant="outline" size="sm">Twitter</Button>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm">Instagram</Button>
-                <Button variant="outline" size="sm">Twitter</Button>
+
+              {/* Goals Alert */}
+              {missingTimeframes.length > 0 && (
+                <Alert variant="destructive" className="mb-4">
+                  <AlertDescription>
+                    You haven't set any goals for {missingTimeframes.join(', ')}. 
+                    Set some goals to track your social progress!
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Goals Section */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Target className="h-5 w-5" />
+                    Goals
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {renderTimeframeSection('today', 'Today')}
+                  {renderTimeframeSection('week', 'This Week')}
+                  {renderTimeframeSection('month', 'This Month')}
+                </CardContent>
+              </Card>
+
+              <Button 
+                size="sm" 
+                className="w-full gap-2"
+                onClick={handleNewGoal}
+              >
+                <MessageCircle className="h-4 w-4" />
+                Set a new goal
+              </Button>
+
+              {/* Stats Section */}
+              <StatsCard />
+
+              {/* Actions */}
+              <div className="flex flex-col gap-2">
+                <Button variant="outline" className="w-full justify-start gap-2">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => setShowIntegrations(true)}
+                >
+                  <Share2 className="h-4 w-4" />
+                  Integrations
+                </Button>
               </div>
             </div>
-
-            {/* Goals Alert */}
-            {missingTimeframes.length > 0 && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertDescription>
-                  You haven't set any goals for {missingTimeframes.join(', ')}. 
-                  Set some goals to track your social progress!
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Goals Section */}
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Goals
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {renderTimeframeSection('today', 'Today')}
-                {renderTimeframeSection('week', 'This Week')}
-                {renderTimeframeSection('month', 'This Month')}
-              </CardContent>
-            </Card>
-
-            <Button 
-              size="sm" 
-              className="w-full gap-2"
-              onClick={handleNewGoal}
-            >
-              <MessageCircle className="h-4 w-4" />
-              Set a new goal
-            </Button>
-
-            {/* Stats Section */}
-            <StatsCard />
-
-            {/* Actions */}
-            <div className="flex flex-col gap-2">
-              <Button variant="outline" className="w-full justify-start gap-2">
-                <Settings className="h-4 w-4" />
-                Settings
-              </Button>
-              <Button variant="outline" className="w-full justify-start gap-2">
-                <Share2 className="h-4 w-4" />
-                Integrations
-              </Button>
-            </div>
-          </div>
+          )}
         </SheetContent>
       </Sheet>
 

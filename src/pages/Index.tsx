@@ -16,6 +16,7 @@ import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
+import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 
 interface Message {
   content: string;
@@ -34,12 +35,44 @@ const Index = () => {
   const [isContactsOpen, setIsContactsOpen] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [tutorialComplete, setTutorialComplete] = useState(false);
+  const [showProfileButton, setShowProfileButton] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+
+  const handleSkipOnboarding = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          has_completed_tutorial: true,
+          onboarding_step: 'complete'
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(false);
+      setTutorialComplete(true);
+      setShowProfileButton(true);
+      toast({
+        title: "Onboarding skipped",
+        description: "You can restart onboarding using the button in the bottom left",
+      });
+    } catch (error: any) {
+      console.error('Error skipping onboarding:', error);
+      toast({
+        title: "Error skipping onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -78,6 +111,34 @@ const Index = () => {
 
     loadChatHistory();
   }, [session?.user.id, toast]);
+
+  useEffect(() => {
+    const checkTutorialStatus = async () => {
+      if (!session?.user.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('has_completed_tutorial, onboarding_completed, onboarding_step')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) throw error;
+
+        setTutorialComplete(!!data.has_completed_tutorial);
+        setShowOnboarding(!data.onboarding_completed);
+        
+        // Show profile button if we're past the initial step
+        if (data.onboarding_step !== 'initial') {
+          setShowProfileButton(true);
+        }
+      } catch (error) {
+        console.error('Error checking tutorial status:', error);
+      }
+    };
+
+    checkTutorialStatus();
+  }, [session?.user.id]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -192,7 +253,9 @@ const Index = () => {
     }
   };
 
-  console.log('Session:', session);
+  const handleTutorialComplete = () => {
+    setTutorialComplete(true);
+  };
 
   const containerClasses = isMobile
     ? "min-h-screen bg-black flex flex-col"
@@ -210,32 +273,59 @@ const Index = () => {
             isConnectingCalendar={isConnectingCalendar}
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
+            hideButtons={showOnboarding}
+            showProfileButton={showProfileButton}
           />
         </div>
       </div>
 
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
-          <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
-        ) : (
-          <ChatContainer
-            messages={messages}
-            isLoading={isLoading}
-            onSend={handleSend}
-            onSuggestedPrompt={handleSuggestedPrompt}
+          <OnboardingFlow 
+            onComplete={() => {
+              console.log("Onboarding complete, showing profile button");
+              setShowOnboarding(false);
+              setShowProfileButton(true);
+            }} 
           />
+        ) : (
+          <>
+            {!tutorialComplete && (
+              <TutorialOverlay 
+                onComplete={() => setTutorialComplete(true)} 
+                isProfileOpen={isProfileOpen}
+              />
+            )}
+            <ChatContainer
+              messages={messages}
+              isLoading={isLoading}
+              onSend={handleSend}
+              onSuggestedPrompt={handleSuggestedPrompt}
+              disabled={!tutorialComplete}
+            />
+          </>
         )}
       </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="fixed bottom-4 left-4 gap-2"
-        onClick={() => setShowOnboarding(true)}
-      >
-        <Redo className="h-4 w-4" />
-        Restart Onboarding
-      </Button>
+      <div className="fixed bottom-4 left-4 flex flex-col gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleSkipOnboarding}
+        >
+          Skip Onboarding (Dev Only)
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => setShowOnboarding(true)}
+        >
+          <Redo className="h-4 w-4" />
+          Restart Onboarding
+        </Button>
+      </div>
 
       <Profile 
         open={isProfileOpen} 

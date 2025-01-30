@@ -4,6 +4,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Message {
   content: string;
@@ -15,6 +16,7 @@ interface ChatContainerProps {
   isLoading: boolean;
   onSend: (content: string) => void;
   onSuggestedPrompt: (prompt: string) => void;
+  disabled?: boolean;
 }
 
 export const ChatContainer = ({
@@ -22,6 +24,7 @@ export const ChatContainer = ({
   isLoading,
   onSend,
   onSuggestedPrompt,
+  disabled = false,
 }: ChatContainerProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,7 +47,10 @@ export const ChatContainer = ({
   }, [messages]);
 
   return (
-    <div className="relative flex flex-col h-full min-h-[calc(100vh-12rem)]">
+    <div className={cn(
+      "relative flex flex-col h-full min-h-[calc(100vh-12rem)]",
+      disabled && "opacity-50 pointer-events-none"
+    )}>
       <div 
         ref={containerRef}
         className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4"

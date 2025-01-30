@@ -228,10 +228,13 @@ export type Database = {
           google_access_token: string | null
           google_refresh_token: string | null
           google_token_expires_at: string | null
+          has_completed_tutorial: boolean | null
           id: string
           languages: Json | null
           occupation: string | null
           onboarding_completed: boolean | null
+          onboarding_started_at: string | null
+          onboarding_step: string | null
           personality_comments: string[] | null
           personality_traits: Json | null
           relationship_status: string | null
@@ -250,10 +253,13 @@ export type Database = {
           google_access_token?: string | null
           google_refresh_token?: string | null
           google_token_expires_at?: string | null
+          has_completed_tutorial?: boolean | null
           id: string
           languages?: Json | null
           occupation?: string | null
           onboarding_completed?: boolean | null
+          onboarding_started_at?: string | null
+          onboarding_step?: string | null
           personality_comments?: string[] | null
           personality_traits?: Json | null
           relationship_status?: string | null
@@ -272,10 +278,13 @@ export type Database = {
           google_access_token?: string | null
           google_refresh_token?: string | null
           google_token_expires_at?: string | null
+          has_completed_tutorial?: boolean | null
           id?: string
           languages?: Json | null
           occupation?: string | null
           onboarding_completed?: boolean | null
+          onboarding_started_at?: string | null
+          onboarding_step?: string | null
           personality_comments?: string[] | null
           personality_traits?: Json | null
           relationship_status?: string | null

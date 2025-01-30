@@ -117,10 +117,12 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         .from('profiles')
         .update({ 
           occupation,
-          onboarding_completed: true 
+          onboarding_completed: true,
+          onboarding_started_at: new Date().toISOString()
         })
         .eq('id', session?.user.id);
 
+      // Immediately call onComplete to trigger the profile button show
       onComplete();
     } catch (error) {
       toast({
