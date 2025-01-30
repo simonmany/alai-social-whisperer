@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChatInput } from "@/components/ChatInput";
+import { ChatMessage } from "@/components/ChatMessage";
 import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,31 +15,7 @@ interface DemographicsSectionProps {
 
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
   const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
-  const [mapsApiKey, setMapsApiKey] = useState<string>('');
   const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchMapsKey = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('get-maps-key');
-        if (error) throw error;
-        if (data?.key) {
-          setMapsApiKey(data.key);
-        }
-      } catch (error) {
-        console.error('Error fetching Maps API key:', error);
-        toast({
-          title: "Error loading location selector",
-          description: "Please try again later",
-          variant: "destructive",
-        });
-      }
-    };
-
-    if (step === 'city') {
-      fetchMapsKey();
-    }
-  }, [step, toast]);
 
   const handleAgeSubmit = async (age: string) => {
     const ageNum = parseInt(age);
@@ -186,29 +163,25 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             />
           </div>
           <div className="w-full max-w-md">
-            {mapsApiKey ? (
-              <Autocomplete
-                apiKey={mapsApiKey}
-                onPlaceSelected={(place: any) => {
-                  console.log('Selected place:', place);
-                  if (place && typeof place === 'object') {
-                    const address = place.formatted_address || place.name || '';
-                    console.log('Using address:', address);
-                    if (address) {
-                      handleCitySubmit(address);
-                    }
+            <Autocomplete
+              apiKey={import.meta.env.VITE_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+              onPlaceSelected={(place: any) => {
+                console.log('Selected place:', place);
+                if (place && typeof place === 'object') {
+                  const address = place.formatted_address || place.name || '';
+                  console.log('Using address:', address);
+                  if (address) {
+                    handleCitySubmit(address);
                   }
-                }}
-                options={{
-                  types: ['(cities)'],
-                  fields: ['formatted_address']
-                }}
-                className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
-                placeholder="Enter your city..."
-              />
-            ) : (
-              <div className="animate-pulse bg-gray-200 h-10 rounded-lg" />
-            )}
+                }
+              }}
+              options={{
+                types: ['(cities)'],
+                fields: ['formatted_address']
+              }}
+              className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
+              placeholder="Enter your city..."
+            />
           </div>
         </>
       )}

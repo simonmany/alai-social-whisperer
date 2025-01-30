@@ -360,7 +360,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container max-w-2xl py-4">
           <MainNavigation
             isConnectingCalendar={isConnectingCalendar}
@@ -370,9 +370,9 @@ const Index = () => {
             showOnlyProfile={!tutorialComplete && showProfileButton}
           />
         </div>
-      </header>
+      </div>
 
-      <main className="flex-1 container max-w-2xl py-8 pt-24">
+      <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
           <OnboardingFlow 
             onComplete={() => {
@@ -398,9 +398,9 @@ const Index = () => {
             />
           </>
         )}
-      </main>
+      </div>
 
-      <div className="fixed bottom-4 left-4 flex flex-col gap-2 z-50">
+      <div className="fixed bottom-4 left-4 flex flex-col gap-2">
         <Button
           variant="outline"
           size="sm"
