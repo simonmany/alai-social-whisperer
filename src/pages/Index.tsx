@@ -259,6 +259,50 @@ const Index = () => {
     setTutorialComplete(true);
   };
 
+  const handleRestartOnboarding = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: false,
+          has_completed_tutorial: false,
+          onboarding_step: 'initial',
+          personality_traits: {},
+          personality_comments: [],
+          current_interests: [],
+          desired_interests: [],
+          goals: [],
+          display_name: null,
+          age: null,
+          city: null,
+          languages: [],
+          relationship_status: null,
+          gender: null,
+          occupation: null
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(true);
+      setTutorialComplete(false);
+      setHideButtons(true);
+      setShowProfileButton(false);
+      
+      toast({
+        title: "Onboarding restarted",
+        description: "Let's start fresh!",
+      });
+    } catch (error: any) {
+      console.error('Error restarting onboarding:', error);
+      toast({
+        title: "Error restarting onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   const containerClasses = isMobile
     ? "min-h-screen bg-black flex flex-col"
     : "min-h-screen bg-gray-50 flex flex-col";
@@ -321,7 +365,7 @@ const Index = () => {
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={() => setShowOnboarding(true)}
+          onClick={handleRestartOnboarding}
         >
           <Redo className="h-4 w-4" />
           Restart Onboarding
