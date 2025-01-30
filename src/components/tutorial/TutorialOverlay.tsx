@@ -6,9 +6,10 @@ import { useAuth } from "@/components/AuthProvider";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
+  isProfileOpen?: boolean;
 }
 
-export const TutorialOverlay = ({ onComplete }: TutorialOverlayProps) => {
+export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'complete'>('initial');
   const { session } = useAuth();
 
@@ -33,15 +34,22 @@ export const TutorialOverlay = ({ onComplete }: TutorialOverlayProps) => {
     updateTutorialStep();
   }, [step, session?.user.id]);
 
+  // Progress to next step when profile is opened
+  useEffect(() => {
+    if (isProfileOpen && step === 'initial') {
+      setStep('profile');
+    }
+  }, [isProfileOpen]);
+
   if (step === 'initial') {
     return (
       <>
         <TutorialArrow 
-          direction="left" 
-          className="right-12 top-8"
+          direction="right" 
+          className="fixed right-16 top-8"
         />
-        <TutorialMessage className="right-24 top-20">
-          I've created a profile for you here. Let's take a look.
+        <TutorialMessage className="fixed right-24 top-20">
+          I've created a profile for you here. Click to take a look.
         </TutorialMessage>
       </>
     );
@@ -52,9 +60,9 @@ export const TutorialOverlay = ({ onComplete }: TutorialOverlayProps) => {
       <>
         <TutorialArrow 
           direction="down" 
-          className="right-48 top-32"
+          className="fixed right-48 top-32"
         />
-        <TutorialMessage className="right-24 top-44">
+        <TutorialMessage className="fixed right-24 top-44">
           Let's start by setting a goal. You can choose anything you like!
         </TutorialMessage>
       </>
@@ -66,9 +74,9 @@ export const TutorialOverlay = ({ onComplete }: TutorialOverlayProps) => {
       <>
         <TutorialArrow 
           direction="left" 
-          className="right-16 top-8"
+          className="fixed right-16 top-8"
         />
-        <TutorialMessage className="right-24 top-20">
+        <TutorialMessage className="fixed right-24 top-20">
           Nice! I'm looking forward to helping you make that happen. Let's close the profile screen for now.
         </TutorialMessage>
       </>

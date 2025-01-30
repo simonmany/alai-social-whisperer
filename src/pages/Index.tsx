@@ -260,7 +260,10 @@ const Index = () => {
         ) : (
           <>
             {!tutorialComplete && (
-              <TutorialOverlay onComplete={() => setTutorialComplete(true)} />
+              <TutorialOverlay 
+                onComplete={() => setTutorialComplete(true)} 
+                isProfileOpen={isProfileOpen}
+              />
             )}
             <ChatContainer
               messages={messages}
