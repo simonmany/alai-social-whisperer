@@ -188,10 +188,6 @@ const Index = () => {
       });
 
       if (error) throw error;
-
-      supabase.functions.invoke('store_auth', {
-        body: { name: data }
-      });
       
     } catch (error: any) {
       console.error("Calendar connection error:", error);
@@ -260,6 +256,14 @@ const Index = () => {
   const handleTutorialComplete = () => {
     setTutorialComplete(true);
   };
+
+  const containerClasses = isMobile
+    ? "min-h-screen bg-black flex flex-col"
+    : "min-h-screen bg-gray-50 flex flex-col";
+
+  const contentClasses = isMobile
+    ? "flex-1 container max-w-2xl py-8 flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16"
+    : "flex-1 container max-w-2xl py-8 flex flex-col";
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
