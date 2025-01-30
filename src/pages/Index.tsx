@@ -89,7 +89,7 @@ const Index = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('has_completed_tutorial, onboarding_completed')
+          .select('has_completed_tutorial, onboarding_completed, onboarding_step')
           .eq('id', session.user.id)
           .single();
 
@@ -97,6 +97,11 @@ const Index = () => {
 
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
+        
+        // Show profile button if we're past the initial step
+        if (data.onboarding_step !== 'initial') {
+          setShowProfileButton(true);
+        }
       } catch (error) {
         console.error('Error checking tutorial status:', error);
       }
