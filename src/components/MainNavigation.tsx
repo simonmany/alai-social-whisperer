@@ -12,10 +12,12 @@ interface MainNavigationProps {
   isConnectingCalendar: boolean;
   onProfileOpen: () => void;
   onGoogleSignIn: () => void;
+  hideButtons?: boolean;
 }
 
 export const MainNavigation = ({
   onProfileOpen,
+  hideButtons = false,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -56,6 +58,10 @@ export const MainNavigation = ({
       navigate("/auth");
     }
   };
+
+  if (hideButtons) {
+    return null;
+  }
 
   return (
     <div className="flex justify-between items-center mb-6">

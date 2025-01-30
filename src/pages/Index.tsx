@@ -16,6 +16,7 @@ import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
+import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 
 interface Message {
   content: string;
@@ -34,6 +35,7 @@ const Index = () => {
   const [isContactsOpen, setIsContactsOpen] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [tutorialComplete, setTutorialComplete] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,6 +80,29 @@ const Index = () => {
 
     loadChatHistory();
   }, [session?.user.id, toast]);
+
+  useEffect(() => {
+    const checkTutorialStatus = async () => {
+      if (!session?.user.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('has_completed_tutorial, onboarding_completed')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) throw error;
+
+        setTutorialComplete(!!data.has_completed_tutorial);
+        setShowOnboarding(!data.onboarding_completed);
+      } catch (error) {
+        console.error('Error checking tutorial status:', error);
+      }
+    };
+
+    checkTutorialStatus();
+  }, [session?.user.id]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -196,6 +221,10 @@ const Index = () => {
     }
   };
 
+  const handleTutorialComplete = () => {
+    setTutorialComplete(true);
+  };
+
   const containerClasses = isMobile
     ? "min-h-screen bg-black flex flex-col"
     : "min-h-screen bg-gray-50 flex flex-col";
@@ -212,6 +241,7 @@ const Index = () => {
             isConnectingCalendar={isConnectingCalendar}
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
+            hideButtons={!tutorialComplete && !showOnboarding}
           />
         </div>
       </div>
@@ -220,12 +250,18 @@ const Index = () => {
         {showOnboarding ? (
           <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
         ) : (
-          <ChatContainer
-            messages={messages}
-            isLoading={isLoading}
-            onSend={handleSend}
-            onSuggestedPrompt={handleSuggestedPrompt}
-          />
+          <>
+            {!tutorialComplete && (
+              <TutorialOverlay onComplete={handleTutorialComplete} />
+            )}
+            <ChatContainer
+              messages={messages}
+              isLoading={isLoading}
+              onSend={handleSend}
+              onSuggestedPrompt={handleSuggestedPrompt}
+              disabled={!tutorialComplete}
+            />
+          </>
         )}
       </div>
 
