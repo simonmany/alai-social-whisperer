@@ -46,9 +46,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       <>
         <TutorialArrow 
           direction="right" 
-          className="fixed right-[4.5rem] top-6"
+          className="fixed right-20 top-7"
         />
-        <TutorialMessage className="fixed right-[6rem] top-[4.5rem]">
+        <TutorialMessage className="fixed right-32 top-16">
           I've created a profile for you here. Click to take a look.
         </TutorialMessage>
       </>
