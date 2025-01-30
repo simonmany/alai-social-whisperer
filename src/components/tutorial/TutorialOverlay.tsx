@@ -24,46 +24,31 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   useEffect(() => {
     const updatePositions = () => {
-      console.log('Updating positions...'); // Debug log
-      
-      // Try to find the profile button
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      console.log('Profile button found:', !!profileButton); // Debug log
       
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
-        console.log('Button rect:', rect);
         
-        // Calculate new positions
         const newArrowPosition = {
           top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20 // Center the 40px wide arrow
+          left: rect.left + (rect.width / 2) - 20
         };
         
         const newMessagePosition = {
-          top: rect.bottom + 56, // Arrow (40px) + gaps
-          left: rect.left - 160 + (rect.width / 2) // Center the message
+          top: rect.bottom + 56,
+          left: rect.left - 160 + (rect.width / 2)
         };
-        
-        console.log('New positions:', {
-          arrow: newArrowPosition,
-          message: newMessagePosition
-        });
         
         setArrowPosition(newArrowPosition);
         setMessagePosition(newMessagePosition);
-      } else {
-        console.error('Profile button not found!');
       }
     };
 
-    // Try multiple times to find the button
-    const attempts = [0, 100, 500, 1000]; // Try immediately, then after 100ms, 500ms, and 1000ms
+    const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
       setTimeout(updatePositions, delay);
     });
     
-    // Update on window resize
     window.addEventListener('resize', updatePositions);
 
     return () => {
@@ -119,7 +104,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     right: 0,
     bottom: 0,
     pointerEvents: 'none',
-    zIndex: 100
+    zIndex: 200
   };
 
   if (step === 'initial') {
@@ -155,19 +140,16 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
         </TutorialMessage>
         
-        {/* Arrow pointing to Today's goals */}
         <TutorialArrow 
           direction="right" 
           className="right-[400px] top-[380px]"
         />
         
-        {/* Arrow pointing to This Week's goals */}
         <TutorialArrow 
           direction="right" 
           className="right-[400px] top-[470px]"
         />
         
-        {/* Arrow pointing to This Month's goals */}
         <TutorialArrow 
           direction="right" 
           className="right-[400px] top-[560px]"
