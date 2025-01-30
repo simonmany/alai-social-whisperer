@@ -3,6 +3,7 @@ import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
+import { useToast } from "@/hooks/use-toast";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -19,6 +20,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const { session } = useAuth();
+  const { toast } = useToast();
 
   useEffect(() => {
     const updatePositions = () => {
@@ -30,14 +32,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
-        console.log('Button rect:', {
-          top: rect.top,
-          right: rect.right,
-          bottom: rect.bottom,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height
-        });
+        console.log('Button rect:', rect);
         
         // Calculate new positions
         const newArrowPosition = {
@@ -80,28 +75,42 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     const updateTutorialStep = async () => {
       if (!session?.user.id) return;
       
-      await supabase
-        .from('profiles')
-        .update({ onboarding_step: step })
-        .eq('id', session.user.id);
-
-      if (step === 'complete') {
-        await supabase
+      try {
+        const { error } = await supabase
           .from('profiles')
-          .update({ has_completed_tutorial: true })
+          .update({ onboarding_step: step })
           .eq('id', session.user.id);
-        onComplete();
+
+        if (error) throw error;
+
+        if (step === 'complete') {
+          const { error: completeError } = await supabase
+            .from('profiles')
+            .update({ has_completed_tutorial: true })
+            .eq('id', session.user.id);
+
+          if (completeError) throw completeError;
+          
+          onComplete();
+        }
+      } catch (error: any) {
+        console.error('Error updating tutorial step:', error);
+        toast({
+          title: "Error updating tutorial progress",
+          description: error.message,
+          variant: "destructive",
+        });
       }
     };
 
     updateTutorialStep();
-  }, [step, session?.user.id]);
+  }, [step, session?.user.id, onComplete, toast]);
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
       setStep('profile');
     }
-  }, [isProfileOpen]);
+  }, [isProfileOpen, step]);
 
   if (step === 'initial') {
     return (
