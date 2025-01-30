@@ -1,9 +1,3 @@
-import {I understand the issue - the z-index layering is causing the tutorial overlay to be hidden behind the Profile sheet. Let's adjust the z-index values to ensure proper layering of these components.
-
-<lov-code>
-Let's update the TutorialOverlay component to ensure it's always on top:
-
-<lov-write file_path="src/components/tutorial/TutorialOverlay.tsx">
 import { useEffect, useState } from "react";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
