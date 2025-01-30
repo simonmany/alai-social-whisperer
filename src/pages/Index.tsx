@@ -37,6 +37,7 @@ const Index = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
+  const [hideButtons, setHideButtons] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -60,6 +61,8 @@ const Index = () => {
       setShowOnboarding(false);
       setTutorialComplete(true);
       setShowProfileButton(true);
+      setHideButtons(false);
+      
       toast({
         title: "Onboarding skipped",
         description: "You can restart onboarding using the button in the bottom left",
@@ -128,7 +131,6 @@ const Index = () => {
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
         
-        // Show profile button if we're past the initial step
         if (data.onboarding_step !== 'initial') {
           setShowProfileButton(true);
         }
@@ -273,8 +275,8 @@ const Index = () => {
             isConnectingCalendar={isConnectingCalendar}
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
-            hideButtons={showOnboarding}
-            showProfileButton={showProfileButton}
+            hideButtons={hideButtons}
+            showProfileButton={!showOnboarding || tutorialComplete}
           />
         </div>
       </div>
