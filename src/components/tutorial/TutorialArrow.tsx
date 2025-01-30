@@ -17,14 +17,11 @@ export const TutorialArrow = ({ direction = "up", className, style }: TutorialAr
   return (
     <div 
       className={cn(
-        "fixed animate-bounce pointer-events-none",
+        "fixed animate-bounce pointer-events-none z-[200]", // Set same z-index as messages
         arrowStyles[direction],
         className
       )}
-      style={{
-        ...style,
-        zIndex: 100 // Ensure it's above the Sheet component
-      }}
+      style={style}
     >
       <svg 
         width="40" 

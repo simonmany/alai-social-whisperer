@@ -24,51 +24,30 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   useEffect(() => {
     const updatePositions = () => {
-      console.log('Updating positions...'); // Debug log
-      
-      // Try to find the profile button
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      console.log('Profile button found:', !!profileButton); // Debug log
       
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
-        console.log('Button rect:', rect);
         
-        // Calculate new positions
-        const newArrowPosition = {
+        setArrowPosition({
           top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20 // Center the 40px wide arrow
-        };
-        
-        const newMessagePosition = {
-          top: rect.bottom + 56, // Arrow (40px) + gaps
-          left: rect.left - 160 + (rect.width / 2) // Center the message
-        };
-        
-        console.log('New positions:', {
-          arrow: newArrowPosition,
-          message: newMessagePosition
+          left: rect.left + (rect.width / 2) - 20
         });
         
-        setArrowPosition(newArrowPosition);
-        setMessagePosition(newMessagePosition);
-      } else {
-        console.error('Profile button not found!');
+        setMessagePosition({
+          top: rect.bottom + 56,
+          left: rect.left - 160 + (rect.width / 2)
+        });
       }
     };
 
-    // Try multiple times to find the button
-    const attempts = [0, 100, 500, 1000]; // Try immediately, then after 100ms, 500ms, and 1000ms
+    const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
       setTimeout(updatePositions, delay);
     });
     
-    // Update on window resize
     window.addEventListener('resize', updatePositions);
-
-    return () => {
-      window.removeEventListener('resize', updatePositions);
-    };
+    return () => window.removeEventListener('resize', updatePositions);
   }, []);
 
   useEffect(() => {
@@ -112,19 +91,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     updateTutorialStep();
   }, [step, session?.user.id, onComplete, toast]);
 
-  const overlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    pointerEvents: 'none',
-    zIndex: 100
-  };
-
   if (step === 'initial') {
     return (
-      <div style={overlayStyle}>
+      <div className="fixed inset-0 pointer-events-none">
         <TutorialArrow 
           direction="up" 
           style={{
@@ -148,29 +117,27 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'profile') {
     return (
-      <div style={overlayStyle}>
+      <div className="fixed inset-0 pointer-events-none">
         <TutorialMessage 
           className="right-[450px] top-32 max-w-xs"
         >
           Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
         </TutorialMessage>
         
-        {/* Arrow pointing to Today's goals */}
+        {/* All arrows now use the same z-index as messages via the TutorialArrow component */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[380px] z-[200]"
+          className="right-[400px] top-[380px]"
         />
         
-        {/* Arrow pointing to This Week's goals */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[470px] z-[200]"
+          className="right-[400px] top-[470px]"
         />
         
-        {/* Arrow pointing to This Month's goals */}
         <TutorialArrow 
           direction="right" 
-          className="right-[400px] top-[560px] z-[200]"
+          className="right-[400px] top-[560px]"
         />
       </div>
     );
@@ -178,7 +145,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'goals') {
     return (
-      <div style={overlayStyle}>
+      <div className="fixed inset-0 pointer-events-none">
         <TutorialArrow 
           direction="left" 
           className="right-16 top-8"
