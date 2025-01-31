@@ -70,6 +70,17 @@ export const PersonalityQuiz = ({
   const { session } = useAuth();
   const { toast } = useToast();
 
+  const handleBack = () => {
+    if (currentQuestion === 0) {
+      onBackToGoals();
+    } else {
+      setCurrentQuestion(prev => prev - 1);
+      setSelectedValue(traits[questions[currentQuestion - 1].id] || null);
+      setComment(comments[currentQuestion - 1] || "");
+      setAiResponse("");
+    }
+  };
+
   const handleNext = async () => {
     if (selectedValue === null) {
       toast({
