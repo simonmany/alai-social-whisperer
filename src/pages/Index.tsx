@@ -150,7 +150,8 @@ const Index = () => {
         if (profile) {
           console.log('Profile found:', profile);
           setShowOnboarding(!profile.onboarding_completed);
-          setHideButtons(!profile.onboarding_completed);
+          // Only hide buttons during initial onboarding, not during tutorial steps
+          setHideButtons(!profile.onboarding_completed && profile.onboarding_step === 'initial');
           
           // Show profile button if we're past the initial step
           if (profile.onboarding_step !== 'initial') {
