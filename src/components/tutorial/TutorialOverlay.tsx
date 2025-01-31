@@ -98,8 +98,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     if (isProfileOpen && step === 'initial') {
       setStep('profile');
     }
-    // If profile is closed during the 'goals' step, revert to 'initial'
-    if (!isProfileOpen && step === 'goals') {
+    // If profile is closed and we're in either 'profile' or 'goals' step, revert to 'initial'
+    if (!isProfileOpen && (step === 'goals' || step === 'profile')) {
       setStep('initial');
     }
   }, [isProfileOpen, step]);
