@@ -43,7 +43,7 @@ export const MainNavigation = ({
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
   
-  // Only show contacts button if we're in contactsintro step or later steps
+  // Show contacts button if we're in contactsintro step or later steps
   const showContactsButton = profile?.onboarding_step === 'contactsintro' || 
                            profile?.onboarding_step === 'contactsopen' ||
                            profile?.onboarding_step === 'calendarintro' || 
