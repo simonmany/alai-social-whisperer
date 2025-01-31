@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import CalendarView from "./pages/CalendarView";
-import { ContactCard } from "@/components/ContactCard";
+import ContactsView from "./pages/ContactsView";
 
 const queryClient = new QueryClient();
 
@@ -58,7 +58,7 @@ const App = () => (
               path="/contacts"
               element={
                 <ProtectedRoute>
-                  <ContactCard />
+                  <ContactsView />
                 </ProtectedRoute>
               }
             />

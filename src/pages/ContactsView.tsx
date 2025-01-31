@@ -1,117 +1,60 @@
-import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { ContactCard } from "@/components/ContactCard";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+interface Contact {
+  id: string;
+  name: string;
+  phone?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  meeting_story?: string;
+  relationship?: string;
+}
 
 const ContactsView = () => {
-  const navigate = useNavigate();
-  const { session } = useAuth();
-  const [showTutorialDialog, setShowTutorialDialog] = useState(true);
+  const [contacts, setContacts] = useState<Contact[]>([]);
 
-  const { data: profileData } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
+  useEffect(() => {
+    const fetchContacts = async () => {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('onboarding_step, has_completed_tutorial')
-        .eq('id', session.user.id)
-        .single();
+        .from('contacts')
+        .select('*');
       
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session?.user?.id
-  });
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        return;
+      }
 
-  const isInTutorial = profileData?.onboarding_step === 'contactsintro' && !profileData?.has_completed_tutorial;
+      setContacts(data || []);
+    };
 
-  const handleSkipContacts = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      await supabase
-        .from('profiles')
-        .update({ onboarding_step: 'calendarintro' })
-        .eq('id', session.user.id);
-      
-      navigate('/');
-    } catch (error) {
-      console.error('Error updating tutorial progress:', error);
-    }
-  };
-
-  const handleConnectContacts = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      await supabase
-        .from('profiles')
-        .update({ onboarding_step: 'calendarintro' })
-        .eq('id', session.user.id);
-      
-      navigate('/');
-    } catch (error) {
-      console.error('Error updating tutorial progress:', error);
-    }
-  };
+    fetchContacts();
+  }, []);
 
   return (
-    <Sheet open={true}>
-      <SheetContent
-        side="left"
-        className="w-full sm:w-[540px] p-0"
-        onPointerDownOutside={() => navigate("/")}
-      >
-        <div className="flex items-center p-4 border-b">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="mr-2"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h2 className="text-lg font-semibold">Contacts</h2>
-        </div>
-
-        {isInTutorial && (
-          <Dialog open={showTutorialDialog} onOpenChange={setShowTutorialDialog}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle>Welcome to Your Constellation</DialogTitle>
-                <DialogDescription>
-                  Your relationships are a beautiful Constellation, but right now it's a bit empty.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button onClick={handleConnectContacts}>
-                  Connect Contacts
-                </Button>
-                <Button variant="outline" onClick={handleSkipContacts}>
-                  Not Now
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+    <div className="min-h-screen bg-[url('/galaxy-background.jpg')] bg-cover bg-center p-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {contacts.map((contact) => (
+          <ContactCard
+            key={contact.id}
+            name={contact.name}
+            phone={contact.phone}
+            instagram={contact.instagram}
+            linkedin={contact.linkedin}
+            twitter={contact.twitter}
+            meetingStory={contact.meeting_story}
+            relationship={contact.relationship}
+          />
+        ))}
+        {contacts.length === 0 && (
+          <div className="col-span-full text-center text-white text-xl">
+            No contacts found. Start adding some!
+          </div>
         )}
-
-        <div className="p-4">
-          <Alert>
-            <AlertTitle>No contacts yet</AlertTitle>
-            <AlertDescription>
-              Start adding contacts to build your network.
-            </AlertDescription>
-          </Alert>
-        </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </div>
   );
 };
 
