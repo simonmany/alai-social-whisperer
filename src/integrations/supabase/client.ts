@@ -5,26 +5,46 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://ejqucnzpgebbujlnmdzx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqcXVjbnpwZ2ViYnVqbG5tZHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1MDA3NjgsImV4cCI6MjA1MzA3Njc2OH0.wXBUTxCLlq4vtGnF8ScvGFzZQeJfdYhgzvW6CF3eViI";
 
+// Set the base URL and redirect URL based on environment
+export const BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:8080'
+  : import.meta.env.VITE_PUBLIC_SITE_URL;
+
+export const REDIRECT_URL = import.meta.env.DEV
+  ? 'http://localhost:8080/auth/callback'
+  : `${import.meta.env.VITE_PUBLIC_SITE_URL}/auth/callback`;
+
+// Create Supabase client with environment-aware auth settings
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
     storage: localStorage,
-    detectSessionInUrl: false 
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    debug: import.meta.env.DEV
   }
 });
 
-
-const BASE_URL = import.meta.env.VITE_PUBLIC_SITE_URL;
-export const REDIRECT_URL = import.meta.env.VITE_SUPABASE_REDIRECT_URL;
-
+// Configure global auth settings
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+    console.log('Auth state changed:', event, {
+      hasSession: !!session,
+      hasProviderToken: !!session?.provider_token,
+      hasRefreshToken: !!session?.refresh_token,
+      provider: session?.user?.app_metadata?.provider
+    });
+  }
+});
 
 if (import.meta.env.DEV) {
   console.log('Auth configuration:', {
     baseUrl: BASE_URL,
     redirectUrl: REDIRECT_URL,
     mode: import.meta.env.MODE,
-    dev: import.meta.env.DEV
+    dev: import.meta.env.DEV,
+    supabaseUrl: SUPABASE_URL
   });
 }
 

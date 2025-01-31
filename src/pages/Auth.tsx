@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,12 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase, REDIRECT_URL } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Separator } from "@/components/ui/separator";
-
-
-
-console.log("Using redirect URL:", REDIRECT_URL);
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -23,43 +19,6 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      const allowedOrigins = [
-        window.location.origin,
-        import.meta.env.VITE_PUBLIC_SITE_URL
-      ];
-      if (!allowedOrigins.includes(event.origin)) return;
-      // Verify the message is from our popup
-      if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
-        console.log("Received success message from popup");
-        try {
-          // Force a session refresh
-          const { data: { session }, error } = await supabase.auth.refreshSession();
-          if (error) throw error;
-          
-          if (session) {
-            console.log("Session refreshed successfully, navigating to home");
-            navigate("/");
-          } else {
-            throw new Error("No session after refresh");
-          }
-        } catch (error: any) {
-          console.error("Error refreshing session:", error);
-          toast({
-            title: "Error signing in",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [navigate, toast]);
-
   const validatePassword = (password: string) => {
     if (password.length < 6) {
       setPasswordError("Password must be at least 6 characters long");
@@ -70,34 +29,42 @@ const Auth = () => {
   };
   
   const handleSignInWithGoogle = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent default button behavior
-    console.log("Google sign-in button clicked"); // Initial click confirmation
+    e.preventDefault();
+    console.log("Google sign-in button clicked");
     try {
       setLoading(true);
-      const stateToken = crypto.randomUUID();
-      localStorage.setItem('oauth_state', stateToken);
-      
-      
-      console.log('Starting OAuth flow with:', {
-        state: stateToken,
-        redirectUrl: REDIRECT_URL
-      });
       
       // Clear any existing session first
       await supabase.auth.signOut();
+
+      // Get the current URL for development vs production
+      const redirectTo = import.meta.env.DEV 
+        ? 'http://localhost:8080/auth/callback'
+        : `${import.meta.env.VITE_PUBLIC_SITE_URL}/auth/callback`;
+
+      // In development, we need to use the Supabase callback URL
+      const supabaseRedirectTo = import.meta.env.DEV
+        ? 'https://ejqucnzpgebbujlnmdzx.supabase.co/auth/v1/callback'
+        : redirectTo;
+      
+      console.log('Starting OAuth flow with:', {
+        redirectTo,
+        supabaseRedirectTo,
+        mode: import.meta.env.MODE,
+        dev: import.meta.env.DEV
+      });
       
       // Start new OAuth flow
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          scopes: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          redirectTo: supabaseRedirectTo,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
-            state: stateToken
-          },
-          redirectTo: REDIRECT_URL,
-          skipBrowserRedirect: false
+            redirect_to: redirectTo // This tells Supabase where to redirect after its callback
+          }
         }
       });
       
@@ -136,13 +103,12 @@ const Auth = () => {
         options: {
           data: {
             username,
-            avatar_url: null, // Initialize avatar_url as null
+            avatar_url: null,
           },
         },
       });
 
       if (error) {
-        // Parse the error message from the response body if it exists
         const errorBody = error.message && JSON.parse(error.message);
         const isUserExists = error.status === 422 || 
                            errorBody?.code === "user_already_exists" ||
@@ -159,15 +125,15 @@ const Auth = () => {
             throw signInError;
           }
 
-          // After successful sign in, update the profile with Google data if available
           if (signInData.user?.app_metadata?.provider === 'google') {
             const { user_metadata } = signInData.user;
             await supabase
               .from('profiles')
               .update({
-                avatar_url: user_metadata.avatar_url,
-                display_name: user_metadata.full_name,
-              })
+                avatar_url: user_metadata.avatar_url || null,
+                display_name: user_metadata.full_name || null,
+                updated_at: new Date().toISOString()
+              } as any)
               .eq('id', signInData.user.id);
           }
 
@@ -187,7 +153,6 @@ const Auth = () => {
         description: "Please check your email to confirm your account.",
       });
       
-      // Auto-navigate if email confirmation is disabled in Supabase
       if (data.user && !data.user.confirmed_at) {
         navigate("/");
       }
@@ -220,15 +185,15 @@ const Auth = () => {
         throw error;
       }
 
-      // After successful sign in, update the profile with Google data if available
       if (data.user?.app_metadata?.provider === 'google') {
         const { user_metadata } = data.user;
         await supabase
           .from('profiles')
           .update({
-            avatar_url: user_metadata.avatar_url,
-            display_name: user_metadata.full_name,
-          })
+            avatar_url: user_metadata.avatar_url || null,
+            display_name: user_metadata.full_name || null,
+            updated_at: new Date().toISOString()
+          } as any)
           .eq('id', data.user.id);
       }
       

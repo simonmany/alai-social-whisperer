@@ -10,83 +10,14 @@ const AuthCallback = () => {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const stateParam = urlParams.get('state');
-        const storedState = localStorage.getItem('oauth_state');
-        const error = urlParams.get('error');
-        const errorDescription = urlParams.get('error_description');
-        const authCode = urlParams.get('code');
-
-        console.log('Auth Callback Debug:', {
-          hasCode: !!authCode,
-          stateParam,
-          storedState,
-          error,
-          errorDescription,
-          currentUrl: window.location.href
-        });
-
-        // Handle errors first
-        if (error || errorDescription) {
-          console.error('OAuth Error:', error, errorDescription);
+        // Let Supabase handle the OAuth callback
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Auth callback error:', error);
           toast({
             title: 'Authentication Error',
-            description: errorDescription || 'Failed to connect Google Calendar',
-            variant: 'destructive'
-          });
-          navigate('/');
-          return;
-        }
-
-        // Validate state
-        if (!stateParam || !storedState || stateParam !== storedState) {
-          console.error('Invalid state parameter');
-          toast({
-            title: 'Authentication Error',
-            description: 'Invalid authentication state',
-            variant: 'destructive'
-          });
-          navigate('/');
-          return;
-        }
-
-        // Clear state
-        localStorage.removeItem('oauth_state');
-
-        // Validate code
-        if (!authCode) {
-          console.error('No authorization code received');
-          toast({
-            title: 'Authentication Error',
-            description: 'No authorization code received',
-            variant: 'destructive'
-          });
-          navigate('/');
-          return;
-        }
-
-        console.log('Starting code exchange with:', {
-          hasCode: !!authCode,
-          currentUrl: window.location.href,
-          mode: import.meta.env.MODE,
-          dev: import.meta.env.DEV
-        });
-
-        // Get current session first
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log('Current session:', {
-          hasSession: !!currentSession,
-          userId: currentSession?.user?.id,
-          provider: currentSession?.user?.app_metadata?.provider
-        });
-
-        // Exchange code for session
-        const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(authCode);
-        if (exchangeError) {
-          console.error('Failed to exchange code for session:', exchangeError);
-          toast({
-            title: 'Authentication Error',
-            description: 'Failed to complete authentication',
+            description: error.message,
             variant: 'destructive'
           });
           navigate('/');
@@ -94,7 +25,7 @@ const AuthCallback = () => {
         }
 
         if (!data?.session) {
-          console.error('No session received from code exchange');
+          console.error('No session received');
           toast({
             title: 'Authentication Error',
             description: 'No session received',
@@ -105,7 +36,7 @@ const AuthCallback = () => {
         }
 
         const session = data.session;
-        console.log('Session exchange result:', {
+        console.log('Session received:', {
           hasSession: true,
           hasProviderToken: !!session.provider_token,
           hasProviderRefreshToken: !!session.provider_refresh_token,
@@ -121,8 +52,9 @@ const AuthCallback = () => {
             .update({
               google_access_token: session.provider_token,
               google_refresh_token: session.provider_refresh_token,
-              google_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString()
-            })
+              google_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
+              updated_at: new Date().toISOString()
+            } as any)
             .eq('id', session.user.id);
 
           if (updateError) {
@@ -136,7 +68,11 @@ const AuthCallback = () => {
 
           // Store tokens in app_metadata using store_auth function
           try {
-            const response = await fetch('/functions/v1/store_auth', {
+            const storeAuthUrl = import.meta.env.DEV
+              ? 'http://localhost:54321/functions/v1/store_auth'
+              : '/functions/v1/store_auth';
+
+            const response = await fetch(storeAuthUrl, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
