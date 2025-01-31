@@ -1,10 +1,8 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import express, { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
+import { serve } from "std/http/server.ts"
+import { createClient } from '@supabase/supabase-js'
+import { corsHeaders } from '../_shared/cors.ts'
 
-type CalendarAction = 'list' | 'create' | 'update' | 'delete';
-
-interface GoogleCalendarEvent {
+interface CalendarEvent {
   id: string;
   summary?: string;
   description?: string;
@@ -12,18 +10,6 @@ interface GoogleCalendarEvent {
   end?: { dateTime?: string; date?: string };
 }
 
-interface CustomRequest extends Request {
-  user?: any;
-  headers: Record<string, string | string[] | undefined>;
-  body: {
-    action: CalendarAction;
-    timeMin?: string;
-    timeMax?: string;
-    [key: string]: any;
-  };
-}
-
-// Validate environment variables
 const validateEnv = () => {
   const requiredVars = [
     'SUPABASE_URL',
@@ -33,139 +19,21 @@ const validateEnv = () => {
   ];
   
   requiredVars.forEach(varName => {
-    if (!process.env[varName]) {
+    if (!Deno.env.get(varName)) {
       throw new Error(`Missing required environment variable: ${varName}`);
     }
   });
 };
 
-const initSupabase = (): SupabaseClient => {
+const initSupabase = () => {
   validateEnv();
   return createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   );
 };
 
-const app = express();
-app.use(express.json());
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  methods: ['POST', 'OPTIONS'],
-  allowedHeaders: ['Authorization', 'Content-Type']
-}));
-
-// Authentication middleware
-const authenticateUser = async (req: CustomRequest, res: Response, next: NextFunction) => {
-  try {
-    const authHeader = Array.isArray(req.headers.authorization)
-      ? req.headers.authorization[0]
-      : req.headers.authorization;
-      
-    if (!authHeader?.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Invalid authorization format' });
-    }
-
-    const token = authHeader.replace(/^Bearer\s+/i, '');
-    const supabase = initSupabase();
-    
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    if (error || !user) {
-      return res.status(401).json({ error: 'Invalid session' });
-    }
-
-    req.user = user;
-    next();
-  } catch (err) {
-    console.error('Authentication error:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-// Unified error handler
-const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(`[${new Date().toISOString()}] Error:`, err);
-  
-  const statusCode = err.message.includes('auth') ? 401 : 500;
-  res.status(statusCode).json({
-    error: err.message,
-    code: statusCode === 401 ? 'UNAUTHENTICATED' : 'INTERNAL_ERROR'
-  });
-};
-
-app.use(authenticateUser);
-
-const handleGoogleTokenRefresh = async (user: any) => {
-  const supabase = initSupabase();
-  const { data: { session }, error } = await supabase.auth.refreshSession({
-    refresh_token: user.app_metadata.refresh_token
-  });
-
-  if (error || !session?.provider_token) {
-    throw new Error('Failed to refresh Google token');
-  }
-
-  return session.provider_token;
-};
-
-app.post('/', async (req: CustomRequest, res: Response) => {
-  try {
-    const { action, ...payload } = req.body;
-    const user = req.user!;
-
-    const accessToken = await handleGoogleTokenRefresh(user);
-
-    switch (action) {
-      case 'list': {
-        const { timeMin, timeMax } = payload;
-        if (!timeMin || !timeMax) {
-          throw new Error('Missing timeMin/timeMax parameters');
-        }
-        return handleListEvents(res, user, accessToken, { timeMin, timeMax });
-      }
-      case 'create': {
-        const { title, start_time, end_time } = payload;
-        if (!title || !start_time || !end_time) {
-          throw new Error('Missing required fields for event creation');
-        }
-        return handleCreateEvent(res, user, accessToken, {
-          title,
-          description: payload.description,
-          start_time,
-          end_time
-        });
-      }
-      case 'update': {
-        const { google_event_id, title, start_time, end_time } = payload;
-        if (!google_event_id || !title || !start_time || !end_time) {
-          throw new Error('Missing required fields for event update');
-        }
-        return handleUpdateEvent(res, user, accessToken, {
-          google_event_id,
-          title,
-          description: payload.description,
-          start_time,
-          end_time
-        });
-      }
-      case 'delete': {
-        const { google_event_id } = payload;
-        if (!google_event_id) {
-          throw new Error('Missing google_event_id for deletion');
-        }
-        return handleDeleteEvent(res, user, accessToken, { google_event_id });
-      }
-      default:
-        throw new Error(`Unsupported action: ${action}`);
-    }
-  } catch (err) {
-    errorHandler(err instanceof Error ? err : new Error('Unknown error'), req, res, () => {});
-  }
-});
-
-// Event handlers
 const handleListEvents = async (
-  res: Response,
   user: any,
   accessToken: string,
   { timeMin, timeMax }: { timeMin: string; timeMax: string }
@@ -191,7 +59,7 @@ const handleListEvents = async (
   }
 
   const data = await response.json();
-  const events = (data.items || []).map((event: GoogleCalendarEvent) => ({
+  const events = (data.items || []).map((event: CalendarEvent) => ({
     user_id: user.id,
     google_event_id: event.id,
     title: event.summary || 'Untitled Event',
@@ -208,15 +76,10 @@ const handleListEvents = async (
 
   if (error) throw new Error('Database sync failed');
 
-  res.json({
-    status: 'success',
-    synced_events: events.length,
-    events
-  });
+  return { events, synced_events: events.length };
 };
 
 const handleCreateEvent = async (
-  res: Response,
   user: any,
   accessToken: string,
   payload: {
@@ -268,14 +131,10 @@ const handleCreateEvent = async (
 
   if (error) throw new Error('Database insertion failed');
 
-  res.status(201).json({
-    status: 'success',
-    event: data
-  });
+  return { event: data };
 };
 
 const handleUpdateEvent = async (
-  res: Response,
   user: any,
   accessToken: string,
   payload: {
@@ -323,14 +182,10 @@ const handleUpdateEvent = async (
 
   if (error) throw new Error('Database update failed');
 
-  res.json({
-    status: 'success',
-    message: 'Event updated'
-  });
+  return { message: 'Event updated' };
 };
 
 const handleDeleteEvent = async (
-  res: Response,
   user: any,
   accessToken: string,
   payload: { google_event_id: string }
@@ -360,15 +215,117 @@ const handleDeleteEvent = async (
 
   if (error) throw new Error('Database deletion failed');
 
-  res.json({
-    status: 'success',
-    message: 'Event deleted'
-  });
+  return { message: 'Event deleted' };
 };
 
-app.use(errorHandler);
+const handleGoogleTokenRefresh = async (user: any) => {
+  const supabase = initSupabase();
+  const { data: { session }, error } = await supabase.auth.refreshSession({
+    refresh_token: user.app_metadata.refresh_token
+  });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Calendar service running on port ${PORT}`);
-});
+  if (error || !session?.provider_token) {
+    throw new Error('Failed to refresh Google token');
+  }
+
+  return session.provider_token;
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authorization format' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    const supabase = initSupabase();
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid session' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { action, ...payload } = await req.json();
+    const accessToken = await handleGoogleTokenRefresh(user);
+
+    let result;
+    switch (action) {
+      case 'list': {
+        const { timeMin, timeMax } = payload;
+        if (!timeMin || !timeMax) {
+          throw new Error('Missing timeMin/timeMax parameters');
+        }
+        result = await handleListEvents(user, accessToken, { timeMin, timeMax });
+        break;
+      }
+      case 'create': {
+        const { title, start_time, end_time } = payload;
+        if (!title || !start_time || !end_time) {
+          throw new Error('Missing required fields for event creation');
+        }
+        result = await handleCreateEvent(user, accessToken, {
+          title,
+          description: payload.description,
+          start_time,
+          end_time
+        });
+        break;
+      }
+      case 'update': {
+        const { google_event_id, title, start_time, end_time } = payload;
+        if (!google_event_id || !title || !start_time || !end_time) {
+          throw new Error('Missing required fields for event update');
+        }
+        result = await handleUpdateEvent(user, accessToken, {
+          google_event_id,
+          title,
+          description: payload.description,
+          start_time,
+          end_time
+        });
+        break;
+      }
+      case 'delete': {
+        const { google_event_id } = payload;
+        if (!google_event_id) {
+          throw new Error('Missing google_event_id for deletion');
+        }
+        result = await handleDeleteEvent(user, accessToken, { google_event_id });
+        break;
+      }
+      default:
+        throw new Error(`Unsupported action: ${action}`);
+    }
+
+    return new Response(
+      JSON.stringify({ status: 'success', ...result }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error('Unknown error');
+    console.error(`[${new Date().toISOString()}] Error:`, error);
+    
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+        code: error.message.includes('auth') ? 'UNAUTHENTICATED' : 'INTERNAL_ERROR'
+      }),
+      { 
+        status: error.message.includes('auth') ? 401 : 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    );
+  }
+})

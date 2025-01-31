@@ -113,8 +113,9 @@ const AuthCallback = () => {
           provider: session.user?.app_metadata?.provider
         });
 
-        // Store tokens in profile
+        // Store tokens in profile and app_metadata
         if (session.provider_token && session.provider_refresh_token) {
+          // Update profile
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
@@ -131,11 +132,39 @@ const AuthCallback = () => {
               description: 'Calendar connected but failed to save settings',
               variant: 'destructive'
             });
-          } else {
-            console.log('Successfully stored Google tokens in profile');
+          }
+
+          // Store tokens in app_metadata using store_auth function
+          try {
+            const response = await fetch('/functions/v1/store_auth', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session.access_token}`
+              },
+              body: JSON.stringify({
+                user_id: session.user.id,
+                refresh_token: session.refresh_token,
+                provider_token: session.provider_token,
+                provider_refresh_token: session.provider_refresh_token
+              })
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to store auth data');
+            }
+
+            console.log('Successfully stored Google tokens');
             toast({
               title: 'Success',
               description: 'Google Calendar connected successfully'
+            });
+          } catch (error) {
+            console.error('Failed to store auth data:', error);
+            toast({
+              title: 'Warning',
+              description: 'Calendar connected but some settings were not saved',
+              variant: 'destructive'
             });
           }
         } else {
