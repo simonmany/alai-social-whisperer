@@ -22,14 +22,20 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
     "First, let's get to know each other a bit better! What's your name?"
   ];
 
+  useEffect(() => {
+    // If we're on the last screen, show the input after a short delay
+    if (currentScreen === screens.length - 1) {
+      const timer = setTimeout(() => {
+        setShowInput(true);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [currentScreen, screens.length]);
+
   const handleScreenComplete = (screenIndex: number) => {
     if (screenIndex < screens.length - 1) {
       setTimeout(() => {
         setCurrentScreen(screenIndex + 1);
-      }, 250);
-    } else {
-      setTimeout(() => {
-        setShowInput(true);
       }, 250);
     }
   };
@@ -67,15 +73,18 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
         )
       ))}
       
-      {showInput && (
-        <div className="transition-opacity duration-500 opacity-100">
-          <ChatInput
-            onSend={handleNameSubmit}
-            placeholder="Enter your name..."
-            initialValue={initialName}
-          />
-        </div>
-      )}
+      {/* Always render the input but control visibility with CSS */}
+      <div 
+        className={`transition-all duration-500 ${
+          showInput ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
+        }`}
+      >
+        <ChatInput
+          onSend={handleNameSubmit}
+          placeholder="Enter your name..."
+          initialValue={initialName}
+        />
+      </div>
     </div>
   );
 };
