@@ -23,6 +23,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
+  const [closeButtonPosition, setCloseButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -46,6 +47,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
+      const closeButton = document.querySelector('[aria-label="Close"]');
       
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
@@ -62,6 +64,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         
         setArrowPosition(newArrowPosition);
         setMessagePosition(newMessagePosition);
+      }
+
+      if (closeButton) {
+        const rect = closeButton.getBoundingClientRect();
+        setCloseButtonPosition({
+          top: rect.top + (rect.height / 2) - 20,
+          left: rect.left - 48
+        });
       }
     };
 
@@ -111,13 +121,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     if (isProfileOpen && step === 'initial') {
       setStep('profile');
     }
-    // If profile is closed and we're in either 'profile' or 'goals' step, revert to 'initial'
     if (!isProfileOpen && (step === 'goals' || step === 'profile')) {
       setStep('initial');
     }
   }, [isProfileOpen, step]);
 
-  // Effect to check if user has set a goal and advance to 'goals' step
   useEffect(() => {
     if (step === 'profile' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
       setStep('goals');
@@ -210,8 +218,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialArrow 
-            direction="left" 
-            className="right-16 top-8"
+            direction="right" 
+            style={{
+              position: 'fixed',
+              top: `${closeButtonPosition.top}px`,
+              left: `${closeButtonPosition.left}px`,
+            }}
           />
           <TutorialMessage className="right-24 top-20">
             Nice! I'm looking forward to helping you make that happen. Let's close the profile screen for now.
