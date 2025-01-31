@@ -65,11 +65,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         setMessagePosition(newMessagePosition);
       }
 
-      if (closeButton) {
+      if (closeButton && step === 'goals') {
         const rect = closeButton.getBoundingClientRect();
         setCloseButtonPosition({
           top: rect.top + (rect.height / 2),
-          left: rect.left - 48
+          left: rect.right + 16 // Position arrow to the right of the X button
         });
       }
     };
@@ -222,7 +222,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialArrow 
-            direction="right" 
+            direction="left"  // Changed to point left towards the X button
             style={{
               position: 'fixed',
               top: `${closeButtonPosition.top}px`,
