@@ -10,9 +10,10 @@ interface GoalsSectionProps {
   session: any;
   onComplete: (goals: string[]) => void;
   initialGoals?: string[];
+  userName?: string;
 }
 
-export const GoalsSection = ({ session, onComplete, initialGoals }: GoalsSectionProps) => {
+export const GoalsSection = ({ session, onComplete, initialGoals, userName }: GoalsSectionProps) => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals || []);
   const [showOptions, setShowOptions] = useState(false);
   const { toast } = useToast();
@@ -24,6 +25,10 @@ export const GoalsSection = ({ session, onComplete, initialGoals }: GoalsSection
     "Go on dates and find love",
     "Network professionally"
   ];
+
+  const capitalizedName = userName 
+    ? userName.charAt(0).toUpperCase() + userName.slice(1) 
+    : '';
 
   const handleGoalToggle = (goal: string) => {
     setSelectedGoals(prev => 
@@ -50,10 +55,10 @@ export const GoalsSection = ({ session, onComplete, initialGoals }: GoalsSection
         .eq('id', session?.user.id);
 
       onComplete(selectedGoals);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error saving goals",
-        description: "Please try again",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
     }
@@ -61,6 +66,16 @@ export const GoalsSection = ({ session, onComplete, initialGoals }: GoalsSection
 
   return (
     <div className="space-y-4">
+      {userName && (
+        <div className="text-lg font-medium mb-6">
+          <TypewriterText
+            text={`Nice to meet you, ${capitalizedName}!`}
+            delay={0}
+            typingSpeed={25}
+          />
+        </div>
+      )}
+      
       <div className="text-lg">
         <TypewriterText
           text="Next, let's talk about your goals. Which of these are you interested in? You can choose multiple."

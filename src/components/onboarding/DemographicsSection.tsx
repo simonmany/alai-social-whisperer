@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TypewriterText } from "@/components/TypewriterText";
 import Autocomplete from 'react-google-autocomplete';
-import { useQuery } from "@tanstack/react-query";
 
 interface DemographicsSectionProps {
   session: any;
@@ -17,6 +16,9 @@ interface DemographicsSectionProps {
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
   const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
+  const [age, setAge] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [occupation, setOccupation] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,7 +45,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
   }, [step, toast]);
 
-  const handleAgeSubmit = async (age: string) => {
+  const handleAgeSubmit = async () => {
     const ageNum = parseInt(age);
     if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
       toast({
@@ -70,11 +72,20 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
   };
 
-  const handleCitySubmit = async (city: string) => {
+  const handleCitySubmit = async () => {
+    if (!selectedCity) {
+      toast({
+        title: "Please select a city",
+        description: "Select a city from the dropdown",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await supabase
         .from('profiles')
-        .update({ city })
+        .update({ city: selectedCity })
         .eq('id', session?.user.id);
 
       setStep('languages');
@@ -138,7 +149,16 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
   };
 
-  const handleOccupationSubmit = async (occupation: string) => {
+  const handleOccupationSubmit = async () => {
+    if (!occupation.trim()) {
+      toast({
+        title: "Please enter your occupation",
+        description: "Tell us what you do for work",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await supabase
         .from('profiles')
@@ -149,7 +169,6 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         })
         .eq('id', session?.user.id);
 
-      // Immediately call onComplete to trigger the profile button show
       onComplete();
     } catch (error) {
       toast({
@@ -171,11 +190,21 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
           </div>
-          <ChatInput
-            onSend={handleAgeSubmit}
-            placeholder="Enter your age..."
-            type="number"
-          />
+          <div className="space-y-4">
+            <ChatInput
+              onSend={(value) => setAge(value)}
+              placeholder="Enter your age..."
+              type="number"
+              initialValue={age}
+              showSendButton={false}
+            />
+            <Button 
+              onClick={handleAgeSubmit}
+              className="w-full"
+            >
+              Continue
+            </Button>
+          </div>
         </>
       )}
 
@@ -188,26 +217,35 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
           </div>
-          <div className="w-full max-w-md">
-            <Autocomplete
-              apiKey={mapsApiKey}
-              onPlaceSelected={(place: any) => {
-                console.log('Selected place:', place);
-                if (place && typeof place === 'object') {
-                  const address = place.formatted_address || place.name || '';
-                  console.log('Using address:', address);
-                  if (address) {
-                    handleCitySubmit(address);
+          <div className="space-y-4">
+            <div className="w-full max-w-md">
+              <Autocomplete
+                apiKey={mapsApiKey}
+                onPlaceSelected={(place: any) => {
+                  console.log('Selected place:', place);
+                  if (place && typeof place === 'object') {
+                    const address = place.formatted_address || place.name || '';
+                    console.log('Using address:', address);
+                    if (address) {
+                      setSelectedCity(address);
+                    }
                   }
-                }
-              }}
-              options={{
-                types: ['(cities)'],
-                fields: ['formatted_address']
-              }}
-              className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
-              placeholder="Enter your city..."
-            />
+                }}
+                options={{
+                  types: ['(cities)'],
+                  fields: ['formatted_address']
+                }}
+                className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
+                placeholder="Enter your city..."
+              />
+            </div>
+            <Button 
+              onClick={handleCitySubmit}
+              className="w-full"
+              disabled={!selectedCity}
+            >
+              Continue
+            </Button>
           </div>
         </>
       )}
@@ -282,10 +320,21 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
           </div>
-          <ChatInput
-            onSend={handleOccupationSubmit}
-            placeholder="What do you do for work?"
-          />
+          <div className="space-y-4">
+            <ChatInput
+              onSend={(value) => setOccupation(value)}
+              placeholder="What do you do for work?"
+              showSendButton={false}
+              initialValue={occupation}
+            />
+            <Button 
+              onClick={handleOccupationSubmit}
+              className="w-full"
+              disabled={!occupation.trim()}
+            >
+              Finish
+            </Button>
+          </div>
         </>
       )}
     </div>

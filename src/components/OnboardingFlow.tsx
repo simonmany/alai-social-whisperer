@@ -1,179 +1,267 @@
 import { useState } from "react";
-import { ChatMessage } from "@/components/ChatMessage";
 import { TypewriterText } from "@/components/TypewriterText";
-import { PersonalityQuiz } from "@/components/PersonalityQuiz";
-import { InterestSelector } from "@/components/InterestSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
 import { BasicInfo } from "./onboarding/BasicInfo";
 import { GoalsSection } from "./onboarding/GoalsSection";
 import { DemographicsSection } from "./onboarding/DemographicsSection";
+import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
+import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
+import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateChatResponse } from "@/utils/openai";
+import type { OnboardingState } from "@/types/onboarding";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
 }
 
-interface OnboardingState {
-  name?: string;
-  goals?: string[];
-  personalityTraits?: Record<string, number>;
-  personalityComments?: string[];
-  currentInterests?: string[];
-  desiredInterests?: string[];
-}
+type OnboardingStep = 
+  | 'basic' 
+  | 'goals' 
+  | 'personality-intro'
+  | 'personality-q1'
+  | 'personality-q2'
+  | 'personality-q3'
+  | 'personality-q4'
+  | 'interests'
+  | 'future-interests'
+  | 'demographics';
+
+const questions = [
+  {
+    id: 1,
+    text: "Do you consider yourself an introvert or an extrovert?",
+    leftLabel: "introvert",
+    rightLabel: "extrovert",
+  },
+  {
+    id: 2,
+    text: "Are you typically quiet or talkative in social settings?",
+    leftLabel: "Quality over quantity",
+    rightLabel: "adept conversationalist",
+  },
+  {
+    id: 3,
+    text: "Do you prefer to hang out with people one on one or in groups?",
+    leftLabel: "Love a duet",
+    rightLabel: "love an orchestra",
+  },
+  {
+    id: 4,
+    text: "Do you prefer to plan ahead or be spontaneous?",
+    leftLabel: "I live by my calendar",
+    rightLabel: "What's a calendar?",
+  },
+];
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
-  const [step, setStep] = useState<'basic' | 'goals' | 'personality' | 'current-interests' | 'desired-interests' | 'demographics'>('basic');
+  const [step, setStep] = useState<OnboardingStep>('basic');
   const [state, setState] = useState<OnboardingState>({});
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [personalityResponse, setPersonalityResponse] = useState<string>("");
+  const [aiResponse, setAiResponse] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
-
-  const handleBasicInfoComplete = (name: string) => {
-    setState(prev => ({ ...prev, name }));
-    setTimeout(() => {
-      setStep('goals');
-    }, 500);
-  };
-
-  const handleGoalsComplete = (goals: string[]) => {
-    setState(prev => ({ ...prev, goals }));
-    setTimeout(() => {
-      setStep('personality');
-    }, 500);
-  };
-
-  const handlePersonalityComplete = async (traits: Record<string, number>, comments: string[]) => {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          personality_traits: traits,
-          personality_comments: comments 
-        })
-        .eq('id', session?.user.id);
-
-      setState(prev => ({ ...prev, personalityTraits: traits, personalityComments: comments }));
-      
-      setIsLoadingAi(true);
-      const prompt = `Based on these personality quiz answers ${JSON.stringify(traits)} and comments ${JSON.stringify(comments)}, give a very brief (max 50 words) insight about this person's personality. Keep it friendly and positive.`;
-      const response = await generateChatResponse(prompt);
-      setPersonalityResponse(response);
-      setIsLoadingAi(false);
-      
-      setStep('current-interests');
-    } catch (error) {
-      toast({
-        title: "Error saving personality data",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCurrentInterestsComplete = async (interests: string[]) => {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ current_interests: interests })
-        .eq('id', session?.user.id);
-
-      setState(prev => ({ ...prev, currentInterests: interests }));
-      setStep('desired-interests');
-    } catch (error) {
-      toast({
-        title: "Error saving interests",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDesiredInterestsComplete = async (interests: string[]) => {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ desired_interests: interests })
-        .eq('id', session?.user.id);
-
-      setState(prev => ({ ...prev, desiredInterests: interests }));
-      setStep('demographics');
-    } catch (error) {
-      toast({
-        title: "Error saving interests",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDemographicsComplete = async () => {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: true,
-          onboarding_step: 'complete'
-        })
-        .eq('id', session?.user.id);
-      
-      onComplete();
-    } catch (error) {
-      toast({
-        title: "Error completing onboarding",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleBack = () => {
     switch (step) {
       case 'goals':
         setStep('basic');
         break;
-      case 'personality':
+      case 'personality-intro':
         setStep('goals');
         break;
-      case 'current-interests':
-        setStep('personality');
+      case 'personality-q1':
+        setStep('personality-intro');
         break;
-      case 'desired-interests':
-        setStep('current-interests');
+      case 'personality-q2':
+        setStep('personality-q1');
+        break;
+      case 'personality-q3':
+        setStep('personality-q2');
+        break;
+      case 'personality-q4':
+        setStep('personality-q3');
+        break;
+      case 'interests':
+        setStep('personality-q4');
+        break;
+      case 'future-interests':
+        setStep('interests');
         break;
       case 'demographics':
-        setStep('desired-interests');
+        setStep('future-interests');
         break;
     }
   };
 
+  const handleSkip = async () => {
+    switch (step) {
+      case 'personality-q1':
+      case 'personality-q2':
+      case 'personality-q3':
+      case 'personality-q4':
+        const nextSteps: Record<string, OnboardingStep> = {
+          'personality-q1': 'personality-q2',
+          'personality-q2': 'personality-q3',
+          'personality-q3': 'personality-q4',
+          'personality-q4': 'interests'
+        };
+        setStep(nextSteps[step]);
+        break;
+      case 'interests':
+        setStep('future-interests');
+        break;
+      case 'future-interests':
+        setStep('demographics');
+        break;
+    }
+  };
+
+  const handlePersonalityAnswer = async (questionIndex: number, value: number, comment: string) => {
+    const updatedTraits = { ...state.personalityTraits, [questions[questionIndex].id]: value };
+    const updatedComments = [...(state.personalityComments || [])];
+    updatedComments[questionIndex] = comment;
+
+    setState(prev => ({
+      ...prev,
+      personalityTraits: updatedTraits,
+      personalityComments: updatedComments
+    }));
+
+    setIsLoadingAi(true);
+    try {
+      const question = questions[questionIndex];
+      const responseType = value <= 40 ? question.leftLabel : value >= 80 ? question.rightLabel : "balanced";
+      let prompt = `Hey, I'm learning about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
+      
+      if (comment.trim()) {
+        prompt += `. Also, the user said this in relation to the question: "${comment}"`;
+      }
+      
+      const previousComments = updatedComments.filter((_, index) => index < questionIndex);
+      if (previousComments.length > 0) {
+        prompt += `. In previous questions, they've mentioned: "${previousComments.join('", "')}"`;
+      }
+      
+      prompt += `. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
+
+      console.log('Personality Quiz - Model Input:', {
+        questionIndex,
+        questionText: question.text,
+        selectedValue: value,
+        responseType,
+        userComment: comment,
+        previousComments,
+        fullPrompt: prompt
+      });
+      
+      const response = await generateChatResponse(prompt);
+      setAiResponse(response);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      toast({
+        title: "Error getting AI response",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingAi(false);
+
+    const nextSteps: Record<number, OnboardingStep> = {
+      0: 'personality-q2',
+      1: 'personality-q3',
+      2: 'personality-q4',
+      3: 'interests'
+    };
+    setStep(nextSteps[questionIndex]);
+  };
+
   const showBackButton = step !== 'basic';
+  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
+  const currentQuestionIndex = step.startsWith('personality-q') 
+    ? parseInt(step.charAt(step.length - 1)) - 1 
+    : -1;
+
+  const handleInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
+    setState(prev => {
+      const newState = { ...prev };
+      switch (category) {
+        case 'activities':
+          newState.currentInterests = selections;
+          break;
+        case 'food':
+          newState.foodPreferences = selections;
+          break;
+        case 'music':
+          newState.musicPreferences = selections;
+          break;
+      }
+      return newState;
+    });
+  };
+
+  const handleFutureInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
+    setState(prev => {
+      const newState = { ...prev };
+      switch (category) {
+        case 'activities':
+          newState.desiredInterests = selections;
+          break;
+        case 'food':
+          newState.desiredFoodPreferences = selections;
+          break;
+        case 'music':
+          newState.desiredMusicPreferences = selections;
+          break;
+      }
+      return newState;
+    });
+  };
+
+  const canProceedToNextSection = (section: 'current' | 'future') => {
+    if (section === 'current') {
+      return !!(state.currentInterests?.length || state.foodPreferences?.length || state.musicPreferences?.length);
+    } else {
+      return !!(state.desiredInterests?.length || state.desiredFoodPreferences?.length || state.desiredMusicPreferences?.length);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
-      {showBackButton && (
-        <Button
-          variant="ghost"
-          className="self-start mb-4"
-          onClick={handleBack}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      )}
+      <div className="flex justify-between items-center mb-4">
+        {showBackButton && (
+          <Button
+            variant="ghost"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        )}
+        {showSkipButton && (
+          <Button
+            variant="ghost"
+            onClick={handleSkip}
+            className="ml-auto"
+          >
+            Skip
+            <SkipForward className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+      </div>
       
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
         {step === 'basic' && (
           <BasicInfo 
             session={session} 
-            onComplete={handleBasicInfoComplete}
+            onComplete={(name) => {
+              setState(prev => ({ ...prev, name }));
+              setStep('goals');
+            }}
             initialName={state.name}
           />
         )}
@@ -181,86 +269,150 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {step === 'goals' && (
           <GoalsSection 
             session={session} 
-            onComplete={handleGoalsComplete}
+            onComplete={(goals) => {
+              setState(prev => ({ ...prev, goals }));
+              setStep('personality-intro');
+            }}
             initialGoals={state.goals}
+            userName={state.name}
           />
         )}
 
-        {step === 'personality' && (
-          <>
-            <div className="text-lg">
-              <TypewriterText
-                text="Now, I'd like to understand your personality better. Let's do a quick quiz!"
-                delay={0}
-                onComplete={() => setShowQuiz(true)}
-              />
-            </div>
-            <div className={cn(
-              "transition-opacity duration-500",
-              showQuiz ? "opacity-100" : "opacity-0"
-            )}>
-              <PersonalityQuiz 
-                onComplete={handlePersonalityComplete}
-                initialTraits={state.personalityTraits}
-                initialComments={state.personalityComments}
-              />
-            </div>
-          </>
+        {step === 'personality-intro' && (
+          <PersonalityIntro
+            userName={state.name}
+            onStart={() => setStep('personality-q1')}
+          />
         )}
 
-        {step === 'current-interests' && (
+        {currentQuestionIndex >= 0 && (
           <>
-            {isLoadingAi ? (
-              <div className="text-sm text-gray-500 animate-pulse">
-                Analyzing your personality...
-              </div>
-            ) : personalityResponse && (
-              <div className="bg-primary/10 p-4 rounded-lg mb-6">
-                <TypewriterText text={personalityResponse} />
-              </div>
-            )}
-            <div className="text-lg">
-              <TypewriterText
-                text="Thanks for sharing! Now, let's talk about interests. What do you like to do for fun?"
-                delay={0}
+            <div className="h-1 w-full bg-gray-200 rounded">
+              <div
+                className="h-1 bg-primary rounded transition-all duration-300"
+                style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
               />
             </div>
-            <div className="text-lg">
-              <TypewriterText
-                text="Enter at least 3 activities."
-                delay={1000}
-              />
-            </div>
-            <InterestSelector
-              onComplete={handleCurrentInterestsComplete}
-              placeholder="Type to search activities..."
-              minSelections={3}
-              initialSelections={state.currentInterests}
+            <PersonalityQuestion
+              question={questions[currentQuestionIndex]}
+              initialValue={state.personalityTraits?.[questions[currentQuestionIndex].id]}
+              aiResponse={aiResponse}
+              isLoadingAi={isLoadingAi}
+              onAnswer={(value, comment) => handlePersonalityAnswer(currentQuestionIndex, value, comment)}
             />
           </>
         )}
 
-        {step === 'desired-interests' && (
-          <>
-            <div className="text-lg">
-              <TypewriterText
-                text="That's a cool set of hobbies! Now, what is something you'd like to get into that you haven't done yet?"
-                delay={0}
-              />
+        {step === 'interests' && (
+          <div className="space-y-8">
+            <div>
+              <div className="text-lg mb-8">
+                <TypewriterText
+                  text="Let's talk about your current interests! What do you like to do for fun?"
+                  delay={0}
+                />
+              </div>
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                  <InterestSelector
+                    type="activities"
+                    onComplete={handleInterestComplete('activities')}
+                    placeholder="Type to search activities..."
+                    minSelections={1}
+                    initialSelections={state.currentInterests}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                  <InterestSelector
+                    type="food"
+                    onComplete={handleInterestComplete('food')}
+                    placeholder="Type your favorite cuisines and dishes..."
+                    minSelections={1}
+                    initialSelections={state.foodPreferences}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                  <InterestSelector
+                    type="music"
+                    onComplete={handleInterestComplete('music')}
+                    placeholder="Type your favorite music genres..."
+                    minSelections={1}
+                    initialSelections={state.musicPreferences}
+                  />
+                </div>
+                {canProceedToNextSection('current') && (
+                  <Button 
+                    onClick={() => setStep('future-interests')}
+                    className="w-full"
+                  >
+                    Next
+                  </Button>
+                )}
+              </div>
             </div>
-            <InterestSelector
-              onComplete={handleDesiredInterestsComplete}
-              placeholder="Type to search new activities..."
-              minSelections={1}
-              initialSelections={state.desiredInterests}
-            />
-          </>
+          </div>
+        )}
+
+        {step === 'future-interests' && (
+          <div className="space-y-8">
+            <div>
+              <div className="text-lg mb-8">
+                <TypewriterText
+                  text="Now, what are some things you'd like to try or get into that you don't currently do?"
+                  delay={0}
+                />
+              </div>
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                  <InterestSelector
+                    type="activities"
+                    onComplete={handleFutureInterestComplete('activities')}
+                    placeholder="Type activities you'd like to try..."
+                    minSelections={1}
+                    initialSelections={state.desiredInterests}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                  <InterestSelector
+                    type="food"
+                    onComplete={handleFutureInterestComplete('food')}
+                    placeholder="Type cuisines you'd like to try..."
+                    minSelections={1}
+                    initialSelections={state.desiredFoodPreferences}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                  <InterestSelector
+                    type="music"
+                    onComplete={handleFutureInterestComplete('music')}
+                    placeholder="Type music genres you'd like to explore..."
+                    minSelections={1}
+                    initialSelections={state.desiredMusicPreferences}
+                  />
+                </div>
+                {canProceedToNextSection('future') && (
+                  <Button 
+                    onClick={() => setStep('demographics')}
+                    className="w-full"
+                  >
+                    Next
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         )}
 
         {step === 'demographics' && (
           <DemographicsSection 
             session={session} 
-            onComplete={handleDemographicsComplete} 
+            onComplete={onComplete}
           />
         )}
       </div>

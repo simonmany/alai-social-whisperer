@@ -215,6 +215,27 @@ export type Database = {
           },
         ]
       }
+      food_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       languages: {
         Row: {
           created_at: string
@@ -233,6 +254,27 @@ export type Database = {
         }
         Relationships: []
       }
+      music_genres: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
@@ -241,6 +283,7 @@ export type Database = {
           current_interests: Json | null
           desired_interests: Json | null
           display_name: string | null
+          food_preferences: Json | null
           gender: string | null
           goals: Json | null
           google_access_token: string | null
@@ -249,6 +292,7 @@ export type Database = {
           has_completed_tutorial: boolean | null
           id: string
           languages: Json | null
+          music_preferences: Json | null
           occupation: string | null
           onboarding_completed: boolean | null
           onboarding_started_at: string | null
@@ -266,6 +310,7 @@ export type Database = {
           current_interests?: Json | null
           desired_interests?: Json | null
           display_name?: string | null
+          food_preferences?: Json | null
           gender?: string | null
           goals?: Json | null
           google_access_token?: string | null
@@ -274,6 +319,7 @@ export type Database = {
           has_completed_tutorial?: boolean | null
           id: string
           languages?: Json | null
+          music_preferences?: Json | null
           occupation?: string | null
           onboarding_completed?: boolean | null
           onboarding_started_at?: string | null
@@ -291,6 +337,7 @@ export type Database = {
           current_interests?: Json | null
           desired_interests?: Json | null
           display_name?: string | null
+          food_preferences?: Json | null
           gender?: string | null
           goals?: Json | null
           google_access_token?: string | null
@@ -299,6 +346,7 @@ export type Database = {
           has_completed_tutorial?: boolean | null
           id?: string
           languages?: Json | null
+          music_preferences?: Json | null
           occupation?: string | null
           onboarding_completed?: boolean | null
           onboarding_started_at?: string | null
