@@ -60,6 +60,7 @@ export const MainNavigation = ({
   const showCalendarButton = profile?.onboarding_step === 'calendarintro' || 
                            profile?.onboarding_step === 'complete';
 
+  // If hideButtons is true, don't show any navigation
   if (hideButtons) {
     return null;
   }
@@ -94,6 +95,7 @@ export const MainNavigation = ({
     );
   }
 
+  // Default navigation with all buttons based on step
   return (
     <div className="flex justify-between items-center gap-2 mb-6">
       <div className="flex-1">
