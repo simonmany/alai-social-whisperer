@@ -50,6 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSessionError = async (error: any) => {
     console.error("Session error:", error);
     
+    // Check if it's a refresh token error
     const isRefreshTokenError = 
       error.message?.includes('refresh_token_not_found') || 
       error.message?.includes('Invalid Refresh Token');
@@ -75,44 +76,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(false);
   };
 
-  const ensureProfileExists = async (userId: string) => {
-    try {
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (error) throw error;
-
-      if (!profile) {
-        console.log("Creating new profile for user:", userId);
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert([{ 
-            id: userId,
-            onboarding_completed: false,
-            onboarding_step: 'initial',
-            onboarding_started_at: new Date().toISOString(),
-            has_completed_tutorial: false
-          }]);
-
-        if (insertError) throw insertError;
-      }
-
-      return profile;
-    } catch (error) {
-      console.error('Error ensuring profile exists:', error);
-      throw error;
-    }
-  };
-
   useEffect(() => {
     console.log("Setting up auth subscriptions");
 
     const initializeAuth = async () => {
       try {
-        setLoading(true);
         const { data: { session: initialSession }, error: sessionError } = 
           await supabase.auth.getSession();
         
@@ -122,18 +90,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         if (initialSession?.user) {
-          await ensureProfileExists(initialSession.user.id);
           await updateProfileWithGoogleData(initialSession.user);
           setSession(initialSession);
-        }
-        
-        setLoading(false);
-        
-        if (!initialSession) {
+        } else {
+          // If no session, redirect to auth page
           navigate("/auth");
         }
       } catch (error) {
         await handleSessionError(error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -147,23 +113,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       switch (event) {
         case 'SIGNED_IN':
           if (currentSession?.user) {
-            try {
-              await ensureProfileExists(currentSession.user.id);
-              await updateProfileWithGoogleData(currentSession.user);
-              setSession(currentSession);
-              toast({
-                title: "Signed in successfully",
-                description: "Welcome!",
-              });
-              navigate("/");
-            } catch (error) {
-              console.error("Error during sign in:", error);
-              toast({
-                title: "Error",
-                description: "There was an error setting up your profile",
-                variant: "destructive",
-              });
-            }
+            await updateProfileWithGoogleData(currentSession.user);
+            setSession(currentSession);
+            toast({
+              title: "Signed in successfully",
+              description: "Welcome back!",
+            });
+            navigate("/");
           }
           break;
 
