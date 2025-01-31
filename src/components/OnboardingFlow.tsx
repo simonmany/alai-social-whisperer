@@ -27,6 +27,7 @@ type OnboardingStep =
   | 'personality-q3'
   | 'personality-q4'
   | 'interests'
+  | 'future-interests'
   | 'demographics';
 
 const questions = [
@@ -98,8 +99,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case 'interests':
         setStep('personality-q4');
         break;
-      case 'demographics':
+      case 'future-interests':
         setStep('interests');
+        break;
+      case 'demographics':
+        setStep('future-interests');
         break;
     }
   };
@@ -235,7 +239,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div>
               <div className="text-lg mb-8">
                 <TypewriterText
-                  text="Let's talk about your interests! What do you like to do for fun? Enter as many activities, foods, and music genres as you like."
+                  text="Let's talk about your current interests! What do you like to do for fun?"
                   delay={0}
                 />
               </div>
@@ -267,25 +271,60 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <InterestSelector
                     onComplete={(music) => {
                       setState(prev => ({ ...prev, musicPreferences: music }));
+                      setStep('future-interests');
                     }}
                     placeholder="Type your favorite music genres..."
                     minSelections={1}
                     initialSelections={state.musicPreferences}
                   />
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 'future-interests' && (
+          <div className="space-y-8">
+            <div>
+              <div className="text-lg mb-8">
+                <TypewriterText
+                  text="Now, what are some things you'd like to try or get into that you don't currently do?"
+                  delay={0}
+                />
+              </div>
+              <div className="space-y-8">
                 <div>
-                  <h3 className="text-base font-medium mb-4">Future Interests</h3>
-                  <div className="text-sm text-gray-600 mb-4">
-                    What would you like to try that you haven't done yet?
-                  </div>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
                     onComplete={(interests) => {
                       setState(prev => ({ ...prev, desiredInterests: interests }));
-                      setStep('demographics');
                     }}
-                    placeholder="Type to search new activities..."
+                    placeholder="Type activities you'd like to try..."
                     minSelections={1}
                     initialSelections={state.desiredInterests}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                  <InterestSelector
+                    onComplete={(foods) => {
+                      setState(prev => ({ ...prev, desiredFoodPreferences: foods }));
+                    }}
+                    placeholder="Type cuisines you'd like to try..."
+                    minSelections={1}
+                    initialSelections={state.desiredFoodPreferences}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                  <InterestSelector
+                    onComplete={(music) => {
+                      setState(prev => ({ ...prev, desiredMusicPreferences: music }));
+                      setStep('demographics');
+                    }}
+                    placeholder="Type music genres you'd like to explore..."
+                    minSelections={1}
+                    initialSelections={state.desiredMusicPreferences}
                   />
                 </div>
               </div>
