@@ -195,12 +195,6 @@ export const InterestSelector = ({
           </Button>
         ))}
       </div>
-
-      <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">
-          {selectedActivities.length} selected (minimum {minSelections})
-        </p>
-      </div>
     </div>
   );
 };
