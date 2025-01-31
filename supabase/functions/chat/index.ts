@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -21,6 +22,8 @@ serve(async (req) => {
     if (!openAIApiKey || !supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing environment variables');
     }
+
+    console.log('Processing chat request:', { userId, messageLength: message.length });
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -42,7 +45,6 @@ serve(async (req) => {
 
       if (contactError) {
         console.error('Error storing contact:', contactError);
-        // Don't throw the error, just log it and continue with the chat
       }
     }
 
@@ -113,41 +115,18 @@ serve(async (req) => {
       
       When discussing calendar events, always format dates and times in a user-friendly way.
       
-      When users mention meeting someone new or multiple people:
-      1. Extract each person's information separately
-      2. For each person mentioned, identify:
-         - Their full name
-         - Their relationship or role (e.g., "basketball friend", "fellow investor")
-         - Any contact information shared
-      3. Return an array of contacts, where each contact has:
-         - name: the person's full name
-         - relationship: their relationship to the user
-         - email: their email if provided, otherwise null
-      
-      Your response should be in this format:
-      {
-        "contacts": [
-          {
-            "name": "person 1 name",
-            "relationship": "their relationship",
-            "email": "email if provided or null"
-          },
-          {
-            "name": "person 2 name",
-            "relationship": "their relationship",
-            "email": "email if provided or null"
-          }
-        ]
-      }
-      
-      Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
+      Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
 
     const messages = [
       { role: 'system', content: systemPrompt },
       ...(chatMessages || []),
       { role: 'user', content: message }
     ];
-    console.log(messages)
+
+    console.log('Sending request to OpenAI:', { 
+      messageCount: messages.length,
+      lastMessage: message
+    });
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -156,8 +135,10 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4',
         messages: messages,
+        temperature: 0.7,
+        max_tokens: 500
       }),
     });
 
@@ -168,40 +149,16 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(data.choices[0].message.content);
-    } catch (e) {
-      console.error('Error parsing AI response:', e);
-      parsedResponse = {
-        text: data.choices[0].message.content,
-        contacts: []
-      };
-    }
+    const aiResponse = data.choices[0].message.content;
 
-    // // Handle multiple contacts
-    // if (parsedResponse.contacts && Array.isArray(parsedResponse.contacts)) {
-    //   for (const contact of parsedResponse.contacts) {
-    //     if (contact.name) {
-    //       const { error: contactError } = await supabase
-    //         .from('contacts')
-    //         .insert([{
-    //           user_id: userId,
-    //           name: contact.name,
-    //           email: contact.email || null
-    //         }]);
-
-    //       if (contactError) {
-    //         console.error('Error storing contact:', contactError);
-    //       }
-    //     }
-    //   }
-    // }
+    console.log('Received OpenAI response:', { 
+      responseLength: aiResponse.length 
+    });
 
     const { error: aiMessageError } = await supabase
       .from('chat_history')
       .insert([
-        { user_id: userId, message: parsedResponse.text, is_ai: true }
+        { user_id: userId, message: aiResponse, is_ai: true }
       ]);
 
     if (aiMessageError) {
@@ -210,7 +167,7 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ 
-      response: parsedResponse.text 
+      response: aiResponse 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
