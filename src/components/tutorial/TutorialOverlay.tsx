@@ -93,7 +93,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     updateTutorialStep();
   }, [location.pathname, step, session?.user?.id, queryClient]);
 
-  // Check for goals when profile is opened
   useEffect(() => {
     const checkGoals = async () => {
       if (!session?.user.id || !isProfileOpen || step !== 'profile') return;
@@ -120,23 +119,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     checkGoals();
   }, [session?.user.id, isProfileOpen, step]);
 
-  // Handle profile open/close transitions
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
       console.log('Profile opened, moving to profile step');
-      if (session?.user?.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'profile' })
-          .eq('id', session.user.id)
-          .then(({ error }) => {
-            if (error) console.error('Error updating onboarding step:', error);
-            else {
-              console.log('Updated onboarding step to profile');
-              setStep('profile');
-            }
-          });
-      }
+      setStep('profile');
     }
     if (!isProfileOpen && step === 'goals') {
       console.log('Profile closed, moving to contactsintro step');
@@ -148,14 +134,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           .eq('id', session.user.id)
           .then(({ error }) => {
             if (error) console.error('Error updating onboarding step:', error);
-            else {
-              console.log('Updated onboarding step to contactsintro');
-              setStep('contactsintro');
-            }
+            else console.log('Updated onboarding step to contactsintro');
           });
       }
+      setStep('contactsintro');
     }
-  }, [isProfileOpen, step, session?.user?.id]);
+  }, [isProfileOpen, step, session?.user.id]);
 
   useEffect(() => {
     const updatePositions = () => {
