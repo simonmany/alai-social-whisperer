@@ -330,7 +330,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               left: `${messagePosition.left}px`,
             }}
           >
-            Perfect! Now let's check out your calendar to start planning some activities!
+            Let's check out your calendar to start planning some activities!
           </TutorialMessage>
         </>
       );
