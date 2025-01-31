@@ -87,8 +87,9 @@ export const MainNavigation = ({
     </div>
   );
 
-  // If showOnlyProfile is true or we're in initial step, only show the profile button
-  if (showOnlyProfile || profile?.onboarding_step === 'initial') {
+  // If we're in initial step, only show the profile button
+  // Note: Removed showOnlyProfile check to allow contacts button to show during tutorial
+  if (profile?.onboarding_step === 'initial') {
     return (
       <div className="flex justify-between items-center gap-2 mb-6">
         <div className="flex-1" />
