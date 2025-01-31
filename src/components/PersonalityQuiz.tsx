@@ -49,7 +49,12 @@ interface PersonalityQuizProps {
   userName?: string;
 }
 
-export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments, userName = "there" }: PersonalityQuizProps) => {
+export const PersonalityQuiz = ({ 
+  onComplete, 
+  initialTraits, 
+  initialComments, 
+  userName = "there" 
+}: PersonalityQuizProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedValue, setSelectedValue] = useState<number | null>(
     initialTraits ? initialTraits[questions[currentQuestion].id] : null
@@ -80,7 +85,21 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments, us
     setIsLoadingAi(true);
     try {
       const responseType = selectedValue <= 40 ? question.leftLabel : selectedValue >= 80 ? question.rightLabel : "balanced";
-      const prompt = `Hey, I'm learning about ${userName}'s personality. For the question "${question.text}", they lean towards being ${responseType}${comment ? ` and mentioned: "${comment}"` : ''}. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
+      let prompt = `Hey, I'm learning about ${userName}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
+      
+      // Include current comment if provided
+      if (comment) {
+        prompt += ` and shared: "${comment}"`;
+      }
+      
+      // Include previous comments if they exist
+      const previousComments = updatedComments.filter((_, index) => index < currentQuestion);
+      if (previousComments.length > 0) {
+        prompt += `. In previous questions, they've mentioned: "${previousComments.join('", "')}"`;
+      }
+      
+      prompt += `. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
+      
       const response = await generateChatResponse(prompt);
       setAiResponse(response);
     } catch (error) {
