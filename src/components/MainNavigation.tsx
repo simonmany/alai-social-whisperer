@@ -3,7 +3,7 @@ import { UserRound, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,6 @@ interface MainNavigationProps {
   onProfileOpen: () => void;
   onGoogleSignIn: () => void;
   hideButtons?: boolean;
-  showOnlyProfile?: boolean;
 }
 
 export const MainNavigation = ({
@@ -22,7 +21,6 @@ export const MainNavigation = ({
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -41,7 +39,7 @@ export const MainNavigation = ({
       console.log('MainNavigation - Current onboarding step:', profile?.onboarding_step);
       return profile;
     },
-    staleTime: 0,
+    staleTime: 0, // Always fetch fresh data
     refetchOnWindowFocus: true
   });
 
