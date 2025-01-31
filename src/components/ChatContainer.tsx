@@ -102,11 +102,11 @@ export const ChatContainer = ({
           <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
           <div className="flex gap-2 flex-wrap">
             <SuggestedPrompt
-              text="plan me a hang"
+              text="plan a future hang"
               onClick={() => onSuggestedPrompt("plan me a hang")}
             />
             <SuggestedPrompt
-              text="talk about a hang"
+              text="talk about past hang"
               onClick={() => onSuggestedPrompt("talk about a hang")}
             />
             <SuggestedPrompt
