@@ -211,7 +211,7 @@ const ContactsView = () => {
   if (isInTutorial) {
     return (
       <>
-        <div className="fixed inset-0 flex items-center justify-center z-[9999]">
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] mt-32">
           <div className="bg-card/80 backdrop-blur-sm p-6 rounded-lg shadow-lg max-w-md text-center space-y-6">
             <p className="text-lg text-white">
               Your relationships are a beautiful constellation, but it's looking a bit empty right now.
