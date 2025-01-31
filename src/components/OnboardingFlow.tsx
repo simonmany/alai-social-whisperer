@@ -27,6 +27,8 @@ type OnboardingStep =
   | 'personality-q3'
   | 'personality-q4'
   | 'current-interests'
+  | 'food-preferences'
+  | 'music-preferences'
   | 'desired-interests'
   | 'demographics';
 
@@ -64,6 +66,8 @@ interface OnboardingState {
   personalityComments?: string[];
   currentInterests?: string[];
   desiredInterests?: string[];
+  foodPreferences?: string[];
+  musicPreferences?: string[];
 }
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
@@ -97,8 +101,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case 'current-interests':
         setStep('personality-q4');
         break;
-      case 'desired-interests':
+      case 'food-preferences':
         setStep('current-interests');
+        break;
+      case 'music-preferences':
+        setStep('food-preferences');
+        break;
+      case 'desired-interests':
+        setStep('music-preferences');
         break;
       case 'demographics':
         setStep('desired-interests');
