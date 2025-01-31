@@ -41,7 +41,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (!session?.user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('onboarding_step, has_completed_tutorial')
+        .select('onboarding_step, has_completed_tutorial, goals')
         .eq('id', session.user.id)
         .single();
       
@@ -109,7 +109,21 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         setHasGoals(goalsExist);
         
         if (goalsExist) {
-          setStep('goals');
+          console.log('Goals exist, updating step to goals');
+          if (session?.user?.id) {
+            const { error } = await supabase
+              .from('profiles')
+              .update({ onboarding_step: 'goals' })
+              .eq('id', session.user.id);
+
+            if (error) {
+              console.error('Error updating step to goals:', error);
+              return;
+            }
+
+            setStep('goals');
+            queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+          }
         }
       } catch (error) {
         console.error('Error checking goals:', error);
@@ -117,12 +131,25 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     };
 
     checkGoals();
-  }, [session?.user.id, isProfileOpen, step]);
+  }, [session?.user?.id, isProfileOpen, step, queryClient]);
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
       console.log('Profile opened, moving to profile step');
-      setStep('profile');
+      if (session?.user?.id) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_step: 'profile' })
+          .eq('id', session.user.id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating onboarding step:', error);
+            else {
+              console.log('Updated onboarding step to profile');
+              setStep('profile');
+              queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+            }
+          });
+      }
     }
     if (!isProfileOpen && step === 'goals') {
       console.log('Profile closed, moving to contactsintro step');
@@ -134,12 +161,38 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           .eq('id', session.user.id)
           .then(({ error }) => {
             if (error) console.error('Error updating onboarding step:', error);
-            else console.log('Updated onboarding step to contactsintro');
+            else {
+              console.log('Updated onboarding step to contactsintro');
+              setStep('contactsintro');
+              queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+            }
           });
       }
-      setStep('contactsintro');
     }
-  }, [isProfileOpen, step, session?.user.id]);
+  }, [isProfileOpen, step, session?.user?.id, queryClient]);
+
+  // Handle transition from contactsintro to calendarintro
+  const handleContactsResponse = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ onboarding_step: 'calendarintro' })
+        .eq('id', session.user.id);
+
+      if (error) {
+        console.error('Error updating onboarding step:', error);
+        return;
+      }
+
+      console.log('Updated onboarding step to calendarintro');
+      setStep('calendarintro');
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+    } catch (error) {
+      console.error('Error in handleContactsResponse:', error);
+    }
+  };
 
   useEffect(() => {
     const updatePositions = () => {
@@ -307,6 +360,21 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             }}
           >
             Great! Now let's add some contacts to help you achieve your goals.
+            <div className="flex gap-2 mt-4">
+              <Button 
+                size="sm" 
+                onClick={handleContactsResponse}
+              >
+                Connect contacts
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleContactsResponse}
+              >
+                Not now
+              </Button>
+            </div>
           </TutorialMessage>
         </>
       );
@@ -330,7 +398,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               left: `${messagePosition.left}px`,
             }}
           >
-            Let's check out your calendar to start planning some activities!
+            Here you can see your upcoming events. Let's take a look.
           </TutorialMessage>
         </>
       );
