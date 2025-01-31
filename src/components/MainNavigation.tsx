@@ -3,7 +3,7 @@ import { UserRound, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,6 @@ export const MainNavigation = ({
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -38,12 +37,8 @@ export const MainNavigation = ({
         .single();
 
       if (error) throw error;
-      
-      console.log('MainNavigation - Current onboarding step:', profile?.onboarding_step);
       return profile;
-    },
-    staleTime: 0,
-    refetchOnWindowFocus: true
+    }
   });
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
@@ -58,50 +53,40 @@ export const MainNavigation = ({
   const showCalendarButton = profile?.onboarding_step === 'calendarintro' || 
                            profile?.onboarding_step === 'complete';
 
-  console.log('MainNavigation - showContactsButton:', showContactsButton, 'step:', profile?.onboarding_step);
-
-  // If hideButtons is true, don't show any navigation
   if (hideButtons) {
     return null;
   }
 
-  // Profile button with badge
-  const ProfileButton = () => (
-    <div className="relative">
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        onClick={onProfileOpen}
-        aria-label="Open profile"
-      >
-        <UserRound className="h-5 w-5" />
-        {missingGoalsCount > 0 && (
-          <Badge 
-            variant="destructive" 
-            className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
-          >
-            {missingGoalsCount}
-          </Badge>
-        )}
-      </Button>
-    </div>
-  );
-
-  // If we're in initial step, only show the profile button
-  // Note: Removed showOnlyProfile check to allow contacts button to show during tutorial
-  if (profile?.onboarding_step === 'initial') {
+  // In initial step or when showOnlyProfile is true, only show the profile button
+  if (profile?.onboarding_step === 'initial' || showOnlyProfile) {
     return (
       <div className="flex justify-between items-center gap-2 mb-6">
         <div className="flex-1" />
         <div className="flex-1" />
         <div className="flex-1 flex justify-end">
-          <ProfileButton />
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onProfileOpen}
+              aria-label="Open profile"
+            >
+              <UserRound className="h-5 w-5" />
+              {missingGoalsCount > 0 && (
+                <Badge 
+                  variant="destructive" 
+                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
+                >
+                  {missingGoalsCount}
+                </Badge>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Default navigation with conditional buttons based on step
   return (
     <div className="flex justify-between items-center gap-2 mb-6">
       <div className="flex-1">
@@ -127,7 +112,24 @@ export const MainNavigation = ({
         )}
       </div>
       <div className="flex-1 flex justify-end">
-        <ProfileButton />
+        <div className="relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onProfileOpen}
+            aria-label="Open profile"
+          >
+            <UserRound className="h-5 w-5" />
+            {missingGoalsCount > 0 && (
+              <Badge 
+                variant="destructive" 
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
+              >
+                {missingGoalsCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );
