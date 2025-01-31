@@ -233,27 +233,63 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         )}
 
         {step === 'current-interests' && (
+          <div className="space-y-8">
+            <div>
+              <div className="text-lg mb-4">
+                <TypewriterText
+                  text="What do you like to do for fun? Enter as many as you like - you can always add more later."
+                  delay={0}
+                />
+              </div>
+              <InterestSelector
+                onComplete={(interests) => {
+                  setState(prev => ({ ...prev, currentInterests: interests }));
+                  setStep('food-preferences');
+                }}
+                placeholder="Type to search activities..."
+                minSelections={1}
+                initialSelections={state.currentInterests}
+              />
+            </div>
+          </div>
+        )}
+
+        {step === 'food-preferences' && (
           <div className="space-y-4">
             <div className="text-lg">
               <TypewriterText
-                text="Thanks for sharing! Now, let's talk about interests. What do you like to do for fun?"
+                text="What are your favorite types of food?"
                 delay={0}
               />
             </div>
+            <InterestSelector
+              onComplete={(foods) => {
+                setState(prev => ({ ...prev, foodPreferences: foods }));
+                setStep('music-preferences');
+              }}
+              placeholder="Type your favorite cuisines and dishes..."
+              minSelections={1}
+              initialSelections={state.foodPreferences}
+            />
+          </div>
+        )}
+
+        {step === 'music-preferences' && (
+          <div className="space-y-4">
             <div className="text-lg">
               <TypewriterText
-                text="Enter at least 3 activities."
-                delay={1000}
+                text="What are your favorite genres of music?"
+                delay={0}
               />
             </div>
             <InterestSelector
-              onComplete={(interests) => {
-                setState(prev => ({ ...prev, currentInterests: interests }));
+              onComplete={(music) => {
+                setState(prev => ({ ...prev, musicPreferences: music }));
                 setStep('desired-interests');
               }}
-              placeholder="Type to search activities..."
-              minSelections={3}
-              initialSelections={state.currentInterests}
+              placeholder="Type your favorite music genres..."
+              minSelections={1}
+              initialSelections={state.musicPreferences}
             />
           </div>
         )}
