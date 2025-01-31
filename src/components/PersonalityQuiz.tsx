@@ -238,7 +238,7 @@ export const PersonalityQuiz = ({
         currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
         currentQuestion === 0 ? "transition-opacity duration-500" : ""
       )}>
-        <Button onClick={handleBack} className="w-full" disabled={isLoadingAi}>
+        <Button onClick={handleBack} className="w-full mb-2" disabled={isLoadingAi}>
           Back
         </Button>
         <Button onClick={handleNext} className="w-full" disabled={isLoadingAi}>
