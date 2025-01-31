@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -32,28 +33,55 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { toast } = useToast();
   const location = useLocation();
 
+  // Query to get the current tutorial step from the profile
+  const { data: profile } = useQuery({
+    queryKey: ['profile', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('onboarding_step, has_completed_tutorial')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id
+  });
+
+  // Sync step with profile data
+  useEffect(() => {
+    if (profile?.onboarding_step) {
+      console.log('Syncing tutorial step with profile:', profile.onboarding_step);
+      setStep(profile.onboarding_step as any);
+    }
+  }, [profile?.onboarding_step]);
+
   useEffect(() => {
     console.log('Tutorial step changed to:', step);
   }, [step]);
 
-  // Add effect to handle route changes
+  // Handle route changes
   useEffect(() => {
     if (location.pathname === '/contacts' && step === 'contactsintro') {
       console.log('Contacts page opened, moving to contactsopen step');
-      setStep('contactsopen');
       
-      if (session?.user.id) {
+      if (session?.user?.id) {
         supabase
           .from('profiles')
           .update({ onboarding_step: 'contactsopen' })
           .eq('id', session.user.id)
           .then(({ error }) => {
             if (error) console.error('Error updating onboarding step:', error);
-            else console.log('Updated onboarding step to contactsopen');
+            else {
+              console.log('Updated onboarding step to contactsopen');
+              setStep('contactsopen');
+            }
           });
       }
     }
-  }, [location.pathname, step, session?.user.id]);
+  }, [location.pathname, step, session?.user?.id]);
 
   useEffect(() => {
     const checkGoals = async () => {
@@ -89,7 +117,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     if (!isProfileOpen && step === 'goals') {
       console.log('Profile closed, moving to contactsintro step');
       
-      if (session?.user.id) {
+      if (session?.user?.id) {
         supabase
           .from('profiles')
           .update({ onboarding_step: 'contactsintro' })
