@@ -42,7 +42,9 @@ export const MainNavigation = ({
   });
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
-  const showContactsButton = profile?.onboarding_step === 'contactsintro';
+  
+  // Show contacts button if we're in contactsintro step or tutorial is complete
+  const showContactsButton = profile?.onboarding_step === 'contactsintro' || !showOnlyProfile;
 
   if (hideButtons) {
     return null;
@@ -62,7 +64,7 @@ export const MainNavigation = ({
         )}
       </div>
       <div className="flex-1 flex justify-center">
-        {(!showOnlyProfile || showContactsButton) && (
+        {showContactsButton && (
           <Button
             variant="ghost"
             size="icon"
