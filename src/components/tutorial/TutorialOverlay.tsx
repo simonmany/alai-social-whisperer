@@ -24,10 +24,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
   const [closeButtonPosition, setCloseButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [contactsButtonPosition, setContactsButtonPosition] = useState<Position>({ top: 0, left: 0 });
+  const [hasGoals, setHasGoals] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
-  // Add a new effect to check for existing goals
   useEffect(() => {
     const checkGoals = async () => {
       if (!session?.user.id || !isProfileOpen || step !== 'profile') return;
@@ -40,9 +40,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           .single();
 
         console.log('Current step:', step, 'Goals:', profile?.goals);
+        const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
+        setHasGoals(goalsExist);
         
-        // If goals exist and we're in profile step, move to goals step
-        if (profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
+        // Only move to goals step if goals exist
+        if (goalsExist) {
           console.log('Goals found, moving to goals step');
           setStep('goals');
         }
@@ -120,7 +122,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       console.log('Profile opened, moving to profile step');
       setStep('profile');
     }
-    if (!isProfileOpen && (step === 'goals' || step === 'profile')) {
+    if (!isProfileOpen && step === 'goals') {
       console.log('Profile closed, moving to contactsintro step');
       setStep('contactsintro');
       
@@ -210,7 +212,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       );
     }
 
-    if (step === 'goals') {
+    if (step === 'goals' && hasGoals) {
       return (
         <>
           <TutorialArrow 
