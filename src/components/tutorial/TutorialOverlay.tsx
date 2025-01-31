@@ -5,7 +5,6 @@ import { TutorialMessage } from "./TutorialMessage";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 
 interface TutorialOverlayProps {
@@ -28,85 +27,57 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { session } = useAuth();
   const { toast } = useToast();
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile', session?.user.id],
-    queryFn: async () => {
-      if (!session?.user.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('goals')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session?.user.id
-  });
-
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
       const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
       const contactsButton = document.querySelector('button:has(.lucide-users)');
+      const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
       
       if (profileButton && step === 'initial') {
         const rect = profileButton.getBoundingClientRect();
-        const newArrowPosition = {
+        setArrowPosition({
           top: rect.bottom + 8,
           left: rect.left + (rect.width / 2) - 20
-        };
+        });
         
-        const newMessagePosition = {
+        setMessagePosition({
           top: rect.bottom + 56,
           left: rect.left - 160 + (rect.width / 2)
-        };
-        
-        setArrowPosition(newArrowPosition);
-        setMessagePosition(newMessagePosition);
+        });
       }
 
       if (closeButton && step === 'goals') {
         const rect = closeButton.getBoundingClientRect();
-        const newPosition = {
+        setCloseButtonPosition({
           top: rect.top + (rect.height / 2) - 10,
           left: rect.left - 48
-        };
-        setCloseButtonPosition(newPosition);
+        });
       }
 
       if (contactsButton && step === 'contactsintro') {
         const rect = contactsButton.getBoundingClientRect();
-        const newPosition = {
+        setContactsButtonPosition({
           top: rect.bottom + 8,
           left: rect.left + (rect.width / 2) - 20
-        };
-        setContactsButtonPosition(newPosition);
-      }
-    };
-
-    const updateGoalArrowPositions = () => {
-      if (step !== 'profile') return;
-      
-      const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
-      const positions: Position[] = [];
-      
-      goalAlerts.forEach((alert) => {
-        const rect = alert.getBoundingClientRect();
-        positions.push({
-          top: rect.top + (rect.height / 2) - 20,
-          left: rect.left - 48
         });
-      });
-      
-      if (positions.length > 0) {
+      }
+
+      // Update goal arrow positions
+      if (step === 'profile' && goalAlerts.length > 0) {
+        const positions: Position[] = [];
+        goalAlerts.forEach((alert) => {
+          const rect = alert.getBoundingClientRect();
+          positions.push({
+            top: rect.top + (rect.height / 2) - 20,
+            left: rect.left - 48
+          });
+        });
         setGoalArrowPositions(positions);
       }
     };
 
     updatePositions();
-    updateGoalArrowPositions();
-    
     window.addEventListener('resize', updatePositions);
     window.addEventListener('scroll', updatePositions, true);
 
@@ -122,18 +93,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
     if (!isProfileOpen && (step === 'goals' || step === 'profile')) {
       setStep('initial');
-    }
-  }, [isProfileOpen, step]);
-
-  useEffect(() => {
-    if (step === 'profile' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
-      setStep('goals');
-    }
-  }, [profile?.goals, step]);
-
-  useEffect(() => {
-    if (!isProfileOpen && step === 'goals') {
-      setStep('contactsintro');
     }
   }, [isProfileOpen, step]);
 
@@ -159,41 +118,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       });
     }
   };
-
-  useEffect(() => {
-    const updateTutorialStep = async () => {
-      if (!session?.user.id) return;
-      
-      try {
-        const { error } = await supabase
-          .from('profiles')
-          .update({ onboarding_step: step })
-          .eq('id', session.user.id);
-
-        if (error) throw error;
-
-        if (step === 'complete') {
-          const { error: completeError } = await supabase
-            .from('profiles')
-            .update({ has_completed_tutorial: true })
-            .eq('id', session.user.id);
-
-          if (completeError) throw completeError;
-          
-          onComplete();
-        }
-      } catch (error: any) {
-        console.error('Error updating tutorial step:', error);
-        toast({
-          title: "Error updating tutorial progress",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-    };
-
-    updateTutorialStep();
-  }, [step, session?.user.id, onComplete, toast]);
 
   const renderTutorialContent = () => {
     if (step === 'initial') {
@@ -237,6 +161,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 position: 'fixed',
                 top: `${position.top}px`,
                 left: `${position.left}px`,
+                zIndex: 9999,
               }}
             />
           ))}
