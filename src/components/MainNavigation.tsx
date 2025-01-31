@@ -3,7 +3,7 @@ import { UserRound, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
@@ -13,14 +13,17 @@ interface MainNavigationProps {
   onProfileOpen: () => void;
   onGoogleSignIn: () => void;
   hideButtons?: boolean;
+  showOnlyProfile?: boolean;
 }
 
 export const MainNavigation = ({
   onProfileOpen,
   hideButtons = false,
+  showOnlyProfile = false,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -39,14 +42,17 @@ export const MainNavigation = ({
       console.log('MainNavigation - Current onboarding step:', profile?.onboarding_step);
       return profile;
     },
-    staleTime: 0, // Always fetch fresh data
+    staleTime: 0,
     refetchOnWindowFocus: true
   });
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
   
   // Show contacts button if we're in contactsintro step or later steps
-  const showContactsButton = profile?.onboarding_step && ['contactsintro', 'contactsopen', 'calendarintro', 'complete'].includes(profile.onboarding_step);
+  const showContactsButton = profile?.onboarding_step === 'contactsintro' || 
+                           profile?.onboarding_step === 'contactsopen' ||
+                           profile?.onboarding_step === 'calendarintro' || 
+                           profile?.onboarding_step === 'complete';
 
   // Only show calendar button if we're in calendarintro step or complete
   const showCalendarButton = profile?.onboarding_step === 'calendarintro' || 
@@ -82,6 +88,7 @@ export const MainNavigation = ({
   );
 
   // If we're in initial step, only show the profile button
+  // Note: Removed showOnlyProfile check to allow contacts button to show during tutorial
   if (profile?.onboarding_step === 'initial') {
     return (
       <div className="flex justify-between items-center gap-2 mb-6">
