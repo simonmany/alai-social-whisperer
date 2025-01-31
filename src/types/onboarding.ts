@@ -7,4 +7,6 @@ export interface OnboardingState {
   desiredInterests?: string[];
   foodPreferences?: string[];
   musicPreferences?: string[];
+  desiredFoodPreferences?: string[];
+  desiredMusicPreferences?: string[];
 }
