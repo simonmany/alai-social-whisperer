@@ -20,7 +20,7 @@ interface InterestSelectorProps {
 export const InterestSelector = ({ 
   onComplete, 
   placeholder = "Type to search or add new activities...",
-  minSelections = 3,
+  minSelections = 1,
   initialSelections = []
 }: InterestSelectorProps) => {
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -73,19 +73,16 @@ export const InterestSelector = ({
   };
 
   const validateActivityName = (name: string): boolean => {
-    // Check for common SQL injection patterns
     const sqlPatterns = [
       /(\b(select|insert|update|delete|drop|union|exec|declare|alter)\b)|(--)|(;)|(\/\*|\*\/)|(')/gi,
       /(\b(table|database|schema)\b)/gi,
       /(\b(waitfor|delay|sleep)\b)/gi
     ];
 
-    // Test for any SQL injection patterns
     return !sqlPatterns.some(pattern => pattern.test(name));
   };
 
   const createNewActivity = async (name: string) => {
-    // Validate input
     if (!validateActivityName(name)) {
       toast({
         title: "Invalid activity name",
@@ -95,7 +92,6 @@ export const InterestSelector = ({
       return null;
     }
 
-    // Additional sanitization: only allow alphanumeric characters, spaces, and basic punctuation
     const sanitizedName = name.replace(/[^a-zA-Z0-9\s\-_.,!?]/g, '').trim();
     
     if (sanitizedName !== name) {
@@ -105,8 +101,6 @@ export const InterestSelector = ({
         variant: "default",
       });
     }
-
-    // TODO (ari) fuzzy-match to existing activities to avoid activity proliferation
 
     const { data, error } = await supabase
       .from('activities')
@@ -133,24 +127,20 @@ export const InterestSelector = ({
       const inputValue = searchTerm.trim();
       if (!inputValue) return;
 
-      // Handle multiple entries
       const newActivities = inputValue.split(',').map(act => act.trim()).filter(Boolean);
 
       for (const activityName of newActivities) {
         if (!activityName) continue;
 
-        // Check if activity exists
         const existingActivity = activities.find(
           a => a.name.toLowerCase() === activityName.toLowerCase()
         );
 
         if (existingActivity) {
-          // Add existing activity
           if (!selectedActivities.includes(existingActivity.name)) {
             setSelectedActivities(prev => [...prev, existingActivity.name]);
           }
         } else {
-          // Create new activity
           const newActivity = await createNewActivity(activityName);
           if (newActivity) {
             setSelectedActivities(prev => [...prev, newActivity.name]);

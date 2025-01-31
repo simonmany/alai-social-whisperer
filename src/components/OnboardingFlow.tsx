@@ -186,6 +186,50 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     ? parseInt(step.charAt(step.length - 1)) - 1 
     : -1;
 
+  const handleInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
+    setState(prev => {
+      const newState = { ...prev };
+      switch (category) {
+        case 'activities':
+          newState.currentInterests = selections;
+          break;
+        case 'food':
+          newState.foodPreferences = selections;
+          break;
+        case 'music':
+          newState.musicPreferences = selections;
+          break;
+      }
+      return newState;
+    });
+  };
+
+  const handleFutureInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
+    setState(prev => {
+      const newState = { ...prev };
+      switch (category) {
+        case 'activities':
+          newState.desiredInterests = selections;
+          break;
+        case 'food':
+          newState.desiredFoodPreferences = selections;
+          break;
+        case 'music':
+          newState.desiredMusicPreferences = selections;
+          break;
+      }
+      return newState;
+    });
+  };
+
+  const canProceedToNextSection = (section: 'current' | 'future') => {
+    if (section === 'current') {
+      return !!(state.currentInterests?.length || state.foodPreferences?.length || state.musicPreferences?.length);
+    } else {
+      return !!(state.desiredInterests?.length || state.desiredFoodPreferences?.length || state.desiredMusicPreferences?.length);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
@@ -272,9 +316,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
-                    onComplete={(interests) => {
-                      setState(prev => ({ ...prev, currentInterests: interests }));
-                    }}
+                    onComplete={handleInterestComplete('activities')}
                     placeholder="Type to search activities..."
                     minSelections={1}
                     initialSelections={state.currentInterests}
@@ -283,9 +325,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
-                    onComplete={(foods) => {
-                      setState(prev => ({ ...prev, foodPreferences: foods }));
-                    }}
+                    onComplete={handleInterestComplete('food')}
                     placeholder="Type your favorite cuisines and dishes..."
                     minSelections={1}
                     initialSelections={state.foodPreferences}
@@ -294,15 +334,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
-                    onComplete={(music) => {
-                      setState(prev => ({ ...prev, musicPreferences: music }));
-                      setStep('future-interests');
-                    }}
+                    onComplete={handleInterestComplete('music')}
                     placeholder="Type your favorite music genres..."
                     minSelections={1}
                     initialSelections={state.musicPreferences}
                   />
                 </div>
+                {canProceedToNextSection('current') && (
+                  <Button 
+                    onClick={() => setStep('future-interests')}
+                    className="w-full"
+                  >
+                    Next
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -321,9 +366,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
-                    onComplete={(interests) => {
-                      setState(prev => ({ ...prev, desiredInterests: interests }));
-                    }}
+                    onComplete={handleFutureInterestComplete('activities')}
                     placeholder="Type activities you'd like to try..."
                     minSelections={1}
                     initialSelections={state.desiredInterests}
@@ -332,9 +375,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
-                    onComplete={(foods) => {
-                      setState(prev => ({ ...prev, desiredFoodPreferences: foods }));
-                    }}
+                    onComplete={handleFutureInterestComplete('food')}
                     placeholder="Type cuisines you'd like to try..."
                     minSelections={1}
                     initialSelections={state.desiredFoodPreferences}
@@ -343,15 +384,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
-                    onComplete={(music) => {
-                      setState(prev => ({ ...prev, desiredMusicPreferences: music }));
-                      setStep('demographics');
-                    }}
+                    onComplete={handleFutureInterestComplete('music')}
                     placeholder="Type music genres you'd like to explore..."
                     minSelections={1}
                     initialSelections={state.desiredMusicPreferences}
                   />
                 </div>
+                {canProceedToNextSection('future') && (
+                  <Button 
+                    onClick={() => setStep('demographics')}
+                    className="w-full"
+                  >
+                    Next
+                  </Button>
+                )}
               </div>
             </div>
           </div>
