@@ -17,7 +17,7 @@ export const TutorialArrow = ({ direction = "up", className, style }: TutorialAr
   return (
     <div 
       className={cn(
-        "fixed animate-bounce pointer-events-none z-[9999] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "fixed animate-bounce pointer-events-none z-[9999]",
         className
       )}
       style={style}
@@ -27,7 +27,7 @@ export const TutorialArrow = ({ direction = "up", className, style }: TutorialAr
         height="40" 
         viewBox="0 0 24 24" 
         fill="none" 
-        className={cn("text-primary", arrowStyles[direction])}
+        className={cn("text-destructive", arrowStyles[direction])}
       >
         <path
           d="M12 3L20 11H4L12 3Z"
