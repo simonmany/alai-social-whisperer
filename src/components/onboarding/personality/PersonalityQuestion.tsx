@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
 import { TypewriterText } from "@/components/TypewriterText";
@@ -27,8 +27,14 @@ export const PersonalityQuestion = ({
   onAnswer
 }: PersonalityQuestionProps) => {
   const [selectedValue, setSelectedValue] = useState<number | null>(initialValue || null);
-  const [comment, setComment] = useState(initialComment);
+  const [currentComment, setCurrentComment] = useState(initialComment);
   const [showContent, setShowContent] = useState(false);
+
+  const handleNext = () => {
+    if (selectedValue !== null) {
+      onAnswer(selectedValue, currentComment);
+    }
+  };
 
   const getButtonStyle = (value: number) => {
     const isSelected = selectedValue === value;
@@ -94,15 +100,15 @@ export const PersonalityQuestion = ({
           </div>
           <ChatInput
             onSend={(newComment) => {
-              setComment(newComment);
+              setCurrentComment(newComment);
             }}
             placeholder="say more, if you like..."
-            initialValue={comment}
+            initialValue={currentComment}
             showSendButton={false}
           />
           {selectedValue && (
             <Button 
-              onClick={() => onAnswer(selectedValue, comment)}
+              onClick={handleNext}
               className="w-full"
               disabled={isLoadingAi}
             >
