@@ -50,7 +50,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSessionError = async (error: any) => {
     console.error("Session error:", error);
     
-    // Check if it's a refresh token error
     const isRefreshTokenError = 
       error.message?.includes('refresh_token_not_found') || 
       error.message?.includes('Invalid Refresh Token');
@@ -76,6 +75,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(false);
   };
 
+  const ensureProfileExists = async (userId: string) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error || !profile) {
+        // If profile doesn't exist, create it
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([{ 
+            id: userId,
+            onboarding_completed: false,
+            onboarding_step: 'initial',
+            onboarding_started_at: new Date().toISOString(),
+            has_completed_tutorial: false
+          }]);
+
+        if (insertError) throw insertError;
+      }
+    } catch (error) {
+      console.error('Error ensuring profile exists:', error);
+    }
+  };
+
   useEffect(() => {
     console.log("Setting up auth subscriptions");
 
@@ -90,10 +116,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
 
         if (initialSession?.user) {
+          await ensureProfileExists(initialSession.user.id);
           await updateProfileWithGoogleData(initialSession.user);
           setSession(initialSession);
         } else {
-          // If no session, redirect to auth page
           navigate("/auth");
         }
       } catch (error) {
@@ -113,11 +139,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       switch (event) {
         case 'SIGNED_IN':
           if (currentSession?.user) {
+            await ensureProfileExists(currentSession.user.id);
             await updateProfileWithGoogleData(currentSession.user);
             setSession(currentSession);
             toast({
               title: "Signed in successfully",
-              description: "Welcome back!",
+              description: "Welcome!",
             });
             navigate("/");
           }
