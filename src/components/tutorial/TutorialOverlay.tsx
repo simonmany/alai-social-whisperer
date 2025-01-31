@@ -45,7 +45,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      const closeButton = document.querySelector('[role="dialog"] button[aria-label="Close"]');
+      // Updated selector to find the close button
+      const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
       
       console.log('Current step:', step);
       console.log('Close button found:', !!closeButton);
