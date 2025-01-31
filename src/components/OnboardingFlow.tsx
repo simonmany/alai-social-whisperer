@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateChatResponse } from "@/utils/openai";
+import type { OnboardingState } from "@/types/onboarding";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -56,17 +57,6 @@ const questions = [
     rightLabel: "What's a calendar?",
   },
 ];
-
-interface OnboardingState {
-  name?: string;
-  goals?: string[];
-  personalityTraits?: Record<string, number>;
-  personalityComments?: string[];
-  currentInterests?: string[];
-  desiredInterests?: string[];
-  foodPreferences?: string[];
-  musicPreferences?: string[];
-}
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<OnboardingStep>('basic');
