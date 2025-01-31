@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
+import { useLocation } from "react-router-dom";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -29,10 +30,30 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [hasGoals, setHasGoals] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
+  const location = useLocation();
 
   useEffect(() => {
     console.log('Tutorial step changed to:', step);
   }, [step]);
+
+  // Add effect to handle route changes
+  useEffect(() => {
+    if (location.pathname === '/contacts' && step === 'contactsintro') {
+      console.log('Contacts page opened, moving to contactsopen step');
+      setStep('contactsopen');
+      
+      if (session?.user.id) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_step: 'contactsopen' })
+          .eq('id', session.user.id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating onboarding step:', error);
+            else console.log('Updated onboarding step to contactsopen');
+          });
+      }
+    }
+  }, [location.pathname, step, session?.user.id]);
 
   useEffect(() => {
     const checkGoals = async () => {
@@ -67,7 +88,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
     if (!isProfileOpen && step === 'goals') {
       console.log('Profile closed, moving to contactsintro step');
-      setStep('contactsintro');
       
       if (session?.user.id) {
         supabase
@@ -79,6 +99,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             else console.log('Updated onboarding step to contactsintro');
           });
       }
+      setStep('contactsintro');
     }
   }, [isProfileOpen, step, session?.user.id]);
 
@@ -159,47 +180,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       window.removeEventListener('scroll', updatePositions, true);
     };
   }, [step]);
-
-  useEffect(() => {
-    if (isProfileOpen && step === 'initial') {
-      setStep('profile');
-    }
-    if (!isProfileOpen && step === 'goals') {
-      setStep('contactsintro');
-      
-      if (session?.user.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'contactsintro' })
-          .eq('id', session.user.id)
-          .then(({ error }) => {
-            if (error) console.error('Error updating onboarding step:', error);
-          });
-      }
-    }
-  }, [isProfileOpen, step, session?.user.id]);
-
-  const handleSkipContacts = async () => {
-    if (!session?.user.id) return;
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_step: 'calendarintro',
-          has_completed_tutorial: false 
-        })
-        .eq('id', session.user.id);
-      
-      setStep('calendarintro');
-    } catch (error: any) {
-      console.error('Error updating tutorial progress:', error);
-      toast({
-        title: "Error updating tutorial progress",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
 
   const renderTutorialContent = () => {
     if (step === 'initial') {
