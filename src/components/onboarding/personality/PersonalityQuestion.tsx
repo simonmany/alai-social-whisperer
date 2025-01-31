@@ -32,16 +32,10 @@ export const PersonalityQuestion = ({
     if (selectedValue !== null) {
       console.log('Submitting personality answer:', {
         value: selectedValue,
-        comment: currentComment
+        comment: currentComment // This will now include any text in the input box
       });
-      
-      // Call onAnswer with current values
       onAnswer(selectedValue, currentComment);
-      
-      // Clear comment in the next tick to ensure it's been processed
-      setTimeout(() => {
-        setCurrentComment("");
-      }, 0);
+      setCurrentComment(""); // Clear comment after submitting
     }
   };
 
