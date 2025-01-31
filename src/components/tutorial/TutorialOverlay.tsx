@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TypewriterText } from "@/components/TypewriterText";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -29,12 +30,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [contactsButtonPosition, setContactsButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [calendarButtonPosition, setCalendarButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [hasGoals, setHasGoals] = useState(false);
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  // Query to get the current tutorial step from the profile
   const { data: profile } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
@@ -50,6 +51,34 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     },
     enabled: !!session?.user?.id
   });
+
+  // Handle tutorial completion
+  const handleTutorialComplete = async () => {
+    if (!session?.user?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_step: 'complete',
+          has_completed_tutorial: true 
+        })
+        .eq('id', session.user.id);
+
+      if (error) {
+        console.error('Error completing tutorial:', error);
+        return;
+      }
+
+      setShowCompletionMessage(true);
+      setTimeout(() => {
+        setShowCompletionMessage(false);
+        onComplete();
+      }, 3000);
+    } catch (error) {
+      console.error('Error in handleTutorialComplete:', error);
+    }
+  };
 
   // Sync step with profile data
   useEffect(() => {
@@ -273,6 +302,20 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   }, [step]);
 
   const renderTutorialContent = () => {
+    if (showCompletionMessage) {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
+          <div className="text-2xl">
+            <TypewriterText
+              text="That's it! I'm looking forward to being your Alai."
+              delay={0}
+              onComplete={() => {}}
+            />
+          </div>
+        </div>
+      );
+    }
+
     if (step === 'initial') {
       return (
         <>
@@ -398,7 +441,22 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               left: `${messagePosition.left}px`,
             }}
           >
-            Here you can see your upcoming events. Let's take a look.
+            Connecting your calendars will help me make plans for you smoothly.
+            <div className="flex gap-2 mt-4">
+              <Button 
+                size="sm" 
+                onClick={handleTutorialComplete}
+              >
+                Connect calendars
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleTutorialComplete}
+              >
+                Not now
+              </Button>
+            </div>
           </TutorialMessage>
         </>
       );
