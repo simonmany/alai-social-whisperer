@@ -10,7 +10,7 @@ import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
 import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, SkipForward } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generateChatResponse } from "@/utils/openai";
 import type { OnboardingState } from "@/types/onboarding";
@@ -98,6 +98,29 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const handleSkip = async () => {
+    switch (step) {
+      case 'personality-q1':
+      case 'personality-q2':
+      case 'personality-q3':
+      case 'personality-q4':
+        const nextSteps: Record<string, OnboardingStep> = {
+          'personality-q1': 'personality-q2',
+          'personality-q2': 'personality-q3',
+          'personality-q3': 'personality-q4',
+          'personality-q4': 'interests'
+        };
+        setStep(nextSteps[step]);
+        break;
+      case 'interests':
+        setStep('future-interests');
+        break;
+      case 'future-interests':
+        setStep('demographics');
+        break;
+    }
+  };
+
   const handlePersonalityAnswer = async (questionIndex: number, value: number, comment: string) => {
     const updatedTraits = { ...state.personalityTraits, [questions[questionIndex].id]: value };
     const updatedComments = [...(state.personalityComments || [])];
@@ -158,22 +181,34 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const showBackButton = step !== 'basic';
+  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
   const currentQuestionIndex = step.startsWith('personality-q') 
     ? parseInt(step.charAt(step.length - 1)) - 1 
     : -1;
 
   return (
     <div className="flex flex-col h-full">
-      {showBackButton && (
-        <Button
-          variant="ghost"
-          className="self-start mb-4"
-          onClick={handleBack}
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-      )}
+      <div className="flex justify-between items-center mb-4">
+        {showBackButton && (
+          <Button
+            variant="ghost"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
+        )}
+        {showSkipButton && (
+          <Button
+            variant="ghost"
+            onClick={handleSkip}
+            className="ml-auto"
+          >
+            Skip
+            <SkipForward className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+      </div>
       
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
         {step === 'basic' && (
