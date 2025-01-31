@@ -7,7 +7,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { TypewriterText } from "@/components/TypewriterText";
 import Autocomplete from 'react-google-autocomplete';
-import { useQuery } from "@tanstack/react-query";
 
 interface DemographicsSectionProps {
   session: any;
@@ -19,6 +18,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const [age, setAge] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
+  const [occupation, setOccupation] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -149,7 +149,16 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
   };
 
-  const handleOccupationSubmit = async (occupation: string) => {
+  const handleOccupationSubmit = async () => {
+    if (!occupation.trim()) {
+      toast({
+        title: "Please enter your occupation",
+        description: "Tell us what you do for work",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await supabase
         .from('profiles')
@@ -160,7 +169,6 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         })
         .eq('id', session?.user.id);
 
-      // Immediately call onComplete to trigger the profile button show
       onComplete();
     } catch (error) {
       toast({
@@ -312,10 +320,21 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
           </div>
-          <ChatInput
-            onSend={handleOccupationSubmit}
-            placeholder="What do you do for work?"
-          />
+          <div className="space-y-4">
+            <ChatInput
+              onSend={(value) => setOccupation(value)}
+              placeholder="What do you do for work?"
+              showSendButton={false}
+              initialValue={occupation}
+            />
+            <Button 
+              onClick={handleOccupationSubmit}
+              className="w-full"
+              disabled={!occupation.trim()}
+            >
+              Finish
+            </Button>
+          </div>
         </>
       )}
     </div>
