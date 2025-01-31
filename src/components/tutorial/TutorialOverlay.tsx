@@ -132,12 +132,17 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           
           <TutorialArrow 
             direction="right" 
-            className="right-[400px] top-[470px]"
+            className="right-[400px] top-[390px]"
           />
           
           <TutorialArrow 
             direction="right" 
-            className="right-[400px] top-[560px]"
+            className="right-[400px] top-[470px]"
+          />
+
+          <TutorialArrow 
+            direction="right" 
+            className="right-[400px] top-[550px]"
           />
         </>
       );
