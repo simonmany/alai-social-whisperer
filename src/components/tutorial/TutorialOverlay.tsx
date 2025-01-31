@@ -284,7 +284,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           const rect = alert.getBoundingClientRect();
           positions.push({
             top: rect.top + (rect.height / 2) - 20,
-            left: rect.left - 48
+            left: rect.left - 60 // Changed from rect.left - 48 to move arrows more to the left
           });
         });
         setGoalArrowPositions(positions);
