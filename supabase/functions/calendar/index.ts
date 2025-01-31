@@ -30,7 +30,6 @@ const validateEnv = () => {
     'SUPABASE_SERVICE_ROLE_KEY',
     'EXTERNAL_GOOGLE_CLIENT_ID',
     'EXTERNAL_GOOGLE_SECRET',
-    'GOOGLE_CALENDAR_REDIRECT_URI'
   ];
   
   requiredVars.forEach(varName => {
