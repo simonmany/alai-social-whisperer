@@ -230,10 +230,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
-  const [showActivities, setShowActivities] = useState(false);
-  const [showFood, setShowFood] = useState(false);
-  const [showMusic, setShowMusic] = useState(false);
-
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
@@ -314,18 +310,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <TypewriterText
                   text="Let's talk about your current interests! What do you like to do for fun?"
                   delay={0}
-                  onComplete={() => {
-                    setShowActivities(true);
-                    setTimeout(() => setShowFood(true), 150);
-                    setTimeout(() => setShowMusic(true), 300);
-                  }}
                 />
               </div>
               <div className="space-y-8">
-                <div className={cn(
-                  "transition-all duration-300",
-                  showActivities ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-                )}>
+                <div>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
                     onComplete={handleInterestComplete('activities')}
@@ -334,10 +322,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.currentInterests}
                   />
                 </div>
-                <div className={cn(
-                  "transition-all duration-300",
-                  showFood ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-                )}>
+                <div>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
                     onComplete={handleInterestComplete('food')}
@@ -346,10 +331,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.foodPreferences}
                   />
                 </div>
-                <div className={cn(
-                  "transition-all duration-300",
-                  showMusic ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-                )}>
+                <div>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
                     onComplete={handleInterestComplete('music')}
