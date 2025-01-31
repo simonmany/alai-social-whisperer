@@ -21,13 +21,12 @@ interface PersonalityQuestionProps {
 export const PersonalityQuestion = ({
   question,
   initialValue,
-  initialComment = "",
   aiResponse,
   isLoadingAi,
   onAnswer
 }: PersonalityQuestionProps) => {
   const [selectedValue, setSelectedValue] = useState<number | null>(initialValue || null);
-  const [currentComment, setCurrentComment] = useState(initialComment);
+  const [currentComment, setCurrentComment] = useState("");
   const [showContent, setShowContent] = useState(false);
 
   const handleNext = () => {
@@ -37,6 +36,7 @@ export const PersonalityQuestion = ({
         comment: currentComment
       });
       onAnswer(selectedValue, currentComment);
+      setCurrentComment(""); // Clear comment after submitting
     }
   };
 
@@ -104,12 +104,12 @@ export const PersonalityQuestion = ({
           </div>
           <ChatInput
             onSend={(newComment) => {
-              console.log('New comment entered:', newComment);
               setCurrentComment(newComment);
             }}
             placeholder="say more, if you like..."
             initialValue={currentComment}
             showSendButton={false}
+            type="text"
           />
           {selectedValue && (
             <Button 
