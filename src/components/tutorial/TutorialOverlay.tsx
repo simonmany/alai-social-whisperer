@@ -41,7 +41,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (!session?.user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('onboarding_step, has_completed_tutorial, goals')
+        .select('onboarding_step, has_completed_tutorial')
         .eq('id', session.user.id)
         .single();
       
@@ -58,6 +58,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       setStep(profile.onboarding_step as any);
     }
   }, [profile?.onboarding_step]);
+
+  useEffect(() => {
+    console.log('Tutorial step changed to:', step);
+  }, [step]);
 
   // Handle route changes
   useEffect(() => {
@@ -88,33 +92,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     updateTutorialStep();
   }, [location.pathname, step, session?.user?.id, queryClient]);
-
-  // Check for goals when profile is open
-  useEffect(() => {
-    const checkGoals = async () => {
-      if (!session?.user?.id || !isProfileOpen || step !== 'profile') return;
-
-      const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
-      console.log('Goals check:', goalsExist ? 'Goals found' : 'No goals yet');
-      
-      if (goalsExist) {
-        try {
-          await supabase
-            .from('profiles')
-            .update({ onboarding_step: 'goals' })
-            .eq('id', session.user.id);
-          
-          setHasGoals(true);
-          setStep('goals');
-          queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-        } catch (error) {
-          console.error('Error updating step to goals:', error);
-        }
-      }
-    };
-
-    checkGoals();
-  }, [session?.user?.id, isProfileOpen, step, profile?.goals, queryClient]);
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
