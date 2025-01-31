@@ -26,10 +26,7 @@ type OnboardingStep =
   | 'personality-q2'
   | 'personality-q3'
   | 'personality-q4'
-  | 'current-interests'
-  | 'food-preferences'
-  | 'music-preferences'
-  | 'desired-interests'
+  | 'interests'
   | 'demographics';
 
 const questions = [
@@ -98,20 +95,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case 'personality-q4':
         setStep('personality-q3');
         break;
-      case 'current-interests':
+      case 'interests':
         setStep('personality-q4');
         break;
-      case 'food-preferences':
-        setStep('current-interests');
-        break;
-      case 'music-preferences':
-        setStep('food-preferences');
-        break;
-      case 'desired-interests':
-        setStep('music-preferences');
-        break;
       case 'demographics':
-        setStep('desired-interests');
+        setStep('interests');
         break;
     }
   };
@@ -170,7 +158,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       0: 'personality-q2',
       1: 'personality-q3',
       2: 'personality-q4',
-      3: 'current-interests'
+      3: 'interests'
     };
     setStep(nextSteps[questionIndex]);
   };
@@ -242,86 +230,67 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           </>
         )}
 
-        {step === 'current-interests' && (
+        {step === 'interests' && (
           <div className="space-y-8">
             <div>
-              <div className="text-lg mb-4">
+              <div className="text-lg mb-8">
                 <TypewriterText
-                  text="What do you like to do for fun? Enter as many as you like - you can always add more later."
+                  text="Let's talk about your interests! What do you like to do for fun? Enter as many activities, foods, and music genres as you like."
                   delay={0}
                 />
               </div>
-              <InterestSelector
-                onComplete={(interests) => {
-                  setState(prev => ({ ...prev, currentInterests: interests }));
-                  setStep('food-preferences');
-                }}
-                placeholder="Type to search activities..."
-                minSelections={1}
-                initialSelections={state.currentInterests}
-              />
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                  <InterestSelector
+                    onComplete={(interests) => {
+                      setState(prev => ({ ...prev, currentInterests: interests }));
+                    }}
+                    placeholder="Type to search activities..."
+                    minSelections={1}
+                    initialSelections={state.currentInterests}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                  <InterestSelector
+                    onComplete={(foods) => {
+                      setState(prev => ({ ...prev, foodPreferences: foods }));
+                    }}
+                    placeholder="Type your favorite cuisines and dishes..."
+                    minSelections={1}
+                    initialSelections={state.foodPreferences}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                  <InterestSelector
+                    onComplete={(music) => {
+                      setState(prev => ({ ...prev, musicPreferences: music }));
+                    }}
+                    placeholder="Type your favorite music genres..."
+                    minSelections={1}
+                    initialSelections={state.musicPreferences}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Future Interests</h3>
+                  <div className="text-sm text-gray-600 mb-4">
+                    What would you like to try that you haven't done yet?
+                  </div>
+                  <InterestSelector
+                    onComplete={(interests) => {
+                      setState(prev => ({ ...prev, desiredInterests: interests }));
+                      setStep('demographics');
+                    }}
+                    placeholder="Type to search new activities..."
+                    minSelections={1}
+                    initialSelections={state.desiredInterests}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        )}
-
-        {step === 'food-preferences' && (
-          <div className="space-y-4">
-            <div className="text-lg">
-              <TypewriterText
-                text="What are your favorite types of food?"
-                delay={0}
-              />
-            </div>
-            <InterestSelector
-              onComplete={(foods) => {
-                setState(prev => ({ ...prev, foodPreferences: foods }));
-                setStep('music-preferences');
-              }}
-              placeholder="Type your favorite cuisines and dishes..."
-              minSelections={1}
-              initialSelections={state.foodPreferences}
-            />
-          </div>
-        )}
-
-        {step === 'music-preferences' && (
-          <div className="space-y-4">
-            <div className="text-lg">
-              <TypewriterText
-                text="What are your favorite genres of music?"
-                delay={0}
-              />
-            </div>
-            <InterestSelector
-              onComplete={(music) => {
-                setState(prev => ({ ...prev, musicPreferences: music }));
-                setStep('desired-interests');
-              }}
-              placeholder="Type your favorite music genres..."
-              minSelections={1}
-              initialSelections={state.musicPreferences}
-            />
-          </div>
-        )}
-
-        {step === 'desired-interests' && (
-          <>
-            <div className="text-lg">
-              <TypewriterText
-                text="That's a cool set of hobbies! Now, what is something you'd like to get into that you haven't done yet?"
-                delay={0}
-              />
-            </div>
-            <InterestSelector
-              onComplete={(interests) => {
-                setState(prev => ({ ...prev, desiredInterests: interests }));
-                setStep('demographics');
-              }}
-              placeholder="Type to search new activities..."
-              minSelections={1}
-              initialSelections={state.desiredInterests}
-            />
-          </>
         )}
 
         {step === 'demographics' && (
