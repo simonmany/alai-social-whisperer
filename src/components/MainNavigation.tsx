@@ -32,7 +32,7 @@ export const MainNavigation = ({
 
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('goals')
+        .select('goals, onboarding_step')
         .eq('id', user.id)
         .single();
 
@@ -42,6 +42,7 @@ export const MainNavigation = ({
   });
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
+  const showContactsButton = profile?.onboarding_step === 'contactsintro';
 
   if (hideButtons) {
     return null;
@@ -50,7 +51,7 @@ export const MainNavigation = ({
   return (
     <div className="flex justify-between items-center gap-2 mb-6">
       <div className="flex-1">
-        {!showOnlyProfile && (
+        {!showOnlyProfile && !showContactsButton && (
           <Button
             variant="ghost"
             size="icon"
@@ -61,7 +62,7 @@ export const MainNavigation = ({
         )}
       </div>
       <div className="flex-1 flex justify-center">
-        {!showOnlyProfile && (
+        {(!showOnlyProfile || showContactsButton) && (
           <Button
             variant="ghost"
             size="icon"
