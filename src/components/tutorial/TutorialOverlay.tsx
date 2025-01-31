@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
@@ -49,7 +49,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     const updateGoalArrowPositions = () => {
       if (step !== 'profile') return;
       
-      const goalAlerts = document.querySelectorAll('[role="alert"]');
+      // Select only the alerts within the timeframe sections, not the top summary alert
+      const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
       const positions: Position[] = [];
       
       goalAlerts.forEach((alert) => {
