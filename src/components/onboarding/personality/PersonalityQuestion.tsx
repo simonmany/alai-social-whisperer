@@ -32,6 +32,10 @@ export const PersonalityQuestion = ({
 
   const handleNext = () => {
     if (selectedValue !== null) {
+      console.log('Submitting personality answer:', {
+        value: selectedValue,
+        comment: currentComment
+      });
       onAnswer(selectedValue, currentComment);
     }
   };
@@ -100,6 +104,7 @@ export const PersonalityQuestion = ({
           </div>
           <ChatInput
             onSend={(newComment) => {
+              console.log('New comment entered:', newComment);
               setCurrentComment(newComment);
             }}
             placeholder="say more, if you like..."
