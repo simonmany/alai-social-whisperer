@@ -122,13 +122,17 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   };
 
   const handleDeleteGoal = async (goalIndex: number) => {
-    if (!userData?.id) return;
+    if (!userData?.id || !profileData) return;
 
-    const updatedGoals = goals.filter((_, index) => index !== goalIndex);
+    // Create a copy of the current goals array
+    const currentGoals = Array.isArray(profileData.goals) ? [...profileData.goals] : [];
+    
+    // Remove the goal at the specified index
+    currentGoals.splice(goalIndex, 1);
 
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: updatedGoals })
+      .update({ goals: currentGoals })
       .eq('id', userData.id);
 
     if (!error) {
@@ -136,7 +140,8 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         title: "Goal deleted",
         description: "Your goal has been removed successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // Invalidate the profile query to trigger a refetch
+      queryClient.invalidateQueries({ queryKey: ['profile', userData.id] });
     } else {
       toast({
         title: "Error",
