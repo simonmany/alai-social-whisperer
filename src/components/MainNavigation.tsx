@@ -19,7 +19,6 @@ interface MainNavigationProps {
 export const MainNavigation = ({
   onProfileOpen,
   hideButtons = false,
-  showOnlyProfile = false,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -49,10 +48,7 @@ export const MainNavigation = ({
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
   
   // Show contacts button if we're in contactsintro step or later steps
-  const showContactsButton = profile?.onboarding_step === 'contactsintro' || 
-                           profile?.onboarding_step === 'contactsopen' ||
-                           profile?.onboarding_step === 'calendarintro' || 
-                           profile?.onboarding_step === 'complete';
+  const showContactsButton = profile?.onboarding_step && ['contactsintro', 'contactsopen', 'calendarintro', 'complete'].includes(profile.onboarding_step);
 
   // Only show calendar button if we're in calendarintro step or complete
   const showCalendarButton = profile?.onboarding_step === 'calendarintro' || 
@@ -88,7 +84,6 @@ export const MainNavigation = ({
   );
 
   // If we're in initial step, only show the profile button
-  // Note: Removed showOnlyProfile check to allow contacts button to show during tutorial
   if (profile?.onboarding_step === 'initial') {
     return (
       <div className="flex justify-between items-center gap-2 mb-6">
