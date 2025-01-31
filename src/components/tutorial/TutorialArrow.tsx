@@ -17,7 +17,7 @@ export const TutorialArrow = ({ direction = "up", className, style }: TutorialAr
   return (
     <div 
       className={cn(
-        "fixed animate-bounce pointer-events-none z-[9999]",
+        "fixed animate-bounce pointer-events-none z-[9999] bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60",
         className
       )}
       style={style}
