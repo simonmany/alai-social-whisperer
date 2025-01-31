@@ -49,7 +49,7 @@ const ContactsView = () => {
       if (!session?.user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('onboarding_step, has_completed_tutorial')
+        .select('onboarding_step, has_completed_tutorial, avatar_url, display_name')
         .eq('id', session.user.id)
         .single();
       
