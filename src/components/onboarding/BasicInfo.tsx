@@ -26,15 +26,15 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
     if (screenIndex < screens.length - 1) {
       setTimeout(() => {
         setCurrentScreen(screenIndex + 1);
-      }, 250); // Match the delay with TypewriterText
+      }, 250);
     } else {
-      setShowInput(true);
+      setTimeout(() => {
+        setShowInput(true);
+      }, 250);
     }
   };
 
   const handleNameSubmit = async (name: string) => {
-    setShowInput(false);
-
     try {
       await supabase
         .from('profiles')
@@ -68,11 +68,13 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
       ))}
       
       {showInput && (
-        <ChatInput
-          onSend={handleNameSubmit}
-          placeholder="Enter your name..."
-          initialValue={initialName}
-        />
+        <div className="transition-opacity duration-500 opacity-100">
+          <ChatInput
+            onSend={handleNameSubmit}
+            placeholder="Enter your name..."
+            initialValue={initialName}
+          />
+        </div>
       )}
     </div>
   );
