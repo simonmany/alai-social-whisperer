@@ -17,6 +17,7 @@ interface DemographicsSectionProps {
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
   const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
+  const [age, setAge] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
   }, [step, toast]);
 
-  const handleAgeSubmit = async (age: string) => {
+  const handleAgeSubmit = async () => {
     const ageNum = parseInt(age);
     if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
       toast({
@@ -171,11 +172,21 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
           </div>
-          <ChatInput
-            onSend={handleAgeSubmit}
-            placeholder="Enter your age..."
-            type="number"
-          />
+          <div className="space-y-4">
+            <ChatInput
+              onSend={(value) => setAge(value)}
+              placeholder="Enter your age..."
+              type="number"
+              initialValue={age}
+              showSendButton={false}
+            />
+            <Button 
+              onClick={handleAgeSubmit}
+              className="w-full"
+            >
+              Continue
+            </Button>
+          </div>
         </>
       )}
 
