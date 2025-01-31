@@ -26,7 +26,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { session } = useAuth();
   const { toast } = useToast();
 
-  // Query to check if user has any goals
   const { data: profile } = useQuery({
     queryKey: ['profile', session?.user.id],
     queryFn: async () => {
@@ -46,7 +45,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      const closeButton = document.querySelector('[aria-label="Close"]');
+      // Specifically target the close button in the sheet
+      const closeButton = document.querySelector('[role="dialog"] button[aria-label="Close"]');
       
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
@@ -65,18 +65,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         setMessagePosition(newMessagePosition);
       }
 
-      // Update close button arrow position
+      // Update close button arrow position with more precise positioning
       if (closeButton && step === 'goals') {
         const rect = closeButton.getBoundingClientRect();
-        const sheetContent = document.querySelector('[role="dialog"]');
-        
-        if (sheetContent) {
-          const sheetRect = sheetContent.getBoundingClientRect();
-          setCloseButtonPosition({
-            top: rect.top + (rect.height / 2) - 20,
-            left: sheetRect.right + 16 // Position arrow to the right of the sheet
-          });
-        }
+        setCloseButtonPosition({
+          top: rect.top + (rect.height / 2) - 10, // Center vertically with the X
+          left: rect.left - 48 // Position arrow just to the left of the X
+        });
       }
     };
 
