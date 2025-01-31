@@ -5,6 +5,7 @@ import { TutorialMessage } from "./TutorialMessage";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -23,6 +24,23 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
   const { session } = useAuth();
   const { toast } = useToast();
+
+  // Query to check if user has any goals
+  const { data: profile } = useQuery({
+    queryKey: ['profile', session?.user.id],
+    queryFn: async () => {
+      if (!session?.user.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('goals')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user.id
+  });
 
   useEffect(() => {
     const updatePositions = () => {
@@ -49,7 +67,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     const updateGoalArrowPositions = () => {
       if (step !== 'profile') return;
       
-      // Select only the alerts within the timeframe sections, not the top summary alert
       const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
       const positions: Position[] = [];
       
@@ -66,7 +83,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
     };
 
-    // Initial update
     const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
       setTimeout(() => {
@@ -75,21 +91,17 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }, delay);
     });
     
-    // Update on scroll and resize
-    const handleUpdate = () => {
+    window.addEventListener('resize', updatePositions);
+    window.addEventListener('scroll', updatePositions, true);
+
+    const intervalId = setInterval(() => {
       updatePositions();
       updateGoalArrowPositions();
-    };
-    
-    window.addEventListener('resize', handleUpdate);
-    window.addEventListener('scroll', handleUpdate, true);
-
-    // Set up an interval to periodically check positions
-    const intervalId = setInterval(handleUpdate, 1000);
+    }, 1000);
 
     return () => {
-      window.removeEventListener('resize', handleUpdate);
-      window.removeEventListener('scroll', handleUpdate, true);
+      window.removeEventListener('resize', updatePositions);
+      window.removeEventListener('scroll', updatePositions, true);
       clearInterval(intervalId);
     };
   }, [step]);
@@ -103,6 +115,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       setStep('initial');
     }
   }, [isProfileOpen, step]);
+
+  // Effect to check if user has set a goal and advance to 'goals' step
+  useEffect(() => {
+    if (step === 'profile' && profile?.goals && profile.goals.length > 0) {
+      setStep('goals');
+    }
+  }, [profile?.goals, step]);
 
   useEffect(() => {
     const updateTutorialStep = async () => {
