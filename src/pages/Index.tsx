@@ -184,6 +184,12 @@ const Index = () => {
 
         if (error) throw error;
 
+        console.log('Tutorial status check:', {
+          hasCompletedTutorial: data.has_completed_tutorial,
+          onboardingCompleted: data.onboarding_completed,
+          onboardingStep: data.onboarding_step
+        });
+
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
         
