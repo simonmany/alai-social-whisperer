@@ -1,5 +1,31 @@
 project_id = "ejqucnzpgebbujlnmdzx"
 
+[global]
+
+[auth]
+flow_type = "pkce"
+auth.flow_type = "pkce"
+external_google_client_id = "env(GOOGLE_CLIENT_ID)"
+external_google_secret = "env(GOOGLE_CLIENT_SECRET)"
+redirect_urls = [
+  "http://localhost:8080/auth/callback",
+  "https://alai-social-whisperer.com/auth/callback",
+  "https://preview--alai-social-whisperer.lovable.app/auth/callback"
+]
+
 [[functions]]
 name = "calendar"
 verify_jwt = false
+cors_origins = [
+  "http://localhost:*",
+  "https://alai-social-whisperer.com",
+  "https://preview--alai-social-whisperer.lovable.app"
+]
+cors_headers = [
+  "Authorization",
+  "Apikey",
+  "Content-Type",
+  "X-Client-Info"
+]
+SUPABASE_URL = "env(SUPABASE_URL)" 
+SUPABASE_SERVICE_ROLE_KEY = "env(SUPABASE_SERVICE_ROLE_KEY)"

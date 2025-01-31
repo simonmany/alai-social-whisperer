@@ -26,47 +26,38 @@ const CalendarView = () => {
   const { toast } = useToast();
 
   const { data: events = [], isLoading } = useQuery({
-    queryKey: ['calendar-events'],
+    queryKey: ["calendar-events"],
     queryFn: async () => {
-      console.log("Starting calendar events fetch...");
-      
-      if (!session?.user?.id) {
-        console.log("No session found, returning empty events array");
-        return [];
-      }
+      if (!session?.user?.id) return [];
 
       try {
-        // First, check if we need to sync with Google Calendar
-        console.log("Checking Google Calendar token...");
+        // 1) Check if we have google_access_token
         const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('google_access_token, google_token_expires_at')
-          .eq('id', session.user.id)
+          .from("profiles")
+          .select("google_access_token, google_token_expires_at")
+          .eq("id", session.user.id)
           .single();
-
         if (profileError) {
-          console.error('Error fetching profile:', profileError);
+          console.error("Error fetching profile:", profileError);
           return [];
         }
 
+        // 2) If token found, sync with Google
         if (profile?.google_access_token) {
-          console.log("Found Google Calendar token, syncing events...");
           const now = new Date();
           const thirtyDaysFromNow = new Date();
           thirtyDaysFromNow.setDate(now.getDate() + 30);
 
           // Call the calendar edge function to sync events
-          console.log("Calling calendar edge function...");
-          const { data: syncResponse, error: syncError } = await supabase.functions.invoke('calendar', {
+          const { data: syncResponse, error: syncError } = await supabase.functions.invoke("calendar", {
             body: {
-              action: 'list',
+              action: "list",
               timeMin: now.toISOString(),
-              timeMax: thirtyDaysFromNow.toISOString()
-            }
+              timeMax: thirtyDaysFromNow.toISOString(),
+            },
           });
-
           if (syncError) {
-            console.error('Error syncing with Google Calendar:', syncError);
+            console.error("Error syncing with Google Calendar:", syncError);
             toast({
               title: "Error syncing calendar",
               description: "Failed to sync with Google Calendar. Please try again.",
@@ -75,22 +66,20 @@ const CalendarView = () => {
           } else {
             console.log("Successfully synced with Google Calendar", syncResponse);
           }
-        } else {
-          console.log("No Google Calendar token found");
         }
 
-        // Fetch events from our database
-        console.log("Fetching events from database...");
-        const { data: calendarEvents, error } = await supabase
-          .from('calendar_events')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .gte('start_time', new Date().toISOString())
-          .lte('start_time', new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
-          .order('start_time', { ascending: true });
+        // 3) Fetch events from local DB
+        const { data: dbEvents, error } = await supabase
+          .from("calendar_events")
+          .select("*")
+          .eq("user_id", session.user.id)
+          // Show next 30 days
+          .gte("start_time", new Date().toISOString())
+          .lte("start_time", new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString())
+          .order("start_time", { ascending: true });
 
         if (error) {
-          console.error('Error fetching calendar events:', error);
+          console.error("Error fetching calendar events:", error);
           toast({
             title: "Error",
             description: "Failed to fetch calendar events.",
@@ -99,10 +88,14 @@ const CalendarView = () => {
           return [];
         }
 
-        console.log(`Found ${calendarEvents?.length || 0} events in database`);
-        return calendarEvents || [];
+        return dbEvents || [];
       } catch (error) {
-        console.error('Exception in fetchCalendarEvents:', error);
+        console.error("Exception in fetchCalendarEvents:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch calendar events. Check console.",
+          variant: "destructive",
+        });
         return [];
       }
     },
@@ -111,7 +104,7 @@ const CalendarView = () => {
   });
 
   const handlePrompt = (message: string) => {
-    navigate('/', { state: { prompt: message } });
+    navigate("/", { state: { prompt: message } });
   };
 
   return (
@@ -143,9 +136,15 @@ const CalendarView = () => {
         <Tabs defaultValue="day" className="flex-1 flex flex-col">
           <div className="px-4 pt-2">
             <TabsList className="w-full">
-              <TabsTrigger value="day" className="flex-1">Day</TabsTrigger>
-              <TabsTrigger value="week" className="flex-1">Week</TabsTrigger>
-              <TabsTrigger value="month" className="flex-1">Month</TabsTrigger>
+              <TabsTrigger value="day" className="flex-1">
+                Day
+              </TabsTrigger>
+              <TabsTrigger value="week" className="flex-1">
+                Week
+              </TabsTrigger>
+              <TabsTrigger value="month" className="flex-1">
+                Month
+              </TabsTrigger>
             </TabsList>
           </div>
 

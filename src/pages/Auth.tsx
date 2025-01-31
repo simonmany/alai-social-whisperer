@@ -6,8 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, REDIRECT_URL } from "@/integrations/supabase/client";
 import { Separator } from "@/components/ui/separator";
+
+
+
+console.log("Using redirect URL:", REDIRECT_URL);
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -19,9 +23,14 @@ const Auth = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Listen for messages from the popup
+
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
+      const allowedOrigins = [
+        window.location.origin,
+        import.meta.env.VITE_PUBLIC_SITE_URL
+      ];
+      if (!allowedOrigins.includes(event.origin)) return;
       // Verify the message is from our popup
       if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
         console.log("Received success message from popup");
@@ -59,10 +68,25 @@ const Auth = () => {
     setPasswordError("");
     return true;
   };
-
-  const handleSignInWithGoogle = async () => {
+  
+  const handleSignInWithGoogle = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent default button behavior
+    console.log("Google sign-in button clicked"); // Initial click confirmation
     try {
       setLoading(true);
+      const stateToken = crypto.randomUUID();
+      localStorage.setItem('oauth_state', stateToken);
+      
+      
+      console.log('Starting OAuth flow with:', {
+        state: stateToken,
+        redirectUrl: REDIRECT_URL
+      });
+      
+      // Clear any existing session first
+      await supabase.auth.signOut();
+      
+      // Start new OAuth flow
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -70,41 +94,17 @@ const Auth = () => {
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
+            state: stateToken
           },
-          redirectTo: `${window.location.origin}/auth/callback`,
-          skipBrowserRedirect: true
+          redirectTo: REDIRECT_URL,
+          skipBrowserRedirect: false
         }
       });
-
+      
       if (error) throw error;
       
       if (data?.url) {
-        const width = 600;
-        const height = 800;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        const popup = window.open(
-          data.url,
-          'Google Sign In',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-
-        if (!popup) {
-          throw new Error("Popup blocked. Please enable popups for this site.");
-        }
-
-        // Poll for changes in auth state instead of just popup closure
-        const checkAuth = setInterval(async () => {
-          if (popup.closed) {
-            clearInterval(checkAuth);
-            const { data: { session } } = await supabase.auth.getSession();
-            if (session) {
-              console.log("Session detected after popup closed");
-              navigate("/");
-            }
-          }
-        }, 500);
+        window.location.href = data.url;
       }
 
       console.log("Google auth initiated");
@@ -359,7 +359,6 @@ const Auth = () => {
       </Card>
     </div>
   );
-
 };
 
 export default Auth;

@@ -5,7 +5,27 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://ejqucnzpgebbujlnmdzx.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqcXVjbnpwZ2ViYnVqbG5tZHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1MDA3NjgsImV4cCI6MjA1MzA3Njc2OH0.wXBUTxCLlq4vtGnF8ScvGFzZQeJfdYhgzvW6CF3eViI";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    storage: localStorage,
+    detectSessionInUrl: false 
+  }
+});
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+const BASE_URL = import.meta.env.VITE_PUBLIC_SITE_URL;
+export const REDIRECT_URL = import.meta.env.VITE_SUPABASE_REDIRECT_URL;
+
+
+if (import.meta.env.DEV) {
+  console.log('Auth configuration:', {
+    baseUrl: BASE_URL,
+    redirectUrl: REDIRECT_URL,
+    mode: import.meta.env.MODE,
+    dev: import.meta.env.DEV
+  });
+}
+
+await supabase.auth.initialize();

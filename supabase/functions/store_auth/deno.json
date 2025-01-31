@@ -1,3 +1,7 @@
 {
-  "imports": {}
+  "importMap": "./import_map.json",
+  "tasks": {},
+  "compilerOptions": {
+    "lib": ["dom", "deno.ns"]
+  }
 }
