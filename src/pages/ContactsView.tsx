@@ -54,6 +54,7 @@ const ContactsView = () => {
         .single();
       
       if (error) throw error;
+      console.log('Profile data in contacts view:', data);
       return data;
     },
     enabled: !!session?.user?.id
@@ -179,7 +180,7 @@ const ContactsView = () => {
 
   if (isInTutorial) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[9999]">
         <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center space-y-6">
           <p className="text-lg">
             Your relationships are a beautiful constellation, but it's looking a bit empty right now.
