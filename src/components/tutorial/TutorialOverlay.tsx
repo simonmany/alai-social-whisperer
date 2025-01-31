@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createPortal } from "react-dom";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
@@ -20,6 +20,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'complete'>('initial');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
+  const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -45,17 +46,51 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
     };
 
+    const updateGoalArrowPositions = () => {
+      const goalAlerts = document.querySelectorAll('[role="alert"]');
+      const positions: Position[] = [];
+      
+      goalAlerts.forEach((alert) => {
+        const rect = alert.getBoundingClientRect();
+        positions.push({
+          top: rect.top + window.scrollY + (rect.height / 2) - 20,
+          left: rect.left - 48 // Position arrow to the left of the alert
+        });
+      });
+      
+      setGoalArrowPositions(positions);
+    };
+
+    // Initial update
     const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
-      setTimeout(updatePositions, delay);
+      setTimeout(() => {
+        updatePositions();
+        updateGoalArrowPositions();
+      }, delay);
     });
     
-    window.addEventListener('resize', updatePositions);
+    // Update on scroll for goal arrows
+    const handleScroll = () => {
+      if (step === 'profile') {
+        updateGoalArrowPositions();
+      }
+    };
+
+    // Update on resize
+    const handleResize = () => {
+      updatePositions();
+      updateGoalArrowPositions();
+    };
+    
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('scroll', handleScroll, true);
 
     return () => {
-      window.removeEventListener('resize', updatePositions);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('scroll', handleScroll, true);
     };
-  }, []);
+  }, [step]);
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
@@ -130,20 +165,17 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
           </TutorialMessage>
           
-          <TutorialArrow 
-            direction="right" 
-            className="right-[400px] top-[390px]"
-          />
-          
-          <TutorialArrow 
-            direction="right" 
-            className="right-[400px] top-[470px]"
-          />
-
-          <TutorialArrow 
-            direction="right" 
-            className="right-[400px] top-[550px]"
-          />
+          {goalArrowPositions.map((position, index) => (
+            <TutorialArrow 
+              key={index}
+              direction="right" 
+              style={{
+                position: 'fixed',
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+              }}
+            />
+          ))}
         </>
       );
     }
