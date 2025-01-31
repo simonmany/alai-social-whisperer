@@ -47,13 +47,15 @@ interface PersonalityQuizProps {
   initialTraits?: Record<string, number>;
   initialComments?: string[];
   userName?: string;
+  onBackToGoals: () => void;
 }
 
 export const PersonalityQuiz = ({ 
   onComplete, 
   initialTraits, 
   initialComments, 
-  userName = "there" 
+  userName = "there",
+  onBackToGoals
 }: PersonalityQuizProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedValue, setSelectedValue] = useState<number | null>(
@@ -67,6 +69,17 @@ export const PersonalityQuiz = ({
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
+
+  const handleBack = () => {
+    if (currentQuestion === 0) {
+      onBackToGoals();
+    } else {
+      setCurrentQuestion(prev => prev - 1);
+      setSelectedValue(traits[questions[currentQuestion - 1].id] || null);
+      setComment(comments[currentQuestion - 1] || "");
+      setAiResponse("");
+    }
+  };
 
   const handleNext = async () => {
     if (selectedValue === null) {
@@ -225,6 +238,9 @@ export const PersonalityQuiz = ({
         currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
         currentQuestion === 0 ? "transition-opacity duration-500" : ""
       )}>
+        <Button onClick={handleBack} className="w-full" disabled={isLoadingAi}>
+          Back
+        </Button>
         <Button onClick={handleNext} className="w-full" disabled={isLoadingAi}>
           {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
         </Button>

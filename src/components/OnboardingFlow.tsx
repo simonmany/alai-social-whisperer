@@ -140,10 +140,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         setStep('basic');
         break;
       case 'personality':
-        setStep('goals');
+        // Let PersonalityQuiz handle its own back button logic
+        // Only go back to goals if explicitly told by PersonalityQuiz
         break;
       case 'current-interests':
         setStep('personality');
+        setShowQuiz(true);
         break;
       case 'desired-interests':
         setStep('current-interests');
@@ -212,6 +214,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 initialTraits={state.personalityTraits}
                 initialComments={state.personalityComments}
                 userName={state.name}
+                onBackToGoals={() => setStep('goals')}
               />
             </div>
           </>
