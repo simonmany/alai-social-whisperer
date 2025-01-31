@@ -3,7 +3,7 @@ import { UserRound, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ export const MainNavigation = ({
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
@@ -37,8 +38,12 @@ export const MainNavigation = ({
         .single();
 
       if (error) throw error;
+      
+      console.log('MainNavigation - Current onboarding step:', profile?.onboarding_step);
       return profile;
-    }
+    },
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true // Refetch when window regains focus
   });
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
@@ -48,6 +53,8 @@ export const MainNavigation = ({
                            profile?.onboarding_step === 'contactsopen' ||
                            profile?.onboarding_step === 'calendarintro' || 
                            profile?.onboarding_step === 'complete';
+
+  console.log('MainNavigation - showContactsButton:', showContactsButton, 'step:', profile?.onboarding_step);
 
   // Only show calendar button if we're in calendarintro step or complete
   const showCalendarButton = profile?.onboarding_step === 'calendarintro' || 
