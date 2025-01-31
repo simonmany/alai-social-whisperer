@@ -42,8 +42,8 @@ export const MainNavigation = ({
       console.log('MainNavigation - Current onboarding step:', profile?.onboarding_step);
       return profile;
     },
-    staleTime: 0, // Always fetch fresh data
-    refetchOnWindowFocus: true // Refetch when window regains focus
+    staleTime: 0,
+    refetchOnWindowFocus: true
   });
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
@@ -54,48 +54,53 @@ export const MainNavigation = ({
                            profile?.onboarding_step === 'calendarintro' || 
                            profile?.onboarding_step === 'complete';
 
-  console.log('MainNavigation - showContactsButton:', showContactsButton, 'step:', profile?.onboarding_step);
-
   // Only show calendar button if we're in calendarintro step or complete
   const showCalendarButton = profile?.onboarding_step === 'calendarintro' || 
                            profile?.onboarding_step === 'complete';
+
+  console.log('MainNavigation - showContactsButton:', showContactsButton, 'step:', profile?.onboarding_step);
 
   // If hideButtons is true, don't show any navigation
   if (hideButtons) {
     return null;
   }
 
-  // In initial step or when showOnlyProfile is true, only show the profile button
-  if (profile?.onboarding_step === 'initial' || showOnlyProfile) {
+  // Profile button with badge
+  const ProfileButton = () => (
+    <div className="relative">
+      <Button 
+        variant="ghost" 
+        size="icon" 
+        onClick={onProfileOpen}
+        aria-label="Open profile"
+      >
+        <UserRound className="h-5 w-5" />
+        {missingGoalsCount > 0 && (
+          <Badge 
+            variant="destructive" 
+            className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
+          >
+            {missingGoalsCount}
+          </Badge>
+        )}
+      </Button>
+    </div>
+  );
+
+  // If showOnlyProfile is true or we're in initial step, only show the profile button
+  if (showOnlyProfile || profile?.onboarding_step === 'initial') {
     return (
       <div className="flex justify-between items-center gap-2 mb-6">
         <div className="flex-1" />
         <div className="flex-1" />
         <div className="flex-1 flex justify-end">
-          <div className="relative">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={onProfileOpen}
-              aria-label="Open profile"
-            >
-              <UserRound className="h-5 w-5" />
-              {missingGoalsCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
-                >
-                  {missingGoalsCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
+          <ProfileButton />
         </div>
       </div>
     );
   }
 
-  // Default navigation with all buttons based on step
+  // Default navigation with conditional buttons based on step
   return (
     <div className="flex justify-between items-center gap-2 mb-6">
       <div className="flex-1">
@@ -121,24 +126,7 @@ export const MainNavigation = ({
         )}
       </div>
       <div className="flex-1 flex justify-end">
-        <div className="relative">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={onProfileOpen}
-            aria-label="Open profile"
-          >
-            <UserRound className="h-5 w-5" />
-            {missingGoalsCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
-              >
-                {missingGoalsCount}
-              </Badge>
-            )}
-          </Button>
-        </div>
+        <ProfileButton />
       </div>
     </div>
   );
