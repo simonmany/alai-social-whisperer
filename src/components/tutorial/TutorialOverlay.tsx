@@ -93,6 +93,70 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     updateTutorialStep();
   }, [location.pathname, step, session?.user?.id, queryClient]);
 
+  // Check for goals when profile is opened
+  useEffect(() => {
+    const checkGoals = async () => {
+      if (!session?.user.id || !isProfileOpen || step !== 'profile') return;
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('goals')
+          .eq('id', session.user.id)
+          .single();
+
+        const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
+        console.log('Goals check:', goalsExist ? 'Goals found' : 'No goals yet');
+        setHasGoals(goalsExist);
+        
+        if (goalsExist) {
+          setStep('goals');
+        }
+      } catch (error) {
+        console.error('Error checking goals:', error);
+      }
+    };
+
+    checkGoals();
+  }, [session?.user.id, isProfileOpen, step]);
+
+  // Handle profile open/close transitions
+  useEffect(() => {
+    if (isProfileOpen && step === 'initial') {
+      console.log('Profile opened, moving to profile step');
+      if (session?.user?.id) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_step: 'profile' })
+          .eq('id', session.user.id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating onboarding step:', error);
+            else {
+              console.log('Updated onboarding step to profile');
+              setStep('profile');
+            }
+          });
+      }
+    }
+    if (!isProfileOpen && step === 'goals') {
+      console.log('Profile closed, moving to contactsintro step');
+      
+      if (session?.user?.id) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_step: 'contactsintro' })
+          .eq('id', session.user.id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating onboarding step:', error);
+            else {
+              console.log('Updated onboarding step to contactsintro');
+              setStep('contactsintro');
+            }
+          });
+      }
+    }
+  }, [isProfileOpen, step, session?.user?.id]);
+
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
