@@ -133,6 +133,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       }
       
       prompt += `. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
+
+      console.log('Personality Quiz - Model Input:', {
+        questionIndex,
+        questionText: question.text,
+        selectedValue: value,
+        responseType,
+        userComment: comment,
+        previousComments,
+        fullPrompt: prompt
+      });
       
       const response = await generateChatResponse(prompt);
       setAiResponse(response);
