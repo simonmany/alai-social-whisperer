@@ -316,6 +316,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
+                    type="activities"
                     onComplete={handleInterestComplete('activities')}
                     placeholder="Type to search activities..."
                     minSelections={1}
@@ -325,6 +326,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
+                    type="food"
                     onComplete={handleInterestComplete('food')}
                     placeholder="Type your favorite cuisines and dishes..."
                     minSelections={1}
@@ -334,6 +336,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
+                    type="music"
                     onComplete={handleInterestComplete('music')}
                     placeholder="Type your favorite music genres..."
                     minSelections={1}
@@ -366,6 +369,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
+                    type="activities"
                     onComplete={handleFutureInterestComplete('activities')}
                     placeholder="Type activities you'd like to try..."
                     minSelections={1}
@@ -375,6 +379,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
+                    type="food"
                     onComplete={handleFutureInterestComplete('food')}
                     placeholder="Type cuisines you'd like to try..."
                     minSelections={1}
@@ -384,6 +389,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
+                    type="music"
                     onComplete={handleFutureInterestComplete('music')}
                     placeholder="Type music genres you'd like to explore..."
                     minSelections={1}
