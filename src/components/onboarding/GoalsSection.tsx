@@ -55,10 +55,10 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
         .eq('id', session?.user.id);
 
       onComplete(selectedGoals);
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error saving goals",
-        description: "Please try again",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
     }
