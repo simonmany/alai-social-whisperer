@@ -85,11 +85,15 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
 
       if (contactsButton && step === 'contactsintro') {
-        console.log('Found contacts button, updating position');
         const rect = contactsButton.getBoundingClientRect();
         setContactsButtonPosition({
           top: rect.bottom + 8,
           left: rect.left + (rect.width / 2) - 20
+        });
+        
+        setMessagePosition({
+          top: rect.bottom + 56,
+          left: rect.left - 160 + (rect.width / 2)
         });
       }
 
@@ -106,7 +110,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
     };
 
-    console.log('Current tutorial step:', step);
     updatePositions();
     window.addEventListener('resize', updatePositions);
     window.addEventListener('scroll', updatePositions, true);
@@ -232,7 +235,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
 
     if (step === 'contactsintro') {
-      console.log('Rendering contacts intro step, position:', contactsButtonPosition);
       return (
         <>
           <TutorialArrow 
@@ -246,8 +248,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           <TutorialMessage 
             style={{
               position: 'fixed',
-              top: `${contactsButtonPosition.top + 48}px`,
-              left: `${contactsButtonPosition.left - 160 + 20}px`,
+              top: `${messagePosition.top}px`,
+              left: `${messagePosition.left}px`,
             }}
           >
             Great! Now let's add some contacts to help you achieve your goals.
