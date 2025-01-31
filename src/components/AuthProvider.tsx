@@ -81,10 +81,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
-      if (error || !profile) {
-        // If profile doesn't exist, create it
+      if (error) throw error;
+
+      if (!profile) {
+        console.log("Creating new profile for user:", userId);
         const { error: insertError } = await supabase
           .from('profiles')
           .insert([{ 
@@ -97,8 +99,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (insertError) throw insertError;
       }
+
+      return profile;
     } catch (error) {
       console.error('Error ensuring profile exists:', error);
+      throw error;
     }
   };
 
@@ -107,6 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
+        setLoading(true);
         const { data: { session: initialSession }, error: sessionError } = 
           await supabase.auth.getSession();
         
@@ -119,13 +125,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           await ensureProfileExists(initialSession.user.id);
           await updateProfileWithGoogleData(initialSession.user);
           setSession(initialSession);
-        } else {
+        }
+        
+        setLoading(false);
+        
+        if (!initialSession) {
           navigate("/auth");
         }
       } catch (error) {
         await handleSessionError(error);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -139,14 +147,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       switch (event) {
         case 'SIGNED_IN':
           if (currentSession?.user) {
-            await ensureProfileExists(currentSession.user.id);
-            await updateProfileWithGoogleData(currentSession.user);
-            setSession(currentSession);
-            toast({
-              title: "Signed in successfully",
-              description: "Welcome!",
-            });
-            navigate("/");
+            try {
+              await ensureProfileExists(currentSession.user.id);
+              await updateProfileWithGoogleData(currentSession.user);
+              setSession(currentSession);
+              toast({
+                title: "Signed in successfully",
+                description: "Welcome!",
+              });
+              navigate("/");
+            } catch (error) {
+              console.error("Error during sign in:", error);
+              toast({
+                title: "Error",
+                description: "There was an error setting up your profile",
+                variant: "destructive",
+              });
+            }
           }
           break;
 
