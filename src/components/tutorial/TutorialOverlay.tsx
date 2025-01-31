@@ -27,6 +27,30 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { session } = useAuth();
   const { toast } = useToast();
 
+  // Add a new effect to check for existing goals
+  useEffect(() => {
+    const checkGoals = async () => {
+      if (!session?.user.id || !isProfileOpen || step !== 'profile') return;
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('goals')
+          .eq('id', session.user.id)
+          .single();
+
+        // If goals exist and we're in profile step, move to goals step
+        if (profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
+          setStep('goals');
+        }
+      } catch (error) {
+        console.error('Error checking goals:', error);
+      }
+    };
+
+    checkGoals();
+  }, [session?.user.id, isProfileOpen, step]);
+
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
@@ -92,7 +116,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       setStep('profile');
     }
     if (!isProfileOpen && (step === 'goals' || step === 'profile')) {
-      setStep('initial');
+      setStep('contactsintro');
     }
   }, [isProfileOpen, step]);
 
