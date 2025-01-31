@@ -18,13 +18,12 @@ interface Position {
 }
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'contactsintro' | 'contactsopen' | 'calendarintro' | 'complete'>('initial');
+  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'contactsintro' | 'contactsopen' | 'complete'>('initial');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
   const [closeButtonPosition, setCloseButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [contactsButtonPosition, setContactsButtonPosition] = useState<Position>({ top: 0, left: 0 });
-  const [calendarButtonPosition, setCalendarButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [hasGoals, setHasGoals] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
@@ -44,6 +43,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
         setHasGoals(goalsExist);
         
+        // Only move to goals step if goals exist
         if (goalsExist) {
           console.log('Goals found, moving to goals step');
           setStep('goals');
@@ -61,7 +61,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
       const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
       const contactsButton = document.querySelector('button:has(.lucide-users)');
-      const calendarButton = document.querySelector('button:has(.lucide-calendar)');
       const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
       
       if (profileButton && step === 'initial') {
@@ -88,19 +87,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (contactsButton && step === 'contactsintro') {
         const rect = contactsButton.getBoundingClientRect();
         setContactsButtonPosition({
-          top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20
-        });
-        
-        setMessagePosition({
-          top: rect.bottom + 56,
-          left: rect.left - 160 + (rect.width / 2)
-        });
-      }
-
-      if (calendarButton && step === 'calendarintro') {
-        const rect = calendarButton.getBoundingClientRect();
-        setArrowPosition({
           top: rect.bottom + 8,
           left: rect.left + (rect.width / 2) - 20
         });
@@ -143,6 +129,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       console.log('Profile closed, moving to contactsintro step');
       setStep('contactsintro');
       
+      // Update profile onboarding step in Supabase
       if (session?.user.id) {
         supabase
           .from('profiles')
@@ -160,10 +147,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     try {
       await supabase
         .from('profiles')
-        .update({ onboarding_step: 'calendarintro' })
+        .update({ 
+          onboarding_step: 'complete',
+          has_completed_tutorial: true 
+        })
         .eq('id', session.user.id);
       
-      setStep('calendarintro');
+      setStep('complete');
+      onComplete();
     } catch (error: any) {
       console.error('Error updating tutorial progress:', error);
       toast({
@@ -262,30 +253,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             }}
           >
             Great! Now let's add some contacts to help you achieve your goals.
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'calendarintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-            }}
-          >
-            Perfect! Now let's check out your calendar to start planning some activities.
           </TutorialMessage>
         </>
       );

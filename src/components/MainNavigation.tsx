@@ -43,54 +43,17 @@ export const MainNavigation = ({
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
   
-  // Show contacts button if we're in contactsintro step or later steps
-  const showContactsButton = profile?.onboarding_step === 'contactsintro' || 
-                           profile?.onboarding_step === 'contactsopen' ||
-                           profile?.onboarding_step === 'calendarintro' || 
-                           profile?.onboarding_step === 'complete';
-
-  // Only show calendar button if we're in calendarintro step or complete
-  const showCalendarButton = profile?.onboarding_step === 'calendarintro' || 
-                           profile?.onboarding_step === 'complete';
+  // Show contacts button if we're in contactsintro step or tutorial is complete
+  const showContactsButton = profile?.onboarding_step === 'contactsintro' || profile?.onboarding_step === 'complete';
 
   if (hideButtons) {
     return null;
   }
 
-  // In initial step or when showOnlyProfile is true, only show the profile button
-  if (profile?.onboarding_step === 'initial' || showOnlyProfile) {
-    return (
-      <div className="flex justify-between items-center gap-2 mb-6">
-        <div className="flex-1" />
-        <div className="flex-1" />
-        <div className="flex-1 flex justify-end">
-          <div className="relative">
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={onProfileOpen}
-              aria-label="Open profile"
-            >
-              <UserRound className="h-5 w-5" />
-              {missingGoalsCount > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
-                >
-                  {missingGoalsCount}
-                </Badge>
-              )}
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex justify-between items-center gap-2 mb-6">
       <div className="flex-1">
-        {showCalendarButton && (
+        {!showOnlyProfile && !showContactsButton && (
           <Button
             variant="ghost"
             size="icon"

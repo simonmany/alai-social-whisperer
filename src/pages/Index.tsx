@@ -134,47 +134,6 @@ const Index = () => {
   };
 
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      if (!session?.user.id) return;
-
-      try {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('onboarding_completed, onboarding_step')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) throw error;
-
-        // If profile exists and onboarding is not completed, show onboarding
-        if (profile) {
-          console.log('Profile found:', profile);
-          setShowOnboarding(!profile.onboarding_completed);
-          setHideButtons(!profile.onboarding_completed);
-          
-          // Show profile button if we're past the initial step
-          if (profile.onboarding_step !== 'initial') {
-            setShowProfileButton(true);
-          }
-        } else {
-          console.log('No profile found, showing onboarding');
-          setShowOnboarding(true);
-          setHideButtons(true);
-        }
-      } catch (error) {
-        console.error('Error checking onboarding status:', error);
-        toast({
-          title: "Error checking onboarding status",
-          description: "Please try refreshing the page",
-          variant: "destructive",
-        });
-      }
-    };
-
-    checkOnboardingStatus();
-  }, [session?.user.id, toast]);
-
-  useEffect(() => {
     const loadChatHistory = async () => {
       if (!session?.user.id) return;
 
