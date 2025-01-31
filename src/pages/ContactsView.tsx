@@ -182,7 +182,7 @@ const ContactsView = () => {
       <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
         <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center space-y-6">
           <p className="text-lg">
-            Your relationships are a beautiful Constellation, but right now it's a bit empty.
+            Your relationships are a beautiful constellation, but it's looking a bit empty right now.
           </p>
           <div className="flex justify-center gap-4">
             <Button onClick={handleSkipContacts}>

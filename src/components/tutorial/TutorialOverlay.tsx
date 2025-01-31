@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "lucide-react";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -18,12 +19,13 @@ interface Position {
 }
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'contactsintro' | 'contactsopen' | 'complete'>('initial');
+  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'contactsintro' | 'contactsopen' | 'calendarintro' | 'complete'>('initial');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
   const [closeButtonPosition, setCloseButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [contactsButtonPosition, setContactsButtonPosition] = useState<Position>({ top: 0, left: 0 });
+  const [calendarButtonPosition, setCalendarButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [hasGoals, setHasGoals] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
@@ -39,13 +41,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           .eq('id', session.user.id)
           .single();
 
-        console.log('Current step:', step, 'Goals:', profile?.goals);
         const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
         setHasGoals(goalsExist);
         
-        // Only move to goals step if goals exist
         if (goalsExist) {
-          console.log('Goals found, moving to goals step');
           setStep('goals');
         }
       } catch (error) {
@@ -61,6 +60,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
       const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
       const contactsButton = document.querySelector('button:has(.lucide-users)');
+      const calendarButton = document.querySelector('button:has(.lucide-calendar)');
       const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
       
       if (profileButton && step === 'initial') {
@@ -84,9 +84,22 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
 
-      if (contactsButton && step === 'contactsintro') {
+      if (contactsButton && (step === 'contactsintro' || step === 'contactsopen')) {
         const rect = contactsButton.getBoundingClientRect();
         setContactsButtonPosition({
+          top: rect.bottom + 8,
+          left: rect.left + (rect.width / 2) - 20
+        });
+        
+        setMessagePosition({
+          top: rect.bottom + 56,
+          left: rect.left - 160 + (rect.width / 2)
+        });
+      }
+
+      if (calendarButton && step === 'calendarintro') {
+        const rect = calendarButton.getBoundingClientRect();
+        setCalendarButtonPosition({
           top: rect.bottom + 8,
           left: rect.left + (rect.width / 2) - 20
         });
@@ -122,14 +135,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
-      console.log('Profile opened, moving to profile step');
       setStep('profile');
     }
     if (!isProfileOpen && step === 'goals') {
-      console.log('Profile closed, moving to contactsintro step');
       setStep('contactsintro');
       
-      // Update profile onboarding step in Supabase
       if (session?.user.id) {
         supabase
           .from('profiles')
@@ -148,13 +158,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       await supabase
         .from('profiles')
         .update({ 
-          onboarding_step: 'complete',
-          has_completed_tutorial: true 
+          onboarding_step: 'calendarintro',
+          has_completed_tutorial: false 
         })
         .eq('id', session.user.id);
       
-      setStep('complete');
-      onComplete();
+      setStep('calendarintro');
     } catch (error: any) {
       console.error('Error updating tutorial progress:', error);
       toast({
@@ -253,6 +262,30 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             }}
           >
             Great! Now let's add some contacts to help you achieve your goals.
+          </TutorialMessage>
+        </>
+      );
+    }
+
+    if (step === 'calendarintro') {
+      return (
+        <>
+          <TutorialArrow 
+            direction="up"
+            style={{
+              position: 'fixed',
+              top: `${calendarButtonPosition.top}px`,
+              left: `${calendarButtonPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${messagePosition.top}px`,
+              left: `${messagePosition.left}px`,
+            }}
+          >
+            Let's check out your calendar to start planning some activities!
           </TutorialMessage>
         </>
       );
