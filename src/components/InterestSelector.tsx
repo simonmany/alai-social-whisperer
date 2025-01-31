@@ -62,6 +62,11 @@ export const InterestSelector = ({
     }
   }, [searchTerm, activities]);
 
+  useEffect(() => {
+    // Call onComplete whenever selections change
+    onComplete(selectedActivities);
+  }, [selectedActivities, onComplete]);
+
   const handleActivitySelect = (activityName: string) => {
     if (selectedActivities.includes(activityName)) {
       setSelectedActivities(prev => prev.filter(name => name !== activityName));
@@ -153,18 +158,6 @@ export const InterestSelector = ({
     }
   };
 
-  const handleSubmit = () => {
-    if (selectedActivities.length < minSelections) {
-      toast({
-        title: `Please select at least ${minSelections} activities`,
-        description: `You've selected ${selectedActivities.length} so far`,
-        variant: "destructive",
-      });
-      return;
-    }
-    onComplete(selectedActivities);
-  };
-
   return (
     <div className="space-y-4">
       <Input
@@ -203,14 +196,11 @@ export const InterestSelector = ({
         ))}
       </div>
 
-      {selectedActivities.length > 0 && (
-        <div className="flex justify-between items-center">
-          <p className="text-sm text-gray-500">
-            {selectedActivities.length} selected (minimum {minSelections})
-          </p>
-          <Button onClick={handleSubmit}>Continue</Button>
-        </div>
-      )}
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-500">
+          {selectedActivities.length} selected (minimum {minSelections})
+        </p>
+      </div>
     </div>
   );
 };
