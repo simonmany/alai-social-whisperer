@@ -221,7 +221,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         )}
 
         {step === 'current-interests' && (
-          <>
+          <div className="space-y-4">
             {isLoadingAi ? (
               <div className="text-sm text-gray-500 animate-pulse">
                 Analyzing your personality...
@@ -241,15 +241,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <TypewriterText
                 text="Enter at least 3 activities."
                 delay={1000}
+                onComplete={() => setShowQuiz(false)} // Reset showQuiz here
               />
             </div>
-            <InterestSelector
-              onComplete={handleCurrentInterestsComplete}
-              placeholder="Type to search activities..."
-              minSelections={3}
-              initialSelections={state.currentInterests}
-            />
-          </>
+            <div className={cn(
+              "transition-opacity duration-500",
+              !showQuiz ? "opacity-100" : "opacity-0" // Invert the condition
+            )}>
+              <InterestSelector
+                onComplete={handleCurrentInterestsComplete}
+                placeholder="Type to search activities..."
+                minSelections={3}
+                initialSelections={state.currentInterests}
+              />
+            </div>
+          </div>
         )}
 
         {step === 'desired-interests' && (
