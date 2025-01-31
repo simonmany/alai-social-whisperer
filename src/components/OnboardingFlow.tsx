@@ -123,8 +123,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       const responseType = value <= 40 ? question.leftLabel : value >= 80 ? question.rightLabel : "balanced";
       let prompt = `Hey, I'm learning about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
       
-      if (comment) {
-        prompt += ` and shared: "${comment}"`;
+      if (comment.trim()) {
+        prompt += `. Also, the user said this in relation to the question: "${comment}"`;
       }
       
       const previousComments = updatedComments.filter((_, index) => index < questionIndex);
