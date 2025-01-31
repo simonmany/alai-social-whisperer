@@ -68,29 +68,20 @@ const AuthCallback = () => {
 
           // Store tokens in app_metadata using store_auth function
           try {
-            const storeAuthUrl = import.meta.env.DEV
-              ? 'http://localhost:54321/functions/v1/store_auth'
-              : '/functions/v1/store_auth';
-
-            const response = await fetch(storeAuthUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-              },
-              body: JSON.stringify({
+            const { data: storeAuthData, error: storeAuthError } = await supabase.functions.invoke('store_auth', {
+              body: {
                 user_id: session.user.id,
                 refresh_token: session.refresh_token,
                 provider_token: session.provider_token,
                 provider_refresh_token: session.provider_refresh_token
-              })
+              }
             });
 
-            if (!response.ok) {
-              throw new Error('Failed to store auth data');
+            if (storeAuthError) {
+              throw storeAuthError;
             }
 
-            console.log('Successfully stored Google tokens');
+            console.log('Successfully stored Google tokens:', storeAuthData);
             toast({
               title: 'Success',
               description: 'Google Calendar connected successfully'
