@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { Goal } from "@/types/goals";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -118,7 +119,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   // Effect to check if user has set a goal and advance to 'goals' step
   useEffect(() => {
-    if (step === 'profile' && profile?.goals && profile.goals.length > 0) {
+    if (step === 'profile' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
       setStep('goals');
     }
   }, [profile?.goals, step]);
