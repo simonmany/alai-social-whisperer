@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
 import { supabase } from "@/integrations/supabase/client";
@@ -97,75 +98,83 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     updateTutorialStep();
   }, [step, session?.user.id, onComplete, toast]);
 
-  const overlayStyle: React.CSSProperties = {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    pointerEvents: 'none',
-    zIndex: 9999 // Increased z-index to be above Sheet component
+  const renderTutorialContent = () => {
+    const overlayStyle: React.CSSProperties = {
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      pointerEvents: 'none',
+      zIndex: 9999
+    };
+
+    if (step === 'initial') {
+      return (
+        <div style={overlayStyle}>
+          <TutorialArrow 
+            direction="up" 
+            style={{
+              position: 'fixed',
+              top: `${arrowPosition.top}px`,
+              left: `${arrowPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${messagePosition.top}px`,
+              left: `${messagePosition.left}px`,
+            }}
+          >
+            I've created a profile for you here. Click to take a look.
+          </TutorialMessage>
+        </div>
+      );
+    }
+
+    if (step === 'profile') {
+      return (
+        <div style={overlayStyle}>
+          <TutorialMessage 
+            className="right-[450px] top-32 max-w-xs"
+          >
+            Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
+          </TutorialMessage>
+          
+          <TutorialArrow 
+            direction="right" 
+            className="right-[400px] top-[470px]"
+          />
+          
+          <TutorialArrow 
+            direction="right" 
+            className="right-[400px] top-[560px]"
+          />
+        </div>
+      );
+    }
+
+    if (step === 'goals') {
+      return (
+        <div style={overlayStyle}>
+          <TutorialArrow 
+            direction="left" 
+            className="right-16 top-8"
+          />
+          <TutorialMessage className="right-24 top-20">
+            Nice! I'm looking forward to helping you make that happen. Let's close the profile screen for now.
+          </TutorialMessage>
+        </div>
+      );
+    }
+
+    return null;
   };
 
-  if (step === 'initial') {
-    return (
-      <div style={overlayStyle} className="z-[9999]">
-        <TutorialArrow 
-          direction="up" 
-          style={{
-            position: 'fixed',
-            top: `${arrowPosition.top}px`,
-            left: `${arrowPosition.left}px`,
-          }}
-        />
-        <TutorialMessage 
-          style={{
-            position: 'fixed',
-            top: `${messagePosition.top}px`,
-            left: `${messagePosition.left}px`,
-          }}
-        >
-          I've created a profile for you here. Click to take a look.
-        </TutorialMessage>
-      </div>
-    );
-  }
-
-  if (step === 'profile') {
-    return (
-      <div style={overlayStyle} className="z-[9999]">
-        <TutorialMessage 
-          className="right-[450px] top-32 max-w-xs"
-        >
-          Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
-        </TutorialMessage>
-        
-        <TutorialArrow 
-          direction="right" 
-          className="right-[400px] top-[470px]"
-        />
-        
-        <TutorialArrow 
-          direction="right" 
-          className="right-[400px] top-[560px]"
-        />
-      </div>
-    );
-  }
-
-  if (step === 'goals') {
-    return (
-      <div style={overlayStyle} className="z-[9999]">
-        <TutorialArrow 
-          direction="left" 
-          className="right-16 top-8"
-        />
-        <TutorialMessage className="right-24 top-20">
-          Nice! I'm looking forward to helping you make that happen. Let's close the profile screen for now.
-        </TutorialMessage>
-      </div>
-    );
-  }
-
-  return null;
+  // Render the tutorial content in a portal
+  return createPortal(
+    renderTutorialContent(),
+    document.body
+  );
 };
