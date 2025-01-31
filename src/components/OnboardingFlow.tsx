@@ -146,7 +146,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
     setIsLoadingAi(false);
 
-    // Move to next step
     const nextSteps: Record<number, OnboardingStep> = {
       0: 'personality-q2',
       1: 'personality-q3',

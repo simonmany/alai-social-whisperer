@@ -95,9 +95,6 @@ export const PersonalityQuestion = ({
           <ChatInput
             onSend={(newComment) => {
               setComment(newComment);
-              if (selectedValue) {
-                onAnswer(selectedValue, newComment);
-              }
             }}
             placeholder="say more, if you like..."
             initialValue={comment}
