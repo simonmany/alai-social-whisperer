@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Goal } from "@/types/goals";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -94,6 +93,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
     };
 
+    // Run position updates immediately and after short delays
     const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
       setTimeout(() => {
@@ -102,9 +102,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }, delay);
     });
     
+    // Add event listeners
     window.addEventListener('resize', updatePositions);
     window.addEventListener('scroll', updatePositions, true);
 
+    // Set up interval for continuous updates
     const intervalId = setInterval(() => {
       updatePositions();
       updateGoalArrowPositions();
@@ -174,12 +176,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           <TutorialArrow 
             direction="up" 
             style={{
+              position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
             }}
           />
           <TutorialMessage 
             style={{
+              position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
             }}
@@ -223,6 +227,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${closeButtonPosition.top}px`,
               left: `${closeButtonPosition.left}px`,
+              zIndex: 9999,
             }}
           />
           <TutorialMessage className="right-24 top-20">
