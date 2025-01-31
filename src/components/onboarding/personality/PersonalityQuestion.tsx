@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
 import { TypewriterText } from "@/components/TypewriterText";
@@ -24,9 +24,15 @@ export const PersonalityQuestion = ({
   isLoadingAi,
   onAnswer
 }: PersonalityQuestionProps) => {
-  const [selectedValue, setSelectedValue] = useState<number | null>(initialValue || null);
+  const [selectedValue, setSelectedValue] = useState<number | null>(null);
   const [currentComment, setCurrentComment] = useState("");
   const [showContent, setShowContent] = useState(false);
+
+  // Reset selected value when question changes
+  useEffect(() => {
+    setSelectedValue(null);
+    setCurrentComment("");
+  }, [question.id]);
 
   const handleNext = () => {
     if (selectedValue !== null) {
