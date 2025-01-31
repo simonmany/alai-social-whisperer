@@ -70,17 +70,6 @@ export const PersonalityQuiz = ({
   const { session } = useAuth();
   const { toast } = useToast();
 
-  const handleBack = () => {
-    if (currentQuestion === 0) {
-      onBackToGoals();
-    } else {
-      setCurrentQuestion(prev => prev - 1);
-      setSelectedValue(traits[questions[currentQuestion - 1].id] || null);
-      setComment(comments[currentQuestion - 1] || "");
-      setAiResponse("");
-    }
-  };
-
   const handleNext = async () => {
     if (selectedValue === null) {
       toast({
@@ -100,12 +89,10 @@ export const PersonalityQuiz = ({
       const responseType = selectedValue <= 40 ? question.leftLabel : selectedValue >= 80 ? question.rightLabel : "balanced";
       let prompt = `Hey, I'm learning about ${userName}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
       
-      // Include current comment if provided
       if (comment) {
         prompt += ` and shared: "${comment}"`;
       }
       
-      // Include previous comments if they exist
       const previousComments = updatedComments.filter((_, index) => index < currentQuestion);
       if (previousComments.length > 0) {
         prompt += `. In previous questions, they've mentioned: "${previousComments.join('", "')}"`;
@@ -238,9 +225,6 @@ export const PersonalityQuiz = ({
         currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
         currentQuestion === 0 ? "transition-opacity duration-500" : ""
       )}>
-        <Button onClick={handleBack} className="w-full mb-2" disabled={isLoadingAi}>
-          Back
-        </Button>
         <Button onClick={handleNext} className="w-full" disabled={isLoadingAi}>
           {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
         </Button>
