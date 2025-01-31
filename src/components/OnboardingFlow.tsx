@@ -185,6 +185,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             session={session} 
             onComplete={handleGoalsComplete}
             initialGoals={state.goals}
+            userName={state.name}
           />
         )}
 
