@@ -47,18 +47,22 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     };
 
     const updateGoalArrowPositions = () => {
+      if (step !== 'profile') return;
+      
       const goalAlerts = document.querySelectorAll('[role="alert"]');
       const positions: Position[] = [];
       
       goalAlerts.forEach((alert) => {
         const rect = alert.getBoundingClientRect();
         positions.push({
-          top: rect.top + window.scrollY + (rect.height / 2) - 20,
-          left: rect.left - 48 // Position arrow to the left of the alert
+          top: rect.top + (rect.height / 2) - 20,
+          left: rect.left - 48
         });
       });
       
-      setGoalArrowPositions(positions);
+      if (positions.length > 0) {
+        setGoalArrowPositions(positions);
+      }
     };
 
     // Initial update
@@ -70,25 +74,22 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }, delay);
     });
     
-    // Update on scroll for goal arrows
-    const handleScroll = () => {
-      if (step === 'profile') {
-        updateGoalArrowPositions();
-      }
-    };
-
-    // Update on resize
-    const handleResize = () => {
+    // Update on scroll and resize
+    const handleUpdate = () => {
       updatePositions();
       updateGoalArrowPositions();
     };
     
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleUpdate);
+    window.addEventListener('scroll', handleUpdate, true);
+
+    // Set up an interval to periodically check positions
+    const intervalId = setInterval(handleUpdate, 1000);
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleScroll, true);
+      window.removeEventListener('resize', handleUpdate);
+      window.removeEventListener('scroll', handleUpdate, true);
+      clearInterval(intervalId);
     };
   }, [step]);
 
