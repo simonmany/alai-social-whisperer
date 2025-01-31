@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SendHorizontal } from "lucide-react";
@@ -11,13 +11,13 @@ interface ChatInputProps {
   showSendButton?: boolean;
 }
 
-export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(({ 
+export const ChatInput = ({ 
   onSend, 
   placeholder = "... or tell me what's on your mind!",
   type = "text",
   initialValue = "",
   showSendButton = true
-}, ref) => {
+}: ChatInputProps) => {
   const [message, setMessage] = useState(initialValue);
 
   useEffect(() => {
@@ -42,12 +42,16 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(({
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+    onSend(e.target.value); // Send the updated value immediately
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
       <Textarea
-        ref={ref}
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className="flex-1 min-h-[44px] resize-none"
@@ -59,6 +63,4 @@ export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(({
       )}
     </form>
   );
-});
-
-ChatInput.displayName = "ChatInput";
+};

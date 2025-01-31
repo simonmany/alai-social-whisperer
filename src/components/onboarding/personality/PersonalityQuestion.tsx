@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChatInput } from "@/components/ChatInput";
 import { TypewriterText } from "@/components/TypewriterText";
@@ -27,24 +27,9 @@ export const PersonalityQuestion = ({
   const [selectedValue, setSelectedValue] = useState<number | null>(initialValue || null);
   const [currentComment, setCurrentComment] = useState("");
   const [showContent, setShowContent] = useState(false);
-  const chatInputRef = useRef<HTMLTextAreaElement>(null);
 
   const handleNext = () => {
     if (selectedValue !== null) {
-      // Simulate Enter keypress to submit any pending comment
-      if (chatInputRef.current) {
-        const enterEvent = new KeyboardEvent('keydown', {
-          key: 'Enter',
-          code: 'Enter',
-          keyCode: 13,
-          which: 13,
-          bubbles: true,
-          cancelable: true
-        });
-        chatInputRef.current.dispatchEvent(enterEvent);
-      }
-      
-      // Submit the answer with current values
       onAnswer(selectedValue, currentComment);
       setCurrentComment(""); // Clear comment after submitting
     }
@@ -113,7 +98,6 @@ export const PersonalityQuestion = ({
             </div>
           </div>
           <ChatInput
-            ref={chatInputRef}
             onSend={(newComment) => {
               setCurrentComment(newComment);
             }}
