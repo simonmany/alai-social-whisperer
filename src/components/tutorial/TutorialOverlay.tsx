@@ -39,8 +39,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           .eq('id', session.user.id)
           .single();
 
+        console.log('Current step:', step, 'Goals:', profile?.goals);
+        
         // If goals exist and we're in profile step, move to goals step
         if (profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
+          console.log('Goals found, moving to goals step');
           setStep('goals');
         }
       } catch (error) {
@@ -80,6 +83,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
 
       if (contactsButton && step === 'contactsintro') {
+        console.log('Found contacts button, updating position');
         const rect = contactsButton.getBoundingClientRect();
         setContactsButtonPosition({
           top: rect.bottom + 8,
@@ -87,7 +91,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
 
-      // Update goal arrow positions
       if (step === 'profile' && goalAlerts.length > 0) {
         const positions: Position[] = [];
         goalAlerts.forEach((alert) => {
@@ -101,6 +104,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
     };
 
+    console.log('Current tutorial step:', step);
     updatePositions();
     window.addEventListener('resize', updatePositions);
     window.addEventListener('scroll', updatePositions, true);
@@ -113,12 +117,25 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
+      console.log('Profile opened, moving to profile step');
       setStep('profile');
     }
     if (!isProfileOpen && (step === 'goals' || step === 'profile')) {
+      console.log('Profile closed, moving to contactsintro step');
       setStep('contactsintro');
+      
+      // Update profile onboarding step in Supabase
+      if (session?.user.id) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_step: 'contactsintro' })
+          .eq('id', session.user.id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating onboarding step:', error);
+          });
+      }
     }
-  }, [isProfileOpen, step]);
+  }, [isProfileOpen, step, session?.user.id]);
 
   const handleSkipContacts = async () => {
     if (!session?.user.id) return;
@@ -213,6 +230,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
 
     if (step === 'contactsintro') {
+      console.log('Rendering contacts intro step, position:', contactsButtonPosition);
       return (
         <>
           <TutorialArrow 
@@ -233,26 +251,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             Great! Now let's add some contacts to help you achieve your goals.
           </TutorialMessage>
         </>
-      );
-    }
-
-    if (step === 'contactsopen') {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-          <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center space-y-6">
-            <p className="text-lg">
-              Your relationships are a beautiful Constellation, but right now it's a bit empty.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Button onClick={handleSkipContacts}>
-                Connect Contacts
-              </Button>
-              <Button variant="outline" onClick={handleSkipContacts}>
-                Not Now
-              </Button>
-            </div>
-          </div>
-        </div>
       );
     }
 
