@@ -43,7 +43,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
         setHasGoals(goalsExist);
         
-        // Only move to goals step if goals exist
         if (goalsExist) {
           console.log('Goals found, moving to goals step');
           setStep('goals');
@@ -129,7 +128,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       console.log('Profile closed, moving to contactsintro step');
       setStep('contactsintro');
       
-      // Update profile onboarding step in Supabase
       if (session?.user.id) {
         supabase
           .from('profiles')

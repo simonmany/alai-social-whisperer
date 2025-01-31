@@ -59,7 +59,7 @@ const ContactsView = () => {
     enabled: !!session?.user?.id
   });
 
-  const isInTutorial = profileData?.onboarding_step === 'contactsopen' && !profileData?.has_completed_tutorial;
+  const isInTutorial = profileData?.onboarding_step === 'contactsintro' && !profileData?.has_completed_tutorial;
 
   const handleSkipContacts = async () => {
     if (!session?.user?.id) return;
