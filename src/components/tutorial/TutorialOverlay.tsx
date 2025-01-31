@@ -407,6 +407,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               <Button 
                 size="sm" 
                 onClick={handleContactsResponse}
+                className="bg-[#9b87f5] hover:bg-[#9b87f5]/90"
               >
                 Connect contacts
               </Button>
@@ -414,6 +415,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 variant="outline" 
                 size="sm"
                 onClick={handleContactsResponse}
+                className="bg-[#000000e6] text-white hover:bg-[#000000e6]/90"
               >
                 Not now
               </Button>
@@ -446,6 +448,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               <Button 
                 size="sm" 
                 onClick={handleTutorialComplete}
+                className="bg-[#9b87f5] hover:bg-[#9b87f5]/90"
               >
                 Connect calendars
               </Button>
@@ -453,6 +456,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 variant="outline" 
                 size="sm"
                 onClick={handleTutorialComplete}
+                className="bg-[#000000e6] text-white hover:bg-[#000000e6]/90"
               >
                 Not now
               </Button>
