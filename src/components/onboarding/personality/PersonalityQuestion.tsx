@@ -12,7 +12,6 @@ interface PersonalityQuestionProps {
     rightLabel: string;
   };
   initialValue?: number;
-  initialComment?: string;
   aiResponse?: string;
   isLoadingAi?: boolean;
   onAnswer: (value: number, comment: string) => void;
@@ -33,7 +32,7 @@ export const PersonalityQuestion = ({
     if (selectedValue !== null) {
       console.log('Submitting personality answer:', {
         value: selectedValue,
-        comment: currentComment
+        comment: currentComment // This will now include any text in the input box
       });
       onAnswer(selectedValue, currentComment);
       setCurrentComment(""); // Clear comment after submitting
