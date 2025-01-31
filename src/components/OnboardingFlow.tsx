@@ -225,7 +225,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <PersonalityQuestion
               question={questions[currentQuestionIndex]}
               initialValue={state.personalityTraits?.[questions[currentQuestionIndex].id]}
-              initialComment={state.personalityComments?.[currentQuestionIndex]}
               aiResponse={aiResponse}
               isLoadingAi={isLoadingAi}
               onAnswer={(value, comment) => handlePersonalityAnswer(currentQuestionIndex, value, comment)}
