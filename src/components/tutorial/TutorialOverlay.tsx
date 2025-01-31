@@ -94,54 +94,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   }, [location.pathname, step, session?.user?.id, queryClient]);
 
   useEffect(() => {
-    const checkGoals = async () => {
-      if (!session?.user.id || !isProfileOpen || step !== 'profile') return;
-
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('goals')
-          .eq('id', session.user.id)
-          .single();
-
-        const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
-        console.log('Goals check:', goalsExist ? 'Goals found' : 'No goals yet');
-        setHasGoals(goalsExist);
-        
-        if (goalsExist) {
-          setStep('goals');
-        }
-      } catch (error) {
-        console.error('Error checking goals:', error);
-      }
-    };
-
-    checkGoals();
-  }, [session?.user.id, isProfileOpen, step]);
-
-  useEffect(() => {
-    if (isProfileOpen && step === 'initial') {
-      console.log('Profile opened, moving to profile step');
-      setStep('profile');
-    }
-    if (!isProfileOpen && step === 'goals') {
-      console.log('Profile closed, moving to contactsintro step');
-      
-      if (session?.user?.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'contactsintro' })
-          .eq('id', session.user.id)
-          .then(({ error }) => {
-            if (error) console.error('Error updating onboarding step:', error);
-            else console.log('Updated onboarding step to contactsintro');
-          });
-      }
-      setStep('contactsintro');
-    }
-  }, [isProfileOpen, step, session?.user.id]);
-
-  useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
       const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
