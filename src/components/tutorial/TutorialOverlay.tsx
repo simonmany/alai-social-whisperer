@@ -45,11 +45,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      // Specifically target the close button in the sheet
       const closeButton = document.querySelector('[role="dialog"] button[aria-label="Close"]');
+      
+      console.log('Current step:', step);
+      console.log('Close button found:', !!closeButton);
       
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
+        console.log('Profile button position:', rect);
         
         const newArrowPosition = {
           top: rect.bottom + 8,
@@ -65,13 +68,17 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         setMessagePosition(newMessagePosition);
       }
 
-      // Update close button arrow position with more precise positioning
       if (closeButton && step === 'goals') {
         const rect = closeButton.getBoundingClientRect();
-        setCloseButtonPosition({
-          top: rect.top + (rect.height / 2) - 10, // Center vertically with the X
-          left: rect.left - 48 // Position arrow just to the left of the X
-        });
+        console.log('Close button position:', rect);
+        
+        const newPosition = {
+          top: rect.top + (rect.height / 2) - 10,
+          left: rect.left - 48
+        };
+        console.log('Setting close button arrow position to:', newPosition);
+        
+        setCloseButtonPosition(newPosition);
       }
     };
 
@@ -79,10 +86,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (step !== 'profile') return;
       
       const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
+      console.log('Goal alerts found:', goalAlerts.length);
+      
       const positions: Position[] = [];
       
-      goalAlerts.forEach((alert) => {
+      goalAlerts.forEach((alert, index) => {
         const rect = alert.getBoundingClientRect();
+        console.log(`Goal alert ${index} position:`, rect);
+        
         positions.push({
           top: rect.top + (rect.height / 2) - 20,
           left: rect.left - 48
@@ -90,6 +101,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       });
       
       if (positions.length > 0) {
+        console.log('Setting goal arrow positions:', positions);
         setGoalArrowPositions(positions);
       }
     };
@@ -98,6 +110,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
       setTimeout(() => {
+        console.log(`Running position update attempt after ${delay}ms`);
         updatePositions();
         updateGoalArrowPositions();
       }, delay);
