@@ -43,108 +43,84 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     enabled: !!session?.user.id
   });
 
-  useEffect(() => {
-    const updatePositions = () => {
-      const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
-      const contactsButton = document.querySelector('button:has(.lucide-users)');
-      
-      console.log('Current step:', step);
-      console.log('Close button found:', !!closeButton);
-      console.log('Contacts button found:', !!contactsButton);
-      
-      if (profileButton) {
-        const rect = profileButton.getBoundingClientRect();
-        console.log('Profile button position:', rect);
-        
-        const newArrowPosition = {
-          top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20
-        };
-        
-        const newMessagePosition = {
-          top: rect.bottom + 56,
-          left: rect.left - 160 + (rect.width / 2)
-        };
-        
-        setArrowPosition(newArrowPosition);
-        setMessagePosition(newMessagePosition);
-      }
-
-      if (closeButton && step === 'goals') {
-        const rect = closeButton.getBoundingClientRect();
-        console.log('Close button position:', rect);
-        
-        const newPosition = {
-          top: rect.top + (rect.height / 2) - 10,
-          left: rect.left - 48
-        };
-        console.log('Setting close button arrow position to:', newPosition);
-        
-        setCloseButtonPosition(newPosition);
-      }
-
-      if (contactsButton && step === 'contactsintro') {
-        const rect = contactsButton.getBoundingClientRect();
-        console.log('Contacts button position:', rect);
-        
-        const newPosition = {
-          top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20
-        };
-        console.log('Setting contacts button arrow position to:', newPosition);
-        
-        setContactsButtonPosition(newPosition);
-      }
-    };
-
-    const updateGoalArrowPositions = () => {
-      if (step !== 'profile') return;
-      
-      const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
-      console.log('Goal alerts found:', goalAlerts.length);
-      
-      const positions: Position[] = [];
-      
-      goalAlerts.forEach((alert, index) => {
-        const rect = alert.getBoundingClientRect();
-        console.log(`Goal alert ${index} position:`, rect);
-        
-        positions.push({
-          top: rect.top + (rect.height / 2) - 20,
-          left: rect.left - 48
-        });
+  const updatePositions = () => {
+    const profileButton = document.querySelector('button[aria-label="Open profile"]');
+    const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
+    const contactsButton = document.querySelector('button:has(.lucide-users)');
+    
+    if (step === 'initial' && profileButton) {
+      const rect = profileButton.getBoundingClientRect();
+      setArrowPosition({
+        top: rect.bottom + 8,
+        left: rect.left + (rect.width / 2) - 20
       });
-      
-      if (positions.length > 0) {
-        console.log('Setting goal arrow positions:', positions);
-        setGoalArrowPositions(positions);
-      }
-    };
+      setMessagePosition({
+        top: rect.bottom + 56,
+        left: rect.left - 160 + (rect.width / 2)
+      });
+    }
 
-    const attempts = [0, 100, 500, 1000];
-    attempts.forEach(delay => {
-      setTimeout(() => {
-        console.log(`Running position update attempt after ${delay}ms`);
-        updatePositions();
-        updateGoalArrowPositions();
-      }, delay);
+    if (step === 'goals' && closeButton) {
+      const rect = closeButton.getBoundingClientRect();
+      setCloseButtonPosition({
+        top: rect.top + (rect.height / 2) - 10,
+        left: rect.left - 48
+      });
+    }
+
+    if (step === 'contactsintro' && contactsButton) {
+      const rect = contactsButton.getBoundingClientRect();
+      setContactsButtonPosition({
+        top: rect.bottom + 8,
+        left: rect.left + (rect.width / 2) - 20
+      });
+    }
+  };
+
+  const updateGoalArrowPositions = () => {
+    if (step !== 'profile') return;
+    
+    const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
+    const positions: Position[] = [];
+    
+    goalAlerts.forEach((alert) => {
+      const rect = alert.getBoundingClientRect();
+      positions.push({
+        top: rect.top + (rect.height / 2) - 20,
+        left: rect.left - 48
+      });
     });
     
-    window.addEventListener('resize', updatePositions);
-    window.addEventListener('scroll', updatePositions, true);
+    if (positions.length > 0) {
+      setGoalArrowPositions(positions);
+    }
+  };
 
-    const intervalId = setInterval(() => {
+  // Update positions when step changes
+  useEffect(() => {
+    updatePositions();
+    updateGoalArrowPositions();
+  }, [step]);
+
+  // Update positions when profile dialog opens/closes
+  useEffect(() => {
+    updatePositions();
+    updateGoalArrowPositions();
+  }, [isProfileOpen]);
+
+  // Initial position update and window resize handler
+  useEffect(() => {
+    updatePositions();
+    updateGoalArrowPositions();
+
+    const handleResize = () => {
       updatePositions();
       updateGoalArrowPositions();
-    }, 1000);
-
-    return () => {
-      window.removeEventListener('resize', updatePositions);
-      window.removeEventListener('scroll', updatePositions, true);
-      clearInterval(intervalId);
     };
-  }, [step]);
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
