@@ -18,11 +18,12 @@ interface Position {
 }
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'complete'>('initial');
+  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'contactsintro' | 'complete'>('initial');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
   const [closeButtonPosition, setCloseButtonPosition] = useState<Position>({ top: 0, left: 0 });
+  const [contactsButtonPosition, setContactsButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -45,11 +46,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      // Updated selector to find the close button
       const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
+      const contactsButton = document.querySelector('button:has(.lucide-users)');
       
       console.log('Current step:', step);
       console.log('Close button found:', !!closeButton);
+      console.log('Contacts button found:', !!contactsButton);
       
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
@@ -81,6 +83,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         
         setCloseButtonPosition(newPosition);
       }
+
+      if (contactsButton && step === 'contactsintro') {
+        const rect = contactsButton.getBoundingClientRect();
+        console.log('Contacts button position:', rect);
+        
+        const newPosition = {
+          top: rect.bottom + 8,
+          left: rect.left + (rect.width / 2) - 20
+        };
+        console.log('Setting contacts button arrow position to:', newPosition);
+        
+        setContactsButtonPosition(newPosition);
+      }
     };
 
     const updateGoalArrowPositions = () => {
@@ -107,7 +122,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
     };
 
-    // Run position updates immediately and after short delays
     const attempts = [0, 100, 500, 1000];
     attempts.forEach(delay => {
       setTimeout(() => {
@@ -117,11 +131,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }, delay);
     });
     
-    // Add event listeners
     window.addEventListener('resize', updatePositions);
     window.addEventListener('scroll', updatePositions, true);
 
-    // Set up interval for continuous updates
     const intervalId = setInterval(() => {
       updatePositions();
       updateGoalArrowPositions();
@@ -148,6 +160,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       setStep('goals');
     }
   }, [profile?.goals, step]);
+
+  useEffect(() => {
+    if (!isProfileOpen && step === 'goals') {
+      setStep('contactsintro');
+    }
+  }, [isProfileOpen, step]);
 
   useEffect(() => {
     const updateTutorialStep = async () => {
@@ -247,6 +265,30 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           />
           <TutorialMessage className="right-24 top-20">
             Nice! I'm looking forward to helping you make that happen. Let's close the profile screen for now.
+          </TutorialMessage>
+        </>
+      );
+    }
+
+    if (step === 'contactsintro') {
+      return (
+        <>
+          <TutorialArrow 
+            direction="up"
+            style={{
+              position: 'fixed',
+              top: `${contactsButtonPosition.top}px`,
+              left: `${contactsButtonPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${contactsButtonPosition.top + 48}px`,
+              left: `${contactsButtonPosition.left - 160 + 20}px`,
+            }}
+          >
+            Great! Now let's add some contacts to help you achieve your goals.
           </TutorialMessage>
         </>
       );
