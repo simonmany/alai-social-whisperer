@@ -27,7 +27,7 @@ export const TutorialArrow = ({ direction = "up", className, style }: TutorialAr
         height="40" 
         viewBox="0 0 24 24" 
         fill="none" 
-        className={cn("text-destructive", arrowStyles[direction])}
+        className={cn("text-[#8B5CF6]", arrowStyles[direction])}
       >
         <path
           d="M12 3L20 11H4L12 3Z"
