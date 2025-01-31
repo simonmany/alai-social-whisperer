@@ -60,6 +60,36 @@ const ContactsView = () => {
     enabled: !!session?.user?.id
   });
 
+  // Update tutorial step when component mounts if needed
+  useEffect(() => {
+    const updateTutorialStep = async () => {
+      if (
+        session?.user?.id &&
+        profileData?.onboarding_step === 'contactsintro' &&
+        !profileData?.has_completed_tutorial
+      ) {
+        console.log('ContactsView mounted during tutorial, updating step to contactsopen');
+        try {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ onboarding_step: 'contactsopen' })
+            .eq('id', session.user.id);
+
+          if (error) {
+            console.error('Error updating tutorial step in ContactsView:', error);
+          } else {
+            console.log('Successfully updated tutorial step to contactsopen in ContactsView');
+            queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+          }
+        } catch (error) {
+          console.error('Error in updateTutorialStep:', error);
+        }
+      }
+    };
+
+    updateTutorialStep();
+  }, [session?.user?.id, profileData, queryClient]);
+
   const isInTutorial = profileData?.onboarding_step === 'contactsopen' && !profileData?.has_completed_tutorial;
 
   const handleSkipContacts = async () => {

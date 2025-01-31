@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import { useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -32,6 +32,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { session } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   // Query to get the current tutorial step from the profile
   const { data: profile } = useQuery({
@@ -64,24 +65,33 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   // Handle route changes
   useEffect(() => {
-    if (location.pathname === '/contacts' && step === 'contactsintro') {
-      console.log('Contacts page opened, moving to contactsopen step');
-      
-      if (session?.user?.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'contactsopen' })
-          .eq('id', session.user.id)
-          .then(({ error }) => {
-            if (error) console.error('Error updating onboarding step:', error);
-            else {
-              console.log('Updated onboarding step to contactsopen');
-              setStep('contactsopen');
-            }
-          });
+    const updateTutorialStep = async () => {
+      if (location.pathname === '/contacts' && step === 'contactsintro' && session?.user?.id) {
+        console.log('Contacts page opened, moving to contactsopen step');
+        
+        try {
+          const { error } = await supabase
+            .from('profiles')
+            .update({ onboarding_step: 'contactsopen' })
+            .eq('id', session.user.id);
+
+          if (error) {
+            console.error('Error updating onboarding step:', error);
+            return;
+          }
+
+          console.log('Updated onboarding step to contactsopen');
+          setStep('contactsopen');
+          // Invalidate the profile query to ensure it refetches
+          queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+        } catch (error) {
+          console.error('Error in updateTutorialStep:', error);
+        }
       }
-    }
-  }, [location.pathname, step, session?.user?.id]);
+    };
+
+    updateTutorialStep();
+  }, [location.pathname, step, session?.user?.id, queryClient]);
 
   useEffect(() => {
     const checkGoals = async () => {
