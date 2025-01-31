@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { TypewriterText } from "@/components/TypewriterText";
 import { cn } from "@/lib/utils";
+import { generateChatResponse } from "@/utils/openai";
 
 interface Question {
   id: number;
@@ -56,6 +57,8 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
   const [traits, setTraits] = useState<Record<string, number>>(initialTraits || {});
   const [comments, setComments] = useState<string[]>(initialComments || []);
   const [showInitialContent, setShowInitialContent] = useState(false);
+  const [aiResponse, setAiResponse] = useState<string>("");
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
 
@@ -72,6 +75,21 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
     const question = questions[currentQuestion];
     const updatedTraits = { ...traits, [question.id]: selectedValue };
     const updatedComments = comment ? [...comments, comment] : comments;
+
+    setIsLoadingAi(true);
+    try {
+      const prompt = `Based on this personality quiz answer for "${question.text}": Score ${selectedValue}/100 ${comment ? `with comment: "${comment}"` : ''}. Give a very brief (max 50 words) insight. Keep it friendly and positive.`;
+      const response = await generateChatResponse(prompt);
+      setAiResponse(response);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      toast({
+        title: "Error getting AI response",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingAi(false);
 
     if (currentQuestion < questions.length - 1) {
       setTraits(updatedTraits);
@@ -130,12 +148,23 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
             style={{ width: `${progress}%` }}
           />
         </div>
-        <TypewriterText 
-          text={currentQ.text} 
-          onComplete={() => setShowInitialContent(true)}
-          delay={250}
-          typingSpeed={25}
-        />
+        {aiResponse && currentQuestion > 0 && (
+          <div className="bg-primary/10 p-4 rounded-lg mb-4">
+            <TypewriterText text={aiResponse} delay={0} />
+          </div>
+        )}
+        {isLoadingAi ? (
+          <div className="text-sm text-gray-500 animate-pulse">
+            Analyzing your response...
+          </div>
+        ) : (
+          <TypewriterText 
+            text={currentQ.text} 
+            onComplete={() => setShowInitialContent(true)}
+            delay={250}
+            typingSpeed={25}
+          />
+        )}
         <div className={cn(
           "space-y-6",
           currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
@@ -175,7 +204,7 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
         currentQuestion === 0 && !showInitialContent ? "opacity-0 pointer-events-none" : "opacity-100",
         currentQuestion === 0 ? "transition-opacity duration-500" : ""
       )}>
-        <Button onClick={handleNext} className="w-full">
+        <Button onClick={handleNext} className="w-full" disabled={isLoadingAi}>
           {currentQuestion < questions.length - 1 ? "Next" : "Complete"}
         </Button>
       </div>
