@@ -66,13 +66,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   // Handle route changes
   useEffect(() => {
     const updateTutorialStep = async () => {
-      if (location.pathname === '/calendar' && step === 'calendarintro' && session?.user?.id) {
-        console.log('Calendar page opened, moving to calendarintro step');
+      if (location.pathname === '/contacts' && step === 'contactsintro' && session?.user?.id) {
+        console.log('Contacts page opened, moving to contactsopen step');
         
         try {
           const { error } = await supabase
             .from('profiles')
-            .update({ onboarding_step: 'calendarintro' })
+            .update({ onboarding_step: 'contactsopen' })
             .eq('id', session.user.id);
 
           if (error) {
@@ -80,8 +80,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             return;
           }
 
-          console.log('Updated onboarding step to calendarintro');
-          setStep('calendarintro');
+          console.log('Updated onboarding step to contactsopen');
+          setStep('contactsopen');
           // Invalidate the profile query to ensure it refetches
           queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
         } catch (error) {
@@ -92,6 +92,32 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     updateTutorialStep();
   }, [location.pathname, step, session?.user?.id, queryClient]);
+
+  useEffect(() => {
+    const checkGoals = async () => {
+      if (!session?.user.id || !isProfileOpen || step !== 'profile') return;
+
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('goals')
+          .eq('id', session.user.id)
+          .single();
+
+        const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
+        console.log('Goals check:', goalsExist ? 'Goals found' : 'No goals yet');
+        setHasGoals(goalsExist);
+        
+        if (goalsExist) {
+          setStep('goals');
+        }
+      } catch (error) {
+        console.error('Error checking goals:', error);
+      }
+    };
+
+    checkGoals();
+  }, [session?.user.id, isProfileOpen, step]);
 
   useEffect(() => {
     if (isProfileOpen && step === 'initial') {
@@ -113,7 +139,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
       setStep('contactsintro');
     }
-  }, [isProfileOpen, step, session?.user?.id]);
+  }, [isProfileOpen, step, session?.user.id]);
 
   useEffect(() => {
     const updatePositions = () => {
@@ -304,7 +330,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               left: `${messagePosition.left}px`,
             }}
           >
-            Here you can see your upcoming events. Let's take a look.
+            Let's check out your calendar to start planning some activities!
           </TutorialMessage>
         </>
       );
