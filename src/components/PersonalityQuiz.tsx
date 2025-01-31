@@ -46,9 +46,10 @@ interface PersonalityQuizProps {
   onComplete: (traits: Record<string, number>, comments: string[]) => void;
   initialTraits?: Record<string, number>;
   initialComments?: string[];
+  userName?: string;
 }
 
-export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: PersonalityQuizProps) => {
+export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments, userName = "there" }: PersonalityQuizProps) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedValue, setSelectedValue] = useState<number | null>(
     initialTraits ? initialTraits[questions[currentQuestion].id] : null
@@ -78,7 +79,8 @@ export const PersonalityQuiz = ({ onComplete, initialTraits, initialComments }: 
 
     setIsLoadingAi(true);
     try {
-      const prompt = `Based on this personality quiz answer for "${question.text}": Score ${selectedValue}/100 ${comment ? `with comment: "${comment}"` : ''}. Give a very brief (max 50 words) insight. Keep it friendly and positive.`;
+      const responseType = selectedValue <= 40 ? question.leftLabel : selectedValue >= 80 ? question.rightLabel : "balanced";
+      const prompt = `Hey, I'm learning about ${userName}'s personality. For the question "${question.text}", they lean towards being ${responseType}${comment ? ` and mentioned: "${comment}"` : ''}. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
       const response = await generateChatResponse(prompt);
       setAiResponse(response);
     } catch (error) {

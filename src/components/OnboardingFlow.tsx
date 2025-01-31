@@ -63,7 +63,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       setState(prev => ({ ...prev, personalityTraits: traits, personalityComments: comments }));
       
       setIsLoadingAi(true);
-      const prompt = `Based on these personality quiz answers ${JSON.stringify(traits)} and comments ${JSON.stringify(comments)}, give a very brief (max 50 words) insight about this person's personality. Keep it friendly and positive.`;
+      const prompt = `Based on these personality quiz answers ${JSON.stringify(traits)} and comments ${JSON.stringify(comments)}, give a very brief (max 50 words) insight about ${state.name}'s personality. Keep it friendly and positive.`;
       const response = await generateChatResponse(prompt);
       setPersonalityResponse(response);
       setIsLoadingAi(false);
@@ -211,6 +211,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 onComplete={handlePersonalityComplete}
                 initialTraits={state.personalityTraits}
                 initialComments={state.personalityComments}
+                userName={state.name}
               />
             </div>
           </>
