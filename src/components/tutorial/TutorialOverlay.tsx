@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -18,7 +19,7 @@ interface Position {
 }
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'contactsintro' | 'complete'>('initial');
+  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'contactsintro' | 'contactsopen' | 'complete'>('initial');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
@@ -49,14 +50,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
       const contactsButton = document.querySelector('button:has(.lucide-users)');
       
-      console.log('Current step:', step);
-      console.log('Close button found:', !!closeButton);
-      console.log('Contacts button found:', !!contactsButton);
-      
-      if (profileButton) {
+      if (profileButton && step === 'initial') {
         const rect = profileButton.getBoundingClientRect();
-        console.log('Profile button position:', rect);
-        
         const newArrowPosition = {
           top: rect.bottom + 8,
           left: rect.left + (rect.width / 2) - 20
@@ -73,27 +68,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
       if (closeButton && step === 'goals') {
         const rect = closeButton.getBoundingClientRect();
-        console.log('Close button position:', rect);
-        
         const newPosition = {
           top: rect.top + (rect.height / 2) - 10,
           left: rect.left - 48
         };
-        console.log('Setting close button arrow position to:', newPosition);
-        
         setCloseButtonPosition(newPosition);
       }
 
       if (contactsButton && step === 'contactsintro') {
         const rect = contactsButton.getBoundingClientRect();
-        console.log('Contacts button position:', rect);
-        
         const newPosition = {
           top: rect.bottom + 8,
           left: rect.left + (rect.width / 2) - 20
         };
-        console.log('Setting contacts button arrow position to:', newPosition);
-        
         setContactsButtonPosition(newPosition);
       }
     };
@@ -102,14 +89,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (step !== 'profile') return;
       
       const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
-      console.log('Goal alerts found:', goalAlerts.length);
-      
       const positions: Position[] = [];
       
-      goalAlerts.forEach((alert, index) => {
+      goalAlerts.forEach((alert) => {
         const rect = alert.getBoundingClientRect();
-        console.log(`Goal alert ${index} position:`, rect);
-        
         positions.push({
           top: rect.top + (rect.height / 2) - 20,
           left: rect.left - 48
@@ -117,32 +100,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       });
       
       if (positions.length > 0) {
-        console.log('Setting goal arrow positions:', positions);
         setGoalArrowPositions(positions);
       }
     };
 
-    const attempts = [0, 100, 500, 1000];
-    attempts.forEach(delay => {
-      setTimeout(() => {
-        console.log(`Running position update attempt after ${delay}ms`);
-        updatePositions();
-        updateGoalArrowPositions();
-      }, delay);
-    });
+    updatePositions();
+    updateGoalArrowPositions();
     
     window.addEventListener('resize', updatePositions);
     window.addEventListener('scroll', updatePositions, true);
 
-    const intervalId = setInterval(() => {
-      updatePositions();
-      updateGoalArrowPositions();
-    }, 1000);
-
     return () => {
       window.removeEventListener('resize', updatePositions);
       window.removeEventListener('scroll', updatePositions, true);
-      clearInterval(intervalId);
     };
   }, [step]);
 
@@ -166,6 +136,29 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       setStep('contactsintro');
     }
   }, [isProfileOpen, step]);
+
+  const handleSkipContacts = async () => {
+    if (!session?.user.id) return;
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_step: 'complete',
+          has_completed_tutorial: true 
+        })
+        .eq('id', session.user.id);
+      
+      setStep('complete');
+      onComplete();
+    } catch (error: any) {
+      console.error('Error updating tutorial progress:', error);
+      toast({
+        title: "Error updating tutorial progress",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     const updateTutorialStep = async () => {
@@ -291,6 +284,26 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             Great! Now let's add some contacts to help you achieve your goals.
           </TutorialMessage>
         </>
+      );
+    }
+
+    if (step === 'contactsopen') {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center space-y-6">
+            <p className="text-lg">
+              Your relationships are a beautiful Constellation, but right now it's a bit empty.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Button onClick={handleSkipContacts}>
+                Connect Contacts
+              </Button>
+              <Button variant="outline" onClick={handleSkipContacts}>
+                Not Now
+              </Button>
+            </div>
+          </div>
+        </div>
       );
     }
 
