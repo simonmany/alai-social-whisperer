@@ -2,13 +2,15 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import { VitePluginNode } from 'vite-plugin-node';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: {
+      timeout: 60000 // Increase timeout to 60 seconds
+    }
   },
   plugins: [
     react(),
