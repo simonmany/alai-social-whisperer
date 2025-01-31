@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { ChatMessage } from "@/components/ChatMessage";
 import { TypewriterText } from "@/components/TypewriterText";
-import { PersonalityQuiz } from "@/components/PersonalityQuiz";
-import { InterestSelector } from "@/components/InterestSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
 import { BasicInfo } from "./onboarding/BasicInfo";
 import { GoalsSection } from "./onboarding/GoalsSection";
 import { DemographicsSection } from "./onboarding/DemographicsSection";
+import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
+import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
+import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,45 @@ import { generateChatResponse } from "@/utils/openai";
 interface OnboardingFlowProps {
   onComplete: () => void;
 }
+
+type OnboardingStep = 
+  | 'basic' 
+  | 'goals' 
+  | 'personality-intro'
+  | 'personality-q1'
+  | 'personality-q2'
+  | 'personality-q3'
+  | 'personality-q4'
+  | 'current-interests'
+  | 'desired-interests'
+  | 'demographics';
+
+const questions = [
+  {
+    id: 1,
+    text: "Do you consider yourself an introvert or an extrovert?",
+    leftLabel: "introvert",
+    rightLabel: "extrovert",
+  },
+  {
+    id: 2,
+    text: "Are you typically quiet or talkative in social settings?",
+    leftLabel: "Quality over quantity",
+    rightLabel: "adept conversationalist",
+  },
+  {
+    id: 3,
+    text: "Do you prefer to hang out with people one on one or in groups?",
+    leftLabel: "Love a duet",
+    rightLabel: "love an orchestra",
+  },
+  {
+    id: 4,
+    text: "Do you prefer to plan ahead or be spontaneous?",
+    leftLabel: "I live by my calendar",
+    rightLabel: "What's a calendar?",
+  },
+];
 
 interface OnboardingState {
   name?: string;
@@ -28,124 +67,35 @@ interface OnboardingState {
 }
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
-  const [step, setStep] = useState<'basic' | 'goals' | 'personality' | 'current-interests' | 'desired-interests' | 'demographics'>('basic');
+  const [step, setStep] = useState<OnboardingStep>('basic');
   const [state, setState] = useState<OnboardingState>({});
-  const [showQuiz, setShowQuiz] = useState(false);
-  const [personalityResponse, setPersonalityResponse] = useState<string>("");
+  const [aiResponse, setAiResponse] = useState<string>("");
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
-
-  const handleBasicInfoComplete = (name: string) => {
-    setState(prev => ({ ...prev, name }));
-    setTimeout(() => {
-      setStep('goals');
-    }, 500);
-  };
-
-  const handleGoalsComplete = (goals: string[]) => {
-    setState(prev => ({ ...prev, goals }));
-    setTimeout(() => {
-      setStep('personality');
-    }, 500);
-  };
-
-  const handlePersonalityComplete = async (traits: Record<string, number>, comments: string[]) => {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          personality_traits: traits,
-          personality_comments: comments 
-        })
-        .eq('id', session?.user.id);
-
-      setState(prev => ({ ...prev, personalityTraits: traits, personalityComments: comments }));
-      
-      setIsLoadingAi(true);
-      const prompt = `Based on these personality quiz answers ${JSON.stringify(traits)} and comments ${JSON.stringify(comments)}, give a very brief (max 50 words) insight about ${state.name}'s personality. Keep it friendly and positive.`;
-      const response = await generateChatResponse(prompt);
-      setPersonalityResponse(response);
-      setIsLoadingAi(false);
-      
-      setStep('current-interests');
-    } catch (error) {
-      toast({
-        title: "Error saving personality data",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCurrentInterestsComplete = async (interests: string[]) => {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ current_interests: interests })
-        .eq('id', session?.user.id);
-
-      setState(prev => ({ ...prev, currentInterests: interests }));
-      setStep('desired-interests');
-    } catch (error) {
-      toast({
-        title: "Error saving interests",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDesiredInterestsComplete = async (interests: string[]) => {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ desired_interests: interests })
-        .eq('id', session?.user.id);
-
-      setState(prev => ({ ...prev, desiredInterests: interests }));
-      setStep('demographics');
-    } catch (error) {
-      toast({
-        title: "Error saving interests",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDemographicsComplete = async () => {
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: true,
-          onboarding_step: 'complete'
-        })
-        .eq('id', session?.user.id);
-      
-      onComplete();
-    } catch (error) {
-      toast({
-        title: "Error completing onboarding",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleBack = () => {
     switch (step) {
       case 'goals':
         setStep('basic');
         break;
-      case 'personality':
-        // Let PersonalityQuiz handle its own back button logic
-        // Only go back to goals if explicitly told by PersonalityQuiz
+      case 'personality-intro':
+        setStep('goals');
+        break;
+      case 'personality-q1':
+        setStep('personality-intro');
+        break;
+      case 'personality-q2':
+        setStep('personality-q1');
+        break;
+      case 'personality-q3':
+        setStep('personality-q2');
+        break;
+      case 'personality-q4':
+        setStep('personality-q3');
         break;
       case 'current-interests':
-        setStep('personality');
-        setShowQuiz(true);
+        setStep('personality-q4');
         break;
       case 'desired-interests':
         setStep('current-interests');
@@ -156,7 +106,60 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const handlePersonalityAnswer = async (questionIndex: number, value: number, comment: string) => {
+    const updatedTraits = { ...state.personalityTraits, [questions[questionIndex].id]: value };
+    const updatedComments = [...(state.personalityComments || [])];
+    updatedComments[questionIndex] = comment;
+
+    setState(prev => ({
+      ...prev,
+      personalityTraits: updatedTraits,
+      personalityComments: updatedComments
+    }));
+
+    setIsLoadingAi(true);
+    try {
+      const question = questions[questionIndex];
+      const responseType = value <= 40 ? question.leftLabel : value >= 80 ? question.rightLabel : "balanced";
+      let prompt = `Hey, I'm learning about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
+      
+      if (comment) {
+        prompt += ` and shared: "${comment}"`;
+      }
+      
+      const previousComments = updatedComments.filter((_, index) => index < questionIndex);
+      if (previousComments.length > 0) {
+        prompt += `. In previous questions, they've mentioned: "${previousComments.join('", "')}"`;
+      }
+      
+      prompt += `. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
+      
+      const response = await generateChatResponse(prompt);
+      setAiResponse(response);
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+      toast({
+        title: "Error getting AI response",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+    setIsLoadingAi(false);
+
+    // Move to next step
+    const nextSteps: Record<number, OnboardingStep> = {
+      0: 'personality-q2',
+      1: 'personality-q3',
+      2: 'personality-q4',
+      3: 'current-interests'
+    };
+    setStep(nextSteps[questionIndex]);
+  };
+
   const showBackButton = step !== 'basic';
+  const currentQuestionIndex = step.startsWith('personality-q') 
+    ? parseInt(step.charAt(step.length - 1)) - 1 
+    : -1;
 
   return (
     <div className="flex flex-col h-full">
@@ -175,7 +178,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {step === 'basic' && (
           <BasicInfo 
             session={session} 
-            onComplete={handleBasicInfoComplete}
+            onComplete={(name) => {
+              setState(prev => ({ ...prev, name }));
+              setStep('goals');
+            }}
             initialName={state.name}
           />
         )}
@@ -183,55 +189,43 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {step === 'goals' && (
           <GoalsSection 
             session={session} 
-            onComplete={handleGoalsComplete}
+            onComplete={(goals) => {
+              setState(prev => ({ ...prev, goals }));
+              setStep('personality-intro');
+            }}
             initialGoals={state.goals}
             userName={state.name}
           />
         )}
 
-        {step === 'personality' && (
+        {step === 'personality-intro' && (
+          <PersonalityIntro
+            userName={state.name}
+            onStart={() => setStep('personality-q1')}
+          />
+        )}
+
+        {currentQuestionIndex >= 0 && (
           <>
-            <div className="space-y-4">
-              <div className="text-lg">
-                <TypewriterText
-                  text="Nice! I'm looking forward to helping you achieve your goals."
-                  delay={0}
-                />
-              </div>
-              <div className="text-lg">
-                <TypewriterText
-                  text="To help me get to know you better, I've got a few quick questions for you. This shouldn't take more than a minute:"
-                  delay={1000}
-                  onComplete={() => setShowQuiz(true)}
-                />
-              </div>
-            </div>
-            <div className={cn(
-              "transition-opacity duration-500",
-              showQuiz ? "opacity-100" : "opacity-0"
-            )}>
-              <PersonalityQuiz 
-                onComplete={handlePersonalityComplete}
-                initialTraits={state.personalityTraits}
-                initialComments={state.personalityComments}
-                userName={state.name}
-                onBackToGoals={() => setStep('goals')}
+            <div className="h-1 w-full bg-gray-200 rounded">
+              <div
+                className="h-1 bg-primary rounded transition-all duration-300"
+                style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
               />
             </div>
+            <PersonalityQuestion
+              question={questions[currentQuestionIndex]}
+              initialValue={state.personalityTraits?.[questions[currentQuestionIndex].id]}
+              initialComment={state.personalityComments?.[currentQuestionIndex]}
+              aiResponse={aiResponse}
+              isLoadingAi={isLoadingAi}
+              onAnswer={(value, comment) => handlePersonalityAnswer(currentQuestionIndex, value, comment)}
+            />
           </>
         )}
 
         {step === 'current-interests' && (
           <div className="space-y-4">
-            {isLoadingAi ? (
-              <div className="text-sm text-gray-500 animate-pulse">
-                Analyzing your personality...
-              </div>
-            ) : personalityResponse && (
-              <div className="bg-primary/10 p-4 rounded-lg mb-6">
-                <TypewriterText text={personalityResponse} />
-              </div>
-            )}
             <div className="text-lg">
               <TypewriterText
                 text="Thanks for sharing! Now, let's talk about interests. What do you like to do for fun?"
@@ -242,20 +236,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <TypewriterText
                 text="Enter at least 3 activities."
                 delay={1000}
-                onComplete={() => setShowQuiz(false)} // Reset showQuiz here
               />
             </div>
-            <div className={cn(
-              "transition-opacity duration-500",
-              !showQuiz ? "opacity-100" : "opacity-0" // Invert the condition
-            )}>
-              <InterestSelector
-                onComplete={handleCurrentInterestsComplete}
-                placeholder="Type to search activities..."
-                minSelections={3}
-                initialSelections={state.currentInterests}
-              />
-            </div>
+            <InterestSelector
+              onComplete={(interests) => {
+                setState(prev => ({ ...prev, currentInterests: interests }));
+                setStep('desired-interests');
+              }}
+              placeholder="Type to search activities..."
+              minSelections={3}
+              initialSelections={state.currentInterests}
+            />
           </div>
         )}
 
@@ -268,7 +259,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               />
             </div>
             <InterestSelector
-              onComplete={handleDesiredInterestsComplete}
+              onComplete={(interests) => {
+                setState(prev => ({ ...prev, desiredInterests: interests }));
+                setStep('demographics');
+              }}
               placeholder="Type to search new activities..."
               minSelections={1}
               initialSelections={state.desiredInterests}
@@ -279,7 +273,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {step === 'demographics' && (
           <DemographicsSection 
             session={session} 
-            onComplete={handleDemographicsComplete} 
+            onComplete={onComplete}
           />
         )}
       </div>
