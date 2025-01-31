@@ -42,22 +42,46 @@ const ContactsView = () => {
   const queryClient = useQueryClient();
   const { session } = useAuth();
 
+  // Query to check if user is in tutorial
   const { data: profileData } = useQuery({
-    queryKey: ['profile'],
+    queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { data: profile, error } = await supabase
+      if (!session?.user?.id) return null;
+      const { data, error } = await supabase
         .from('profiles')
-        .select('*')
-        .eq('id', user.id)
+        .select('onboarding_step, has_completed_tutorial')
+        .eq('id', session.user.id)
         .single();
-
+      
       if (error) throw error;
-      return profile;
-    }
+      return data;
+    },
+    enabled: !!session?.user?.id
   });
+
+  const isInTutorial = profileData?.onboarding_step === 'contactsopen' && !profileData?.has_completed_tutorial;
+
+  const handleSkipContacts = async () => {
+    if (!session?.user?.id) return;
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_step: 'complete',
+          has_completed_tutorial: true 
+        })
+        .eq('id', session.user.id);
+      
+      navigate('/');
+    } catch (error: any) {
+      console.error('Error updating tutorial progress:', error);
+      toast({
+        title: "Error updating tutorial progress",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   const { data: contacts = [], isLoading: isLoadingContacts, error: contactsError } = useQuery({
     queryKey: ['contacts', session?.user?.id],
@@ -151,6 +175,26 @@ const ContactsView = () => {
 
   if (isLoadingContacts || isLoadingGroups) {
     return <div className="flex items-center justify-center h-screen text-white">Loading...</div>;
+  }
+
+  if (isInTutorial) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="bg-card p-6 rounded-lg shadow-lg max-w-md text-center space-y-6">
+          <p className="text-lg">
+            Your relationships are a beautiful Constellation, but right now it's a bit empty.
+          </p>
+          <div className="flex justify-center gap-4">
+            <Button onClick={handleSkipContacts}>
+              Connect Contacts
+            </Button>
+            <Button variant="outline" onClick={handleSkipContacts}>
+              Not Now
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
