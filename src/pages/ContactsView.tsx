@@ -98,8 +98,7 @@ const ContactsView = () => {
       await supabase
         .from('profiles')
         .update({ 
-          onboarding_step: 'complete',
-          has_completed_tutorial: true 
+          onboarding_step: 'calendarintro'
         })
         .eq('id', session.user.id);
       
@@ -226,6 +225,7 @@ const ContactsView = () => {
             </div>
           </div>
         </div>
+        
         <div className="fixed inset-0 overflow-hidden">
           {/* Galaxy background */}
           <div 
