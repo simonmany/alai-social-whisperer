@@ -65,12 +65,18 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         setMessagePosition(newMessagePosition);
       }
 
+      // Update close button arrow position
       if (closeButton && step === 'goals') {
         const rect = closeButton.getBoundingClientRect();
-        setCloseButtonPosition({
-          top: rect.top + (rect.height / 2),
-          left: rect.right + 16 // Position arrow to the right of the X button
-        });
+        const sheetContent = document.querySelector('[role="dialog"]');
+        
+        if (sheetContent) {
+          const sheetRect = sheetContent.getBoundingClientRect();
+          setCloseButtonPosition({
+            top: rect.top + (rect.height / 2) - 20,
+            left: sheetRect.right + 16 // Position arrow to the right of the sheet
+          });
+        }
       }
     };
 
@@ -222,7 +228,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialArrow 
-            direction="left"  // Changed to point left towards the X button
+            direction="left"
             style={{
               position: 'fixed',
               top: `${closeButtonPosition.top}px`,
