@@ -237,7 +237,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialArrow 
-            direction="left"
+            direction="right"
             style={{
               position: 'fixed',
               top: `${closeButtonPosition.top}px`,
