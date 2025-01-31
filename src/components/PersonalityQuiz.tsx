@@ -73,12 +73,14 @@ export const PersonalityQuiz = ({
   const handleBack = () => {
     if (currentQuestion === 0) {
       onBackToGoals();
-    } else {
-      setCurrentQuestion(prev => prev - 1);
-      setSelectedValue(traits[questions[currentQuestion - 1].id] || null);
-      setComment(comments[currentQuestion - 1] || "");
-      setAiResponse("");
+      return;
     }
+    
+    const previousQuestion = currentQuestion - 1;
+    setCurrentQuestion(previousQuestion);
+    setSelectedValue(traits[questions[previousQuestion].id] || null);
+    setComment(comments[previousQuestion] || "");
+    setAiResponse("");
   };
 
   const handleNext = async () => {
