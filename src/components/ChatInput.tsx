@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SendHorizontal } from "lucide-react";
@@ -11,13 +11,13 @@ interface ChatInputProps {
   showSendButton?: boolean;
 }
 
-export const ChatInput = ({ 
+export const ChatInput = forwardRef<HTMLTextAreaElement, ChatInputProps>(({ 
   onSend, 
   placeholder = "... or tell me what's on your mind!",
   type = "text",
   initialValue = "",
   showSendButton = true
-}: ChatInputProps) => {
+}, ref) => {
   const [message, setMessage] = useState(initialValue);
 
   useEffect(() => {
@@ -45,6 +45,7 @@ export const ChatInput = ({
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
       <Textarea
+        ref={ref}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
@@ -58,4 +59,6 @@ export const ChatInput = ({
       )}
     </form>
   );
-};
+});
+
+ChatInput.displayName = "ChatInput";
