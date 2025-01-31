@@ -68,7 +68,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (closeButton) {
         const rect = closeButton.getBoundingClientRect();
         setCloseButtonPosition({
-          top: rect.top + (rect.height / 2) - 20,
+          top: rect.top + (rect.height / 2),
           left: rect.left - 48
         });
       }
