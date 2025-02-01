@@ -25,16 +25,20 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     const fetchMapsKey = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('get-maps-key');
-        if (error) throw error;
-        if (data?.apiKey) {
-          setMapsApiKey(data.apiKey);
+        if (error) {
+          console.error('Supabase function error:', error);
+          throw error;
         }
-        console.log(data, error);
-      } catch (error) {
+        if (!data?.apiKey) {
+          console.error('No API key returned:', data);
+          throw new Error('No API key returned from function');
+        }
+        setMapsApiKey(data.apiKey);
+      } catch (error: any) {
         console.error('Error fetching Maps API key:', error);
         toast({
           title: "Error loading location selector",
-          description: "Please try again later",
+          description: "Please try refreshing the page",
           variant: "destructive",
         });
       }
@@ -170,7 +174,8 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         .eq('id', session?.user.id);
 
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
       toast({
         title: "Error completing onboarding",
         description: "Please try again",
@@ -218,27 +223,31 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             />
           </div>
           <div className="space-y-4">
-            <div className="w-full max-w-md">
-              <Autocomplete
-                apiKey={mapsApiKey}
-                onPlaceSelected={(place: any) => {
-                  console.log('Selected place:', place);
-                  if (place && typeof place === 'object') {
-                    const address = place.formatted_address || place.name || '';
-                    console.log('Using address:', address);
-                    if (address) {
-                      setSelectedCity(address);
+            {mapsApiKey ? (
+              <div className="w-full max-w-md">
+                <Autocomplete
+                  apiKey={mapsApiKey}
+                  onPlaceSelected={(place: any) => {
+                    console.log('Selected place:', place);
+                    if (place && typeof place === 'object') {
+                      const address = place.formatted_address || place.name || '';
+                      console.log('Using address:', address);
+                      if (address) {
+                        setSelectedCity(address);
+                      }
                     }
-                  }
-                }}
-                options={{
-                  types: ['(cities)'],
-                  fields: ['formatted_address']
-                }}
-                className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
-                placeholder="Enter your city..."
-              />
-            </div>
+                  }}
+                  options={{
+                    types: ['(cities)'],
+                    fields: ['formatted_address']
+                  }}
+                  className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="Enter your city..."
+                />
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">Loading location selector...</div>
+            )}
             <Button 
               onClick={handleCitySubmit}
               className="w-full"
