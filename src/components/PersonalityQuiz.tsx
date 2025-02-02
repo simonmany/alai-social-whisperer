@@ -100,18 +100,18 @@ export const PersonalityQuiz = ({
     setIsLoadingAi(true);
     try {
       const responseType = selectedValue <= 40 ? question.leftLabel : selectedValue >= 80 ? question.rightLabel : "balanced";
-      let prompt = `Hey, I'm learning about ${userName}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
+      let prompt = `You are having a friendly conversation with ${userName}. For the question "${question.text}", they indicated they're more ${responseType}`;
       
       if (comment) {
-        prompt += ` and shared: "${comment}"`;
+        prompt += ` and mentioned: "${comment}"`;
       }
       
       const previousComments = updatedComments.filter((_, index) => index < currentQuestion);
       if (previousComments.length > 0) {
-        prompt += `. In previous questions, they've mentioned: "${previousComments.join('", "')}"`;
+        prompt += `. In previous questions, they've shared: "${previousComments.join('", "')}"`;
       }
       
-      prompt += `. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
+      prompt += `. Give them a very brief (max 50 words), friendly and personal response that speaks directly to them about this aspect of their personality. Use "you" instead of third person.`;
       
       const response = await generateChatResponse(prompt);
       setAiResponse(response);
