@@ -15,6 +15,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   const [currentScreen, setCurrentScreen] = useState(0);
   const [showInput, setShowInput] = useState(false);
   const [name, setName] = useState(initialName || "");
+  const [completedScreens, setCompletedScreens] = useState<number[]>([]);
   const { toast } = useToast();
 
   const screens = [
@@ -24,6 +25,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   ];
 
   useEffect(() => {
+    // If we're on the last screen, show the input after a short delay
     if (currentScreen === screens.length - 1) {
       const timer = setTimeout(() => {
         setShowInput(true);
@@ -33,8 +35,14 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   }, [currentScreen, screens.length]);
 
   const handleScreenComplete = (screenIndex: number) => {
-    if (screenIndex < screens.length - 1) {
-      setCurrentScreen(screenIndex + 1);
+    if (!completedScreens.includes(screenIndex)) {
+      setCompletedScreens(prev => [...prev, screenIndex]);
+      
+      if (screenIndex < screens.length - 1) {
+        setTimeout(() => {
+          setCurrentScreen(screenIndex + 1);
+        }, 250);
+      }
     }
   };
 
@@ -70,13 +78,17 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
       {screens.map((text, index) => (
         index <= currentScreen && (
           <div key={index} className="text-lg">
-            <TypewriterText
-              text={text}
-              onComplete={() => handleScreenComplete(index)}
-              delay={250}
-              typingSpeed={25}
-              className="text-left"
-            />
+            {completedScreens.includes(index) ? (
+              <div>{text}</div>
+            ) : (
+              <TypewriterText
+                text={text}
+                onComplete={() => handleScreenComplete(index)}
+                delay={250}
+                typingSpeed={25}
+                className="text-left"
+              />
+            )}
           </div>
         )
       ))}
