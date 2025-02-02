@@ -401,7 +401,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 )}
               </div>
               <div className="space-y-8">
-                <div>
+                <div className={cn(
+                  "transition-all duration-500",
+                  hasPlayedLine3 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                )}>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
                     type="activities"
@@ -411,7 +414,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.currentInterests}
                   />
                 </div>
-                <div>
+                <div className={cn(
+                  "transition-all duration-500 delay-150",
+                  hasPlayedLine3 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                )}>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
                     type="food"
@@ -421,7 +427,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.foodPreferences}
                   />
                 </div>
-                <div>
+                <div className={cn(
+                  "transition-all duration-500 delay-300",
+                  hasPlayedLine3 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                )}>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
                     type="music"
@@ -434,7 +443,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {canProceedToNextSection('current') && (
                   <Button 
                     onClick={handleProceedToFutureInterests}
-                    className="w-full"
+                    className={cn(
+                      "w-full transition-all duration-500 delay-450",
+                      hasPlayedLine3 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+                    )}
                   >
                     Next
                   </Button>
