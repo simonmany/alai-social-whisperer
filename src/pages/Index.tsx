@@ -22,7 +22,7 @@ import { ContactCard } from "@/components/ContactCard";
 interface Message {
   content: string;
   isAl: boolean;
-  contactInfo?: {
+  contacts?: {
     name: string;
     phone?: string;
     instagram?: string;
@@ -30,7 +30,7 @@ interface Message {
     twitter?: string;
     meetingStory?: string;
     relationship?: string;
-  };
+  }[];
 }
 
 const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
@@ -274,7 +274,7 @@ const Index = () => {
     const newMessage: Message = {
       content: message,
       isAl: false,
-      contactInfo // Include contact info in user's message
+      contacts: contactInfo ? [contactInfo] : undefined
     };
 
     setMessages((prev) => [...prev, newMessage]);
@@ -283,9 +283,9 @@ const Index = () => {
     try {
       const response = await generateChatResponse(message, contactInfo);
       setMessages((prev) => [...prev, { 
-        content: response, 
+        content: response.response, 
         isAl: true,
-        contactInfo // Keep the same contact info for AI's response
+        contacts: response.contacts
       }]);
     } catch (error: any) {
       console.error('Error generating response:', error);

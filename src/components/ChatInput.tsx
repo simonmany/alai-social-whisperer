@@ -44,7 +44,6 @@ export const ChatInput = ({
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
-    onSend(e.target.value); // Send the updated value immediately
   };
 
   return (

@@ -90,7 +90,7 @@ export const ChatContainer = ({
             content={message.content}
             isAl={message.isAl}
             animate={index === filteredMessages.length - 1}
-            contactInfo={message.contactInfo}
+            contacts={message.contactInfo ? [message.contactInfo] : undefined}
           />
         ))}
         {isLoading && (
