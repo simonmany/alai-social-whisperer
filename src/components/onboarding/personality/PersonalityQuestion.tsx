@@ -75,7 +75,7 @@ export const PersonalityQuestion = ({
             Analyzing your response...
           </div>
         ) : (
-          <div className="text-lg">
+          <div className="text-2xl font-cormorant">
             {questionTextCompleted ? (
               <div>{question.text}</div>
             ) : (
