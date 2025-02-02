@@ -97,9 +97,7 @@ export const PersonalityQuestion = ({
                   className="flex-1 h-12 transition-all"
                   style={getButtonStyle(value)}
                   onClick={() => setSelectedValue(value)}
-                >
-                  {value / 20}
-                </Button>
+                />
               ))}
             </div>
           </div>
