@@ -78,6 +78,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showActivities, setShowActivities] = useState(false);
   const [showFood, setShowFood] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
+  const [showFutureActivities, setShowFutureActivities] = useState(false);
+  const [showFutureFood, setShowFutureFood] = useState(false);
+  const [showFutureMusic, setShowFutureMusic] = useState(false);
   const handleSkipMessageComplete = useCallback(() => {
     setHasPlayedSkipMessage(true);
   }, []);
@@ -318,6 +321,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleFollowUpComplete = useCallback(() => {
     setHasPlayedFollowUp(true);
+    // Start the sequence of showing future interest fields
+    setTimeout(() => setShowFutureActivities(true), 200);
+    setTimeout(() => setShowFutureFood(true), 700);
+    setTimeout(() => setShowFutureMusic(true), 1200);
   }, []);
 
   const capitalizeFirstLetter = (string: string = '') => {
@@ -500,7 +507,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div className="animate-pulse">Thinking about your interests...</div>
                 </div>
               ) : aiPreferencesResponse ? (
-                <div className="space-y-4">
+                <div className="space-y-8">
                   <div className="text-lg bg-primary/5 p-6 rounded-lg">
                     {hasPlayedTypewriter ? (
                       <div>{aiPreferencesResponse}</div>
@@ -513,7 +520,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       />
                     )}
                   </div>
-                  <div className="text-lg">
+                  <div className="text-lg mb-8">
                     {hasPlayedFollowUp ? (
                       <div dangerouslySetInnerHTML={{ 
                         __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -529,7 +536,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-8">
                   <div className="text-lg">
                     {hasPlayedSkipMessage ? (
                       <div>No worries - you can always tell me about your interests later</div>
@@ -542,7 +549,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       />
                     )}
                   </div>
-                  <div className="text-lg">
+                  <div className="text-lg mb-8">
                     {hasPlayedFollowUp ? (
                       <div dangerouslySetInnerHTML={{ 
                         __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -560,39 +567,50 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               )}
 
               <div>
-                <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
-                <InterestSelector
-                  type="activities"
-                  onComplete={handleFutureInterestComplete('activities')}
-                  placeholder="Type activities you'd like to try..."
-                  minSelections={1}
-                  initialSelections={state.desiredInterests}
-                />
-              </div>
-              <div>
-                <h3 className="text-base font-medium mb-4">Food Preferences</h3>
-                <InterestSelector
-                  type="food"
-                  onComplete={handleFutureInterestComplete('food')}
-                  placeholder="Type cuisines you'd like to try..."
-                  minSelections={1}
-                  initialSelections={state.desiredFoodPreferences}
-                />
-              </div>
-              <div>
-                <h3 className="text-base font-medium mb-4">Music Preferences</h3>
-                <InterestSelector
-                  type="music"
-                  onComplete={handleFutureInterestComplete('music')}
-                  placeholder="Type music genres you'd like to explore..."
-                  minSelections={1}
-                  initialSelections={state.desiredMusicPreferences}
-                />
+                <div className={cn(
+                  "transition-opacity duration-500",
+                  showFutureActivities ? "opacity-100" : "opacity-0"
+                )}>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                  <InterestSelector
+                    type="activities"
+                    onComplete={handleFutureInterestComplete('activities')}
+                    placeholder="Type activities you'd like to try..."
+                    minSelections={1}
+                    initialSelections={state.desiredInterests}
+                  />
+                </div>
+                <div className={cn(
+                  "transition-opacity duration-500 mt-8",
+                  showFutureFood ? "opacity-100" : "opacity-0"
+                )}>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                  <InterestSelector
+                    type="food"
+                    onComplete={handleFutureInterestComplete('food')}
+                    placeholder="Type cuisines you'd like to try..."
+                    minSelections={1}
+                    initialSelections={state.desiredFoodPreferences}
+                  />
+                </div>
+                <div className={cn(
+                  "transition-opacity duration-500 mt-8",
+                  showFutureMusic ? "opacity-100" : "opacity-0"
+                )}>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                  <InterestSelector
+                    type="music"
+                    onComplete={handleFutureInterestComplete('music')}
+                    placeholder="Type music genres you'd like to explore..."
+                    minSelections={1}
+                    initialSelections={state.desiredMusicPreferences}
+                  />
+                </div>
               </div>
               {canProceedToNextSection('future') && (
                 <Button 
                   onClick={() => setStep('demographics')}
-                  className="w-full"
+                  className="w-full mt-8"
                 >
                   Next
                 </Button>
