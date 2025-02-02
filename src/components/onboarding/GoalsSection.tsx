@@ -15,8 +15,9 @@ interface GoalsSectionProps {
 
 export const GoalsSection = ({ session, onComplete, initialGoals, userName }: GoalsSectionProps) => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals || []);
-  const [showOptions, setShowOptions] = useState(false);
   const [introCompleted, setIntroCompleted] = useState(false);
+  const [showGoalsText, setShowGoalsText] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
   const { toast } = useToast();
 
   const goals = [
@@ -76,7 +77,10 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
               text={`Nice to meet you, ${capitalizedName}!`}
               delay={0}
               typingSpeed={25}
-              onComplete={() => setIntroCompleted(true)}
+              onComplete={() => {
+                setIntroCompleted(true);
+                setShowGoalsText(true);
+              }}
             />
           )}
         </div>
@@ -85,7 +89,7 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
       <div className="text-lg">
         {showOptions ? (
           <div>Next, let's talk about your goals. Which of these are you interested in? You can choose multiple.</div>
-        ) : (
+        ) : showGoalsText && (
           <TypewriterText
             text="Next, let's talk about your goals. Which of these are you interested in? You can choose multiple."
             delay={250}
