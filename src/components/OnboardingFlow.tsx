@@ -31,6 +31,11 @@ type OnboardingStep =
   | 'future-interests'
   | 'demographics';
 
+interface AIPreferencesResponse {
+  response: string;
+  contacts?: any[]; // Adding this in case it's needed based on the response shape
+}
+
 const questions = [
   {
     id: 1,
@@ -65,7 +70,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
-  const [aiPreferencesResponse, setAiPreferencesResponse] = useState<string>("");
+  const [aiPreferencesResponse, setAiPreferencesResponse] = useState<string | AIPreferencesResponse>("");
   const [isLoadingPreferencesAi, setIsLoadingPreferencesAi] = useState(false);
   const [hasPlayedTypewriter, setHasPlayedTypewriter] = useState(false);
   const [hasPlayedFollowUp, setHasPlayedFollowUp] = useState(false);
