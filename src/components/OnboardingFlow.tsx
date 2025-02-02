@@ -257,8 +257,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           throw error;
         }
 
+        if (!data.response) {
+          console.error('No response received from analyze-preferences');
+          throw new Error('No response received from AI analysis');
+        }
+
+        console.log('Setting AI response:', data.response);
         setAiPreferencesResponse(data.response);
-        console.log('Set AI response:', data.response);
+        
       } catch (error) {
         console.error('Error getting AI response:', error);
         toast({
@@ -415,8 +421,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       console.log('TypewriterText completed');
                       setTimeout(() => {
                         const nextPrompt = "\n\nNow, what are some things you'd like to try or get into that you don't currently do?";
-                        console.log('Adding next prompt');
-                        setAiPreferencesResponse(prev => prev + nextPrompt);
+                        console.log('Adding next prompt to response:', {
+                          currentResponse: aiPreferencesResponse,
+                          nextPrompt
+                        });
+                        setAiPreferencesResponse(prev => {
+                          const newResponse = prev + nextPrompt;
+                          console.log('New combined response:', newResponse);
+                          return newResponse;
+                        });
                       }, 1000);
                     }}
                   />
