@@ -82,8 +82,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showFutureFood, setShowFutureFood] = useState(false);
   const [showFutureMusic, setShowFutureMusic] = useState(false);
   const handleSkipMessageComplete = useCallback(() => {
-    setHasPlayedSkipMessage(true);
-  }, []);
+    if (!hasPlayedSkipMessage) {
+      setHasPlayedSkipMessage(true);
+    }
+  }, [hasPlayedSkipMessage]);
 
   const handleBack = () => {
     switch (step) {
@@ -300,32 +302,42 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handleLine1Complete = useCallback(() => {
-    setHasPlayedLine1(true);
-  }, []);
+    if (!hasPlayedLine1) {
+      setHasPlayedLine1(true);
+    }
+  }, [hasPlayedLine1]);
 
   const handleLine2Complete = useCallback(() => {
-    setHasPlayedLine2(true);
-  }, []);
+    if (!hasPlayedLine2) {
+      setHasPlayedLine2(true);
+    }
+  }, [hasPlayedLine2]);
 
   const handleLine3Complete = useCallback(() => {
-    setHasPlayedLine3(true);
-    // Start the sequence of showing fields
-    setTimeout(() => setShowActivities(true), 200);
-    setTimeout(() => setShowFood(true), 700);
-    setTimeout(() => setShowMusic(true), 1200);
-  }, []);
+    if (!hasPlayedLine3) {
+      setHasPlayedLine3(true);
+      // Start the sequence of showing fields
+      setTimeout(() => setShowActivities(true), 200);
+      setTimeout(() => setShowFood(true), 700);
+      setTimeout(() => setShowMusic(true), 1200);
+    }
+  }, [hasPlayedLine3]);
 
   const handleTypewriterComplete = useCallback(() => {
-    setHasPlayedTypewriter(true);
-  }, []);
+    if (!hasPlayedTypewriter) {
+      setHasPlayedTypewriter(true);
+    }
+  }, [hasPlayedTypewriter]);
 
   const handleFollowUpComplete = useCallback(() => {
-    setHasPlayedFollowUp(true);
-    // Start the sequence of showing future interest fields
-    setTimeout(() => setShowFutureActivities(true), 200);
-    setTimeout(() => setShowFutureFood(true), 700);
-    setTimeout(() => setShowFutureMusic(true), 1200);
-  }, []);
+    if (!hasPlayedFollowUp) {
+      setHasPlayedFollowUp(true);
+      // Start the sequence of showing future interest fields
+      setTimeout(() => setShowFutureActivities(true), 200);
+      setTimeout(() => setShowFutureFood(true), 700);
+      setTimeout(() => setShowFutureMusic(true), 1200);
+    }
+  }, [hasPlayedFollowUp]);
 
   const capitalizeFirstLetter = (string: string = '') => {
     return string.charAt(0).toUpperCase() + string.slice(1);
