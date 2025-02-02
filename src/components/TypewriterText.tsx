@@ -20,41 +20,61 @@ export const TypewriterText = ({
   const [isTyping, setIsTyping] = useState(false);
   const hasStartedRef = useRef(false);
   const hasCompletedRef = useRef(false);
+  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup function to clear any existing timers
+  const cleanup = () => {
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+      timeoutIdRef.current = null;
+    }
+  };
+
+  // Function to immediately complete the current text
+  const completeCurrentText = () => {
+    cleanup();
+    setDisplayedText(text);
+    setIsTyping(false);
+    if (!hasCompletedRef.current) {
+      hasCompletedRef.current = true;
+      onComplete?.();
+    }
+  };
 
   useEffect(() => {
-    // Reset refs when text changes
+    // Reset refs and state when text changes
     hasStartedRef.current = false;
     hasCompletedRef.current = false;
     setDisplayedText('');
     setIsTyping(false);
-  }, [text]);
+    cleanup();
 
-  useEffect(() => {
-    if (hasStartedRef.current || !text) return;
-    hasStartedRef.current = true;
+    if (!text) return;
 
-    const timeout = setTimeout(() => {
+    // Start the typing animation after the delay
+    timeoutIdRef.current = setTimeout(() => {
       setIsTyping(true);
+      hasStartedRef.current = true;
       let currentIndex = 0;
       
-      const intervalId = setInterval(() => {
+      intervalIdRef.current = setInterval(() => {
         if (currentIndex < text.length) {
           setDisplayedText(text.slice(0, currentIndex + 1));
           currentIndex++;
         } else {
-          clearInterval(intervalId);
-          setIsTyping(false);
-          if (!hasCompletedRef.current) {
-            hasCompletedRef.current = true;
-            onComplete?.();
-          }
+          completeCurrentText();
         }
       }, typingSpeed);
 
-      return () => clearInterval(intervalId);
     }, delay);
 
-    return () => clearTimeout(timeout);
+    // Cleanup when component unmounts or text changes
+    return cleanup;
   }, [text, onComplete, delay, typingSpeed]);
 
   return (
