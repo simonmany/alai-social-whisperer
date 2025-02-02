@@ -53,6 +53,14 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
+  // Filter out personality quiz prompts
+  const filteredMessages = messages.filter(message => {
+    const isPersonalityPrompt = message.content.includes("Hey, I'm learning about") && 
+                               message.content.includes("personality") &&
+                               message.content.includes("Give a very brief");
+    return !isPersonalityPrompt;
+  });
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -67,12 +75,12 @@ export const ChatContainer = ({
         className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4"
         onScroll={handleScroll}
       >
-        {messages.map((message, index) => (
+        {filteredMessages.map((message, index) => (
           <ChatMessage
             key={index}
             content={message.content}
             isAl={message.isAl}
-            animate={index === messages.length - 1}
+            animate={index === filteredMessages.length - 1}
             contactInfo={message.contactInfo}
           />
         ))}
