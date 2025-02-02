@@ -195,8 +195,13 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
             <TypewriterText
-              text="How old are you?"
+              text="Now, some details - we're almost done."
               delay={250}
+              typingSpeed={25}
+            />
+            <TypewriterText
+              text="How many trips around the sun have you completed?"
+              delay={500}
               typingSpeed={25}
             />
           </div>
