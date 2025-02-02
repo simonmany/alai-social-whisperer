@@ -445,56 +445,54 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   )
                 )}
               </div>
-              <div className="space-y-8">
-                <div className={cn(
-                  "transition-opacity duration-500",
-                  showActivities ? "opacity-100" : "opacity-0"
-                )}>
-                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
-                  <InterestSelector
-                    type="activities"
-                    onComplete={handleInterestComplete('activities')}
-                    placeholder="Type to search activities..."
-                    minSelections={1}
-                    initialSelections={state.currentInterests}
-                  />
-                </div>
-                <div className={cn(
-                  "transition-opacity duration-500",
-                  showFood ? "opacity-100" : "opacity-0"
-                )}>
-                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
-                  <InterestSelector
-                    type="food"
-                    onComplete={handleInterestComplete('food')}
-                    placeholder="Type your favorite cuisines and dishes..."
-                    minSelections={1}
-                    initialSelections={state.foodPreferences}
-                  />
-                </div>
-                <div className={cn(
-                  "transition-opacity duration-500",
-                  showMusic ? "opacity-100" : "opacity-0"
-                )}>
-                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
-                  <InterestSelector
-                    type="music"
-                    onComplete={handleInterestComplete('music')}
-                    placeholder="Type your favorite music genres..."
-                    minSelections={1}
-                    initialSelections={state.musicPreferences}
-                  />
-                </div>
-                {canProceedToNextSection('current') && (
-                  <Button 
-                    onClick={handleProceedToFutureInterests}
-                    className="w-full"
-                    disabled={isAnalyzingInterests}
-                  >
-                    {isAnalyzingInterests ? "Analyzing your interests..." : "Next"}
-                  </Button>
-                )}
+              <div className={cn(
+                "transition-opacity duration-500",
+                showActivities ? "opacity-100" : "opacity-0"
+              )}>
+                <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                <InterestSelector
+                  type="activities"
+                  onComplete={handleInterestComplete('activities')}
+                  placeholder="Type to search activities..."
+                  minSelections={1}
+                  initialSelections={state.currentInterests}
+                />
               </div>
+              <div className={cn(
+                "transition-opacity duration-500",
+                showFood ? "opacity-100" : "opacity-0"
+              )}>
+                <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                <InterestSelector
+                  type="food"
+                  onComplete={handleInterestComplete('food')}
+                  placeholder="Type your favorite cuisines and dishes..."
+                  minSelections={1}
+                  initialSelections={state.foodPreferences}
+                />
+              </div>
+              <div className={cn(
+                "transition-opacity duration-500",
+                showMusic ? "opacity-100" : "opacity-0"
+              )}>
+                <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                <InterestSelector
+                  type="music"
+                  onComplete={handleInterestComplete('music')}
+                  placeholder="Type your favorite music genres..."
+                  minSelections={1}
+                  initialSelections={state.musicPreferences}
+                />
+              </div>
+              {canProceedToNextSection('current') && (
+                <Button 
+                  onClick={handleProceedToFutureInterests}
+                  className="w-full"
+                  disabled={isAnalyzingInterests}
+                >
+                  {isAnalyzingInterests ? "Analyzing your interests..." : "Next"}
+                </Button>
+              )}
             </div>
           </div>
         )}
@@ -520,7 +518,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       />
                     )}
                   </div>
-                  <div className="text-lg mb-12">
+                  <div className="text-lg mb-16">
                     {hasPlayedFollowUp ? (
                       <div dangerouslySetInnerHTML={{ 
                         __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -549,7 +547,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       />
                     )}
                   </div>
-                  <div className="text-lg mb-12">
+                  <div className="text-lg mb-16">
                     {hasPlayedFollowUp ? (
                       <div dangerouslySetInnerHTML={{ 
                         __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -565,7 +563,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </div>
                 </div>
               )}
-
               <div>
                 <div className={cn(
                   "transition-opacity duration-500",
