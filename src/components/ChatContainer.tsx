@@ -53,6 +53,23 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
+  // Filter out personality quiz prompts and responses
+  const filteredMessages = messages.filter((message, index) => {
+    // Check if current message is a personality quiz prompt
+    const isPersonalityPrompt = message.content.includes("Hey, I'm learning about") && 
+                               message.content.includes("personality") &&
+                               message.content.includes("Give a very brief");
+    
+    // Check if next message is an AI response to a personality quiz prompt
+    const isPersonalityResponse = index > 0 &&
+                                 messages[index - 1].content.includes("Hey, I'm learning about") &&
+                                 messages[index - 1].content.includes("personality") &&
+                                 messages[index - 1].content.includes("Give a very brief") &&
+                                 message.isAl;
+
+    return !isPersonalityPrompt && !isPersonalityResponse;
+  });
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -67,12 +84,12 @@ export const ChatContainer = ({
         className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4"
         onScroll={handleScroll}
       >
-        {messages.map((message, index) => (
+        {filteredMessages.map((message, index) => (
           <ChatMessage
             key={index}
             content={message.content}
             isAl={message.isAl}
-            animate={index === messages.length - 1}
+            animate={index === filteredMessages.length - 1}
             contacts={message.contactInfo ? [message.contactInfo] : undefined}
           />
         ))}

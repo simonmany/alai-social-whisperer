@@ -15,6 +15,8 @@ interface GoalsSectionProps {
 
 export const GoalsSection = ({ session, onComplete, initialGoals, userName }: GoalsSectionProps) => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals || []);
+  const [introCompleted, setIntroCompleted] = useState(false);
+  const [showGoalsText, setShowGoalsText] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const { toast } = useToast();
 
@@ -68,21 +70,33 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
     <div className="space-y-4">
       {userName && (
         <div className="text-lg font-medium mb-6">
-          <TypewriterText
-            text={`Nice to meet you, ${capitalizedName}!`}
-            delay={0}
-            typingSpeed={25}
-          />
+          {introCompleted ? (
+            <div>{`Nice to meet you, ${capitalizedName}!`}</div>
+          ) : (
+            <TypewriterText
+              text={`Nice to meet you, ${capitalizedName}!`}
+              delay={0}
+              typingSpeed={25}
+              onComplete={() => {
+                setIntroCompleted(true);
+                setShowGoalsText(true);
+              }}
+            />
+          )}
         </div>
       )}
       
       <div className="text-lg">
-        <TypewriterText
-          text="Next, let's talk about your goals. Which of these are you interested in? You can choose multiple."
-          delay={250}
-          typingSpeed={25}
-          onComplete={() => setShowOptions(true)}
-        />
+        {showOptions ? (
+          <div>Next, let's talk about your goals. Which of these are you interested in? You can choose multiple.</div>
+        ) : showGoalsText && (
+          <TypewriterText
+            text="Next, let's talk about your goals. Which of these are you interested in? You can choose multiple."
+            delay={250}
+            typingSpeed={25}
+            onComplete={() => setShowOptions(true)}
+          />
+        )}
       </div>
       
       <div className={cn(

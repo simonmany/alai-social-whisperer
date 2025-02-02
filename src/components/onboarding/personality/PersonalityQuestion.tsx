@@ -27,11 +27,14 @@ export const PersonalityQuestion = ({
   const [selectedValue, setSelectedValue] = useState<number | null>(null);
   const [currentComment, setCurrentComment] = useState("");
   const [showContent, setShowContent] = useState(false);
+  const [questionTextCompleted, setQuestionTextCompleted] = useState(false);
 
   // Reset selected value when question changes
   useEffect(() => {
     setSelectedValue(null);
     setCurrentComment("");
+    setQuestionTextCompleted(false);
+    setShowContent(false);
   }, [question.id]);
 
   const handleNext = () => {
@@ -72,12 +75,21 @@ export const PersonalityQuestion = ({
             Analyzing your response...
           </div>
         ) : (
-          <TypewriterText 
-            text={question.text} 
-            onComplete={() => setShowContent(true)}
-            delay={250}
-            typingSpeed={25}
-          />
+          <div className="text-lg">
+            {questionTextCompleted ? (
+              <div>{question.text}</div>
+            ) : (
+              <TypewriterText 
+                text={question.text} 
+                onComplete={() => {
+                  setQuestionTextCompleted(true);
+                  setShowContent(true);
+                }}
+                delay={250}
+                typingSpeed={25}
+              />
+            )}
+          </div>
         )}
         <div className={cn(
           "space-y-6",
@@ -97,9 +109,7 @@ export const PersonalityQuestion = ({
                   className="flex-1 h-12 transition-all"
                   style={getButtonStyle(value)}
                   onClick={() => setSelectedValue(value)}
-                >
-                  {value / 20}
-                </Button>
+                />
               ))}
             </div>
           </div>

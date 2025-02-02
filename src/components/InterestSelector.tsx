@@ -42,6 +42,7 @@ export const InterestSelector = ({
     }
   };
 
+  // Fetch items on mount and when type changes
   useEffect(() => {
     const fetchItems = async () => {
       const { data, error } = await supabase
@@ -64,6 +65,7 @@ export const InterestSelector = ({
     fetchItems();
   }, [type, toast]);
 
+  // Filter items when search term changes
   useEffect(() => {
     if (searchTerm) {
       const filtered = items.filter(item =>
@@ -75,16 +77,13 @@ export const InterestSelector = ({
     }
   }, [searchTerm, items]);
 
-  useEffect(() => {
-    onComplete(selectedItems);
-  }, [selectedItems, onComplete]);
-
   const handleItemSelect = (itemName: string) => {
-    if (selectedItems.includes(itemName)) {
-      setSelectedItems(prev => prev.filter(name => name !== itemName));
-    } else {
-      setSelectedItems(prev => [...prev, itemName]);
-    }
+    const newSelectedItems = selectedItems.includes(itemName)
+      ? selectedItems.filter(name => name !== itemName)
+      : [...selectedItems, itemName];
+    
+    setSelectedItems(newSelectedItems);
+    onComplete(newSelectedItems);
     setSearchTerm("");
     setFilteredItems([]);
   };
@@ -155,12 +154,16 @@ export const InterestSelector = ({
 
         if (existingItem) {
           if (!selectedItems.includes(existingItem.name)) {
-            setSelectedItems(prev => [...prev, existingItem.name]);
+            const newSelectedItems = [...selectedItems, existingItem.name];
+            setSelectedItems(newSelectedItems);
+            onComplete(newSelectedItems);
           }
         } else {
           const newItem = await createNewItem(itemName);
           if (newItem) {
-            setSelectedItems(prev => [...prev, newItem.name]);
+            const newSelectedItems = [...selectedItems, newItem.name];
+            setSelectedItems(newSelectedItems);
+            onComplete(newSelectedItems);
           }
         }
       }
