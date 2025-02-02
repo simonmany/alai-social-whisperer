@@ -67,6 +67,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [aiPreferencesResponse, setAiPreferencesResponse] = useState<string>("");
   const [isLoadingPreferencesAi, setIsLoadingPreferencesAi] = useState(false);
   const [hasPlayedTypewriter, setHasPlayedTypewriter] = useState(false);
+  const [hasPlayedFollowUp, setHasPlayedFollowUp] = useState(false);
+  const followUpText = "Now, what are some **new** things you'd like to try?";
 
   const handleBack = () => {
     switch (step) {
@@ -414,19 +416,36 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div className="animate-pulse">Thinking about your interests...</div>
                 </div>
               ) : aiPreferencesResponse ? (
-                <div className="text-lg mb-8 bg-primary/5 p-6 rounded-lg">
-                  {hasPlayedTypewriter ? (
-                    <div>{aiPreferencesResponse}</div>
-                  ) : (
-                    <TypewriterText
-                      text={aiPreferencesResponse}
-                      delay={0}
-                      onComplete={() => {
-                        console.log('TypewriterText completed');
-                        setHasPlayedTypewriter(true);
-                      }}
-                    />
-                  )}
+                <div className="space-y-4">
+                  <div className="text-lg bg-primary/5 p-6 rounded-lg">
+                    {hasPlayedTypewriter ? (
+                      <div>{aiPreferencesResponse}</div>
+                    ) : (
+                      <TypewriterText
+                        text={aiPreferencesResponse}
+                        delay={0}
+                        onComplete={() => {
+                          console.log('TypewriterText completed');
+                          setHasPlayedTypewriter(true);
+                        }}
+                      />
+                    )}
+                  </div>
+                  <div className="text-lg">
+                    {hasPlayedFollowUp ? (
+                      <div dangerouslySetInnerHTML={{ 
+                        __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                      }} />
+                    ) : (
+                      <TypewriterText
+                        text={followUpText}
+                        delay={500}
+                        onComplete={() => {
+                          setHasPlayedFollowUp(true);
+                        }}
+                      />
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="text-lg mb-8">
