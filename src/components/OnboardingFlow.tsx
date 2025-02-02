@@ -12,6 +12,7 @@ import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
 import { generateChatResponse } from "@/utils/openai";
+import { cn } from "@/lib/utils";
 import type { OnboardingState } from "@/types/onboarding";
 
 interface OnboardingFlowProps {
