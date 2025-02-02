@@ -188,7 +188,12 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     <div className="space-y-4">
       {step === 'age' && (
         <>
-          <div className="text-lg">
+          <div className="text-lg space-y-4">
+            <TypewriterText
+              text="Together, we're gonna make sure you spend time doing more of what you already love - and explore new things, too."
+              delay={0}
+              typingSpeed={25}
+            />
             <TypewriterText
               text="How old are you?"
               delay={250}
