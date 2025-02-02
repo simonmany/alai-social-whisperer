@@ -407,7 +407,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div className="animate-pulse">Thinking about your interests...</div>
                 </div>
               ) : aiPreferencesResponse ? (
-                <div className="text-lg mb-8">
+                <div className="text-lg mb-8 bg-primary/5 p-6 rounded-lg">
                   <TypewriterText
                     text={aiPreferencesResponse}
                     delay={0}
