@@ -520,7 +520,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       />
                     )}
                   </div>
-                  <div className="text-lg mb-8">
+                  <div className="text-lg mb-12">
                     {hasPlayedFollowUp ? (
                       <div dangerouslySetInnerHTML={{ 
                         __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -539,17 +539,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div className="space-y-8">
                   <div className="text-lg">
                     {hasPlayedSkipMessage ? (
-                      <div>No worries - you can always tell me about your interests later</div>
+                      <div>No worries - you can always tell me about your interests later.</div>
                     ) : (
                       <TypewriterText
                         key="skip-message"
-                        text="No worries - you can always tell me about your interests later"
+                        text="No worries - you can always tell me about your interests later."
                         delay={0}
                         onComplete={handleSkipMessageComplete}
                       />
                     )}
                   </div>
-                  <div className="text-lg mb-8">
+                  <div className="text-lg mb-12">
                     {hasPlayedFollowUp ? (
                       <div dangerouslySetInnerHTML={{ 
                         __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
