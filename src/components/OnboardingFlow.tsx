@@ -223,45 +223,40 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     });
   };
 
-  const getAiPreferencesResponse = async () => {
-    if (!state.currentInterests?.length && !state.foodPreferences?.length && !state.musicPreferences?.length) {
-      return;
-    }
-
-    setIsLoadingPreferencesAi(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('analyze-preferences', {
-        body: {
-          activities: state.currentInterests || [],
-          food: state.foodPreferences || [],
-          music: state.musicPreferences || [],
-          userId: session?.user.id
-        }
-      });
-
-      if (error) throw error;
-      setAiPreferencesResponse(data.response);
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      toast({
-        title: "Error getting AI response",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-    setIsLoadingPreferencesAi(false);
-  };
-
   const canProceedToNextSection = (section: 'current' | 'future') => {
     if (section === 'current') {
-      const hasSelections = !!(state.currentInterests?.length || state.foodPreferences?.length || state.musicPreferences?.length);
-      if (hasSelections && step === 'interests') {
-        getAiPreferencesResponse();
-        setStep('future-interests');
-      }
-      return hasSelections;
+      return !!(state.currentInterests?.length || state.foodPreferences?.length || state.musicPreferences?.length);
     } else {
       return !!(state.desiredInterests?.length || state.desiredFoodPreferences?.length || state.desiredMusicPreferences?.length);
+    }
+  };
+
+  const handleProceedToFutureInterests = async () => {
+    if (canProceedToNextSection('current')) {
+      setIsLoadingPreferencesAi(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-preferences', {
+          body: {
+            activities: state.currentInterests || [],
+            food: state.foodPreferences || [],
+            music: state.musicPreferences || [],
+            userId: session?.user.id
+          }
+        });
+
+        if (error) throw error;
+        setAiPreferencesResponse(data.response);
+      } catch (error) {
+        console.error('Error getting AI response:', error);
+        toast({
+          title: "Error getting AI response",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingPreferencesAi(false);
+        setStep('future-interests');
+      }
     }
   };
 
@@ -380,7 +375,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </div>
                 {canProceedToNextSection('current') && (
                   <Button 
-                    onClick={() => setStep('future-interests')}
+                    onClick={handleProceedToFutureInterests}
                     className="w-full"
                   >
                     Next
@@ -398,58 +393,60 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div className="text-lg mb-8">
                   <div className="animate-pulse">Thinking about your interests...</div>
                 </div>
-              ) : (
+              ) : aiPreferencesResponse ? (
                 <div className="text-lg mb-8">
                   <TypewriterText
                     text={aiPreferencesResponse}
                     delay={0}
                     onComplete={() => {
                       setTimeout(() => {
-                        const nextPrompt = "Now, what are some things you'd like to try or get into that you don't currently do?";
-                        setAiPreferencesResponse(prev => prev + "\n\n" + nextPrompt);
+                        const nextPrompt = "\n\nNow, what are some things you'd like to try or get into that you don't currently do?";
+                        setAiPreferencesResponse(prev => prev + nextPrompt);
                       }, 1000);
                     }}
                   />
                 </div>
-              )}
-              <div>
-                <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
-                <InterestSelector
-                  type="activities"
-                  onComplete={handleFutureInterestComplete('activities')}
-                  placeholder="Type activities you'd like to try..."
-                  minSelections={1}
-                  initialSelections={state.desiredInterests}
-                />
+              ) : null}
+              <div className="space-y-8">
+                <div>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                  <InterestSelector
+                    type="activities"
+                    onComplete={handleFutureInterestComplete('activities')}
+                    placeholder="Type activities you'd like to try..."
+                    minSelections={1}
+                    initialSelections={state.desiredInterests}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                  <InterestSelector
+                    type="food"
+                    onComplete={handleFutureInterestComplete('food')}
+                    placeholder="Type cuisines you'd like to try..."
+                    minSelections={1}
+                    initialSelections={state.desiredFoodPreferences}
+                  />
+                </div>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                  <InterestSelector
+                    type="music"
+                    onComplete={handleFutureInterestComplete('music')}
+                    placeholder="Type music genres you'd like to explore..."
+                    minSelections={1}
+                    initialSelections={state.desiredMusicPreferences}
+                  />
+                </div>
+                {canProceedToNextSection('future') && (
+                  <Button 
+                    onClick={() => setStep('demographics')}
+                    className="w-full"
+                  >
+                    Next
+                  </Button>
+                )}
               </div>
-              <div>
-                <h3 className="text-base font-medium mb-4">Food Preferences</h3>
-                <InterestSelector
-                  type="food"
-                  onComplete={handleFutureInterestComplete('food')}
-                  placeholder="Type cuisines you'd like to try..."
-                  minSelections={1}
-                  initialSelections={state.desiredFoodPreferences}
-                />
-              </div>
-              <div>
-                <h3 className="text-base font-medium mb-4">Music Preferences</h3>
-                <InterestSelector
-                  type="music"
-                  onComplete={handleFutureInterestComplete('music')}
-                  placeholder="Type music genres you'd like to explore..."
-                  minSelections={1}
-                  initialSelections={state.desiredMusicPreferences}
-                />
-              </div>
-              {canProceedToNextSection('future') && (
-                <Button 
-                  onClick={() => setStep('demographics')}
-                  className="w-full"
-                >
-                  Next
-                </Button>
-              )}
             </div>
           </div>
         )}
