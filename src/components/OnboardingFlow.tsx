@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -290,6 +290,26 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     ? state.name.charAt(0).toUpperCase() + state.name.slice(1) 
     : '';
 
+  const handleLine1Complete = useCallback(() => {
+    setHasPlayedLine1(true);
+  }, []);
+
+  const handleLine2Complete = useCallback(() => {
+    setHasPlayedLine2(true);
+  }, []);
+
+  const handleLine3Complete = useCallback(() => {
+    setHasPlayedLine3(true);
+  }, []);
+
+  const handleTypewriterComplete = useCallback(() => {
+    setHasPlayedTypewriter(true);
+  }, []);
+
+  const handleFollowUpComplete = useCallback(() => {
+    setHasPlayedFollowUp(true);
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
@@ -371,9 +391,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <div>{`I'm looking forward to getting to know you even better over time, ${capitalizedName}.`}</div>
                 ) : (
                   <TypewriterText
+                    key="line1"
                     text={`I'm looking forward to getting to know you even better over time, ${capitalizedName}.`}
                     delay={0}
-                    onComplete={() => setHasPlayedLine1(true)}
+                    onComplete={handleLine1Complete}
                   />
                 )}
 
@@ -382,9 +403,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <div>Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to.</div>
                   ) : (
                     <TypewriterText
+                      key="line2"
                       text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
                       delay={500}
-                      onComplete={() => setHasPlayedLine2(true)}
+                      onComplete={handleLine2Complete}
                     />
                   )
                 )}
@@ -394,9 +416,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <div>This'll help me recommend things you love.</div>
                   ) : (
                     <TypewriterText
+                      key="line3"
                       text="This'll help me recommend things you love."
                       delay={500}
-                      onComplete={() => setHasPlayedLine3(true)}
+                      onComplete={handleLine3Complete}
                     />
                   )
                 )}
@@ -471,12 +494,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <div>{aiPreferencesResponse}</div>
                     ) : (
                       <TypewriterText
+                        key="preferences"
                         text={aiPreferencesResponse}
                         delay={0}
-                        onComplete={() => {
-                          console.log('TypewriterText completed');
-                          setHasPlayedTypewriter(true);
-                        }}
+                        onComplete={handleTypewriterComplete}
                       />
                     )}
                   </div>
@@ -487,11 +508,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       }} />
                     ) : (
                       <TypewriterText
+                        key="followup"
                         text={followUpText}
                         delay={500}
-                        onComplete={() => {
-                          setHasPlayedFollowUp(true);
-                        }}
+                        onComplete={handleFollowUpComplete}
                       />
                     )}
                   </div>
