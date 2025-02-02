@@ -289,6 +289,26 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const handleLine1Complete = useCallback(() => {
+    setHasPlayedLine1(true);
+  }, []);
+
+  const handleLine2Complete = useCallback(() => {
+    setHasPlayedLine2(true);
+  }, []);
+
+  const handleLine3Complete = useCallback(() => {
+    setHasPlayedLine3(true);
+  }, []);
+
+  const handleTypewriterComplete = useCallback(() => {
+    setHasPlayedTypewriter(true);
+  }, []);
+
+  const handleFollowUpComplete = useCallback(() => {
+    setHasPlayedFollowUp(true);
+  }, []);
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
