@@ -53,12 +53,21 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
-  // Filter out personality quiz prompts
-  const filteredMessages = messages.filter(message => {
+  // Filter out personality quiz prompts and responses
+  const filteredMessages = messages.filter((message, index) => {
+    // Check if current message is a personality quiz prompt
     const isPersonalityPrompt = message.content.includes("Hey, I'm learning about") && 
                                message.content.includes("personality") &&
                                message.content.includes("Give a very brief");
-    return !isPersonalityPrompt;
+    
+    // Check if next message is an AI response to a personality quiz prompt
+    const isPersonalityResponse = index > 0 &&
+                                 messages[index - 1].content.includes("Hey, I'm learning about") &&
+                                 messages[index - 1].content.includes("personality") &&
+                                 messages[index - 1].content.includes("Give a very brief") &&
+                                 message.isAl;
+
+    return !isPersonalityPrompt && !isPersonalityResponse;
   });
 
   useEffect(() => {
