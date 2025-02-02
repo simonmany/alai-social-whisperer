@@ -19,6 +19,9 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
   const [age, setAge] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
   const [occupation, setOccupation] = useState("");
+  const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
+  const [hasPlayedDetails, setHasPlayedDetails] = useState(false);
+  const [hasPlayedQuestion, setHasPlayedQuestion] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -189,21 +192,36 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
       {step === 'age' && (
         <>
           <div className="text-lg space-y-4">
-            <TypewriterText
-              text="Together, we're gonna make sure you spend time doing more of what you already love - and explore new things, too."
-              delay={0}
-              typingSpeed={25}
-            />
-            <TypewriterText
-              text="Now, some details - we're almost done."
-              delay={250}
-              typingSpeed={25}
-            />
-            <TypewriterText
-              text="How many trips around the sun have you completed?"
-              delay={500}
-              typingSpeed={25}
-            />
+            {!hasPlayedIntro ? (
+              <TypewriterText
+                text="Together, we're gonna make sure you spend time doing more of what you already love - and explore new things, too."
+                delay={0}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedIntro(true)}
+              />
+            ) : (
+              <div>{`Together, we're gonna make sure you spend time doing more of what you already love - and explore new things, too.`}</div>
+            )}
+            {hasPlayedIntro && !hasPlayedDetails ? (
+              <TypewriterText
+                text="Now, some details - we're almost done."
+                delay={0}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedDetails(true)}
+              />
+            ) : hasPlayedIntro && (
+              <div>Now, some details - we're almost done.</div>
+            )}
+            {hasPlayedDetails && !hasPlayedQuestion ? (
+              <TypewriterText
+                text="How many trips around the sun have you completed?"
+                delay={0}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedQuestion(true)}
+              />
+            ) : hasPlayedDetails && (
+              <div>How many trips around the sun have you completed?</div>
+            )}
           </div>
           <div className="space-y-4">
             <ChatInput
