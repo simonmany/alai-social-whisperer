@@ -308,7 +308,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div>
               <div className="text-lg mb-8">
                 <TypewriterText
-                  text="Let's talk about your current interests! What do you like to do for fun?"
+                  text={`I'm looking forward to getting to know you even better over time, ${state.name}.\n\nNow, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to. This'll help me recommend things you love.`}
                   delay={0}
                 />
               </div>
