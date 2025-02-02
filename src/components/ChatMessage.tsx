@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
 
-interface ContactInfo {
+interface Contact {
   name: string;
   phone?: string;
   instagram?: string;
@@ -15,10 +15,10 @@ interface ChatMessageProps {
   content: string;
   isAl: boolean;
   animate?: boolean;
-  contactInfo?: ContactInfo;
+  contacts?: Contact[];
 }
 
-export const ChatMessage = ({ content, isAl, animate = true, contactInfo }: ChatMessageProps) => {
+export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMessageProps) => {
   return (
     <div
       className={cn(
@@ -30,15 +30,24 @@ export const ChatMessage = ({ content, isAl, animate = true, contactInfo }: Chat
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
           <div>{content}</div>
-          {contactInfo && (
-            <div className="mt-4">
-              <ContactCard {...contactInfo} />
+          {contacts && contacts.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {contacts.map((contact, index) => (
+                <ContactCard key={`${contact.name}-${index}`} {...contact} />
+              ))}
             </div>
           )}
         </div>
       ) : (
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm">
           <div>{content}</div>
+          {contacts && contacts.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {contacts.map((contact, index) => (
+                <ContactCard key={`${contact.name}-${index}`} {...contact} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

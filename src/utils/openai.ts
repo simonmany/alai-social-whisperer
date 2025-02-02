@@ -33,7 +33,7 @@ export const generateChatResponse = async (message: string, contactInfo?: Contac
       throw new Error("Invalid response from chat function");
     }
 
-    return data.response;
+    return data;
 
   } catch (error) {
     console.error("Error generating chat response:", error);
