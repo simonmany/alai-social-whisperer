@@ -20,7 +20,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   const screens = [
     "Welcome to Alai - your social intelligence.",
     "I'm Al, like Albert - or Alison. I'm here to help you be the best friend you can be.",
-    "First, let's get to know each other a bit better! What's your name?"
+    "What's your name?"
   ];
 
   useEffect(() => {
