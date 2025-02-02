@@ -66,6 +66,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { toast } = useToast();
   const [aiPreferencesResponse, setAiPreferencesResponse] = useState<string>("");
   const [isLoadingPreferencesAi, setIsLoadingPreferencesAi] = useState(false);
+  const [hasPlayedTypewriter, setHasPlayedTypewriter] = useState(false);
 
   const handleBack = () => {
     switch (step) {
@@ -414,25 +415,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </div>
               ) : aiPreferencesResponse ? (
                 <div className="text-lg mb-8 bg-primary/5 p-6 rounded-lg">
-                  <TypewriterText
-                    text={aiPreferencesResponse}
-                    delay={0}
-                    onComplete={() => {
-                      console.log('TypewriterText completed');
-                      setTimeout(() => {
-                        const nextPrompt = "\n\nNow, what are some things you'd like to try or get into that you don't currently do?";
-                        console.log('Adding next prompt to response:', {
-                          currentResponse: aiPreferencesResponse,
-                          nextPrompt
-                        });
-                        setAiPreferencesResponse(prev => {
-                          const newResponse = prev + nextPrompt;
-                          console.log('New combined response:', newResponse);
-                          return newResponse;
-                        });
-                      }, 1000);
-                    }}
-                  />
+                  {hasPlayedTypewriter ? (
+                    <div>{aiPreferencesResponse}</div>
+                  ) : (
+                    <TypewriterText
+                      text={aiPreferencesResponse}
+                      delay={0}
+                      onComplete={() => {
+                        console.log('TypewriterText completed');
+                        setHasPlayedTypewriter(true);
+                      }}
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="text-lg mb-8">
