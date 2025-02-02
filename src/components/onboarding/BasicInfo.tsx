@@ -15,6 +15,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   const [currentScreen, setCurrentScreen] = useState(0);
   const [showInput, setShowInput] = useState(false);
   const [name, setName] = useState(initialName || "");
+  const [completedScreens, setCompletedScreens] = useState<number[]>([]);
   const { toast } = useToast();
 
   const screens = [
@@ -34,10 +35,14 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   }, [currentScreen, screens.length]);
 
   const handleScreenComplete = (screenIndex: number) => {
-    if (screenIndex < screens.length - 1) {
-      setTimeout(() => {
-        setCurrentScreen(screenIndex + 1);
-      }, 250);
+    if (!completedScreens.includes(screenIndex)) {
+      setCompletedScreens(prev => [...prev, screenIndex]);
+      
+      if (screenIndex < screens.length - 1) {
+        setTimeout(() => {
+          setCurrentScreen(screenIndex + 1);
+        }, 250);
+      }
     }
   };
 
@@ -73,18 +78,21 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
       {screens.map((text, index) => (
         index <= currentScreen && (
           <div key={index} className="text-lg">
-            <TypewriterText
-              text={text}
-              onComplete={() => handleScreenComplete(index)}
-              delay={250}
-              typingSpeed={25}
-              className="text-left"
-            />
+            {completedScreens.includes(index) ? (
+              <div>{text}</div>
+            ) : (
+              <TypewriterText
+                text={text}
+                onComplete={() => handleScreenComplete(index)}
+                delay={250}
+                typingSpeed={25}
+                className="text-left"
+              />
+            )}
           </div>
         )
       ))}
       
-      {/* Always render the input but control visibility with CSS */}
       <div 
         className={`transition-all duration-500 ${
           showInput ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4 pointer-events-none'
