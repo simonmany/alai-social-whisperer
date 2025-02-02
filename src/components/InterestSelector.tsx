@@ -77,18 +77,13 @@ export const InterestSelector = ({
     }
   }, [searchTerm, items]);
 
-  // Only call onComplete when selectedItems actually changes
-  useEffect(() => {
-    console.log('Selected items changed:', selectedItems);
-    onComplete(selectedItems);
-  }, [selectedItems, onComplete]);
-
   const handleItemSelect = (itemName: string) => {
-    if (selectedItems.includes(itemName)) {
-      setSelectedItems(prev => prev.filter(name => name !== itemName));
-    } else {
-      setSelectedItems(prev => [...prev, itemName]);
-    }
+    const newSelectedItems = selectedItems.includes(itemName)
+      ? selectedItems.filter(name => name !== itemName)
+      : [...selectedItems, itemName];
+    
+    setSelectedItems(newSelectedItems);
+    onComplete(newSelectedItems);
     setSearchTerm("");
     setFilteredItems([]);
   };
@@ -159,12 +154,16 @@ export const InterestSelector = ({
 
         if (existingItem) {
           if (!selectedItems.includes(existingItem.name)) {
-            setSelectedItems(prev => [...prev, existingItem.name]);
+            const newSelectedItems = [...selectedItems, existingItem.name];
+            setSelectedItems(newSelectedItems);
+            onComplete(newSelectedItems);
           }
         } else {
           const newItem = await createNewItem(itemName);
           if (newItem) {
-            setSelectedItems(prev => [...prev, newItem.name]);
+            const newSelectedItems = [...selectedItems, newItem.name];
+            setSelectedItems(newSelectedItems);
+            onComplete(newSelectedItems);
           }
         }
       }
