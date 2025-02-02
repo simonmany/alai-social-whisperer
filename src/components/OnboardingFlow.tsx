@@ -69,6 +69,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedTypewriter, setHasPlayedTypewriter] = useState(false);
   const [hasPlayedFollowUp, setHasPlayedFollowUp] = useState(false);
   const followUpText = "Now, what are some **new** things you'd like to try?";
+  const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
+  const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
+  const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
 
   const handleBack = () => {
     switch (step) {
@@ -358,11 +361,40 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {step === 'interests' && (
           <div className="space-y-8">
             <div>
-              <div className="text-lg mb-8">
-                <TypewriterText
-                  text={`I'm looking forward to getting to know you even better over time, ${state.name}.\n\nNow, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to. This'll help me recommend things you love.`}
-                  delay={0}
-                />
+              <div className="text-lg space-y-6 mb-8">
+                {hasPlayedLine1 ? (
+                  <div>{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
+                ) : (
+                  <TypewriterText
+                    text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
+                    delay={0}
+                    onComplete={() => setHasPlayedLine1(true)}
+                  />
+                )}
+
+                {hasPlayedLine1 && (
+                  hasPlayedLine2 ? (
+                    <div>Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to.</div>
+                  ) : (
+                    <TypewriterText
+                      text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
+                      delay={500}
+                      onComplete={() => setHasPlayedLine2(true)}
+                    />
+                  )
+                )}
+
+                {hasPlayedLine2 && (
+                  hasPlayedLine3 ? (
+                    <div>This'll help me recommend things you love.</div>
+                  ) : (
+                    <TypewriterText
+                      text="This'll help me recommend things you love."
+                      delay={500}
+                      onComplete={() => setHasPlayedLine3(true)}
+                    />
+                  )
+                )}
               </div>
               <div className="space-y-8">
                 <div>
