@@ -12,6 +12,7 @@ export const PersonalityIntro = ({ userName = "there", onStart }: PersonalityInt
   const [showButton, setShowButton] = useState(false);
   const [showSecondText, setShowSecondText] = useState(false);
   const [firstTextCompleted, setFirstTextCompleted] = useState(false);
+  const [secondTextCompleted, setSecondTextCompleted] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -30,11 +31,16 @@ export const PersonalityIntro = ({ userName = "there", onStart }: PersonalityInt
         )}
       </div>
       <div className="text-lg">
-        {showSecondText && (
+        {secondTextCompleted ? (
+          <div>To help me get to know you better, I've got a few quick questions for you. This shouldn't take more than a minute:</div>
+        ) : showSecondText && (
           <TypewriterText
             text="To help me get to know you better, I've got a few quick questions for you. This shouldn't take more than a minute:"
             delay={250}
-            onComplete={() => setShowButton(true)}
+            onComplete={() => {
+              setSecondTextCompleted(true);
+              setShowButton(true);
+            }}
           />
         )}
       </div>
