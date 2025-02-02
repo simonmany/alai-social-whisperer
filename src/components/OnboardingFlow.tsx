@@ -75,6 +75,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
   const [isAnalyzingInterests, setIsAnalyzingInterests] = useState(false);
   const [hasPlayedSkipMessage, setHasPlayedSkipMessage] = useState(false);
+  const [showActivities, setShowActivities] = useState(false);
+  const [showFood, setShowFood] = useState(false);
+  const [showMusic, setShowMusic] = useState(false);
   const handleSkipMessageComplete = useCallback(() => {
     setHasPlayedSkipMessage(true);
   }, []);
@@ -303,6 +306,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleLine3Complete = useCallback(() => {
     setHasPlayedLine3(true);
+    // Start the sequence of showing fields
+    setTimeout(() => setShowActivities(true), 200);
+    setTimeout(() => setShowFood(true), 700);
+    setTimeout(() => setShowMusic(true), 1200);
   }, []);
 
   const handleTypewriterComplete = useCallback(() => {
@@ -432,7 +439,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 )}
               </div>
               <div className="space-y-8">
-                <div>
+                <div className={cn(
+                  "transition-opacity duration-500",
+                  showActivities ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
                     type="activities"
@@ -442,7 +452,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.currentInterests}
                   />
                 </div>
-                <div>
+                <div className={cn(
+                  "transition-opacity duration-500",
+                  showFood ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
                     type="food"
@@ -452,7 +465,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.foodPreferences}
                   />
                 </div>
-                <div>
+                <div className={cn(
+                  "transition-opacity duration-500",
+                  showMusic ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
                     type="music"
