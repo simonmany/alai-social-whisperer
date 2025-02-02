@@ -42,6 +42,7 @@ export const InterestSelector = ({
     }
   };
 
+  // Fetch items on mount and when type changes
   useEffect(() => {
     const fetchItems = async () => {
       const { data, error } = await supabase
@@ -64,6 +65,7 @@ export const InterestSelector = ({
     fetchItems();
   }, [type, toast]);
 
+  // Filter items when search term changes
   useEffect(() => {
     if (searchTerm) {
       const filtered = items.filter(item =>
@@ -75,7 +77,9 @@ export const InterestSelector = ({
     }
   }, [searchTerm, items]);
 
+  // Only call onComplete when selectedItems actually changes
   useEffect(() => {
+    console.log('Selected items changed:', selectedItems);
     onComplete(selectedItems);
   }, [selectedItems, onComplete]);
 
