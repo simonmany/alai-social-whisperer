@@ -11,7 +11,6 @@ import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestio
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { generateChatResponse } from "@/utils/openai";
 import type { OnboardingState } from "@/types/onboarding";
 
@@ -200,6 +199,24 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           break;
         case 'music':
           newState.musicPreferences = selections;
+          break;
+      }
+      return newState;
+    });
+  };
+
+  const handleFutureInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
+    setState(prev => {
+      const newState = { ...prev };
+      switch (category) {
+        case 'activities':
+          newState.desiredInterests = selections;
+          break;
+        case 'food':
+          newState.desiredFoodPreferences = selections;
+          break;
+        case 'music':
+          newState.desiredMusicPreferences = selections;
           break;
       }
       return newState;
