@@ -73,6 +73,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
+  const [isAnalyzingInterests, setIsAnalyzingInterests] = useState(false);
 
   const handleBack = () => {
     switch (step) {
@@ -240,6 +241,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleProceedToFutureInterests = async () => {
     if (canProceedToNextSection('current')) {
+      setIsAnalyzingInterests(true);
       setIsLoadingPreferencesAi(true);
       console.log('Starting AI analysis of preferences:', {
         activities: state.currentInterests,
@@ -281,34 +283,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         });
       } finally {
         setIsLoadingPreferencesAi(false);
+        setIsAnalyzingInterests(false);
         setStep('future-interests');
       }
     }
   };
-
-  const capitalizedName = state.name 
-    ? state.name.charAt(0).toUpperCase() + state.name.slice(1) 
-    : '';
-
-  const handleLine1Complete = useCallback(() => {
-    setHasPlayedLine1(true);
-  }, []);
-
-  const handleLine2Complete = useCallback(() => {
-    setHasPlayedLine2(true);
-  }, []);
-
-  const handleLine3Complete = useCallback(() => {
-    setHasPlayedLine3(true);
-  }, []);
-
-  const handleTypewriterComplete = useCallback(() => {
-    setHasPlayedTypewriter(true);
-  }, []);
-
-  const handleFollowUpComplete = useCallback(() => {
-    setHasPlayedFollowUp(true);
-  }, []);
 
   return (
     <div className="flex flex-col h-full">
@@ -388,11 +367,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div>
               <div className="text-lg space-y-6 mb-8">
                 {hasPlayedLine1 ? (
-                  <div>{`I'm looking forward to getting to know you even better over time, ${capitalizedName}.`}</div>
+                  <div>{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
                 ) : (
                   <TypewriterText
                     key="line1"
-                    text={`I'm looking forward to getting to know you even better over time, ${capitalizedName}.`}
+                    text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
                     delay={0}
                     onComplete={handleLine1Complete}
                   />
@@ -471,8 +450,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       "w-full transition-all duration-500 delay-450",
                       hasPlayedLine3 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
                     )}
+                    disabled={isAnalyzingInterests}
                   >
-                    Next
+                    {isAnalyzingInterests ? "Analyzing your interests..." : "Next"}
                   </Button>
                 )}
               </div>
