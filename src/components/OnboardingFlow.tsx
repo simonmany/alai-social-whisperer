@@ -334,7 +334,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         )}
       </div>
       
-      <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+      <div className="flex-1 overflow-hidden space-y-4 mb-4">
         {step === 'basic' && (
           <BasicInfo 
             session={session} 
