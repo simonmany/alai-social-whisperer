@@ -285,6 +285,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const capitalizedName = state.name 
+    ? state.name.charAt(0).toUpperCase() + state.name.slice(1) 
+    : '';
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
@@ -363,10 +367,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div>
               <div className="text-lg space-y-6 mb-8">
                 {hasPlayedLine1 ? (
-                  <div>{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
+                  <div>{`I'm looking forward to getting to know you even better over time, ${capitalizedName}.`}</div>
                 ) : (
                   <TypewriterText
-                    text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
+                    text={`I'm looking forward to getting to know you even better over time, ${capitalizedName}.`}
                     delay={0}
                     onComplete={() => setHasPlayedLine1(true)}
                   />
