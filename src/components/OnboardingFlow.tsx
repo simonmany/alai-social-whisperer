@@ -234,6 +234,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const handleProceedToFutureInterests = async () => {
     if (canProceedToNextSection('current')) {
       setIsLoadingPreferencesAi(true);
+      console.log('Starting AI analysis of preferences:', {
+        activities: state.currentInterests,
+        food: state.foodPreferences,
+        music: state.musicPreferences
+      });
+
       try {
         const { data, error } = await supabase.functions.invoke('analyze-preferences', {
           body: {
@@ -244,8 +250,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           }
         });
 
-        if (error) throw error;
+        console.log('Received response from analyze-preferences:', data);
+
+        if (error) {
+          console.error('Error from analyze-preferences:', error);
+          throw error;
+        }
+
         setAiPreferencesResponse(data.response);
+        console.log('Set AI response:', data.response);
       } catch (error) {
         console.error('Error getting AI response:', error);
         toast({
@@ -399,14 +412,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     text={aiPreferencesResponse}
                     delay={0}
                     onComplete={() => {
+                      console.log('TypewriterText completed');
                       setTimeout(() => {
                         const nextPrompt = "\n\nNow, what are some things you'd like to try or get into that you don't currently do?";
+                        console.log('Adding next prompt');
                         setAiPreferencesResponse(prev => prev + nextPrompt);
                       }, 1000);
                     }}
                   />
                 </div>
-              ) : null}
+              ) : (
+                <div className="text-lg mb-8">
+                  <div className="text-red-500">No AI response received. Please try again.</div>
+                </div>
+              )}
+
               <div className="space-y-8">
                 <div>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
