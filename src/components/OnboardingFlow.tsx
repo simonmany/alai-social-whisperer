@@ -525,11 +525,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <div className="space-y-8">
                   <div className="text-lg bg-primary/5 p-6 rounded-lg">
                     {hasPlayedTypewriter ? (
-                      <div>{typeof aiPreferencesResponse === 'string' ? aiPreferencesResponse : aiPreferencesResponse.response}</div>
+                      <div>
+                        {typeof aiPreferencesResponse === 'string' 
+                          ? aiPreferencesResponse 
+                          : aiPreferencesResponse.response}
+                      </div>
                     ) : (
                       <TypewriterText
                         key="preferences"
-                        text={typeof aiPreferencesResponse === 'string' ? aiPreferencesResponse : aiPreferencesResponse.response}
+                        text={typeof aiPreferencesResponse === 'string' 
+                          ? aiPreferencesResponse 
+                          : aiPreferencesResponse.response}
                         delay={0}
                         onComplete={handleTypewriterComplete}
                       />
