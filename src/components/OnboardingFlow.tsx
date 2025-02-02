@@ -74,6 +74,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
   const [isAnalyzingInterests, setIsAnalyzingInterests] = useState(false);
+  const [hasPlayedSkipMessage, setHasPlayedSkipMessage] = useState(false);
+  const handleSkipMessageComplete = useCallback(() => {
+    setHasPlayedSkipMessage(true);
+  }, []);
 
   const handleBack = () => {
     switch (step) {
@@ -509,51 +513,74 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   </div>
                 </div>
               ) : (
-                <div className="text-lg mb-8">
-                  <div className="text-red-500">No AI response received. Please try again.</div>
+                <div className="space-y-4">
+                  <div className="text-lg">
+                    {hasPlayedSkipMessage ? (
+                      <div>No worries - you can always tell me about your interests later</div>
+                    ) : (
+                      <TypewriterText
+                        key="skip-message"
+                        text="No worries - you can always tell me about your interests later"
+                        delay={0}
+                        onComplete={handleSkipMessageComplete}
+                      />
+                    )}
+                  </div>
+                  <div className="text-lg">
+                    {hasPlayedFollowUp ? (
+                      <div dangerouslySetInnerHTML={{ 
+                        __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
+                      }} />
+                    ) : (
+                      <TypewriterText
+                        key="followup"
+                        text={followUpText}
+                        delay={500}
+                        onComplete={handleFollowUpComplete}
+                      />
+                    )}
+                  </div>
                 </div>
               )}
 
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
-                  <InterestSelector
-                    type="activities"
-                    onComplete={handleFutureInterestComplete('activities')}
-                    placeholder="Type activities you'd like to try..."
-                    minSelections={1}
-                    initialSelections={state.desiredInterests}
-                  />
-                </div>
-                <div>
-                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
-                  <InterestSelector
-                    type="food"
-                    onComplete={handleFutureInterestComplete('food')}
-                    placeholder="Type cuisines you'd like to try..."
-                    minSelections={1}
-                    initialSelections={state.desiredFoodPreferences}
-                  />
-                </div>
-                <div>
-                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
-                  <InterestSelector
-                    type="music"
-                    onComplete={handleFutureInterestComplete('music')}
-                    placeholder="Type music genres you'd like to explore..."
-                    minSelections={1}
-                    initialSelections={state.desiredMusicPreferences}
-                  />
-                </div>
-                {canProceedToNextSection('future') && (
-                  <Button 
-                    onClick={() => setStep('demographics')}
-                    className="w-full"
-                  >
-                    Next
-                  </Button>
-                )}
+              <div>
+                <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                <InterestSelector
+                  type="activities"
+                  onComplete={handleFutureInterestComplete('activities')}
+                  placeholder="Type activities you'd like to try..."
+                  minSelections={1}
+                  initialSelections={state.desiredInterests}
+                />
               </div>
+              <div>
+                <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                <InterestSelector
+                  type="food"
+                  onComplete={handleFutureInterestComplete('food')}
+                  placeholder="Type cuisines you'd like to try..."
+                  minSelections={1}
+                  initialSelections={state.desiredFoodPreferences}
+                />
+              </div>
+              <div>
+                <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                <InterestSelector
+                  type="music"
+                  onComplete={handleFutureInterestComplete('music')}
+                  placeholder="Type music genres you'd like to explore..."
+                  minSelections={1}
+                  initialSelections={state.desiredMusicPreferences}
+                />
+              </div>
+              {canProceedToNextSection('future') && (
+                <Button 
+                  onClick={() => setStep('demographics')}
+                  className="w-full"
+                >
+                  Next
+                </Button>
+              )}
             </div>
           </div>
         )}
