@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
@@ -32,6 +32,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [hasGoals, setHasGoals] = useState(false);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
   const [hasPlayedSplash, setHasPlayedSplash] = useState(false);
+  const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
+  const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
@@ -318,19 +320,44 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             <div className="space-y-6">
               {hasPlayedSplash ? (
                 <>
-                  <div className="text-2xl">Hi, {profile?.display_name}. It's nice to meet you.</div>
+                  <div className="text-4xl font-cormorant">Hi, {profile?.display_name}. It's nice to meet you.</div>
                   <div className="text-lg">
                     I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable.
                   </div>
                   <div className="text-lg">Ready to get started?</div>
                 </>
               ) : (
-                <TypewriterText
-                  text={`Hi, ${profile?.display_name || 'there'}. It's nice to meet you.\n\nI'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable.\n\nReady to get started?`}
-                  delay={250}
-                  typingSpeed={25}
-                  onComplete={() => setHasPlayedSplash(true)}
-                />
+                <div className="space-y-6">
+                  <TypewriterText
+                    text={`Hi, ${profile?.display_name || 'there'}. It's nice to meet you.`}
+                    delay={250}
+                    typingSpeed={25}
+                    className="text-4xl font-cormorant"
+                    onComplete={() => {
+                      setHasPlayedLine1(true);
+                    }}
+                  />
+                  {hasPlayedLine1 && (
+                    <TypewriterText
+                      text="I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable."
+                      delay={250}
+                      typingSpeed={25}
+                      className="text-lg"
+                      onComplete={() => {
+                        setHasPlayedLine2(true);
+                      }}
+                    />
+                  )}
+                  {hasPlayedLine2 && (
+                    <TypewriterText
+                      text="Ready to get started?"
+                      delay={250}
+                      typingSpeed={25}
+                      className="text-lg"
+                      onComplete={() => setHasPlayedSplash(true)}
+                    />
+                  )}
+                </div>
               )}
             </div>
             {hasPlayedSplash && (
@@ -390,133 +417,4 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialMessage 
-            className="right-[450px] top-32 max-w-xs"
-          >
-            Let's start by setting a goal. You can choose anything you like! Choosing a time horizon helps keep you accountable.
-          </TutorialMessage>
-          
-          {goalArrowPositions.map((position, index) => (
-            <TutorialArrow 
-              key={index}
-              direction="right" 
-              style={{
-                position: 'fixed',
-                top: `${position.top}px`,
-                left: `${position.left}px`,
-                zIndex: 9999,
-              }}
-            />
-          ))}
-        </>
-      );
-    }
-
-    if (step === 'goals' && hasGoals) {
-      return (
-        <>
-          <TutorialArrow 
-            direction="right"
-            style={{
-              position: 'fixed',
-              top: `${closeButtonPosition.top}px`,
-              left: `${closeButtonPosition.left}px`,
-              zIndex: 9999,
-            }}
-          />
-          <TutorialMessage className="right-24 top-20">
-            Nice! I'm looking forward to helping you make that happen. Let's close the profile screen for now.
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'contactsintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${contactsButtonPosition.top}px`,
-              left: `${contactsButtonPosition.left}px`,
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-            }}
-          >
-            Great! Now let's add some contacts to help you achieve your goals.
-            <div className="flex gap-2 mt-4">
-              <Button 
-                size="sm" 
-                onClick={handleContactsResponse}
-                className="bg-[#9b87f5] hover:bg-[#9b87f5]/90"
-              >
-                Connect contacts
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleContactsResponse}
-                className="bg-[#000000e6] text-white hover:bg-[#000000e6]/90"
-              >
-                Not now
-              </Button>
-            </div>
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'calendarintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${calendarButtonPosition.top}px`,
-              left: `${calendarButtonPosition.left}px`,
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-            }}
-          >
-            Connecting your calendars will help me make plans for you smoothly.
-            <div className="flex gap-2 mt-4">
-              <Button 
-                size="sm" 
-                onClick={handleTutorialComplete}
-                className="bg-[#9b87f5] hover:bg-[#9b87f5]/90"
-              >
-                Connect calendars
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleTutorialComplete}
-                className="bg-[#000000e6] text-white hover:bg-[#000000e6]/90"
-              >
-                Not now
-              </Button>
-            </div>
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    return null;
-  };
-
-  return createPortal(
-    renderTutorialContent(),
-    document.body
-  );
-};
+            className="right-[450px] top-32 max
