@@ -29,11 +29,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [closeButtonPosition, setCloseButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [contactsButtonPosition, setContactsButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [calendarButtonPosition, setCalendarButtonPosition] = useState<Position>({ top: 0, left: 0 });
-  const [hasGoals, setHasGoals] = useState(false);
-  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
-  const [hasPlayedSplash, setHasPlayedSplash] = useState(false);
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
+  const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
@@ -55,7 +53,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     enabled: !!session?.user?.id
   });
 
-  // Handle tutorial completion
   const handleTutorialComplete = async () => {
     if (!session?.user.id) return;
     
@@ -87,214 +84,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     console.log('Tutorial step changed to:', step);
   }, [step]);
 
-  // Handle route changes
-  useEffect(() => {
-    const updateTutorialStep = async () => {
-      if (location.pathname === '/contacts' && step === 'contactsintro' && session?.user?.id) {
-        console.log('Contacts page opened, moving to contactsopen step');
-        
-        try {
-          const { error } = await supabase
-            .from('profiles')
-            .update({ onboarding_step: 'contactsopen' })
-            .eq('id', session.user.id);
-
-          if (error) {
-            console.error('Error updating onboarding step:', error);
-            return;
-          }
-
-          console.log('Updated onboarding step to contactsopen');
-          setStep('contactsopen');
-          queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-        } catch (error) {
-          console.error('Error in updateTutorialStep:', error);
-        }
-      }
-    };
-
-    updateTutorialStep();
-  }, [location.pathname, step, session?.user?.id, queryClient]);
-
-  useEffect(() => {
-    const checkGoals = async () => {
-      if (!session?.user.id || !isProfileOpen || step !== 'profile') return;
-
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('goals')
-          .eq('id', session.user.id)
-          .single();
-
-        const goalsExist = profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0;
-        console.log('Goals check:', goalsExist ? 'Goals found' : 'No goals yet');
-        setHasGoals(goalsExist);
-        
-        if (goalsExist) {
-          console.log('Goals exist, updating step to goals');
-          if (session?.user?.id) {
-            const { error } = await supabase
-              .from('profiles')
-              .update({ onboarding_step: 'goals' })
-              .eq('id', session.user.id);
-
-            if (error) {
-              console.error('Error updating step to goals:', error);
-              return;
-            }
-
-            setStep('goals');
-            queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-          }
-        }
-      } catch (error) {
-        console.error('Error checking goals:', error);
-      }
-    };
-
-    checkGoals();
-  }, [session?.user?.id, isProfileOpen, step, queryClient]);
-
-  useEffect(() => {
-    if (isProfileOpen && step === 'initial') {
-      console.log('Profile opened, moving to profile step');
-      if (session?.user?.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'profile' })
-          .eq('id', session.user.id)
-          .then(({ error }) => {
-            if (error) console.error('Error updating onboarding step:', error);
-            else {
-              console.log('Updated onboarding step to profile');
-              setStep('profile');
-              queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-            }
-          });
-      }
-    }
-    if (!isProfileOpen && step === 'goals') {
-      console.log('Profile closed, moving to contactsintro step');
-      
-      if (session?.user?.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'contactsintro' })
-          .eq('id', session.user.id)
-          .then(({ error }) => {
-            if (error) console.error('Error updating onboarding step:', error);
-            else {
-              console.log('Updated onboarding step to contactsintro');
-              setStep('contactsintro');
-              queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-            }
-          });
-      }
-    }
-  }, [isProfileOpen, step, session?.user?.id, queryClient]);
-
-  // Handle transition from contactsintro to calendarintro
-  const handleContactsResponse = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ onboarding_step: 'calendarintro' })
-        .eq('id', session.user.id);
-
-      if (error) {
-        console.error('Error updating onboarding step:', error);
-        return;
-      }
-
-      console.log('Updated onboarding step to calendarintro');
-      setStep('calendarintro');
-      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-    } catch (error) {
-      console.error('Error in handleContactsResponse:', error);
-    }
-  };
-
-  useEffect(() => {
-    const updatePositions = () => {
-      const profileButton = document.querySelector('button[aria-label="Open profile"]');
-      const closeButton = document.querySelector('[data-state] button[class*="absolute right-4 top-4"]');
-      const contactsButton = document.querySelector('button:has(.lucide-users)');
-      const calendarButton = document.querySelector('button:has(.lucide-calendar)');
-      const goalAlerts = document.querySelectorAll('.space-y-4 [role="alert"]');
-      
-      if (profileButton && step === 'initial') {
-        const rect = profileButton.getBoundingClientRect();
-        setArrowPosition({
-          top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20
-        });
-        
-        setMessagePosition({
-          top: rect.bottom + 56,
-          left: rect.left - 160 + (rect.width / 2)
-        });
-      }
-
-      if (closeButton && step === 'goals') {
-        const rect = closeButton.getBoundingClientRect();
-        setCloseButtonPosition({
-          top: rect.top + (rect.height / 2) - 10,
-          left: rect.left - 48
-        });
-      }
-
-      if (contactsButton && (step === 'contactsintro' || step === 'contactsopen')) {
-        const rect = contactsButton.getBoundingClientRect();
-        setContactsButtonPosition({
-          top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20
-        });
-        
-        setMessagePosition({
-          top: rect.bottom + 56,
-          left: rect.left - 160 + (rect.width / 2)
-        });
-      }
-
-      if (calendarButton && step === 'calendarintro') {
-        const rect = calendarButton.getBoundingClientRect();
-        setCalendarButtonPosition({
-          top: rect.bottom + 8,
-          left: rect.left + (rect.width / 2) - 20
-        });
-        
-        setMessagePosition({
-          top: rect.bottom + 56,
-          left: rect.left - 160 + (rect.width / 2)
-        });
-      }
-
-      if (step === 'profile' && goalAlerts.length > 0) {
-        const positions: Position[] = [];
-        goalAlerts.forEach((alert) => {
-          const rect = alert.getBoundingClientRect();
-          positions.push({
-            top: rect.top + (rect.height / 2) - 20,
-            left: rect.left - 60
-          });
-        });
-        setGoalArrowPositions(positions);
-      }
-    };
-
-    updatePositions();
-    window.addEventListener('resize', updatePositions);
-    window.addEventListener('scroll', updatePositions, true);
-
-    return () => {
-      window.removeEventListener('resize', updatePositions);
-      window.removeEventListener('scroll', updatePositions, true);
-    };
-  }, [step]);
-
   const renderTutorialContent = () => {
     console.log('Rendering tutorial content for step:', step);
     
@@ -313,54 +102,46 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
 
     if (step === 'splash') {
-      console.log('Rendering splash screen, hasPlayedSplash:', hasPlayedSplash);
+      console.log('Rendering splash screen, animation states:', {
+        hasPlayedLine1,
+        hasPlayedLine2,
+        hasPlayedLine3
+      });
+      
       return (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
           <div className="max-w-xl space-y-8 p-8">
             <div className="space-y-6">
-              {hasPlayedSplash ? (
-                <>
-                  <div className="text-4xl font-cormorant">Hi, {profile?.display_name}. It's nice to meet you.</div>
-                  <div className="text-lg">
-                    I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable.
-                  </div>
-                  <div className="text-lg">Ready to get started?</div>
-                </>
-              ) : (
-                <div className="space-y-6">
-                  <TypewriterText
-                    text={`Hi, ${profile?.display_name || 'there'}. It's nice to meet you.`}
-                    delay={250}
-                    typingSpeed={25}
-                    className="text-4xl font-cormorant"
-                    onComplete={() => {
-                      setHasPlayedLine1(true);
-                    }}
-                  />
-                  {hasPlayedLine1 && (
-                    <TypewriterText
-                      text="I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable."
-                      delay={250}
-                      typingSpeed={25}
-                      className="text-lg"
-                      onComplete={() => {
-                        setHasPlayedLine2(true);
-                      }}
-                    />
-                  )}
-                  {hasPlayedLine2 && (
-                    <TypewriterText
-                      text="Ready to get started?"
-                      delay={250}
-                      typingSpeed={25}
-                      className="text-lg"
-                      onComplete={() => setHasPlayedSplash(true)}
-                    />
-                  )}
-                </div>
+              <TypewriterText
+                text={`Hi, ${profile?.display_name || 'there'}. It's nice to meet you.`}
+                delay={250}
+                typingSpeed={25}
+                className="text-4xl font-cormorant block"
+                onComplete={() => setHasPlayedLine1(true)}
+              />
+              
+              {hasPlayedLine1 && (
+                <TypewriterText
+                  text="I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable."
+                  delay={250}
+                  typingSpeed={25}
+                  className="text-lg block"
+                  onComplete={() => setHasPlayedLine2(true)}
+                />
+              )}
+              
+              {hasPlayedLine2 && (
+                <TypewriterText
+                  text="Ready to get started?"
+                  delay={250}
+                  typingSpeed={25}
+                  className="text-lg block"
+                  onComplete={() => setHasPlayedLine3(true)}
+                />
               )}
             </div>
-            {hasPlayedSplash && (
+            
+            {hasPlayedLine3 && (
               <Button 
                 onClick={() => {
                   console.log('Moving to initial step');
@@ -379,7 +160,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                   }
                 }}
                 size="lg"
-                className="w-full"
+                className="w-full animate-fade-in"
               >
                 Let's go!
               </Button>
