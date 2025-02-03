@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+import nlp from 'https://esm.sh/compromise@14.10.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,116 +9,102 @@ const corsHeaders = {
 };
 
 export enum ChatFunction {
-  GetContactsByNames = 'getContactsByNames',
   UpsertContacts = 'upsertContacts',
 }
 
 const tools = [{
   "type": "function",
   "function": {
-      "name": "getContactsByNames",
-      "description": "Fetches a list of contacts by their names for a specific user from a Supabase database. Only call this once per turn",
+      "name": "upsertContacts",
+      "description": "Store contact information for one or more people in the database",
       "strict": true,
       "parameters": {
           "type": "object",
           "required": [
               "userId",
-              "names"
+              "contacts"
           ],
           "properties": {
               "userId": {
                   "type": "string",
-                  "description": "Unique identifier for the user whose contacts are being fetched."
+                  "description": "Unique identifier for the user whose contacts are being stored."
               },
-              "names": {
+              "contacts": {
                   "type": "array",
-                  "description": "Array of contact names to be fetched.",
+                  "description": "Array of contact information to be stored.",
                   "items": {
-                      "type": "string",
-                      "description": "Full name of a contact."
+                      "type": "object",
+                      "required": ["name"],
+                      "properties": {
+                          "name": {
+                              "type": "string",
+                              "description": "Full name of the contact."
+                          },
+                          "email": {
+                              "type": "string",
+                              "description": "Email address of the contact."
+                          },
+                          "phone": {
+                              "type": "string",
+                              "description": "Phone number of the contact."
+                          },
+                          "instagram": {
+                              "type": "string",
+                              "description": "Instagram handle of the contact."
+                          },
+                          "linkedin": {
+                              "type": "string",
+                              "description": "LinkedIn profile URL or username of the contact."
+                          },
+                          "twitter": {
+                              "type": "string",
+                              "description": "Twitter handle of the contact."
+                          },
+                          "meeting_story": {
+                              "type": "string",
+                              "description": "Story of how you met this contact."
+                          },
+                          "relationship": {
+                              "type": "string",
+                              "description": "Nature of your relationship with this contact."
+                          }
+                      }
                   }
               }
           },
           "additionalProperties": false
       }
   }
-}
-// {
-//   "type": "function",
-//   "function": {
-//       "name": "upsertContacts",
-//       "description": "Inserts or updates contacts in the database.",
-//       "strict": true,
-//       "parameters": {
-//           "type": "object",
-//           "required": [
-//               "userId",
-//               "contacts"
-//           ],
-//           "properties": {
-//               "userId": {
-//                   "type": "string",
-//                   "description": "Unique identifier for the user whose contacts are being upserted."
-//               },
-//               "contacts": {
-//                   "type": "array",
-//                   "description": "An array of contact objects to insert or update",
-//                   "items": {
-//                       "type": "object",
-//                       "properties": {
-//                           "name": {
-//                               "type": "string",
-//                               "description": "The full name of the contact"
-//                           },
-//                           "email": {
-//                               "type": "string",
-//                               "description": "The email address of the contact"
-//                           },
-//                           "phone": {
-//                               "type": "string",
-//                               "description": "The phone number of the contact"
-//                           },
-//                           "instagram": {
-//                               "type": "string",
-//                               "description": "The Instagram handle of the contact"
-//                           },
-//                           "linkedin": {
-//                               "type": "string",
-//                               "description": "The LinkedIn profile of the contact"
-//                           },
-//                           "twitter": {
-//                               "type": "string",
-//                               "description": "The Twitter handle of the contact"
-//                           },
-//                           "meeting_story": {
-//                               "type": "string",
-//                               "description": "Notes or story related to meetings with the contact"
-//                           },
-//                           "relationship": {
-//                               "type": "string",
-//                               "description": "Description of the relationship with the contact"
-//                           }
-//                       },
-//                       "required": [
-//                           "name",
-//                           "email",
-//                           "phone",
-//                           "instagram",
-//                           "linkedin",
-//                           "twitter",
-//                           "meeting_story",
-//                           "relationship"
-//                       ],
-//                       "additionalProperties": false
-//                   }
-//               }
-//           },
-//           "additionalProperties": false
-//       }
-//   }
-// },
-];
+}];
 
+async function callLLM(apikey: string, messages: any[], tools: any[]) {
+  console.log('Sending request to OpenAI:', { 
+    messageCount: messages.length,
+    lastMessage: messages[messages.length - 1]
+  });
+  console.log(messages[0])
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apikey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500,
+      tools: tools
+    }),
+  });
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error('OpenAI API error:', errorData);
+    throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+  }
+  return response;
+}
 
 function constructSystemPrompt(profile: any, events: any, contacts: any) {
   return `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
@@ -129,8 +116,8 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
 
   When discussing a friend or contact, ALWAYS follow these steps in order:
   1. FIRST, check if the person is in the closest friends list above. If they are, use that data and include it at the end of your response. DO NOT call any functions in this case.
-  2. ONLY if the person is NOT found in the closest friends list, then use getContactsByNames to check if they exist in the database.
-  3. If getContactsByNames returns no results, then try to collect their full name and at least one contact method (phone, email, instagram, etc).
+  2. ONLY if the person is NOT found in the closest friends list, then use extractContacts to check if they exist in the database.
+  3. If extractContacts returns no results, then try to collect their full name and at least one contact method (phone, email, instagram, etc).
     Once you have collected their contact information, format it as follows:
     {
       contacts: [
@@ -151,66 +138,90 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
   Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
 }
 
-async function callLLM(apikey: string, messages: any[], tools: any[]) {
-  console.log('Sending request to OpenAI:', { 
-    messageCount: messages.length,
-    lastMessage: messages[messages.length - 1]
-  });
-  console.log(messages[0])
+function extractNamesWithCompromise(text: string): string[] {
+  try {
+    const doc = nlp(text);
+    const people = doc.people().out('array');
+    
+    // Clean up names - remove titles and normalize
+    const possibleNames = people.map(name => {
+      return name
+        .replace(/^(mr|mrs|ms|dr|prof)\.?\s+/i, '') // Remove titles
+        .replace(/\s+/g, ' ')                        // Normalize whitespace
+        .trim();
+    }).filter(Boolean); // Remove empty strings
+    
+    console.log('Compromise found possible names:', possibleNames);
+    return possibleNames;
+  } catch (error) {
+    console.error('Error in compromise processing:', error);
+    return [];
+  }
+}
 
+async function verifyNamesWithOpenAI(text: string, possibleNames: string[]): Promise<string[]> {
+  if (possibleNames.length === 0) {
+    return [];
+  }
+
+  console.log('Verifying names with OpenAI:', possibleNames);
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apikey}`,
+      'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       model: 'gpt-4o-mini',
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 500,
-      tools: tools
+      messages: [
+        {
+          role: 'system',
+          content: `You are a name verification tool. The following names were detected in the text: ${possibleNames.join(', ')}. 
+                   Verify which of these are actually person names in the context. Return a JSON object with a "names" array containing only the verified names.
+                   Only include actual names, not pronouns or generic terms. Example response format: {"names": ["John Smith", "Mary Johnson"]}`
+        },
+        {
+          role: 'user',
+          content: text
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.1
     }),
   });
+
   if (!response.ok) {
-    const errorData = await response.json();
-    console.error('OpenAI API error:', errorData);
-    throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+    console.error('Error calling OpenAI:', await response.text());
+    return possibleNames; // Fall back to compromise results if OpenAI fails
   }
-  return response;
+  
+  try {
+    const data = await response.json();
+    const result = JSON.parse(data.choices[0].message.content);
+    console.log('OpenAI verified names:', result.names);
+    return result.names || [];
+  } catch (error) {
+    console.error('Error parsing OpenAI response:', error);
+    return possibleNames; // Fall back to compromise results if parsing fails
+  }
 }
 
-async function getContactsByNames(userId: string, names: string[]) {
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  if (!names.length) return { data: null, error: null };
-
-  const { data, error } = await supabaseClient
-    .from('contacts')
-    .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship')
-    .eq('user_id', userId)
-    .in('name', names);
-
-  if (error) {
-    console.error('Error fetching contacts:', error);
-    throw new Error(`Error fetching contacts: ${error.message}`);
+async function extractNamesFromText(text: string): Promise<string[]> {
+  // First, try to find names using compromise
+  const possibleNames = extractNamesWithCompromise(text);
+  
+  // If compromise found any potential names, verify them with OpenAI
+  if (possibleNames.length > 0) {
+    return await verifyNamesWithOpenAI(text, possibleNames);
   }
-
-  if (!data) {
-    return "No information found for the friends "+names.join(" ")
-  }
-
-  return data;
+  
+  return [];
 }
-
 
 async function upsertContacts(userId: string, contacts: { name: string; email?: string; phone?: string; instagram?: string; linkedin?: string; twitter?: string; meeting_story?: string; relationship?: string }[]) {
   const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    Deno.env.get('BACKEND_URL') ?? '',
+    Deno.env.get('SERVICE_ROLE_KEY') ?? ''
   );
 
   const { data, error } = await supabaseClient
@@ -230,8 +241,8 @@ async function upsertContacts(userId: string, contacts: { name: string; email?: 
 
 async function createContact(userId: string, contact: { name: string; email?: string; phone?: string; instagram?: string; linkedin?: string; twitter?: string; meetingStory?: string; relationship?: string }) {
   const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    Deno.env.get('BACKEND_URL') ?? '',
+    Deno.env.get('SERVICE_ROLE_KEY') ?? ''
   );
 
   const { data, error } = await supabaseClient
@@ -256,7 +267,6 @@ async function createContact(userId: string, contact: { name: string; email?: st
   return data;
 }
 
-
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -266,13 +276,12 @@ serve(async (req) => {
   try {
     const { message, userId, contactInfo } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get('BACKEND_URL');
+    const supabaseServiceKey = Deno.env.get('SERVICE_ROLE_KEY');
 
     if (!openAIApiKey || !supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing environment variables');
     }
-    console.log(contactInfo)
 
     console.log('Processing chat request:', { userId, messageLength: message.length });
 
@@ -285,17 +294,6 @@ serve(async (req) => {
       if (contactError) {
         console.error('Error storing contact:', contactError);
       }
-    }
-
-    const { error: userMessageError } = await supabase
-      .from('chat_history')
-      .insert([
-        { user_id: userId, message, is_ai: false }
-      ]);
-
-    if (userMessageError) {
-      console.error('Error storing user message:', userMessageError);
-      throw userMessageError;
     }
 
     const { data: profile } = await supabase
@@ -337,39 +335,37 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    // TODO (ari) retrieve close contacts + contacts we think should be closer
-    const { data: closestContacts } = await supabase
-      .from('contacts')
-      .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship, closeness')
-      .eq('user_id', userId)
-      .order('closeness', { ascending: true })
-      .limit(15);
-
-    let contacts = closestContacts
-    if (message.contacts) {
-      const newContacts = message.contacts.filter(contact => !closestContacts?.some(c => c.id === contact.id));
-      contacts = [...closestContacts, ...newContacts];
+    // Extract names from the message and get their contact info
+    const names = await extractNamesFromText(message);
+    let mentionedContacts = [];
+    if (names.length > 0) {
+      const { data: contacts } = await supabase
+        .from('contacts')
+        .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship')
+        .eq('user_id', userId)
+        .in('name', names);
+      
+      if (contacts) {
+        mentionedContacts = contacts;
+      }
     }
-    
-    const chatMessages = chatHistory?.map(msg => ({
-      content: msg.message,
-      role: msg.is_ai ? 'assistant' : 'user'
-    }));
 
-    const formattedEvents = events?.map(event => ({
-      ...event,
-      start_time: new Date(event.start_time).toLocaleString(),
-      end_time: new Date(event.end_time).toLocaleString()
-    }));
+    const messages = chatHistory?.map(msg => ({
+      role: msg.is_ai ? 'assistant' : 'user',
+      content: msg.message
+    })) || [];
 
-    const systemPrompt = constructSystemPrompt(profileData, events, contacts)
+    messages.push({
+      role: 'user',
+      content: message
+    });
 
-    const messages = [
-      { role: 'system', content: systemPrompt },
-      ...(chatMessages || []),
-      { role: 'user', content: message }
-    ];
-    
+    const systemPrompt = constructSystemPrompt(profileData, events, mentionedContacts);
+    messages.unshift({
+      role: 'system',
+      content: systemPrompt
+    });
+
     let response = await callLLM(openAIApiKey, messages, tools);
 
     let responseData = await response.json();
@@ -385,13 +381,8 @@ serve(async (req) => {
         let toolInput = JSON.parse(toolCall.arguments);
         console.log(toolInput)
         let data;
-        if (toolName == ChatFunction.GetContactsByNames) {
-          data = await getContactsByNames(userId, toolInput.names);
-          //relevantContacts.push(...data)      
-        }
         if (toolName == ChatFunction.UpsertContacts) {
           data = await upsertContacts(userId, toolInput.contacts);
-          //relevantContacts.push(...data) 
         }
 
         if (!data) {
@@ -414,20 +405,9 @@ serve(async (req) => {
 
     console.log(aiResponse)
 
-    const { error: aiMessageError } = await supabase
-      .from('chat_history')
-      .insert([
-        { user_id: userId, message: aiResponse, is_ai: true }
-      ]);
-
-    if (aiMessageError) {
-      console.error('Error storing AI message:', aiMessageError);
-      throw aiMessageError;
-    }
-
     return new Response(JSON.stringify({ 
       response: aiResponse,
-      contacts: []
+      contacts: mentionedContacts
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
