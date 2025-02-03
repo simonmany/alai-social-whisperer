@@ -65,7 +65,7 @@ const Index = () => {
           .from('profiles')
           .update({ 
             onboarding_completed: true,
-            onboarding_step: 'initial',
+            onboarding_step: 'splash',
             has_completed_tutorial: false
           })
           .eq('id', session.user.id);
@@ -73,19 +73,19 @@ const Index = () => {
         setShowOnboarding(false);
         setTutorialComplete(false);
         setHideButtons(false);
-        setShowProfileButton(true);
+        setShowProfileButton(false); // Hide profile button during splash
       } else {
         // Just restart the tutorial
         await supabase
           .from('profiles')
           .update({ 
-            onboarding_step: 'initial',
+            onboarding_step: 'splash',
             has_completed_tutorial: false
           })
           .eq('id', session.user.id);
 
         setTutorialComplete(false);
-        setShowProfileButton(true);
+        setShowProfileButton(false); // Hide profile button during splash
       }
       
       toast({
@@ -96,37 +96,6 @@ const Index = () => {
       console.error('Error starting tutorial:', error);
       toast({
         title: "Error starting tutorial",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSkipOnboarding = async () => {
-    if (!session?.user.id) return;
-
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: true,
-          has_completed_tutorial: true,
-          onboarding_step: 'complete'
-        })
-        .eq('id', session.user.id);
-
-      setShowOnboarding(false);
-      setTutorialComplete(true);
-      setHideButtons(false);
-      
-      toast({
-        title: "Onboarding skipped",
-        description: "You can restart onboarding using the button in the bottom left",
-      });
-    } catch (error: any) {
-      console.error('Error skipping onboarding:', error);
-      toast({
-        title: "Error skipping onboarding",
         description: error.message || "Please try again",
         variant: "destructive",
       });
