@@ -104,7 +104,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
           console.log('Updated onboarding step to contactsopen');
           setStep('contactsopen');
-          // Invalidate the profile query to ensure it refetches
           queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
         } catch (error) {
           console.error('Error in updateTutorialStep:', error);
@@ -327,7 +326,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 </>
               ) : (
                 <TypewriterText
-                  text={`Hi, ${profile?.display_name}. It's nice to meet you.\n\nI'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable.\n\nReady to get started?`}
+                  text={`Hi, ${profile?.display_name || 'there'}. It's nice to meet you.\n\nI'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable.\n\nReady to get started?`}
                   delay={250}
                   typingSpeed={25}
                   onComplete={() => setHasPlayedSplash(true)}
