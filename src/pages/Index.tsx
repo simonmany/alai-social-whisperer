@@ -65,7 +65,7 @@ const Index = () => {
           .from('profiles')
           .update({ 
             onboarding_completed: true,
-            onboarding_step: 'initial',
+            onboarding_step: 'splash',
             has_completed_tutorial: false
           })
           .eq('id', session.user.id);
@@ -73,20 +73,22 @@ const Index = () => {
         setShowOnboarding(false);
         setTutorialComplete(false);
         setHideButtons(false);
-        setShowProfileButton(true);
+        setShowProfileButton(false); // Hide profile button during splash
       } else {
         // Just restart the tutorial
         await supabase
           .from('profiles')
           .update({ 
-            onboarding_step: 'initial',
+            onboarding_step: 'splash',
             has_completed_tutorial: false
           })
           .eq('id', session.user.id);
 
         setTutorialComplete(false);
-        setShowProfileButton(true);
+        setShowProfileButton(false); // Hide profile button during splash
       }
+      
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
       toast({
         title: "Tutorial started",

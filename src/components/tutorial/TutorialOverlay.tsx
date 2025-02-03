@@ -53,6 +53,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     enabled: !!session?.user?.id
   });
 
+  // Sync step with profile data, but don't override splash screen
+  useEffect(() => {
+    if (profile?.onboarding_step && step !== 'splash') {
+      console.log('Syncing tutorial step with profile:', profile.onboarding_step);
+      setStep(profile.onboarding_step as any);
+    }
+  }, [profile?.onboarding_step, step]);
+
   // Handle tutorial completion
   const handleTutorialComplete = async () => {
     if (!session?.user?.id) return;
