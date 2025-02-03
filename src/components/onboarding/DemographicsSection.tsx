@@ -53,8 +53,11 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
   }, [step, toast]);
 
   const handleAgeSubmit = async () => {
-    const ageNum = parseInt(age);
-    if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+    // Convert age to number and check if it's a valid integer
+    const ageNum = parseInt(age.trim());
+    console.log('Validating age:', { input: age, parsed: ageNum });
+    
+    if (isNaN(ageNum) || !Number.isInteger(ageNum) || ageNum < 13 || ageNum > 120) {
       toast({
         title: "Invalid age",
         description: "Please enter a valid age between 13 and 120",
