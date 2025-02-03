@@ -417,4 +417,113 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialMessage 
-            className="right-[450px] top-32 max
+            className="right-[450px] top-32 max-w-[300px]"
+          >
+            Let's start by setting some goals. What would you like to achieve?
+          </TutorialMessage>
+          {goalArrowPositions.map((pos, index) => (
+            <TutorialArrow
+              key={index}
+              direction="left"
+              style={{
+                position: 'fixed',
+                top: `${pos.top}px`,
+                left: `${pos.left}px`,
+              }}
+            />
+          ))}
+        </>
+      );
+    }
+
+    if (step === 'goals' && !isProfileOpen) {
+      return (
+        <>
+          <TutorialArrow 
+            direction="left"
+            style={{
+              position: 'fixed',
+              top: `${closeButtonPosition.top}px`,
+              left: `${closeButtonPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            className="right-[450px] top-32 max-w-[300px]"
+          >
+            Great! Now let's close this and move on.
+          </TutorialMessage>
+        </>
+      );
+    }
+
+    if (step === 'contactsintro') {
+      return (
+        <>
+          <TutorialArrow 
+            direction="up"
+            style={{
+              position: 'fixed',
+              top: `${contactsButtonPosition.top}px`,
+              left: `${contactsButtonPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${messagePosition.top}px`,
+              left: `${messagePosition.left}px`,
+            }}
+          >
+            Let's add some contacts to help you achieve your goals. Click here to open your contacts.
+          </TutorialMessage>
+        </>
+      );
+    }
+
+    if (step === 'contactsopen') {
+      return (
+        <TutorialMessage className="right-[450px] top-32 max-w-[300px]">
+          <div className="space-y-4">
+            <p>
+              This is where you'll keep track of all your relationships.
+            </p>
+            <div className="flex justify-end">
+              <Button onClick={handleContactsResponse}>Got it!</Button>
+            </div>
+          </div>
+        </TutorialMessage>
+      );
+    }
+
+    if (step === 'calendarintro') {
+      return (
+        <>
+          <TutorialArrow 
+            direction="up"
+            style={{
+              position: 'fixed',
+              top: `${calendarButtonPosition.top}px`,
+              left: `${calendarButtonPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${messagePosition.top}px`,
+              left: `${messagePosition.left}px`,
+            }}
+          >
+            Finally, let's connect your calendar so I can help you plan and track your social life.
+          </TutorialMessage>
+        </>
+      );
+    }
+
+    return null;
+  };
+
+  return createPortal(
+    renderTutorialContent(),
+    document.body
+  );
+};
