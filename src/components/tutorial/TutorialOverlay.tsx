@@ -63,7 +63,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   // Handle tutorial completion
   const handleTutorialComplete = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user.id) return;
     
     try {
       const { error } = await supabase
@@ -88,14 +88,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       console.error('Error in handleTutorialComplete:', error);
     }
   };
-
-  // Sync step with profile data
-  useEffect(() => {
-    if (profile?.onboarding_step) {
-      console.log('Syncing tutorial step with profile:', profile.onboarding_step);
-      setStep(profile.onboarding_step as any);
-    }
-  }, [profile?.onboarding_step]);
 
   useEffect(() => {
     console.log('Tutorial step changed to:', step);
@@ -209,29 +201,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [isProfileOpen, step, session?.user?.id, queryClient]);
 
-  // Handle transition from contactsintro to calendarintro
-  const handleContactsResponse = async () => {
-    if (!session?.user?.id) return;
-    
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ onboarding_step: 'calendarintro' })
-        .eq('id', session.user.id);
-
-      if (error) {
-        console.error('Error updating onboarding step:', error);
-        return;
-      }
-
-      console.log('Updated onboarding step to calendarintro');
-      setStep('calendarintro');
-      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-    } catch (error) {
-      console.error('Error in handleContactsResponse:', error);
-    }
-  };
-
   useEffect(() => {
     const updatePositions = () => {
       const profileButton = document.querySelector('button[aria-label="Open profile"]');
@@ -293,7 +262,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           const rect = alert.getBoundingClientRect();
           positions.push({
             top: rect.top + (rect.height / 2) - 20,
-            left: rect.left - 60 // Changed from rect.left - 48 to move arrows more to the left
+            left: rect.left - 60
           });
         });
         setGoalArrowPositions(positions);
@@ -311,6 +280,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   }, [step]);
 
   const renderTutorialContent = () => {
+    console.log('Rendering tutorial content for step:', step);
+    
     if (showCompletionMessage) {
       return (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
@@ -326,6 +297,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
 
     if (step === 'splash') {
+      console.log('Rendering splash screen, hasPlayedSplash:', hasPlayedSplash);
       return (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
           <div className="max-w-xl space-y-8 p-8">
@@ -349,7 +321,22 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             </div>
             {hasPlayedSplash && (
               <Button 
-                onClick={() => setStep('initial')}
+                onClick={() => {
+                  console.log('Moving to initial step');
+                  if (session?.user?.id) {
+                    supabase
+                      .from('profiles')
+                      .update({ onboarding_step: 'initial' })
+                      .eq('id', session.user.id)
+                      .then(({ error }) => {
+                        if (error) console.error('Error updating onboarding step:', error);
+                        else {
+                          setStep('initial');
+                          queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+                        }
+                      });
+                  }
+                }}
                 size="lg"
                 className="w-full"
               >
