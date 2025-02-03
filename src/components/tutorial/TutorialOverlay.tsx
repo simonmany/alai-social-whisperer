@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { TutorialArrow } from "./TutorialArrow";
 import { TutorialMessage } from "./TutorialMessage";
@@ -22,7 +22,7 @@ interface Position {
 }
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'initial' | 'profile' | 'goals' | 'contactsintro' | 'contactsopen' | 'calendarintro' | 'complete'>('initial');
+  const [step, setStep] = useState<'splash' | 'initial' | 'profile' | 'goals' | 'contactsintro' | 'contactsopen' | 'calendarintro' | 'complete'>('splash');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
@@ -31,6 +31,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [calendarButtonPosition, setCalendarButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [hasGoals, setHasGoals] = useState(false);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
+  const [hasPlayedSplash, setHasPlayedSplash] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
@@ -42,7 +43,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (!session?.user?.id) return null;
       const { data, error } = await supabase
         .from('profiles')
-        .select('onboarding_step, has_completed_tutorial, goals')
+        .select('onboarding_step, has_completed_tutorial, goals, display_name')
         .eq('id', session.user.id)
         .single();
       
@@ -311,6 +312,42 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               delay={0}
               onComplete={() => {}}
             />
+          </div>
+        </div>
+      );
+    }
+
+    if (step === 'splash') {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
+          <div className="max-w-xl space-y-8 p-8">
+            <div className="space-y-6">
+              {hasPlayedSplash ? (
+                <>
+                  <div className="text-2xl">Hi, {profile?.display_name}. It's nice to meet you.</div>
+                  <div className="text-lg">
+                    I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable.
+                  </div>
+                  <div className="text-lg">Ready to get started?</div>
+                </>
+              ) : (
+                <TypewriterText
+                  text={`Hi, ${profile?.display_name}. It's nice to meet you.\n\nI'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable.\n\nReady to get started?`}
+                  delay={250}
+                  typingSpeed={25}
+                  onComplete={() => setHasPlayedSplash(true)}
+                />
+              )}
+            </div>
+            {hasPlayedSplash && (
+              <Button 
+                onClick={() => setStep('initial')}
+                size="lg"
+                className="w-full"
+              >
+                Let's go!
+              </Button>
+            )}
           </div>
         </div>
       );
