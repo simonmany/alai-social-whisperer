@@ -193,7 +193,8 @@ const Index = () => {
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
         
-        if (data.onboarding_step !== 'initial') {
+        // Only show profile button if we're past the splash screen
+        if (data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial') {
           setShowProfileButton(true);
         }
       } catch (error) {
@@ -402,6 +403,37 @@ const Index = () => {
     };
   };
 
+  const handleOnboardingComplete = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(false);
+      setHideButtons(false);
+      setShowProfileButton(false); // Hide profile button until splash screen is done
+      
+      toast({
+        title: "Onboarding completed",
+        description: "Let's get started with the tutorial!",
+      });
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -418,11 +450,7 @@ const Index = () => {
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
           <OnboardingFlow 
-            onComplete={() => {
-              setShowOnboarding(false);
-              setHideButtons(false);
-              setShowProfileButton(true);
-            }} 
+            onComplete={handleOnboardingComplete}
           />
         ) : (
           <>
