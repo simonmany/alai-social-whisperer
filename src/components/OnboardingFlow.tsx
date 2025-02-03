@@ -390,8 +390,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   <TypewriterText
                     key="line1"
                     text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
-                    delay={125}
-                    typingSpeed={12}
+                    delay={250}
+                    typingSpeed={25}
                     onComplete={() => setHasPlayedLine1(true)}
                   />
                 )}
@@ -403,8 +403,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <TypewriterText
                       key="line2"
                       text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
-                      delay={125}
-                      typingSpeed={12}
+                      delay={250}
+                      typingSpeed={25}
                       onComplete={() => setHasPlayedLine2(true)}
                     />
                   )
@@ -417,8 +417,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <TypewriterText
                       key="line3"
                       text="This'll help me recommend things you love."
-                      delay={125}
-                      typingSpeed={12}
+                      delay={250}
+                      typingSpeed={25}
                       onComplete={() => {
                         setHasPlayedLine3(true);
                         setShowActivities(true);
@@ -498,8 +498,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         text={typeof aiPreferencesResponse === 'string' 
                           ? aiPreferencesResponse 
                           : aiPreferencesResponse.response}
-                        delay={50}
-                        typingSpeed={8}
+                        delay={250}
+                        typingSpeed={25}
                         onComplete={() => setHasPlayedTypewriter(true)}
                       />
                     )}
@@ -513,8 +513,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <TypewriterText
                         key="followup"
                         text={followUpText}
-                        delay={125}
-                        typingSpeed={12}
+                        delay={250}
+                        typingSpeed={25}
                         onComplete={handleFollowUpComplete}
                       />
                     )}
@@ -534,8 +534,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <TypewriterText
                         key="followup"
                         text={followUpText}
-                        delay={125}
-                        typingSpeed={12}
+                        delay={250}
+                        typingSpeed={25}
                         onComplete={handleFollowUpComplete}
                       />
                     )}
