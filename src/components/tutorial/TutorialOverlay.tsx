@@ -32,6 +32,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
+  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
   const location = useLocation();
@@ -78,6 +79,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     } catch (error) {
       console.error('Error in handleTutorialComplete:', error);
     }
+  };
+
+  const handleContactsResponse = () => {
+    setStep('calendarintro');
   };
 
   useEffect(() => {
