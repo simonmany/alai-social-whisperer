@@ -25,11 +25,10 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   ];
 
   useEffect(() => {
-    // If we're on the last screen, show the input after a short delay
     if (currentScreen === screens.length - 1) {
       const timer = setTimeout(() => {
         setShowInput(true);
-      }, 1000);
+      }, 500); // Reduced from 1000 to match the faster pace
       return () => clearTimeout(timer);
     }
   }, [currentScreen, screens.length]);
@@ -41,7 +40,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
       if (screenIndex < screens.length - 1) {
         setTimeout(() => {
           setCurrentScreen(screenIndex + 1);
-        }, 250);
+        }, 125); // Reduced from 250 to match the new TypewriterText delay
       }
     }
   };
@@ -84,8 +83,8 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
               <TypewriterText
                 text={text}
                 onComplete={() => handleScreenComplete(index)}
-                delay={250}
-                typingSpeed={25}
+                delay={125}
+                typingSpeed={12}
                 className="text-left"
               />
             )}
