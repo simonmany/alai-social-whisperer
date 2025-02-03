@@ -13,8 +13,8 @@ export const TypewriterText = ({
   text, 
   onComplete, 
   className,
-  delay = 250,
-  typingSpeed = 25
+  delay = 125, // Reduced from 250
+  typingSpeed = 12 // Reduced from 25
 }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
