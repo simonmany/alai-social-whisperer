@@ -79,19 +79,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
   const [isAnalyzingInterests, setIsAnalyzingInterests] = useState(false);
-  const [hasPlayedSkipMessage, setHasPlayedSkipMessage] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
   const [showFood, setShowFood] = useState(false);
   const [showMusic, setShowMusic] = useState(false);
   const [showFutureActivities, setShowFutureActivities] = useState(false);
   const [showFutureFood, setShowFutureFood] = useState(false);
   const [showFutureMusic, setShowFutureMusic] = useState(false);
-  const handleSkipMessageComplete = useCallback(() => {
-    if (!hasPlayedSkipMessage) {
-      setHasPlayedSkipMessage(true);
-    }
-  }, [hasPlayedSkipMessage]);
-
+  
   const handleBack = () => {
     switch (step) {
       case 'goals':
@@ -291,11 +285,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         console.log('Setting AI response:', data.response);
         setAiPreferencesResponse(data.response);
         
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error getting AI response:', error);
         toast({
           title: "Error getting AI response",
-          description: "Please try again",
+          description: error.message || "Please try again",
           variant: "destructive",
         });
       } finally {
@@ -304,48 +298,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         setStep('future-interests');
       }
     }
-  };
-
-  const handleLine1Complete = useCallback(() => {
-    if (!hasPlayedLine1) {
-      setHasPlayedLine1(true);
-    }
-  }, [hasPlayedLine1]);
-
-  const handleLine2Complete = useCallback(() => {
-    if (!hasPlayedLine2) {
-      setHasPlayedLine2(true);
-    }
-  }, [hasPlayedLine2]);
-
-  const handleLine3Complete = useCallback(() => {
-    if (!hasPlayedLine3) {
-      setHasPlayedLine3(true);
-      // Start the sequence of showing fields
-      setTimeout(() => setShowActivities(true), 200);
-      setTimeout(() => setShowFood(true), 700);
-      setTimeout(() => setShowMusic(true), 1200);
-    }
-  }, [hasPlayedLine3]);
-
-  const handleTypewriterComplete = useCallback(() => {
-    if (!hasPlayedTypewriter) {
-      setHasPlayedTypewriter(true);
-    }
-  }, [hasPlayedTypewriter]);
-
-  const handleFollowUpComplete = useCallback(() => {
-    if (!hasPlayedFollowUp) {
-      setHasPlayedFollowUp(true);
-      // Start the sequence of showing future interest fields
-      setTimeout(() => setShowFutureActivities(true), 200);
-      setTimeout(() => setShowFutureFood(true), 700);
-      setTimeout(() => setShowFutureMusic(true), 1200);
-    }
-  }, [hasPlayedFollowUp]);
-
-  const capitalizeFirstLetter = (string: string = '') => {
-    return string.charAt(0).toUpperCase() + string.slice(1);
   };
 
   return (
@@ -377,7 +329,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <BasicInfo 
             session={session} 
             onComplete={(name) => {
-              setState(prev => ({ ...prev, name: capitalizeFirstLetter(name) }));
+              setState(prev => ({ ...prev, name }));
               setStep('goals');
             }}
             initialName={state.name}
@@ -426,13 +378,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             <div>
               <div className="text-lg space-y-6 mb-8">
                 {hasPlayedLine1 ? (
-                  <div>{`I'm looking forward to getting to know you even better over time, ${capitalizeFirstLetter(state.name)}.`}</div>
+                  <div>{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
                 ) : (
                   <TypewriterText
                     key="line1"
-                    text={`I'm looking forward to getting to know you even better over time, ${capitalizeFirstLetter(state.name)}.`}
-                    delay={0}
-                    onComplete={handleLine1Complete}
+                    text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
+                    delay={125}
+                    typingSpeed={12}
                   />
                 )}
 
@@ -443,8 +395,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <TypewriterText
                       key="line2"
                       text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
-                      delay={500}
-                      onComplete={handleLine2Complete}
+                      delay={125}
+                      typingSpeed={12}
                     />
                   )
                 )}
@@ -456,16 +408,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     <TypewriterText
                       key="line3"
                       text="This'll help me recommend things you love."
-                      delay={500}
-                      onComplete={handleLine3Complete}
+                      delay={125}
+                      typingSpeed={12}
                     />
                   )
                 )}
               </div>
-              <div className={cn(
-                "transition-opacity duration-500",
-                showActivities ? "opacity-100" : "opacity-0"
-              )}>
+              <div className="transition-opacity duration-500" style={{ opacity: showActivities ? 1 : 0 }}>
                 <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                 <InterestSelector
                   type="activities"
@@ -475,10 +424,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   initialSelections={state.currentInterests}
                 />
               </div>
-              <div className={cn(
-                "transition-opacity duration-500",
-                showFood ? "opacity-100" : "opacity-0"
-              )}>
+              <div className="transition-opacity duration-500" style={{ opacity: showFood ? 1 : 0 }}>
                 <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                 <InterestSelector
                   type="food"
@@ -488,10 +434,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   initialSelections={state.foodPreferences}
                 />
               </div>
-              <div className={cn(
-                "transition-opacity duration-500",
-                showMusic ? "opacity-100" : "opacity-0"
-              )}>
+              <div className="transition-opacity duration-500" style={{ opacity: showMusic ? 1 : 0 }}>
                 <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                 <InterestSelector
                   type="music"
@@ -536,8 +479,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         text={typeof aiPreferencesResponse === 'string' 
                           ? aiPreferencesResponse 
                           : aiPreferencesResponse.response}
-                        delay={0}
-                        onComplete={handleTypewriterComplete}
+                        delay={50}
+                        typingSpeed={8}
                       />
                     )}
                   </div>
@@ -550,8 +493,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <TypewriterText
                         key="followup"
                         text={followUpText}
-                        delay={500}
-                        onComplete={handleFollowUpComplete}
+                        delay={125}
+                        typingSpeed={12}
                       />
                     )}
                   </div>
@@ -559,16 +502,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               ) : (
                 <div className="space-y-8">
                   <div className="text-lg">
-                    {hasPlayedSkipMessage ? (
-                      <div>No worries - you can always tell me about your interests later.</div>
-                    ) : (
-                      <TypewriterText
-                        key="skip-message"
-                        text="No worries - you can always tell me about your interests later."
-                        delay={0}
-                        onComplete={handleSkipMessageComplete}
-                      />
-                    )}
+                    <div>No worries - you can always tell me about your interests later.</div>
                   </div>
                   <div className="text-lg mb-16">
                     {hasPlayedFollowUp ? (
@@ -587,10 +521,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </div>
               )}
               <div>
-                <div className={cn(
-                  "transition-opacity duration-500",
-                  showFutureActivities ? "opacity-100" : "opacity-0"
-                )}>
+                <div className="transition-opacity duration-500" style={{ opacity: showFutureActivities ? 1 : 0 }}>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
                     type="activities"
@@ -600,10 +531,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.desiredInterests}
                   />
                 </div>
-                <div className={cn(
-                  "transition-opacity duration-500 mt-8",
-                  showFutureFood ? "opacity-100" : "opacity-0"
-                )}>
+                <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureFood ? 1 : 0 }}>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
                     type="food"
@@ -613,10 +541,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.desiredFoodPreferences}
                   />
                 </div>
-                <div className={cn(
-                  "transition-opacity duration-500 mt-8",
-                  showFutureMusic ? "opacity-100" : "opacity-0"
-                )}>
+                <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureMusic ? 1 : 0 }}>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
                     type="music"
