@@ -392,6 +392,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
                     delay={125}
                     typingSpeed={12}
+                    onComplete={() => setHasPlayedLine1(true)}
                   />
                 )}
 
@@ -404,6 +405,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
                       delay={125}
                       typingSpeed={12}
+                      onComplete={() => setHasPlayedLine2(true)}
                     />
                   )
                 )}
@@ -417,10 +419,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       text="This'll help me recommend things you love."
                       delay={125}
                       typingSpeed={12}
+                      onComplete={() => {
+                        setHasPlayedLine3(true);
+                        setShowActivities(true);
+                        setTimeout(() => setShowFood(true), 500);
+                        setTimeout(() => setShowMusic(true), 1000);
+                      }}
                     />
                   )
                 )}
               </div>
+
               <div className="transition-opacity duration-500" style={{ opacity: showActivities ? 1 : 0 }}>
                 <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                 <InterestSelector
@@ -431,7 +440,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   initialSelections={state.currentInterests}
                 />
               </div>
-              <div className="transition-opacity duration-500" style={{ opacity: showFood ? 1 : 0 }}>
+
+              <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFood ? 1 : 0 }}>
                 <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                 <InterestSelector
                   type="food"
@@ -441,7 +451,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   initialSelections={state.foodPreferences}
                 />
               </div>
-              <div className="transition-opacity duration-500" style={{ opacity: showMusic ? 1 : 0 }}>
+
+              <div className="transition-opacity duration-500 mt-8" style={{ opacity: showMusic ? 1 : 0 }}>
                 <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                 <InterestSelector
                   type="music"
@@ -451,10 +462,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   initialSelections={state.musicPreferences}
                 />
               </div>
+
               {canProceedToNextSection('current') && (
                 <Button 
                   onClick={handleProceedToFutureInterests}
-                  className="w-full"
+                  className="w-full mt-8"
                   disabled={isAnalyzingInterests}
                 >
                   {isAnalyzingInterests ? "Analyzing your interests..." : "Next"}
@@ -488,6 +500,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                           : aiPreferencesResponse.response}
                         delay={50}
                         typingSpeed={8}
+                        onComplete={() => setHasPlayedTypewriter(true)}
                       />
                     )}
                   </div>
@@ -521,13 +534,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       <TypewriterText
                         key="followup"
                         text={followUpText}
-                        delay={500}
+                        delay={125}
+                        typingSpeed={12}
                         onComplete={handleFollowUpComplete}
                       />
                     )}
                   </div>
                 </div>
               )}
+
               <div>
                 <div className="transition-opacity duration-500" style={{ opacity: showFutureActivities ? 1 : 0 }}>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
@@ -539,6 +554,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.desiredInterests}
                   />
                 </div>
+
                 <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureFood ? 1 : 0 }}>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
@@ -549,6 +565,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     initialSelections={state.desiredFoodPreferences}
                   />
                 </div>
+
                 <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureMusic ? 1 : 0 }}>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
@@ -560,6 +577,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                 </div>
               </div>
+
               {canProceedToNextSection('future') && (
                 <Button 
                   onClick={() => setStep('demographics')}
@@ -582,5 +600,3 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     </div>
   );
 };
-
-export default OnboardingFlow;
