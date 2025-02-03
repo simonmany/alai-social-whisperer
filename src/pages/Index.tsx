@@ -46,7 +46,6 @@ const Index = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
-  const [hideButtons, setHideButtons] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -71,7 +70,6 @@ const Index = () => {
 
         setShowOnboarding(false);
         setTutorialComplete(false);
-        setHideButtons(false);
         setShowProfileButton(false); // Hide profile button during splash
       } else {
         // Just restart the tutorial
@@ -118,7 +116,7 @@ const Index = () => {
 
       setShowOnboarding(false);
       setTutorialComplete(true);
-      setHideButtons(false);
+      setShowProfileButton(false);
       
       toast({
         title: "Onboarding skipped",
@@ -193,7 +191,6 @@ const Index = () => {
 
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
-        setHideButtons(true); // Hide buttons during splash screen
         
         // Only show profile button if we're past the splash screen
         setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
@@ -219,7 +216,6 @@ const Index = () => {
         if (error) throw error;
 
         setShowOnboarding(!data.onboarding_completed);
-        setHideButtons(!data.onboarding_completed);
       } catch (error) {
         console.error('Error checking onboarding status:', error);
       }
@@ -356,7 +352,6 @@ const Index = () => {
 
       setShowOnboarding(true);
       setTutorialComplete(false);
-      setHideButtons(true);
       setShowProfileButton(false);
       
       toast({
@@ -417,7 +412,6 @@ const Index = () => {
         .eq('id', session.user.id);
 
       setShowOnboarding(false);
-      setHideButtons(false);
       setShowProfileButton(false); // Hide profile button until splash screen is done
       
       toast({
@@ -442,7 +436,6 @@ const Index = () => {
             isConnectingCalendar={isConnectingCalendar}
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
-            hideButtons={hideButtons}
           />
         </div>
       </div>
