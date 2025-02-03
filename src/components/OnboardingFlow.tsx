@@ -300,6 +300,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const handleFollowUpComplete = () => {
+    setHasPlayedFollowUp(true);
+    setShowFutureActivities(true);
+    setTimeout(() => setShowFutureFood(true), 500);
+    setTimeout(() => setShowFutureMusic(true), 1000);
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
@@ -495,6 +502,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         text={followUpText}
                         delay={125}
                         typingSpeed={12}
+                        onComplete={handleFollowUpComplete}
                       />
                     )}
                   </div>
