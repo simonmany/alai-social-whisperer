@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import { MainNavigation } from "@/components/MainNavigation";
 import { ChatContainer } from "@/components/ChatContainer";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { Button } from "@/components/ui/button";
-import { Redo, Play } from "lucide-react";
+import { Redo, Play, SkipForward } from "lucide-react";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
@@ -17,7 +17,6 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
-import { ContactCard } from "@/components/ContactCard";
 
 interface Message {
   content: string;
@@ -96,6 +95,37 @@ const Index = () => {
       console.error('Error starting tutorial:', error);
       toast({
         title: "Error starting tutorial",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSkipOnboarding = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(false);
+      setHideButtons(false);
+      setShowProfileButton(false); // Hide profile button until splash screen is done
+      
+      toast({
+        title: "Onboarding skipped",
+        description: "Let's get started with the tutorial!",
+      });
+    } catch (error: any) {
+      console.error('Error skipping onboarding:', error);
+      toast({
+        title: "Error skipping onboarding",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -451,6 +481,15 @@ const Index = () => {
         >
           <Play className="h-4 w-4" />
           Start Tutorial
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleSkipOnboarding}
+        >
+          <SkipForward className="h-4 w-4" />
+          Skip Onboarding (Dev Only)
         </Button>
         <Button
           variant="outline"
