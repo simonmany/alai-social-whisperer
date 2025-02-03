@@ -185,8 +185,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         fullPrompt: prompt
       });
       
-      const response = await generateChatResponse(prompt);
-      setAiResponse(response);
+      const aiResponse = await generateChatResponse(prompt);
+      setAiResponse(aiResponse.response);
     } catch (error) {
       console.error('Error getting AI response:', error);
       toast({
