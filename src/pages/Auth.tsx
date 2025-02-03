@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [passwordError, setPasswordError] = useState("");
-  const navigate = useNavigate();
+  const { handleGoogleLogin } = useAuth();
   const { toast } = useToast();
 
   const validatePassword = (password: string) => {
@@ -26,65 +26,6 @@ const Auth = () => {
     }
     setPasswordError("");
     return true;
-  };
-  
-  const handleSignInWithGoogle = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    console.log("Google sign-in button clicked");
-    try {
-      setLoading(true);
-      
-      // Clear any existing session first
-      await supabase.auth.signOut();
-
-      // Get the current URL for development vs production
-      const redirectTo = import.meta.env.DEV 
-        ? 'http://localhost:8080/auth/callback'
-        : `${import.meta.env.VITE_PUBLIC_SITE_URL}/auth/callback`;
-
-      // In development, we need to use the Supabase callback URL
-      const supabaseRedirectTo = import.meta.env.DEV
-        ? 'https://ejqucnzpgebbujlnmdzx.supabase.co/auth/v1/callback'
-        : redirectTo;
-      
-      console.log('Starting OAuth flow with:', {
-        redirectTo,
-        supabaseRedirectTo,
-        mode: import.meta.env.MODE,
-        dev: import.meta.env.DEV
-      });
-      
-      // Start new OAuth flow
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          redirectTo: supabaseRedirectTo,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-            redirect_to: redirectTo // This tells Supabase where to redirect after its callback
-          }
-        }
-      });
-      
-      if (error) throw error;
-      
-      if (data?.url) {
-        window.location.href = data.url;
-      }
-
-      console.log("Google auth initiated");
-    } catch (error: any) {
-      console.error("Google auth error:", error);
-      toast({
-        title: "Error signing in with Google",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -116,32 +57,17 @@ const Auth = () => {
 
         if (isUserExists) {
           console.log("User already exists, attempting sign in");
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          const { error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
 
-          if (signInError) {
-            throw signInError;
-          }
-
-          if (signInData.user?.app_metadata?.provider === 'google') {
-            const { user_metadata } = signInData.user;
-            await supabase
-              .from('profiles')
-              .update({
-                avatar_url: user_metadata.avatar_url || null,
-                display_name: user_metadata.full_name || null,
-                updated_at: new Date().toISOString()
-              } as any)
-              .eq('id', signInData.user.id);
-          }
+          if (signInError) throw signInError;
 
           toast({
             title: "Welcome back!",
             description: "You've been signed in with your existing account.",
           });
-          navigate("/");
           return;
         }
         throw error;
@@ -154,7 +80,7 @@ const Auth = () => {
       });
       
       if (data.user && !data.user.confirmed_at) {
-        navigate("/");
+        setShowEmailConfirmation(true);
       }
     } catch (error: any) {
       toast({
@@ -172,7 +98,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -184,20 +110,6 @@ const Auth = () => {
         }
         throw error;
       }
-
-      if (data.user?.app_metadata?.provider === 'google') {
-        const { user_metadata } = data.user;
-        await supabase
-          .from('profiles')
-          .update({
-            avatar_url: user_metadata.avatar_url || null,
-            display_name: user_metadata.full_name || null,
-            updated_at: new Date().toISOString()
-          } as any)
-          .eq('id', data.user.id);
-      }
-      
-      navigate("/");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -220,7 +132,7 @@ const Auth = () => {
           <Button 
             variant="outline" 
             className="w-full flex items-center justify-center gap-2"
-            onClick={handleSignInWithGoogle}
+            onClick={handleGoogleLogin}
             disabled={loading}
           >
             <img 

@@ -46,32 +46,25 @@ export const MainNavigation = ({
 
       if (error) throw error;
       
-      // Check all possible token sources
-      const hasValidTokens = {
-        profile: !!(profile?.google_access_token && profile?.google_refresh_token),
-        session: !!(session?.provider_token && session?.provider_refresh_token),
-        metadata: !!(user.user_metadata?.provider_token && user.user_metadata?.provider_refresh_token)
-      };
+      // Check if we have valid tokens in profile
+      const expiresAt = profile?.google_token_expires_at ? new Date(profile.google_token_expires_at) : null;
+      const hasValidTokens = !!(
+        profile?.google_access_token &&
+        profile?.google_refresh_token &&
+        expiresAt &&
+        expiresAt > new Date()
+      );
 
       console.log('Token status:', {
-        profile: {
-          hasAccessToken: !!profile?.google_access_token,
-          hasRefreshToken: !!profile?.google_refresh_token,
-          tokenExpiresAt: profile?.google_token_expires_at
-        },
-        session: {
-          hasProviderToken: !!session?.provider_token,
-          hasRefreshToken: !!session?.provider_refresh_token
-        },
-        metadata: {
-          hasProviderToken: !!user.user_metadata?.provider_token,
-          hasRefreshToken: !!user.user_metadata?.provider_refresh_token
-        }
+        hasAccessToken: !!profile?.google_access_token,
+        hasRefreshToken: !!profile?.google_refresh_token,
+        tokenExpiresAt: profile?.google_token_expires_at,
+        isExpired: expiresAt ? expiresAt <= new Date() : true
       });
       
       return {
         ...profile,
-        hasValidTokens: hasValidTokens.profile || hasValidTokens.session || hasValidTokens.metadata
+        hasValidTokens
       };
     },
     refetchInterval: 5000 // Refetch every 5 seconds until we see the tokens
@@ -135,7 +128,7 @@ export const MainNavigation = ({
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          scopes: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',

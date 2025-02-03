@@ -5,8 +5,8 @@ project_id = "ejqucnzpgebbujlnmdzx"
 [auth]
 flow_type = "pkce"
 auth.flow_type = "pkce"
-external_google_client_id = "env(GOOGLE_CLIENT_ID)"
-external_google_secret = "env(GOOGLE_CLIENT_SECRET)"
+google_client_id = "env(GOOGLE_CLIENT_ID)"
+google_client_secret = "env(GOOGLE_CLIENT_SECRET)"
 redirect_urls = [
   "http://localhost:8080/auth/callback",
   "https://alai-social-whisperer.com/auth/callback",
@@ -15,7 +15,29 @@ redirect_urls = [
 
 [[functions]]
 name = "calendar"
-verify_jwt = false
+verify_jwt = true
+cors_origins = [
+  "http://localhost:*",
+  "https://alai-social-whisperer.com",
+  "https://preview--alai-social-whisperer.lovable.app"
+]
+cors_headers = [
+  "Authorization",
+  "apikey",
+  "Content-Type",
+  "X-Client-Info",
+  "X-Google-Token",
+  "x-google-token"
+]
+DB_URL = "env(DB_URL)"
+DB_SERVICE_ROLE_KEY = "env(DB_SERVICE_ROLE_KEY)"
+DB_ANON_KEY = "env(DB_ANON_KEY)"
+GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"
+GOOGLE_CLIENT_SECRET = "env(GOOGLE_CLIENT_SECRET)"
+
+[[functions]]
+name = "store_auth"
+verify_jwt = true
 cors_origins = [
   "http://localhost:*",
   "https://alai-social-whisperer.com",
@@ -27,7 +49,6 @@ cors_headers = [
   "Content-Type",
   "X-Client-Info"
 ]
-SUPABASE_URL = "env(SUPABASE_URL)" 
-SUPABASE_SERVICE_ROLE_KEY = "env(SUPABASE_SERVICE_ROLE_KEY)"
-EXTERNAL_GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"
-EXTERNAL_GOOGLE_SECRET = "env(GOOGLE_CLIENT_SECRET)"
+DB_URL = "env(DB_URL)"
+DB_SERVICE_ROLE_KEY = "env(DB_SERVICE_ROLE_KEY)"
+DB_ANON_KEY = "env(DB_ANON_KEY)"

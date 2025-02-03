@@ -1,10 +1,3 @@
-/**
- * src/components/AuthProvider.tsx
- *
- * Make sure to import supabase, and define your context. 
- * 
- * Only shown the relevant parts that changed or need adding:
- */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,157 +32,74 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // This function updates our 'profiles' table with Google tokens when user signs in with Google
-  const updateProfileWithGoogleData = async (signedInUser: any) => {
-    console.log("Checking if update needed for Google data...");
-
-    // If the user provider is google, we store tokens in profiles
-    if (signedInUser?.app_metadata?.provider === 'google') {
-      const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) {
-        console.error("Error getting current session:", sessionError);
-        return;
-      }
-
-      console.log("Google auth metadata:", {
-        provider: signedInUser.app_metadata.provider,
-        hasProviderToken: !!currentSession?.provider_token,
-        hasRefreshToken: !!currentSession?.provider_refresh_token,
-        hasUserToken: !!signedInUser.user_metadata?.provider_token,
-        hasUserRefreshToken: !!signedInUser.user_metadata?.provider_refresh_token,
-        userId: signedInUser.id,
-        metadata: signedInUser.user_metadata
-      });
-
-      // Try to get tokens from session or user metadata
-      const provider_token = currentSession?.provider_token ||
-                           signedInUser.user_metadata?.provider_token;
-      const provider_refresh_token = currentSession?.provider_refresh_token ||
-                                   signedInUser.user_metadata?.provider_refresh_token;
-
-      if (!provider_token || !provider_refresh_token) {
-        console.log("No Google tokens found in session or user metadata");
-        return;
-      }
-
-      try {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            google_access_token: provider_token || null,
-            google_refresh_token: provider_refresh_token || null,
-            // optionally set an expiration time if you like:
-            google_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-          })
-          .eq('id', signedInUser.id);
-
-        if (error) {
-          console.error("Error updating profile with Google data:", error);
-        } else {
-          console.log("Successfully updated profile with Google data!");
-        }
-      } catch (err) {
-        console.error("Exception storing Google refresh token:", err);
-      }
-    }
-  };
-
-  // If there's an error with the session
-  const handleSessionError = (error: any) => {
-    console.error("Session error:", error);
-    setSession(null);
-    setLoading(false);
-    supabase.auth.signOut();
-    navigate("/auth");
-    toast({
-      title: "Session Error",
-      description: "Please sign in again",
-      variant: "destructive",
-    });
-  };
-
   useEffect(() => {
-    // On mount, check the current session
-    const initializeAuth = async () => {
+    // Initialize session
+    const initSession = async () => {
       try {
-        const { data: { session: initialSession }, error } = await supabase.auth.getSession();
-        if (error) {
-          handleSessionError(error);
-          return;
-        }
-        if (initialSession?.user) {
-          await updateProfileWithGoogleData(initialSession.user);
-          setSession(initialSession);
-        }
-      } catch (err) {
-        handleSessionError(err);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        setSession(session);
+      } catch (error) {
+        console.error('Error getting session:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    initializeAuth();
+    initSession();
 
-    // Listen for changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log("Auth state change:", event, currentSession);
-      if (event === 'SIGNED_IN' && currentSession?.user) {
-        await updateProfileWithGoogleData(currentSession.user);
-        setSession(currentSession);
-        toast({ title: "Signed in successfully", description: "Welcome back!" });
-        navigate("/");
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        provider: session?.user?.app_metadata?.provider,
+        hasProviderToken: !!session?.provider_token,
+        hasProviderRefreshToken: !!session?.provider_refresh_token,
+        metadata: session?.user?.app_metadata
+      });
+      
+      setSession(session);
+
+      if (event === 'SIGNED_IN') {
+        // Check if we're in the OAuth callback
+        const isCallback = window.location.pathname.includes('/auth/callback');
+        if (!isCallback) {
+          navigate('/', { replace: true });
+        }
       } else if (event === 'SIGNED_OUT') {
-        setSession(null);
-        navigate("/auth");
-        toast({ title: "Signed out", description: "You have been signed out." });
-      } else if (event === 'TOKEN_REFRESHED') {
-        setSession(currentSession);
-      } else if (event === 'USER_UPDATED' && currentSession?.user) {
-        await updateProfileWithGoogleData(currentSession.user);
-        setSession(currentSession);
+        navigate('/auth', { replace: true });
       }
-      setLoading(false);
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+    return () => subscription.unsubscribe();
+  }, [navigate, toast]);
 
-  const handleGoogleLogin = async (): Promise<void> => {
+  const handleGoogleLogin = async () => {
     try {
-      console.log("Starting Google login process...");
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: [
+            'https://www.googleapis.com/auth/calendar.events',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
+          ].join(' '),
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
-          },
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-        },
+            prompt: 'consent'
+          }
+        }
       });
 
-      if (error) {
-        console.error("Google OAuth error:", error);
-        throw error;
-      }
-
-      if (!data?.url) {
-        throw new Error("No OAuth URL returned");
-      }
-
-      console.log("OAuth URL generated, redirecting...");
-      window.location.href = data.url;
+      if (error) throw error;
     } catch (error: any) {
-      console.error("Google login error:", error);
+      console.error('Google login error:', error);
       toast({
-        title: "Error connecting to Google",
-        description: error.message || "Please try again",
-        variant: "destructive"
+        title: 'Error',
+        description: error.message || 'Failed to sign in with Google',
+        variant: 'destructive'
       });
     }
   };

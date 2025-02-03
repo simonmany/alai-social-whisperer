@@ -1,6 +1,13 @@
-import { serve } from "std/http/server.ts"
-import { createClient } from '@supabase/supabase-js'
-import { corsHeaders } from '../_shared/cors.ts'
+/// <reference lib="deno.ns" />
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.1"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Max-Age': '86400'
+}
 
 interface CalendarEvent {
   id: string;
@@ -10,322 +17,235 @@ interface CalendarEvent {
   end?: { dateTime?: string; date?: string };
 }
 
-const validateEnv = () => {
-  const requiredVars = [
-    'SUPABASE_URL',
-    'SUPABASE_SERVICE_ROLE_KEY',
-    'EXTERNAL_GOOGLE_CLIENT_ID',
-    'EXTERNAL_GOOGLE_SECRET',
-  ];
-  
-  requiredVars.forEach(varName => {
-    if (!Deno.env.get(varName)) {
-      throw new Error(`Missing required environment variable: ${varName}`);
-    }
-  });
-};
-
-const initSupabase = () => {
-  validateEnv();
-  return createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  );
-};
-
-const handleListEvents = async (
-  user: any,
-  accessToken: string,
-  { timeMin, timeMax }: { timeMin: string; timeMax: string }
-) => {
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
-    new URLSearchParams({
-      timeMin,
-      timeMax,
-      singleEvents: 'true',
-      orderBy: 'startTime'
-    }),
-    {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(`Google API error: ${await response.text()}`);
-  }
-
-  const data = await response.json();
-  const events = (data.items || []).map((event: CalendarEvent) => ({
-    user_id: user.id,
-    google_event_id: event.id,
-    title: event.summary || 'Untitled Event',
-    description: event.description,
-    start_time: event.start?.dateTime || event.start?.date,
-    end_time: event.end?.dateTime || event.end?.date,
-    updated_at: new Date().toISOString()
-  }));
-
-  const supabase = initSupabase();
-  const { error } = await supabase
-    .from('calendar_events')
-    .upsert(events, { onConflict: 'google_event_id' });
-
-  if (error) throw new Error('Database sync failed');
-
-  return { events, synced_events: events.length };
-};
-
-const handleCreateEvent = async (
-  user: any,
-  accessToken: string,
-  payload: {
-    title: string;
-    description?: string;
-    start_time: string;
-    end_time: string;
-  }
-) => {
-  const { title, description, start_time, end_time } = payload;
-  
-  const googleRes = await fetch(
-    'https://www.googleapis.com/calendar/v3/calendars/primary/events',
-    {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        summary: title,
-        description,
-        start: { dateTime: start_time },
-        end: { dateTime: end_time }
-      })
-    }
-  );
-
-  if (!googleRes.ok) {
-    throw new Error(`Google API error: ${await googleRes.text()}`);
-  }
-
-  const createdEvent = await googleRes.json();
-  const supabase = initSupabase();
-  
-  const { data, error } = await supabase
-    .from('calendar_events')
-    .insert({
-      user_id: user.id,
-      google_event_id: createdEvent.id,
-      title,
-      description,
-      start_time,
-      end_time,
-      updated_at: new Date().toISOString()
-    })
-    .select()
-    .single();
-
-  if (error) throw new Error('Database insertion failed');
-
-  return { event: data };
-};
-
-const handleUpdateEvent = async (
-  user: any,
-  accessToken: string,
-  payload: {
-    google_event_id: string;
-    title: string;
-    description?: string;
-    start_time: string;
-    end_time: string;
-  }
-) => {
-  const { google_event_id, title, description, start_time, end_time } = payload;
-  
-  const googleRes = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${google_event_id}`,
-    {
-      method: 'PATCH',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        summary: title,
-        description,
-        start: { dateTime: start_time },
-        end: { dateTime: end_time }
-      })
-    }
-  );
-
-  if (!googleRes.ok) {
-    throw new Error(`Google API error: ${await googleRes.text()}`);
-  }
-
-  const supabase = initSupabase();
-  const { error } = await supabase
-    .from('calendar_events')
-    .update({
-      title,
-      description,
-      start_time,
-      end_time,
-      updated_at: new Date().toISOString()
-    })
-    .eq('google_event_id', google_event_id);
-
-  if (error) throw new Error('Database update failed');
-
-  return { message: 'Event updated' };
-};
-
-const handleDeleteEvent = async (
-  user: any,
-  accessToken: string,
-  payload: { google_event_id: string }
-) => {
-  const { google_event_id } = payload;
-  
-  const googleRes = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${google_event_id}`,
-    {
-      method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  if (!googleRes.ok) {
-    throw new Error(`Google API error: ${await googleRes.text()}`);
-  }
-
-  const supabase = initSupabase();
-  const { error } = await supabase
-    .from('calendar_events')
-    .delete()
-    .eq('google_event_id', google_event_id);
-
-  if (error) throw new Error('Database deletion failed');
-
-  return { message: 'Event deleted' };
-};
-
-const handleGoogleTokenRefresh = async (user: any) => {
-  const supabase = initSupabase();
-  const { data: { session }, error } = await supabase.auth.refreshSession({
-    refresh_token: user.app_metadata.refresh_token
-  });
-
-  if (error || !session?.provider_token) {
-    throw new Error('Failed to refresh Google token');
-  }
-
-  return session.provider_token;
-};
-
-serve(async (req) => {
+serve(async (req: Request) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        { 
+          status: 405,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
+    // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authorization format' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('Missing or invalid authorization header');
     }
 
-    const token = authHeader.replace(/^Bearer\s+/i, '');
-    const supabase = initSupabase();
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+    // Get the session token
+    const sessionToken = authHeader.replace('Bearer ', '');
+
+    // Initialize Supabase client
+    const supabase = createClient(
+      'https://ejqucnzpgebbujlnmdzx.supabase.co',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
+    // Get user and metadata
+    const { data: { user }, error: authError } = await supabase.auth.getUser(sessionToken);
+    if (authError || !user) {
+      throw new Error('Invalid session');
+    }
+
+    // Parse request body
+    const { action, timeMin, timeMax, google_token } = await req.json();
+
+    // Log request details
+    console.log('Calendar request:', {
+      action,
+      timeMin,
+      timeMax,
+      hasToken: !!google_token,
+      userId: user.id
+    });
+
+    // Validate required fields
+    if (!action) throw new Error('Missing action');
+    if (!google_token) throw new Error('Missing Google token');
+    if (action === 'list' && (!timeMin || !timeMax)) {
+      throw new Error('Missing timeMin/timeMax for list action');
+    }
+
+    // Log the token being used (first 10 chars only for security)
+    console.log('Calendar API Request:', {
+      tokenPreview: google_token ? `${google_token.substring(0, 10)}...` : 'none',
+      tokenLength: google_token?.length,
+      timeMin,
+      timeMax
+    });
+
+    // Make request to Google Calendar API
+    const calendarUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
     
-    if (error || !user) {
+    // Log full request details
+    console.log('Making Calendar API request:', {
+      url: calendarUrl,
+      hasToken: !!google_token,
+      tokenLength: google_token?.length
+    });
+
+    const response = await fetch(calendarUrl, {
+      headers: {
+        'Authorization': `Bearer ${google_token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      
+      // Try to parse the error response
+      let parsedError;
+      try {
+        parsedError = JSON.parse(errorText);
+      } catch {
+        parsedError = { raw: errorText };
+      }
+
+      // Log detailed error information
+      console.error('Google Calendar API error details:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: parsedError,
+        requestDetails: {
+          url: calendarUrl,
+          tokenLength: google_token?.length,
+          tokenPreview: google_token ? `${google_token.substring(0, 10)}...` : 'none'
+        }
+      });
+
+      // Pass through the error from Google Calendar API with more details
       return new Response(
-        JSON.stringify({ error: 'Invalid session' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          error: 'Google Calendar API error',
+          type: response.status === 401 ? 'auth_error' : 'api_error',
+          details: parsedError,
+          requestInfo: {
+            status: response.status,
+            statusText: response.statusText
+          }
+        }),
+        {
+          status: response.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
       );
     }
 
-    const { action, ...payload } = await req.json();
-    const accessToken = await handleGoogleTokenRefresh(user);
+    // Log successful response
+    console.log('Google Calendar API request successful');
 
-    let result;
-    switch (action) {
-      case 'list': {
-        const { timeMin, timeMax } = payload;
-        if (!timeMin || !timeMax) {
-          throw new Error('Missing timeMin/timeMax parameters');
+    const data = await response.json();
+    
+    // Log the raw response data
+    console.log('Calendar API response:', {
+      itemCount: data.items?.length,
+      hasItems: !!data.items,
+      firstItem: data.items?.[0] ? {
+        id: data.items[0].id,
+        summary: data.items[0].summary,
+        hasStart: !!data.items[0].start,
+        hasEnd: !!data.items[0].end
+      } : null
+    });
+
+    // Handle empty events list
+    if (!data.items || !Array.isArray(data.items)) {
+      console.log('No events found in response');
+      return new Response(
+        JSON.stringify({ success: true, events: [] }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
-        result = await handleListEvents(user, accessToken, { timeMin, timeMax });
-        break;
-      }
-      case 'create': {
-        const { title, start_time, end_time } = payload;
-        if (!title || !start_time || !end_time) {
-          throw new Error('Missing required fields for event creation');
-        }
-        result = await handleCreateEvent(user, accessToken, {
-          title,
-          description: payload.description,
-          start_time,
-          end_time
+      );
+    }
+
+    // Transform events
+    const events = data.items.map((event: any) => {
+      // Parse dates to ensure they're valid timestamps
+      const startTime = event.start?.dateTime || event.start?.date;
+      const endTime = event.end?.dateTime || event.end?.date;
+      
+      return {
+        user_id: user.id,
+        google_event_id: event.id,
+        title: event.summary || 'Untitled Event',
+        description: event.description || null,
+        start_time: new Date(startTime).toISOString(),
+        end_time: new Date(endTime).toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    });
+
+    // Log the transformed events
+    console.log('Transformed events:', {
+      count: events.length,
+      firstEvent: events[0] ? {
+        id: events[0].google_event_id,
+        title: events[0].title,
+        start: events[0].start_time,
+        end: events[0].end_time
+      } : null
+    });
+
+    // Only attempt database save if we have events
+    if (events.length > 0) {
+      // Save to database
+      const { error: dbError } = await supabase
+        .from('calendar_events')
+        .upsert(events, { onConflict: 'google_event_id' });
+
+      if (dbError) {
+        console.error('Database error:', {
+          error: dbError,
+          code: dbError.code,
+          message: dbError.message,
+          details: dbError.details,
+          hint: dbError.hint
         });
-        break;
+        throw new Error(`Failed to save events to database: ${dbError.message}`);
       }
-      case 'update': {
-        const { google_event_id, title, start_time, end_time } = payload;
-        if (!google_event_id || !title || !start_time || !end_time) {
-          throw new Error('Missing required fields for event update');
-        }
-        result = await handleUpdateEvent(user, accessToken, {
-          google_event_id,
-          title,
-          description: payload.description,
-          start_time,
-          end_time
-        });
-        break;
-      }
-      case 'delete': {
-        const { google_event_id } = payload;
-        if (!google_event_id) {
-          throw new Error('Missing google_event_id for deletion');
-        }
-        result = await handleDeleteEvent(user, accessToken, { google_event_id });
-        break;
-      }
-      default:
-        throw new Error(`Unsupported action: ${action}`);
     }
 
     return new Response(
-      JSON.stringify({ status: 'success', ...result }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: true, events }),
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
 
   } catch (err) {
+    console.error('Calendar function error:', err);
     const error = err instanceof Error ? err : new Error('Unknown error');
-    console.error(`[${new Date().toISOString()}] Error:`, error);
     
+    let errorResponse;
+    try {
+      errorResponse = JSON.parse(error.message);
+    } catch {
+      errorResponse = {
+        message: error.message,
+        code: 'INTERNAL_ERROR',
+        details: error.stack
+      };
+    }
+
     return new Response(
-      JSON.stringify({
-        error: error.message,
-        code: error.message.includes('auth') ? 'UNAUTHENTICATED' : 'INTERNAL_ERROR'
-      }),
+      JSON.stringify(errorResponse),
       { 
-        status: error.message.includes('auth') ? 401 : 500,
+        status: errorResponse.type === 'auth_error' ? 401 : 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
   }
-})
+});
