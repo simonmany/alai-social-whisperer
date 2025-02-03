@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TypewriterText } from "@/components/TypewriterText";
@@ -122,7 +121,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 delay={250}
                 typingSpeed={25}
                 className="text-4xl font-cormorant block"
-                onComplete={() => setHasPlayedLine1(true)}
+                onComplete={() => {
+                  console.log('Line 1 complete');
+                  setHasPlayedLine1(true);
+                }}
               />
               
               {hasPlayedLine1 && (
@@ -131,7 +133,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                   delay={250}
                   typingSpeed={25}
                   className="text-lg block"
-                  onComplete={() => setHasPlayedLine2(true)}
+                  onComplete={() => {
+                    console.log('Line 2 complete');
+                    setHasPlayedLine2(true);
+                  }}
                 />
               )}
               
@@ -141,7 +146,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                   delay={250}
                   typingSpeed={25}
                   className="text-lg block"
-                  onComplete={() => setHasPlayedLine3(true)}
+                  onComplete={() => {
+                    console.log('Line 3 complete');
+                    setHasPlayedLine3(true);
+                  }}
                 />
               )}
             </div>
