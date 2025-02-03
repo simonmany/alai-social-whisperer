@@ -220,8 +220,8 @@ async function extractNamesFromText(text: string): Promise<string[]> {
 
 async function upsertContacts(userId: string, contacts: { name: string; email?: string; phone?: string; instagram?: string; linkedin?: string; twitter?: string; meeting_story?: string; relationship?: string }[]) {
   const supabaseClient = createClient(
-    Deno.env.get('BACKEND_URL') ?? '',
-    Deno.env.get('SERVICE_ROLE_KEY') ?? ''
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
   const { data, error } = await supabaseClient
@@ -241,8 +241,8 @@ async function upsertContacts(userId: string, contacts: { name: string; email?: 
 
 async function createContact(userId: string, contact: { name: string; email?: string; phone?: string; instagram?: string; linkedin?: string; twitter?: string; meetingStory?: string; relationship?: string }) {
   const supabaseClient = createClient(
-    Deno.env.get('BACKEND_URL') ?? '',
-    Deno.env.get('SERVICE_ROLE_KEY') ?? ''
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
   );
 
   const { data, error } = await supabaseClient
@@ -276,8 +276,8 @@ serve(async (req) => {
   try {
     const { message, userId, contactInfo } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    const supabaseUrl = Deno.env.get('BACKEND_URL');
-    const supabaseServiceKey = Deno.env.get('SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!openAIApiKey || !supabaseUrl || !supabaseServiceKey) {
       throw new Error('Missing environment variables');
