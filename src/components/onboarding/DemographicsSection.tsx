@@ -53,6 +53,15 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
   }, [step, toast]);
 
   const handleAgeSubmit = async () => {
+    if (!age) {
+      toast({
+        title: "Please enter your age",
+        description: "Age is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Convert age to number and validate
     const ageNum = parseInt(age);
     console.log('Validating age:', { input: age, parsed: ageNum });
