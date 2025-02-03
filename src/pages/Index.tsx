@@ -17,7 +17,6 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
-import { ContactCard } from "@/components/ContactCard";
 
 interface Message {
   content: string;
@@ -194,11 +193,10 @@ const Index = () => {
 
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
+        setHideButtons(true); // Hide buttons during splash screen
         
         // Only show profile button if we're past the splash screen
-        if (data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial') {
-          setShowProfileButton(true);
-        }
+        setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
       } catch (error) {
         console.error('Error checking tutorial status:', error);
       }
@@ -456,7 +454,7 @@ const Index = () => {
           />
         ) : (
           <>
-            {!tutorialComplete && showProfileButton && (
+            {!tutorialComplete && (
               <TutorialOverlay 
                 onComplete={handleTutorialComplete} 
                 isProfileOpen={isProfileOpen}
