@@ -75,8 +75,8 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
           ) : (
             <TypewriterText
               text={`Nice to meet you, ${capitalizedName}!`}
-              delay={0}
-              typingSpeed={25}
+              delay={125}
+              typingSpeed={12}
               onComplete={() => {
                 setIntroCompleted(true);
                 setShowGoalsText(true);
@@ -92,8 +92,8 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
         ) : showGoalsText && (
           <TypewriterText
             text="Next, let's talk about your goals. Which of these are you interested in? You can choose multiple."
-            delay={250}
-            typingSpeed={25}
+            delay={125}
+            typingSpeed={12}
             onComplete={() => setShowOptions(true)}
           />
         )}
