@@ -456,14 +456,6 @@ const Index = () => {
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={handleSkipOnboarding}
-        >
-          Skip Onboarding (Dev Only)
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
           onClick={handleRestartOnboarding}
         >
           <Redo className="h-4 w-4" />
