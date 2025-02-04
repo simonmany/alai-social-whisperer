@@ -147,7 +147,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   // Check if user has set any goals
   useEffect(() => {
-    if (step === 'goals' && profile?.goals && profile.goals.length > 0) {
+    if (step === 'goals' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
       handleComplete();
     }
   }, [step, profile?.goals]);
