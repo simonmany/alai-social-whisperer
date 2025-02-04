@@ -48,23 +48,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     if (step === 'profileintro' && isProfileOpen) {
       console.log('Profile opened, setting step to goalset');
       setStep('goalset');
-      
-      // Update the profile's onboarding step
-      if (session?.user?.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'goalset' })
-          .eq('id', session.user.id)
-          .then(({ error }) => {
-            if (error) {
-              console.error('Error updating onboarding step:', error);
-            } else {
-              queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-            }
-          });
-      }
     }
-  }, [isProfileOpen, step, session?.user?.id, queryClient]);
+  }, [isProfileOpen, step]);
 
   // Watch for goals being set
   useEffect(() => {
@@ -74,7 +59,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [profile?.goals, step]);
 
-  // Update positions based on step
   useEffect(() => {
     const updatePositions = () => {
       if (step === 'calendarintro') {
