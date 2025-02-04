@@ -25,6 +25,7 @@ dist-ssr
 
 # supabase
 supabase/.*
-*.sql
+supabase/*.sql
 .env*
+supabase/migrations
 

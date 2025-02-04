@@ -389,6 +389,9 @@ const Index = () => {
     const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
     const twitter = contacts.match(/🐦 @([^\s]+)/)?.[1]?.trim();
 
+    if (!phone || !instagram || !linkedin || !twitter) return undefined;
+    // If the user did not provide any other information, let the LLM take care of it
+
     return {
       ...contactInfo,
       phone,
