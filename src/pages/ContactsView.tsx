@@ -345,12 +345,12 @@ const ContactsView = () => {
               </div>
 
               <div className="space-y-2 mb-16">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 mb-4">
                   <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+                    className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
                     onClick={() => setIsGroupDialogOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
@@ -490,12 +490,12 @@ const ContactsView = () => {
           </div>
 
           <div className="space-y-2 mb-16">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2 mb-4">
               <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+                className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
                 onClick={() => setIsGroupDialogOpen(true)}
               >
                 <Plus className="h-4 w-4" />
