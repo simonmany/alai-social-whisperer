@@ -101,7 +101,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
     } else if (step === 'goalset') {
-      // Track all "Goal Missing" buttons
+      // Track all "Goal Missing" buttons within the profile sheet
       const goalButtons = document.querySelectorAll('.cursor-pointer.hover\\:bg-destructive\\/90');
       const positions = Array.from(goalButtons).map(button => {
         const rect = button.getBoundingClientRect();
@@ -346,7 +346,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialMessage 
-            className="right-[450px] top-32 max-w-[300px] z-[9999]"
+            className="right-[450px] top-32 max-w-[300px]"
+            style={{ zIndex: 9999 }}
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
@@ -379,7 +380,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             }}
           />
           <TutorialMessage 
-            className="right-[450px] top-32 max-w-[300px] z-[9999]"
+            className="right-[450px] top-32 max-w-[300px]"
+            style={{ zIndex: 9999 }}
           >
             Great! Now let's close this and move on.
           </TutorialMessage>
