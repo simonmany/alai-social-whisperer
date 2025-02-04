@@ -13,7 +13,7 @@ type ArrowPosition = {
   left: number;
 };
 
-type TutorialStep = 'splash' | 'calendarintro' | 'profile' | 'goals' | 'complete';
+type TutorialStep = 'splash' | 'profile' | 'goals' | 'complete';
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<TutorialStep>('splash');
@@ -118,32 +118,23 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             <div className="space-y-4 animate-fade-in">
               <p className="text-2xl">Ready to get started?</p>
               <button
-                onClick={() => setStep('calendarintro')}
+                onClick={() => {
+                  const calendarButton = document.querySelector('[data-testid="calendar-button"]');
+                  if (calendarButton) {
+                    const rect = calendarButton.getBoundingClientRect();
+                    setProfileArrowPosition({
+                      top: rect.top + rect.height / 2,
+                      left: rect.left - 40
+                    });
+                  }
+                  setStep('profile');
+                }}
                 className="pointer-events-auto w-full bg-[#14171F] text-white p-4 rounded-lg hover:bg-[#14171F]/90 transition-colors text-xl"
               >
                 Let's go!
               </button>
             </div>
           )}
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'calendarintro') {
-    return (
-      <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <div className="max-w-2xl w-full mx-4">
-          <TutorialMessage className="text-center">
-            <p className="text-2xl mb-4">First, let's connect your calendar</p>
-            <p className="text-lg mb-8">This will help me understand your schedule and make better suggestions</p>
-            <button
-              onClick={() => setStep('profile')}
-              className="pointer-events-auto bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Continue
-            </button>
-          </TutorialMessage>
         </div>
       </div>
     );
