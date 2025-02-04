@@ -216,7 +216,11 @@ const ContactsView = () => {
     if (groupName === "Inner Orbit") {
       return getInnerOrbitContacts();
     }
-    return contacts.filter(contact => 
+    if (groupName === "Home") {
+      return filteredContacts;
+    }
+    // For other groups, filter contacts based on group membership
+    return filteredContacts.filter(contact => 
       getContactGroups(contact.id).some(g => g.name === groupName)
     );
   };
@@ -361,6 +365,35 @@ const ContactsView = () => {
               </div>
             </div>
           );
+        })}
+      </div>
+    );
+  };
+
+  const renderGroupView = () => {
+    const groupContacts = getContactsForGroup(selectedGroup);
+    
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        {/* Central user avatar */}
+        <div className="relative">
+          <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
+          <AvatarUpload
+            url={profileData?.avatar_url ?? undefined}
+            onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
+            fallback={getInitials(profileData?.display_name || 'U')}
+            size="lg"
+          />
+        </div>
+
+        {/* Orbiting contacts */}
+        {groupContacts.map((contact, index) => {
+          const angle = (index * 2 * Math.PI) / groupContacts.length;
+          const radius = 140;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+
+          return renderContactAvatar(contact, x, y, true);
         })}
       </div>
     );
