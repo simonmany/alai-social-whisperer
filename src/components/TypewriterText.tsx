@@ -22,6 +22,7 @@ export const TypewriterText = ({
   const [isComplete, setIsComplete] = useState(false);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const hasCalledOnComplete = useRef(false);
 
   useEffect(() => {
     // Reset state when text changes
@@ -29,6 +30,7 @@ export const TypewriterText = ({
     setIsTyping(false);
     setHasStarted(false);
     setIsComplete(false);
+    hasCalledOnComplete.current = false;
 
     // Clear any existing timers
     if (timeoutRef.current) {
@@ -57,7 +59,12 @@ export const TypewriterText = ({
           }
           setIsTyping(false);
           setIsComplete(true);
-          onComplete?.();
+          
+          // Only call onComplete once
+          if (!hasCalledOnComplete.current && onComplete) {
+            hasCalledOnComplete.current = true;
+            onComplete();
+          }
         }
       }, typingSpeed);
     }, delay);

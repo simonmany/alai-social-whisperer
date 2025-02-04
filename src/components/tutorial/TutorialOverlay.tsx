@@ -28,23 +28,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [journeyComplete, setJourneyComplete] = useState(false);
   const [showFinalPrompt, setShowFinalPrompt] = useState(false);
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('goals, onboarding_step')
-        .eq('id', user.id)
-        .single();
-
-      if (error) throw error;
-      return profile;
-    }
-  });
-
   const updateProfileArrowPosition = useCallback(() => {
     const button = document.querySelector('[data-testid="profile-button"]');
     if (button) {
@@ -93,32 +76,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [step, isProfileOpen, updateGoalArrowPositions]);
 
-  const handleSplashComplete = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_step: 'profile'
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-      
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      setStep('profile');
-    } catch (error: any) {
-      console.error('Error updating onboarding step:', error);
-      toast({
-        title: "Error updating progress",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (step === 'splash') {
     return (
       <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center bg-background/80 backdrop-blur-sm">
@@ -146,7 +103,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             <div className="space-y-4 animate-fade-in">
               <p className="text-2xl">Ready to get started?</p>
               <button
-                onClick={handleSplashComplete}
+                onClick={() => setStep('profile')}
                 className="pointer-events-auto w-full bg-primary text-primary-foreground p-4 rounded-lg hover:bg-primary/90 transition-colors text-xl"
               >
                 Let's go!
