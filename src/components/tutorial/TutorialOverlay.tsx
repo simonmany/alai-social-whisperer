@@ -21,7 +21,7 @@ interface Position {
 }
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'splash' | 'initial' | 'profile' | 'goals' | 'contactsintro' | 'contactsopen' | 'calendarintro' | 'complete'>('splash');
+  const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'profile' | 'goals' | 'complete'>('splash');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
@@ -54,17 +54,17 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   });
 
   useEffect(() => {
-    if (step === 'initial') {
+    if (step === 'profileintro') {
       // Find the profile button
       const profileButton = document.querySelector('[aria-label="Open profile"]');
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
         setArrowPosition({
-          top: rect.bottom + 10, // Changed from rect.top - 20 to rect.bottom + 10
+          top: rect.bottom + 10,
           left: rect.left + rect.width / 2 - 20
         });
         setMessagePosition({
-          top: rect.bottom + 50, // Adjusted to be below the arrow
+          top: rect.bottom + 50,
           left: rect.left - 100
         });
       }
@@ -99,7 +99,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   };
 
   const handleContactsResponse = () => {
-    setStep('calendarintro');
+    setStep('profileintro');
   };
 
   const renderTutorialContent = () => {
@@ -168,14 +168,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                     supabase
                       .from('profiles')
                       .update({ 
-                        onboarding_step: 'initial',
+                        onboarding_step: 'calendarintro',
                         has_completed_tutorial: false
                       })
                       .eq('id', session.user.id)
                       .then(({ error }) => {
                         if (error) console.error('Error updating onboarding step:', error);
                         else {
-                          setStep('initial');
+                          setStep('calendarintro');
                           queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
                         }
                       });
@@ -192,7 +192,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       );
     }
 
-    if (step === 'initial') {
+    if (step === 'profileintro') {
       return (
         <>
           <TutorialArrow 
@@ -283,21 +283,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       );
     }
 
-    if (step === 'contactsopen') {
-      return (
-        <TutorialMessage className="right-[450px] top-32 max-w-[300px]">
-          <div className="space-y-4">
-            <p>
-              This is where you'll keep track of all your relationships.
-            </p>
-            <div className="flex justify-end">
-              <Button onClick={handleContactsResponse}>Got it!</Button>
-            </div>
-          </div>
-        </TutorialMessage>
-      );
-    }
-
     if (step === 'calendarintro') {
       return (
         <>
@@ -316,7 +301,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               left: `${messagePosition.left}px`,
             }}
           >
-            Finally, let's connect your calendar so I can help you plan and track your social life.
+            First, let's connect your calendar so I can help you plan and track your social life.
           </TutorialMessage>
         </>
       );
