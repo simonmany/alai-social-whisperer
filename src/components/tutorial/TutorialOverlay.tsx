@@ -76,7 +76,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         if (calendarButton) {
           const rect = calendarButton.getBoundingClientRect();
           setArrowPosition({ 
-            top: rect.top + window.scrollY - 40,
+            top: rect.bottom + 10, // Position arrow 10px below the button
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
@@ -89,7 +89,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         if (contactsButton) {
           const rect = contactsButton.getBoundingClientRect();
           setArrowPosition({ 
-            top: rect.top + window.scrollY - 40,
+            top: rect.bottom + 10, // Position arrow 10px below the button
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
@@ -102,7 +102,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         if (profileButton) {
           const rect = profileButton.getBoundingClientRect();
           setArrowPosition({ 
-            top: rect.top + window.scrollY - 40,
+            top: rect.bottom + 10, // Position arrow 10px below the button
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
@@ -338,7 +338,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialArrow 
-            direction="up" 
+            direction="up"
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
