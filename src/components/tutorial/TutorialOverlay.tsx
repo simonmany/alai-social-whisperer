@@ -107,7 +107,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         const rect = button.getBoundingClientRect();
         return {
           top: rect.top + rect.height / 2,
-          left: rect.right + 20  // Position arrow to the right of the button
+          left: rect.left - 40  // Position arrow to the left of the button
         };
       });
       setGoalArrowPositions(positions);
@@ -359,7 +359,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           {goalArrowPositions.map((pos, index) => (
             <TutorialArrow
               key={index}
-              direction="right"
+              direction="left"
               style={{
                 position: 'fixed',
                 top: `${pos.top}px`,
