@@ -143,18 +143,20 @@ const ContactsView = () => {
       if (!session?.user?.id) return [];
       
       console.log('Fetching contacts for user:', session.user.id);
-      const { data, error } = await supabase
+      const { data, error, count } = await supabase
         .from('contacts')
-        .select('*')
+        .select('*', { count: 'exact' })
         .eq('user_id', session.user.id)
-        .order('closeness', { ascending: false });
+        .order('closeness', { ascending: false })
+        .limit(100); // Adding limit temporarily to test
 
       if (error) {
         console.error('Error fetching contacts:', error);
         throw error;
       }
       
-      console.log('Fetched contacts:', data);
+      console.log('Total contacts count:', count);
+      console.log('Fetched contacts sample:', data?.slice(0, 5));
       return data as Contact[];
     },
     enabled: !!session?.user?.id,
