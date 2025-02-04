@@ -1,7 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
-import nlp from 'https://esm.sh/compromise@14.10.0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -95,7 +94,7 @@ async function callLLM(apikey: string, messages: any[], tools: any[]) {
       messages: messages,
       temperature: 0.7,
       max_tokens: 500,
-      tools: tools
+      //tools: tools
     }),
   });
   if (!response.ok) {
@@ -110,61 +109,34 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
   return `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
   - Profile: ${JSON.stringify(profile, null, 2)}
   - Calendar Events for the next 30 days: ${JSON.stringify(events, null, 2)}
-  - Closest friends: ${JSON.stringify(contacts, null, 2)}
-  
-  When discussing calendar events, always format dates and times in a user-friendly way.
+  - Friend data: ${JSON.stringify(contacts, null, 2)}
 
-  When discussing a friend or contact, ALWAYS follow these steps in order:
-  1. FIRST, check if the person is in the closest friends list above. If they are, use that data and include it at the end of your response. DO NOT call any functions in this case.
-  2. ONLY if the person is NOT found in the closest friends list, then use extractContacts to check if they exist in the database.
-  3. If extractContacts returns no results, then try to collect their full name and at least one contact method (phone, email, instagram, etc).
-    Once you have collected their contact information, format it as follows:
+  When discussing a friend, refer to the friend data for information about them and their contact information.
+  If the contact does not have any additional information besides their name, ask the user for at least one contact method (phone, email, instagram, etc).
+  If the user provides about new information about a contact or contacts, update the contact data and return it as a JSON object which is an array of the updated contacts.
+    Example JSON response format:
     {
       contacts: [
         {
           name: string
-          email?: string
-          phone?: string
-          instagram?: string
-          linkedin?: string
-          twitter?: string
-          meeting_story?: string
-          relationship?: string
+          email: optional string
+          phone: optional string
+          instagram: optional string
+          linkedin: optional string
+          twitter: optional string
+          meeting_story: optional string
+          relationship: optional string
         }
       ]
     }
+  
+  When discussing calendar events, always format dates and times in a user-friendly way.
   
   When the user says they want to contact a friend, include the contact information at the very end of your message.
   Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
 }
 
-function extractNamesWithCompromise(text: string): string[] {
-  try {
-    const doc = nlp(text);
-    const people = doc.people().out('array');
-    
-    // Clean up names - remove titles and normalize
-    const possibleNames = people.map(name => {
-      return name
-        .replace(/^(mr|mrs|ms|dr|prof)\.?\s+/i, '') // Remove titles
-        .replace(/\s+/g, ' ')                        // Normalize whitespace
-        .trim();
-    }).filter(Boolean); // Remove empty strings
-    
-    console.log('Compromise found possible names:', possibleNames);
-    return possibleNames;
-  } catch (error) {
-    console.error('Error in compromise processing:', error);
-    return [];
-  }
-}
-
-async function verifyNamesWithOpenAI(text: string, possibleNames: string[]): Promise<string[]> {
-  if (possibleNames.length === 0) {
-    return [];
-  }
-
-  console.log('Verifying names with OpenAI:', possibleNames);
+async function extractNamesFromText(text: string): Promise<string[]> {
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -176,9 +148,7 @@ async function verifyNamesWithOpenAI(text: string, possibleNames: string[]): Pro
       messages: [
         {
           role: 'system',
-          content: `You are a name verification tool. The following names were detected in the text: ${possibleNames.join(', ')}. 
-                   Verify which of these are actually person names in the context. Return a JSON object with a "names" array containing only the verified names.
-                   Only include actual names, not pronouns or generic terms. Example response format: {"names": ["John Smith", "Mary Johnson"]}`
+          content: 'You are a name extraction tool. Extract ONLY the names of people mentioned in the text. Return them as a JSON object with a single "names" array containing the extracted names as strings. Only include actual names, not pronouns or generic terms like "friend" or "sister". Return an empty array if no names are found. Example response format: {"names": ["John Smith", "Mary Johnson"]}'
         },
         {
           role: 'user',
@@ -186,36 +156,53 @@ async function verifyNamesWithOpenAI(text: string, possibleNames: string[]): Pro
         }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.1
+      temperature: 0.1 // Low temperature for more consistent results
     }),
   });
 
   if (!response.ok) {
     console.error('Error calling OpenAI:', await response.text());
-    return possibleNames; // Fall back to compromise results if OpenAI fails
+    return [];
   }
   
   try {
     const data = await response.json();
     const result = JSON.parse(data.choices[0].message.content);
-    console.log('OpenAI verified names:', result.names);
+    console.log('Extracted names:', result.names);
     return result.names || [];
   } catch (error) {
     console.error('Error parsing OpenAI response:', error);
-    return possibleNames; // Fall back to compromise results if parsing fails
+    return [];
   }
 }
 
-async function extractNamesFromText(text: string): Promise<string[]> {
-  // First, try to find names using compromise
-  const possibleNames = extractNamesWithCompromise(text);
-  
-  // If compromise found any potential names, verify them with OpenAI
-  if (possibleNames.length > 0) {
-    return await verifyNamesWithOpenAI(text, possibleNames);
+
+async function searchContactsByNames(userId: string, names: string[]) {
+  const supabaseClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  );
+
+  let mentionedContacts = [];
+  if (names.length > 0) {
+    const { data, error } = await supabaseClient
+      .from('contacts')
+      .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship')
+      .eq('user_id', userId);
+    if (error) {
+      console.error('Error searching contacts:', error);
+      throw new Error(`Error searching contacts: ${error.message}`);
+    }
+    console.log('Found contacts', data)
+
+    const filteredContacts = data.filter(contact => names.some(name => contact.name.toLowerCase().includes(name.toLowerCase())));
+    
+    mentionedContacts = filteredContacts.map(contact => Object.fromEntries(
+      Object.entries(contact).filter(([_, value]) => value !== null)
+    ));
   }
-  
-  return [];
+
+  return mentionedContacts;
 }
 
 async function upsertContacts(userId: string, contacts: { name: string; email?: string; phone?: string; instagram?: string; linkedin?: string; twitter?: string; meeting_story?: string; relationship?: string }[]) {
@@ -336,19 +323,34 @@ serve(async (req) => {
       .limit(10);
 
     // Extract names from the message and get their contact info
+    let mentionedContacts = []
     const names = await extractNamesFromText(message);
-    let mentionedContacts = [];
-    if (names.length > 0) {
-      const { data: contacts } = await supabase
-        .from('contacts')
-        .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship')
-        .eq('user_id', userId)
-        .in('name', names);
-      
-      if (contacts) {
-        mentionedContacts = contacts;
+    if (names.length > 0) { 
+      mentionedContacts = await searchContactsByNames(userId, names);
+      if (mentionedContacts.length === 0) {
+        mentionedContacts = await upsertContacts(userId, names.map(name => ({name})));
+        console.log('Upserting new contacts ', mentionedContacts);
       }
+      mentionedContacts = await searchContactsByNames(userId, names);
     }
+
+    // // Get closest contacts
+    // const { data: closestContacts } = await supabase
+    //   .from('contacts')
+    //   .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship, closeness')
+    //   .eq('user_id', userId)
+    //   .order('closeness', { ascending: false })
+    //   .limit(15);
+
+    // // Combine mentioned contacts with closest contacts, removing duplicates
+    // const allContacts = [...mentionedContacts];
+    // if (closestContacts) {
+    //   for (const contact of closestContacts) {
+    //     if (!allContacts.some(c => c.name === contact.name)) {
+    //       allContacts.push(contact);
+    //     }
+    //   }
+    // }
 
     const messages = chatHistory?.map(msg => ({
       role: msg.is_ai ? 'assistant' : 'user',
@@ -370,9 +372,8 @@ serve(async (req) => {
 
     let responseData = await response.json();
     let aiResponse = responseData.choices[0].message.content;
-    console.log(responseData)
 
-    console.log(responseData.choices[0].message.tool_calls)
+    console.log('tool calls', responseData.choices[0].message.tool_calls)
     while (responseData.choices[0].message.tool_calls) {
       for (let i = 0; i < responseData.choices[0].message.tool_calls.length; i++) {
         let toolCall = responseData.choices[0].message.tool_calls[i].function;
@@ -399,11 +400,8 @@ serve(async (req) => {
       }
       response = await callLLM(openAIApiKey, messages, tools);
       responseData = await response.json();
-      console.log(responseData)
       aiResponse = responseData.choices[0].message.content;
     }
-
-    console.log(aiResponse)
 
     return new Response(JSON.stringify({ 
       response: aiResponse,
