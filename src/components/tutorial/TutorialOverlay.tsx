@@ -21,7 +21,7 @@ interface Position {
 }
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'profile' | 'goals' | 'complete'>('splash');
+  const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'goalset' | 'goals' | 'complete'>('splash');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
@@ -40,7 +40,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   // Watch for profile being opened and update step
   useEffect(() => {
     if (step === 'profileintro' && isProfileOpen) {
-      setStep('profile');
+      setStep('goalset');
     }
   }, [isProfileOpen, step]);
 
@@ -100,7 +100,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           left: rect.left - 100
         });
       }
-    } else if (step === 'profile') {
+    } else if (step === 'goalset') {
       // Track all "Goal Missing" buttons
       const goalButtons = document.querySelectorAll('.cursor-pointer.hover\\:bg-destructive\\/90');
       const positions = Array.from(goalButtons).map(button => {
@@ -342,7 +342,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       );
     }
 
-    if (step === 'profile') {
+    if (step === 'goalset') {
       return (
         <>
           <TutorialMessage 
@@ -353,7 +353,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           {goalArrowPositions.map((pos, index) => (
             <TutorialArrow
               key={index}
-              direction="left"
+              direction="right"
               style={{
                 position: 'fixed',
                 top: `${pos.top}px`,
