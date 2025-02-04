@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ChevronUp, Plus } from "lucide-react";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { Search, ChevronUp, Plus, ArrowLeft } from "lucide-react";
+import { Drawer, DrawerContent, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -255,7 +255,17 @@ const ContactsView = () => {
   const renderContactDrawerContent = (contact: Contact) => (
     <DrawerContent className="bg-black/90 border-purple-500/50 h-[100vh] overflow-y-auto">
       <div className="p-6 space-y-8 relative z-10">
-        <div className="flex items-start space-x-6">
+        <DrawerClose asChild>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="absolute top-4 left-4 text-white hover:bg-purple-900/50"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </Button>
+        </DrawerClose>
+
+        <div className="flex items-start space-x-6 mt-8">
           <Avatar className="h-24 w-24 bg-purple-900/50 border-2 border-purple-500/50">
             <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
           </Avatar>
