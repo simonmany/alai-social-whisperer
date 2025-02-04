@@ -153,7 +153,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           <div className="max-w-xl space-y-8 p-8">
             <div className="relative space-y-6">
               <div className="min-h-[4rem]">
-                <div className="absolute top-0 left-0 right-0">
+                {!hasPlayedLine1 && (
                   <TypewriterText
                     text={`Hi ${userName}, it's nice to meet you.`}
                     delay={250}
@@ -161,11 +161,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                     className="text-4xl font-cormorant block"
                     onComplete={() => setHasPlayedLine1(true)}
                   />
-                </div>
+                )}
+                {hasPlayedLine1 && (
+                  <div className="text-4xl font-cormorant">{`Hi ${userName}, it's nice to meet you.`}</div>
+                )}
               </div>
               
-              {hasPlayedLine1 && (
-                <div className="min-h-[3rem]">
+              <div className="min-h-[3rem]">
+                {hasPlayedLine1 && !hasPlayedLine2 && (
                   <TypewriterText
                     text="I'm excited for our journey together."
                     delay={250}
@@ -173,11 +176,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                     className="text-lg block"
                     onComplete={() => setHasPlayedLine2(true)}
                   />
-                </div>
-              )}
+                )}
+                {hasPlayedLine2 && (
+                  <div className="text-lg">I'm excited for our journey together.</div>
+                )}
+              </div>
               
-              {hasPlayedLine2 && (
-                <div className="min-h-[3rem]">
+              <div className="min-h-[3rem]">
+                {hasPlayedLine2 && !hasPlayedLine3 && (
                   <TypewriterText
                     text="Ready to get started?"
                     delay={250}
@@ -185,8 +191,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                     className="text-lg block"
                     onComplete={() => setHasPlayedLine3(true)}
                   />
-                </div>
-              )}
+                )}
+                {hasPlayedLine3 && (
+                  <div className="text-lg">Ready to get started?</div>
+                )}
+              </div>
             </div>
             
             {hasPlayedLine3 && (
