@@ -13,7 +13,7 @@ type ArrowPosition = {
   left: number;
 };
 
-type TutorialStep = 'splash' | 'profile' | 'goals' | 'complete';
+type TutorialStep = 'splash' | 'calendarintro' | 'profile' | 'goals' | 'complete';
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<TutorialStep>('splash');
@@ -56,19 +56,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       updateProfileArrowPosition();
     }
   }, [step, updateProfileArrowPosition]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (step === 'profile') {
-        updateProfileArrowPosition();
-      } else if (step === 'goals' && isProfileOpen) {
-        updateGoalArrowPositions();
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [step, isProfileOpen, updateProfileArrowPosition, updateGoalArrowPositions]);
 
   useEffect(() => {
     if (step === 'goals' && isProfileOpen) {
@@ -118,23 +105,44 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             <div className="space-y-4 animate-fade-in">
               <p className="text-2xl">Ready to get started?</p>
               <button
-                onClick={() => {
-                  const calendarButton = document.querySelector('[data-testid="calendar-button"]');
-                  if (calendarButton) {
-                    const rect = calendarButton.getBoundingClientRect();
-                    setProfileArrowPosition({
-                      top: rect.top + rect.height / 2,
-                      left: rect.left - 40
-                    });
-                  }
-                  setStep('profile');
-                }}
+                onClick={() => setStep('calendarintro')}
                 className="pointer-events-auto w-full bg-[#14171F] text-white p-4 rounded-lg hover:bg-[#14171F]/90 transition-colors text-xl"
               >
                 Let's go!
               </button>
             </div>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'calendarintro') {
+    return (
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        <TutorialMessage
+          className="absolute top-24 left-1/2 -translate-x-1/2"
+          style={{ maxWidth: '90vw' }}
+        >
+          First, let's connect your calendar to help me understand your schedule
+        </TutorialMessage>
+        {profileArrowPosition && (
+          <TutorialArrow
+            direction="right"
+            style={{
+              position: 'fixed',
+              top: profileArrowPosition.top,
+              left: profileArrowPosition.left,
+            }}
+          />
+        )}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <button
+            onClick={() => setStep('profile')}
+            className="pointer-events-auto bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Continue
+          </button>
         </div>
       </div>
     );
