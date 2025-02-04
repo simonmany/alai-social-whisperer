@@ -268,12 +268,12 @@ const ContactsView = () => {
           <div className="space-y-2">
             <h2 className="text-3xl font-bold text-white">{contact.name}</h2>
             {contact.phone && (
-              <p className="text-purple-300">{contact.phone}</p>
+              <p className="text-white">{contact.phone}</p>
             )}
             {contact.email && (
-              <p className="text-purple-300">{contact.email}</p>
+              <p className="text-white">{contact.email}</p>
             )}
-            <p className="text-sm text-purple-400">
+            <p className="text-sm text-white">
               Orbit Distance: {((1 - (contact.closeness || 0)) * 100).toFixed(0)}%
             </p>
           </div>
@@ -293,9 +293,9 @@ const ContactsView = () => {
             <div className="space-y-2">
               <h4 className="text-lg font-medium text-white">Last Hangout</h4>
               <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                <p className="text-purple-300 text-sm">Add a photo</p>
+                <p className="text-white text-sm">Add a photo</p>
               </div>
-              <p className="text-purple-200 text-sm">
+              <p className="text-white text-sm">
                 {contact.meeting_story || "Add a quick note about your last hangout"}
               </p>
             </div>
@@ -303,7 +303,7 @@ const ContactsView = () => {
             {contact.relationship && (
               <div>
                 <h4 className="text-lg font-medium text-white mb-2">Known Since</h4>
-                <p className="text-purple-200">{contact.relationship}</p>
+                <p className="text-white">{contact.relationship}</p>
               </div>
             )}
 
@@ -311,14 +311,14 @@ const ContactsView = () => {
               <h4 className="text-lg font-medium text-white mb-4">Highlights of your friendship</h4>
               <div className="relative">
                 <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                  <p className="text-purple-300 text-sm">Add photos to your friendship timeline</p>
+                  <p className="text-white text-sm">Add photos to your friendship timeline</p>
                 </div>
               </div>
             </div>
 
             <div>
               <h4 className="text-lg font-medium text-white mb-2">Your Story</h4>
-              <p className="text-purple-200">
+              <p className="text-white">
                 {contact.meeting_story || "Add a description of how you met and your journey together"}
               </p>
             </div>
