@@ -112,8 +112,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
     } else if (profile?.onboarding_step === 'goalset') {
-      // Find all alerts with the destructive variant
-      const goalAlerts = Array.from(document.querySelectorAll('[role="alert"]'));
+      // Find all clickable goal alerts (excluding the top warning message)
+      const goalAlerts = Array.from(document.querySelectorAll('[role="alert"]')).filter(alert => {
+        // Check if the alert is clickable (wrapped in a button/has onClick)
+        return alert.closest('div[role="alert"]')?.hasAttribute('onclick') || 
+               alert.closest('div[role="alert"]')?.classList.contains('cursor-pointer');
+      });
+      
       console.log('Found goal alerts:', goalAlerts.length);
       
       const positions: { top: number; left: number }[] = [];
