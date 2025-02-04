@@ -13,6 +13,7 @@ import { TypewriterText } from "@/components/TypewriterText";
 interface TutorialOverlayProps {
   onComplete: () => void;
   isProfileOpen?: boolean;
+  onGoogleSignIn: () => void;
 }
 
 interface Position {
@@ -20,7 +21,7 @@ interface Position {
   left: number;
 }
 
-export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
+export const TutorialOverlay = ({ onComplete, isProfileOpen, onGoogleSignIn }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'profile' | 'goals' | 'complete'>('splash');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
@@ -55,7 +56,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   useEffect(() => {
     if (step === 'profileintro') {
-      // Find the profile button
       const profileButton = document.querySelector('[aria-label="Open profile"]');
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
@@ -69,7 +69,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
     } else if (step === 'calendarintro') {
-      // Find the calendar button
       const calendarButton = document.querySelector('[aria-label="Open calendar"]');
       if (calendarButton) {
         const rect = calendarButton.getBoundingClientRect();
@@ -206,6 +205,48 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       );
     }
 
+    if (step === 'calendarintro') {
+      return (
+        <>
+          <TutorialArrow 
+            direction="up"
+            style={{
+              position: 'fixed',
+              top: `${calendarButtonPosition.top}px`,
+              left: `${calendarButtonPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${messagePosition.top}px`,
+              left: `${messagePosition.left}px`,
+            }}
+          >
+            <div className="space-y-4">
+              <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => {
+                    onGoogleSignIn();
+                    setStep('contactsintro');
+                  }}
+                >
+                  Connect Calendar
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setStep('contactsintro')}
+                >
+                  Not Now
+                </Button>
+              </div>
+            </div>
+          </TutorialMessage>
+        </>
+      );
+    }
+
     if (step === 'profileintro') {
       return (
         <>
@@ -292,30 +333,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             }}
           >
             Let's add some contacts to help you achieve your goals. Click here to open your contacts.
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'calendarintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${calendarButtonPosition.top}px`,
-              left: `${calendarButtonPosition.left}px`,
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-            }}
-          >
-            First, let's connect your calendar so I can help you plan and track your social life.
           </TutorialMessage>
         </>
       );
