@@ -13,7 +13,7 @@ type ArrowPosition = {
   left: number;
 };
 
-type TutorialStep = 'splash' | 'calendarintro' | 'profile' | 'goals' | 'complete';
+type TutorialStep = 'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'profile' | 'goals' | 'complete';
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<TutorialStep>('splash');
@@ -52,7 +52,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   }, []);
 
   useEffect(() => {
-    if (step === 'profile') {
+    if (step === 'profile' || step === 'calendarintro' || step === 'contactsintro' || step === 'profileintro') {
       updateProfileArrowPosition();
     }
   }, [step, updateProfileArrowPosition]);
@@ -125,6 +125,48 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           style={{ maxWidth: '90vw' }}
         >
           First, let's connect your calendar to help me understand your schedule
+        </TutorialMessage>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <button
+            onClick={() => setStep('contactsintro')}
+            className="pointer-events-auto bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'contactsintro') {
+    return (
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        <TutorialMessage
+          className="absolute top-24 left-1/2 -translate-x-1/2"
+          style={{ maxWidth: '90vw' }}
+        >
+          Great! Now, let's import your contacts so I can help you stay in touch
+        </TutorialMessage>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
+          <button
+            onClick={() => setStep('profileintro')}
+            className="pointer-events-auto bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+          >
+            Continue
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'profileintro') {
+    return (
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        <TutorialMessage
+          className="absolute top-24 left-1/2 -translate-x-1/2"
+          style={{ maxWidth: '90vw' }}
+        >
+          Finally, let's set up your profile and goals so I can make better suggestions
         </TutorialMessage>
         {profileArrowPosition && (
           <TutorialArrow
