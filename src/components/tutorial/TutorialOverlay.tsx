@@ -164,7 +164,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
 
     if (step === 'splash') {
-      console.log("[Tutorial] Rendering splash screen");
       const userName = profile?.display_name || 'there';
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[99999]">
@@ -249,38 +248,45 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (step === 'calendarintro') {
       return (
-        <>
+        <div className="fixed inset-0 z-[99999] pointer-events-none">
+          <div className="absolute inset-0 bg-black/50 pointer-events-auto" />
           <TutorialArrow 
             direction="up"
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`
+              left: `${arrowPosition.left}px`,
+              zIndex: 99999,
+              pointerEvents: 'none'
             }}
           />
-          <TutorialMessage 
+          <div
             style={{
               position: 'fixed',
               top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`
+              left: `${messagePosition.left}px`,
+              zIndex: 99999,
+              pointerEvents: 'auto'
             }}
           >
-            <div className="space-y-4">
-              <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
-              <div className="flex gap-2">
-                <Button onClick={() => setStep('contactsintro')}>
-                  Connect Calendar
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setStep('contactsintro')}
-                >
-                  Not Now
-                </Button>
+            <TutorialMessage className="w-[300px]">
+              <div className="space-y-4">
+                <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
+                <div className="flex gap-2">
+                  <Button onClick={() => setStep('contactsintro')}>
+                    Connect Calendar
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setStep('contactsintro')}
+                  >
+                    Not Now
+                  </Button>
+                </div>
               </div>
-            </div>
-          </TutorialMessage>
-        </>
+            </TutorialMessage>
+          </div>
+        </div>
       );
     }
 
