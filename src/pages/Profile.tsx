@@ -130,9 +130,23 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     // Remove the goal at the specified index
     currentGoals.splice(goalIndex, 1);
 
+    // For legacy string goals, convert them to the new format
+    const formattedGoals = currentGoals.map(goal => {
+      if (typeof goal === 'string') {
+        return {
+          type: "Connection",
+          description: goal.toLowerCase(),
+          timeframe: "today",
+          completed: false,
+          created_at: new Date().toISOString()
+        };
+      }
+      return goal;
+    });
+
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: currentGoals })
+      .update({ goals: formattedGoals })
       .eq('id', userData.id);
 
     if (!error) {
