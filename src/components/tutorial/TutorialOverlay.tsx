@@ -27,10 +27,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  console.log("[Tutorial] Current step:", step);
-  console.log("[Tutorial] Profile open:", isProfileOpen);
-  console.log("[Tutorial] Show completion:", showCompletionMessage);
-
   const { data: profile } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
@@ -42,7 +38,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         .single();
       
       if (error) throw error;
-      console.log("[Tutorial] Profile data:", data);
       return data;
     },
     enabled: !!session?.user?.id
@@ -146,12 +141,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   };
 
   const renderTutorialContent = () => {
-    console.log("[Tutorial] Rendering content for step:", step);
-
     if (showCompletionMessage) {
-      console.log("[Tutorial] Showing completion message");
       return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[99999]">
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="text-2xl">
             <TypewriterText
               text="That's it! I'm looking forward to being your Alai."
@@ -166,7 +158,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     if (step === 'splash') {
       const userName = profile?.display_name || 'there';
       return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[99999]">
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="max-w-xl space-y-8 p-8">
             <div className="relative space-y-6">
               <div className="min-h-[4rem]">
@@ -248,45 +240,38 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (step === 'calendarintro') {
       return (
-        <div className="fixed inset-0 z-[99999] pointer-events-none">
-          <div className="absolute inset-0 bg-black/50 pointer-events-auto" />
+        <>
           <TutorialArrow 
             direction="up"
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 99999,
-              pointerEvents: 'none'
+              left: `${arrowPosition.left}px`
             }}
           />
-          <div
+          <TutorialMessage 
             style={{
               position: 'fixed',
               top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 99999,
-              pointerEvents: 'auto'
+              left: `${messagePosition.left}px`
             }}
           >
-            <TutorialMessage className="w-[300px]">
-              <div className="space-y-4">
-                <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
-                <div className="flex gap-2">
-                  <Button onClick={() => setStep('contactsintro')}>
-                    Connect Calendar
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setStep('contactsintro')}
-                  >
-                    Not Now
-                  </Button>
-                </div>
+            <div className="space-y-4">
+              <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
+              <div className="flex gap-2">
+                <Button onClick={() => setStep('contactsintro')}>
+                  Connect Calendar
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setStep('contactsintro')}
+                >
+                  Not Now
+                </Button>
               </div>
-            </TutorialMessage>
-          </div>
-        </div>
+            </div>
+          </TutorialMessage>
+        </>
       );
     }
 
@@ -383,15 +368,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       );
     }
 
-    console.log("[Tutorial] No content rendered for step:", step);
     return null;
   };
 
-  const content = renderTutorialContent();
-  console.log("[Tutorial] Content rendered:", !!content);
-
   return createPortal(
-    content,
+    renderTutorialContent(),
     document.body
   );
 };
