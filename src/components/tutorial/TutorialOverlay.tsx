@@ -249,6 +249,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${calendarButtonPosition.top}px`,
               left: `${calendarButtonPosition.left}px`,
+              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -256,6 +257,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
+              zIndex: 99999
             }}
           >
             <div className="space-y-4">
@@ -288,6 +290,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${contactsButtonPosition.top}px`,
               left: `${contactsButtonPosition.left}px`,
+              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -295,6 +298,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
+              zIndex: 99999
             }}
           >
             <div className="space-y-4">
@@ -327,6 +331,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
+              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -334,6 +339,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
+              zIndex: 99999
             }}
           >
             I've created a profile for you here. Click to take a look.
@@ -347,7 +353,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         <>
           <TutorialMessage 
             className="right-[450px] top-32 max-w-[300px]"
-            style={{ zIndex: 9999 }}
+            style={{ zIndex: 99999 }}
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
@@ -359,7 +365,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 position: 'fixed',
                 top: `${pos.top}px`,
                 left: `${pos.left}px`,
-                zIndex: 9999
+                zIndex: 99999
               }}
             />
           ))}
@@ -376,12 +382,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${closeButtonPosition.top}px`,
               left: `${closeButtonPosition.left}px`,
-              zIndex: 9999
+              zIndex: 99999
             }}
           />
           <TutorialMessage 
             className="right-[450px] top-32 max-w-[300px]"
-            style={{ zIndex: 9999 }}
+            style={{ zIndex: 99999 }}
           >
             Great! Now let's close this and move on.
           </TutorialMessage>
