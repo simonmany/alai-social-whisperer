@@ -38,13 +38,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  // Watch for profile being opened and update step
-  useEffect(() => {
-    if (step === 'profileintro' && isProfileOpen) {
-      setStep('goalset');
-    }
-  }, [isProfileOpen, step]);
-
   const { data: profile } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
@@ -61,6 +54,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     enabled: !!session?.user?.id
   });
 
+  // Watch for profile being opened and update step
+  useEffect(() => {
+    if (step === 'profileintro' && isProfileOpen) {
+      setStep('goalset');
+    }
+  }, [isProfileOpen, step]);
+
   // Watch for goals being set
   useEffect(() => {
     if (step === 'goalset' && profile?.goals) {
@@ -68,13 +68,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (Array.isArray(goalsArray) && goalsArray.length > 0) {
         // Update the onboarding step in the database
         if (session?.user?.id) {
-          supabase
-            .from('profiles')
-            .update({ onboarding_step: 'complete' })
-            .eq('id', session.user.id)
-            .then(() => {
-              handleTutorialComplete();
-            });
+          handleTutorialComplete();
         }
       }
     }
@@ -82,72 +76,86 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   // Update positions based on step
   useEffect(() => {
-    if (step === 'calendarintro') {
-      const calendarButton = document.querySelector('[data-calendar-button]');
-      if (calendarButton) {
-        const rect = calendarButton.getBoundingClientRect();
-        setCalendarButtonPosition({ 
-          top: rect.top + window.scrollY - 40,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + window.scrollY + 20,
-          left: rect.left
-        });
+    const updatePositions = () => {
+      if (step === 'calendarintro') {
+        const calendarButton = document.querySelector('[data-calendar-button]');
+        if (calendarButton) {
+          const rect = calendarButton.getBoundingClientRect();
+          setCalendarButtonPosition({ 
+            top: rect.top + window.scrollY - 40,
+            left: rect.left + rect.width / 2 - 20
+          });
+          setMessagePosition({
+            top: rect.bottom + window.scrollY + 20,
+            left: rect.left
+          });
+        }
+      } else if (step === 'contactsintro') {
+        const contactsButton = document.querySelector('[data-contacts-button]');
+        if (contactsButton) {
+          const rect = contactsButton.getBoundingClientRect();
+          setContactsButtonPosition({ 
+            top: rect.top + window.scrollY - 40,
+            left: rect.left + rect.width / 2 - 20
+          });
+          setMessagePosition({
+            top: rect.bottom + window.scrollY + 20,
+            left: rect.left
+          });
+        }
+      } else if (step === 'profileintro') {
+        const profileButton = document.querySelector('[data-profile-button]');
+        if (profileButton) {
+          const rect = profileButton.getBoundingClientRect();
+          setArrowPosition({ 
+            top: rect.top + window.scrollY - 40,
+            left: rect.left + rect.width / 2 - 20
+          });
+          setMessagePosition({
+            top: rect.bottom + window.scrollY + 20,
+            left: rect.left
+          });
+        }
       }
-    } else if (step === 'contactsintro') {
-      const contactsButton = document.querySelector('[data-contacts-button]');
-      if (contactsButton) {
-        const rect = contactsButton.getBoundingClientRect();
-        setContactsButtonPosition({ 
-          top: rect.top + window.scrollY - 40,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + window.scrollY + 20,
-          left: rect.left
-        });
-      }
-    } else if (step === 'profileintro') {
-      const profileButton = document.querySelector('[data-profile-button]');
-      if (profileButton) {
-        const rect = profileButton.getBoundingClientRect();
-        setArrowPosition({ 
-          top: rect.top + window.scrollY - 40,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + window.scrollY + 20,
-          left: rect.left
-        });
-      }
-    }
+    };
+
+    // Initial update
+    updatePositions();
+
+    // Add resize listener
+    window.addEventListener('resize', updatePositions);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', updatePositions);
+    };
   }, [step]);
 
   const handleTutorialComplete = async () => {
     if (!session?.user.id) return;
-    
+
     try {
-      const { error } = await supabase
+      await supabase
         .from('profiles')
         .update({ 
           onboarding_step: 'complete',
-          has_completed_tutorial: true 
+          has_completed_tutorial: true
         })
         .eq('id', session.user.id);
 
-      if (error) {
-        console.error('Error completing tutorial:', error);
-        return;
-      }
-
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       setShowCompletionMessage(true);
       setTimeout(() => {
         setShowCompletionMessage(false);
         onComplete();
       }, 3000);
-    } catch (error) {
-      console.error('Error in handleTutorialComplete:', error);
+    } catch (error: any) {
+      console.error('Error completing tutorial:', error);
+      toast({
+        title: "Error completing tutorial",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
