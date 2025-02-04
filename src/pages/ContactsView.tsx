@@ -19,6 +19,9 @@ interface Contact {
   name: string;
   email: string | null;
   closeness: number;
+  phone?: string;
+  meeting_story?: string;
+  relationship?: string;
 }
 
 interface Group {
@@ -30,6 +33,20 @@ interface Group {
 interface GroupMembership {
   contact_id: string;
   group_id: string;
+}
+
+interface ContactDrawerContent {
+  lastHangout?: {
+    image?: string;
+    description: string;
+    date?: string;
+  };
+  knownSince?: string;
+  highlights?: Array<{
+    image: string;
+    caption: string;
+  }>;
+  description?: string;
 }
 
 // Utility function to get initials from a name
@@ -241,6 +258,76 @@ const ContactsView = () => {
     return groupContacts;
   };
 
+  const renderContactDrawerContent = (contact: Contact) => (
+    <DrawerContent className="bg-black/90 border-purple-500/50 h-[100vh] overflow-y-auto">
+      <div className="p-6 space-y-8">
+        <div className="flex items-start space-x-6">
+          <Avatar className="h-24 w-24 bg-purple-900/50 border-2 border-purple-500/50">
+            <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+          </Avatar>
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold text-white">{contact.name}</h2>
+            {contact.phone && (
+              <p className="text-purple-300">{contact.phone}</p>
+            )}
+            {contact.email && (
+              <p className="text-purple-300">{contact.email}</p>
+            )}
+            <p className="text-sm text-purple-400">
+              Orbit Distance: {((1 - (contact.closeness || 0)) * 100).toFixed(0)}%
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-white">Groups</h3>
+          <ContactGroupsManager contactId={contact.id} className="text-white" />
+        </div>
+
+        <div className="space-y-4">
+          <h3 className="text-xl font-semibold text-white">
+            You and {contact.name.split(' ')[0]}
+          </h3>
+          
+          <div className="bg-purple-900/20 rounded-lg p-4 space-y-4">
+            <div className="space-y-2">
+              <h4 className="text-lg font-medium text-white">Last Hangout</h4>
+              <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
+                <p className="text-purple-300 text-sm">Add a photo</p>
+              </div>
+              <p className="text-purple-200 text-sm">
+                {contact.meeting_story || "Add a quick note about your last hangout"}
+              </p>
+            </div>
+
+            {contact.relationship && (
+              <div>
+                <h4 className="text-lg font-medium text-white mb-2">Known Since</h4>
+                <p className="text-purple-200">{contact.relationship}</p>
+              </div>
+            )}
+
+            <div>
+              <h4 className="text-lg font-medium text-white mb-4">Highlights of your friendship</h4>
+              <div className="relative">
+                <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
+                  <p className="text-purple-300 text-sm">Add photos to your friendship timeline</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-lg font-medium text-white mb-2">Your Story</h4>
+              <p className="text-purple-200">
+                {contact.meeting_story || "Add a description of how you met and your journey together"}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </DrawerContent>
+  );
+
   const renderContactAvatar = (contact: Contact, x: number, y: number, isAnimating: boolean = false) => (
     <Drawer key={contact.id}>
       <DrawerTrigger asChild>
@@ -268,25 +355,7 @@ const ContactsView = () => {
           </div>
         </button>
       </DrawerTrigger>
-      <DrawerContent className="bg-black/90 border-purple-500/50">
-        <div className="p-4 space-y-4">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
-              <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
-              {contact.email && (
-                <p className="text-purple-300">{contact.email}</p>
-              )}
-              <p className="text-sm text-purple-400 mt-2">
-                Orbit Distance: {((1 - contact.closeness) * 100).toFixed(0)}%
-              </p>
-            </div>
-          </div>
-          <ContactGroupsManager contactId={contact.id} />
-        </div>
-      </DrawerContent>
+      {renderContactDrawerContent(contact)}
     </Drawer>
   );
 
@@ -353,27 +422,7 @@ const ContactsView = () => {
                             </Avatar>
                           </button>
                         </DrawerTrigger>
-                        <DrawerContent className="bg-black/90 border-purple-500/50">
-                          <div className="p-4 space-y-4">
-                            <div className="flex items-center space-x-4">
-                              <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
-                                <AvatarFallback>
-                                  {getInitials(contact.name)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
-                                {contact.email && (
-                                  <p className="text-purple-300">{contact.email}</p>
-                                )}
-                                <p className="text-sm text-purple-400 mt-2">
-                                  Orbit Distance: {((1 - contact.closeness) * 100).toFixed(0)}%
-                                </p>
-                              </div>
-                            </div>
-                            <ContactGroupsManager contactId={contact.id} />
-                          </div>
-                        </DrawerContent>
+                        {renderContactDrawerContent(contact)}
                       </Drawer>
                     );
                   })}
