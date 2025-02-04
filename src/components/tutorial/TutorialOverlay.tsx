@@ -8,7 +8,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TypewriterText } from "@/components/TypewriterText";
-import { Goal } from "@/types/goals";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -19,6 +18,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'goalset' | 'goals' | 'complete'>('splash');
   const [arrowPosition, setArrowPosition] = useState({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState({ top: 0, left: 0 });
+  const [goalArrowPositions, setGoalArrowPositions] = useState<{ top: number; left: number }[]>([]);
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
@@ -27,22 +27,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: profile } = useQuery({
-    queryKey: ['profile', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('onboarding_step, has_completed_tutorial, goals, display_name')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!session?.user?.id
-  });
-
   // Watch for profile being opened and update step
   useEffect(() => {
     if (step === 'profileintro' && isProfileOpen) {
@@ -50,18 +34,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       setStep('goalset');
     }
   }, [isProfileOpen, step]);
-
-  // Watch for goals being set
-  useEffect(() => {
-    if (step === 'goalset' && profile?.goals) {
-      const goalsArray = profile.goals as Goal[];
-      if (Array.isArray(goalsArray) && goalsArray.length > 0) {
-        if (session?.user?.id) {
-          handleTutorialComplete();
-        }
-      }
-    }
-  }, [profile?.goals, step, session?.user?.id]);
 
   // Update positions based on step
   useEffect(() => {
@@ -105,6 +77,20 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             left: rect.left - 200
           });
         }
+      } else if (step === 'goalset') {
+        // Find all "Goal Missing" buttons
+        const goalButtons = document.querySelectorAll('.alert-destructive');
+        const positions: { top: number; left: number }[] = [];
+        
+        goalButtons.forEach((button) => {
+          const rect = button.getBoundingClientRect();
+          positions.push({
+            top: rect.top + rect.height / 2,
+            left: rect.left - 40 // Position arrow to the left of the button
+          });
+        });
+        
+        setGoalArrowPositions(positions);
       }
     };
 
@@ -362,9 +348,23 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (step === 'goalset') {
       return (
-        <TutorialMessage className="right-[450px] top-32 max-w-[300px]">
-          Let's start by setting some goals. What would you like to achieve?
-        </TutorialMessage>
+        <>
+          {goalArrowPositions.map((position, index) => (
+            <TutorialArrow
+              key={index}
+              direction="right"
+              style={{
+                position: 'fixed',
+                top: `${position.top}px`,
+                left: `${position.left}px`,
+                zIndex: 50
+              }}
+            />
+          ))}
+          <TutorialMessage className="fixed right-[450px] top-32 max-w-[300px]">
+            Let's start by setting some goals. What would you like to achieve?
+          </TutorialMessage>
+        </>
       );
     }
 
