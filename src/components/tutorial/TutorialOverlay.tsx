@@ -249,6 +249,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
+              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -256,6 +257,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
+              zIndex: 99999
             }}
           >
             <div className="space-y-4">
@@ -286,6 +288,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
+              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -293,6 +296,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
+              zIndex: 99999
             }}
           >
             <div className="space-y-4">
@@ -323,6 +327,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
+              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -330,6 +335,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
+              zIndex: 99999
             }}
           >
             I've created a profile for you here. Click to take a look.
@@ -360,6 +366,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
+              zIndex: 99999
             }}
           />
           <TutorialMessage 
