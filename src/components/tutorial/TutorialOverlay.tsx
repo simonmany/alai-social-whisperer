@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TypewriterText } from "@/components/TypewriterText";
+import { Goal } from "@/types/goals";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -62,16 +63,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   // Watch for goals being set
   useEffect(() => {
-    if (step === 'goalset' && profile?.goals && profile.goals.length > 0) {
-      // Update the onboarding step in the database
-      if (session?.user?.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'complete' })
-          .eq('id', session.user.id)
-          .then(() => {
-            handleTutorialComplete();
-          });
+    if (step === 'goalset' && profile?.goals) {
+      const goalsArray = profile.goals as Goal[];
+      if (Array.isArray(goalsArray) && goalsArray.length > 0) {
+        // Update the onboarding step in the database
+        if (session?.user?.id) {
+          supabase
+            .from('profiles')
+            .update({ onboarding_step: 'complete' })
+            .eq('id', session.user.id)
+            .then(() => {
+              handleTutorialComplete();
+            });
+        }
       }
     }
   }, [profile?.goals, step, session?.user?.id]);
