@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
+import { InterestsCard } from "@/components/profile/InterestsCard";
 
 interface ProfileProps {
   open: boolean;
@@ -375,6 +376,16 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                   </AlertDescription>
                 </Alert>
               )}
+
+              {/* Interests Section */}
+              <InterestsCard
+                currentInterests={profileData?.current_interests as string[]}
+                desiredInterests={profileData?.desired_interests as string[]}
+                foodPreferences={profileData?.food_preferences as string[]}
+                desiredFoodPreferences={profileData?.desired_food_preferences as string[]}
+                musicPreferences={profileData?.music_preferences as string[]}
+                desiredMusicPreferences={profileData?.desired_music_preferences as string[]}
+              />
 
               {/* Goals Section */}
               <Card>
