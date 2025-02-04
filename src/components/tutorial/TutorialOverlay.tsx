@@ -65,82 +65,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   };
 
-  const updateProfileArrowPosition = useCallback(() => {
-    const button = document.querySelector('[data-testid="profile-button"]');
-    if (button) {
-      const rect = button.getBoundingClientRect();
-      setProfileArrowPosition({
-        top: rect.top + rect.height / 2,
-        left: rect.left - 40  // Position arrow to the left of the button
-      });
-    }
-  }, []);
-
-  const updateGoalArrowPositions = useCallback(() => {
-    const buttons = document.querySelectorAll('[data-testid="goal-button"]');
-    const positions = Array.from(buttons).map(button => {
-      const rect = button.getBoundingClientRect();
-      return {
-        top: rect.top + rect.height / 2,
-        left: rect.left - 40  // Position arrow to the left of the button
-      };
-    });
-    setGoalArrowPositions(positions);
-  }, []);
-
-  // Check if user has set any goals
-  useEffect(() => {
-    if (step === 'goals' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
-      setStep('complete');
-      updateOnboardingStep('complete');
-    }
-  }, [step, profile?.goals]);
-
-  useEffect(() => {
-    if (profile?.onboarding_step) {
-      setStep(profile.onboarding_step as any);
-    }
-  }, [profile?.onboarding_step]);
-
-  useEffect(() => {
-    if (step === 'profile') {
-      updateProfileArrowPosition();
-    }
-  }, [step, updateProfileArrowPosition]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      if (step === 'profile') {
-        updateProfileArrowPosition();
-      } else if (step === 'goals' && isProfileOpen) {
-        updateGoalArrowPositions();
-      }
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [step, isProfileOpen, updateProfileArrowPosition, updateGoalArrowPositions]);
-
-  useEffect(() => {
-    if (step === 'goals' && isProfileOpen) {
-      updateGoalArrowPositions();
-    }
-  }, [step, isProfileOpen, updateGoalArrowPositions]);
-
-  const handleSplashComplete = () => {
-    setSplashMessagePlayed(true);
-    updateOnboardingStep('profile');
-    setStep('profile');
-  };
-
-  const handleProfileMessageComplete = () => {
-    setProfileMessagePlayed(true);
-  };
-
-  const handleGoalsMessageComplete = () => {
-    setGoalsMessagePlayed(true);
-  };
-
   const handleComplete = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -167,10 +91,87 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   };
 
+  const updateProfileArrowPosition = useCallback(() => {
+    const button = document.querySelector('[data-testid="profile-button"]');
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      setProfileArrowPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.left - 40  // Position arrow to the left of the button
+      });
+    }
+  }, []);
+
+  const updateGoalArrowPositions = useCallback(() => {
+    const buttons = document.querySelectorAll('[data-testid="goal-button"]');
+    const positions = Array.from(buttons).map(button => {
+      const rect = button.getBoundingClientRect();
+      return {
+        top: rect.top + rect.height / 2,
+        left: rect.left - 40  // Position arrow to the left of the button
+      };
+    });
+    setGoalArrowPositions(positions);
+  }, []);
+
+  useEffect(() => {
+    if (profile?.onboarding_step) {
+      setStep(profile.onboarding_step as any);
+    }
+  }, [profile?.onboarding_step]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (step === 'profile') {
+        updateProfileArrowPosition();
+      } else if (step === 'goals' && isProfileOpen) {
+        updateGoalArrowPositions();
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [step, isProfileOpen, updateProfileArrowPosition, updateGoalArrowPositions]);
+
+  useEffect(() => {
+    if (step === 'profile') {
+      updateProfileArrowPosition();
+    }
+  }, [step, updateProfileArrowPosition]);
+
+  useEffect(() => {
+    if (step === 'goals' && isProfileOpen) {
+      updateGoalArrowPositions();
+    }
+  }, [step, isProfileOpen, updateGoalArrowPositions]);
+
+  // Check if user has set any goals
+  useEffect(() => {
+    if (step === 'goals' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
+      handleComplete();
+    }
+  }, [step, profile?.goals]);
+
+  const handleSplashComplete = () => {
+    setSplashMessagePlayed(true);
+    updateOnboardingStep('profile');
+    setStep('profile');
+  };
+
+  const handleProfileMessageComplete = () => {
+    setProfileMessagePlayed(true);
+  };
+
+  const handleGoalsMessageComplete = () => {
+    setGoalsMessagePlayed(true);
+  };
+
   if (step === 'splash') {
     return (
-      <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
-        <TutorialMessage className="max-w-sm">
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        <TutorialMessage
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        >
           <div className="space-y-4">
             <p>Hi! I'm Al, your social life assistant.</p>
             <p>Let me show you around!</p>
@@ -228,23 +229,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             />
           ))}
         </>
-      )}
-
-      {step === 'complete' && (
-        <TutorialMessage
-          className="absolute top-24 left-1/2 -translate-x-1/2"
-          style={{ maxWidth: '90vw' }}
-        >
-          <div className="space-y-4">
-            <p>That's it! You're all set to start using the app.</p>
-            <button
-              onClick={handleComplete}
-              className="pointer-events-auto bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Start Using App
-            </button>
-          </div>
-        </TutorialMessage>
       )}
     </div>
   );
