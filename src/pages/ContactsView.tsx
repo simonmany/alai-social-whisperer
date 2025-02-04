@@ -287,81 +287,95 @@ const ContactsView = () => {
           />
         </div>
 
-        {/* Inner orbit contacts */}
-        {innerOrbitContacts.map((contact, index) => {
-          const angle = (index * 2 * Math.PI) / innerOrbitContacts.length;
-          const radius = 120;
-          const x = Math.cos(angle) * radius;
-          const y = Math.sin(angle) * radius;
-          return renderContactAvatar(contact, x, y);
-        })}
+        {selectedGroup === "Home" ? (
+          <>
+            {/* Inner orbit contacts */}
+            {innerOrbitContacts.map((contact, index) => {
+              const angle = (index * 2 * Math.PI) / innerOrbitContacts.length;
+              const radius = 120;
+              const x = Math.cos(angle) * radius;
+              const y = Math.sin(angle) * radius;
+              return renderContactAvatar(contact, x, y);
+            })}
 
-        {/* Group clusters */}
-        {userGroups.map((group, groupIndex) => {
-          const groupContacts = getContactsForGroup(group.name);
-          const groupAngle = (groupIndex * 2 * Math.PI) / userGroups.length;
-          const groupRadius = 280;
-          const groupX = Math.cos(groupAngle) * groupRadius;
-          const groupY = Math.sin(groupAngle) * groupRadius;
+            {/* Group clusters */}
+            {userGroups.map((group, groupIndex) => {
+              const groupContacts = getContactsForGroup(group.name);
+              const groupAngle = (groupIndex * 2 * Math.PI) / userGroups.length;
+              const groupRadius = 280;
+              const groupX = Math.cos(groupAngle) * groupRadius;
+              const groupY = Math.sin(groupAngle) * groupRadius;
 
-          return (
-            <div
-              key={group.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2"
-              style={{
-                left: `calc(50% + ${groupX}px)`,
-                top: `calc(50% + ${groupY}px)`,
-              }}
-            >
-              <div className="relative">
-                <Badge
-                  variant="outline"
-                  className="absolute -top-8 left-1/2 transform -translate-x-1/2 cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100"
-                  onClick={() => setSelectedGroup(group.name)}
+              return (
+                <div
+                  key={group.id}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `calc(50% + ${groupX}px)`,
+                    top: `calc(50% + ${groupY}px)`,
+                  }}
                 >
-                  {group.emoji} {group.name}
-                </Badge>
-                <div className="relative grid grid-cols-2 gap-2">
-                  {groupContacts.slice(0, 4).map((contact, contactIndex) => {
-                    const size = contactIndex === 0 ? 'h-12 w-12' : 'h-8 w-8';
-                    return (
-                      <Drawer key={contact.id}>
-                        <DrawerTrigger asChild>
-                          <button className="transform hover:scale-110 transition-transform">
-                            <Avatar className={`${size} bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400`}>
-                              <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
-                            </Avatar>
-                          </button>
-                        </DrawerTrigger>
-                        <DrawerContent className="bg-black/90 border-purple-500/50">
-                          <div className="p-4 space-y-4">
-                            <div className="flex items-center space-x-4">
-                              <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
-                                <AvatarFallback>
-                                  {getInitials(contact.name)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
-                                {contact.email && (
-                                  <p className="text-purple-300">{contact.email}</p>
-                                )}
-                                <p className="text-sm text-purple-400 mt-2">
-                                  Orbit Distance: {((1 - contact.closeness) * 100).toFixed(0)}%
-                                </p>
+                  <div className="relative">
+                    <Badge
+                      variant="outline"
+                      className="absolute -top-8 left-1/2 transform -translate-x-1/2 cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100"
+                      onClick={() => setSelectedGroup(group.name)}
+                    >
+                      {group.emoji} {group.name}
+                    </Badge>
+                    <div className="relative grid grid-cols-2 gap-2">
+                      {groupContacts.slice(0, 4).map((contact, contactIndex) => {
+                        const size = contactIndex === 0 ? 'h-12 w-12' : 'h-8 w-8';
+                        return (
+                          <Drawer key={contact.id}>
+                            <DrawerTrigger asChild>
+                              <button className="transform hover:scale-110 transition-transform">
+                                <Avatar className={`${size} bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400`}>
+                                  <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+                                </Avatar>
+                              </button>
+                            </DrawerTrigger>
+                            <DrawerContent className="bg-black/90 border-purple-500/50">
+                              <div className="p-4 space-y-4">
+                                <div className="flex items-center space-x-4">
+                                  <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
+                                    <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
+                                    {contact.email && (
+                                      <p className="text-purple-300">{contact.email}</p>
+                                    )}
+                                    <p className="text-sm text-purple-400 mt-2">
+                                      Orbit Distance: {((1 - contact.closeness) * 100).toFixed(0)}%
+                                    </p>
+                                  </div>
+                                </div>
+                                <ContactGroupsManager contactId={contact.id} />
                               </div>
-                            </div>
-                            <ContactGroupsManager contactId={contact.id} />
-                          </div>
-                        </DrawerContent>
-                      </Drawer>
-                    );
-                  })}
+                            </DrawerContent>
+                          </Drawer>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </>
+        ) : (
+          // Display only the selected group's contacts in a circle
+          <>
+            {getContactsForGroup(selectedGroup).map((contact, index) => {
+              const totalContacts = getContactsForGroup(selectedGroup).length;
+              const angle = (index * 2 * Math.PI) / totalContacts;
+              const radius = 140; // Consistent radius for group view
+              const x = Math.cos(angle) * radius;
+              const y = Math.sin(angle) * radius;
+              return renderContactAvatar(contact, x, y, true);
+            })}
+          </>
+        )}
       </div>
     );
   };
