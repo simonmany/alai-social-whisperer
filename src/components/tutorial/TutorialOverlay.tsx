@@ -71,6 +71,25 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [isProfileOpen, profile?.onboarding_step, session?.user?.id, queryClient]);
 
+  // Add effect to watch for goals changes
+  useEffect(() => {
+    if (profile?.onboarding_step === 'goalset' && profile.goals?.length > 0) {
+      // Check if there's at least one goal with timeframe
+      const hasTimeframeGoal = profile.goals.some(goal => 
+        typeof goal === 'object' && 'timeframe' in goal
+      );
+
+      if (hasTimeframeGoal) {
+        handleStepChange('complete');
+        setShowCompletionMessage(true);
+        setTimeout(() => {
+          setShowCompletionMessage(false);
+          onComplete();
+        }, 3000);
+      }
+    }
+  }, [profile?.goals, profile?.onboarding_step]);
+
   const updatePositions = () => {
     if (profile?.onboarding_step === 'calendarintro') {
       const calendarButton = document.querySelector('[aria-label="Open calendar"]');
@@ -156,7 +175,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ onboarding_step: newStep })
+        .update({ 
+          onboarding_step: newStep,
+          ...(newStep === 'complete' ? { has_completed_tutorial: true } : {})
+        })
         .eq('id', session.user.id);
 
       if (error) {
