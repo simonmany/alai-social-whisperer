@@ -10,7 +10,7 @@ export const TutorialMessage = ({ children, className, style }: TutorialMessageP
   return (
     <div 
       className={cn(
-        "bg-[#0F172A] text-white p-6 rounded-lg shadow-lg max-w-sm animate-fade-in pointer-events-auto z-[9999]",
+        "fixed bg-primary text-primary-foreground p-4 rounded-lg shadow-lg max-w-sm animate-fade-in pointer-events-auto z-[9999]",
         className
       )}
       style={style}

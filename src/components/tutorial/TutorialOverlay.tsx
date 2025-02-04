@@ -17,6 +17,7 @@ interface TutorialOverlayProps {
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'goalset' | 'goals' | 'complete'>('splash');
+  const [arrowPosition, setArrowPosition] = useState({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState({ top: 0, left: 0 });
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
@@ -47,12 +48,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     enabled: !!session?.user?.id
   });
 
+  // Watch for profile being opened and update step
   useEffect(() => {
     if (step === 'profileintro' && isProfileOpen) {
       setStep('goalset');
     }
   }, [isProfileOpen, step]);
 
+  // Watch for goals being set
   useEffect(() => {
     if (step === 'goalset' && profile?.goals) {
       const goalsArray = profile.goals as Goal[];
@@ -64,12 +67,17 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [profile?.goals, step, session?.user?.id]);
 
+  // Update positions based on step
   useEffect(() => {
     const updatePositions = () => {
       if (step === 'calendarintro') {
         const calendarButton = document.querySelector('[aria-label="Open calendar"]');
         if (calendarButton) {
           const rect = calendarButton.getBoundingClientRect();
+          setArrowPosition({ 
+            top: rect.bottom + 10,
+            left: rect.left + rect.width / 2 - 20
+          });
           setMessagePosition({
             top: rect.bottom + window.scrollY + 20,
             left: rect.left - 100
@@ -79,6 +87,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         const contactsButton = document.querySelector('[aria-label="Open contacts"]');
         if (contactsButton) {
           const rect = contactsButton.getBoundingClientRect();
+          setArrowPosition({ 
+            top: rect.bottom + 10,
+            left: rect.left + rect.width / 2 - 20
+          });
           setMessagePosition({
             top: rect.bottom + window.scrollY + 20,
             left: rect.left - 100
@@ -88,6 +100,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         const profileButton = document.querySelector('[aria-label="Open profile"]');
         if (profileButton) {
           const rect = profileButton.getBoundingClientRect();
+          setArrowPosition({ 
+            top: rect.bottom + 10,
+            left: rect.left + rect.width / 2 - 20
+          });
           setMessagePosition({
             top: rect.bottom + window.scrollY + 20,
             left: rect.left - 200
@@ -201,7 +217,24 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             
             {hasPlayedLine3 && (
               <Button 
-                onClick={() => setStep('calendarintro')}
+                onClick={() => {
+                  if (session?.user?.id) {
+                    supabase
+                      .from('profiles')
+                      .update({ 
+                        onboarding_step: 'calendarintro',
+                        has_completed_tutorial: false
+                      })
+                      .eq('id', session.user.id)
+                      .then(({ error }) => {
+                        if (error) console.error('Error updating onboarding step:', error);
+                        else {
+                          setStep('calendarintro');
+                          queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+                        }
+                      });
+                  }
+                }}
                 size="lg"
                 className="w-full animate-fade-in"
               >
@@ -215,33 +248,45 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (step === 'calendarintro') {
       return (
-        <TutorialMessage 
-          style={{
-            position: 'fixed',
-            top: `${messagePosition.top}px`,
-            left: `${messagePosition.left}px`
-          }}
-          className="w-[300px]"
-        >
-          <div className="space-y-4">
-            <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setStep('contactsintro')}
-                className="bg-white text-[#0F172A] hover:bg-white/90"
-              >
-                Connect Calendar
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => setStep('contactsintro')}
-                className="border-white text-white hover:bg-white/10"
-              >
-                Not Now
-              </Button>
-            </div>
+        <div className="fixed inset-0 z-[99999] pointer-events-none">
+          <div className="absolute inset-0 bg-black/50 pointer-events-auto" />
+          <TutorialArrow 
+            direction="up"
+            style={{
+              position: 'fixed',
+              top: `${arrowPosition.top}px`,
+              left: `${arrowPosition.left}px`,
+              zIndex: 99999,
+              pointerEvents: 'none'
+            }}
+          />
+          <div
+            style={{
+              position: 'fixed',
+              top: `${messagePosition.top}px`,
+              left: `${messagePosition.left}px`,
+              zIndex: 99999,
+              pointerEvents: 'auto'
+            }}
+          >
+            <TutorialMessage className="w-[300px]">
+              <div className="space-y-4">
+                <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
+                <div className="flex gap-2">
+                  <Button onClick={() => setStep('contactsintro')}>
+                    Connect Calendar
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setStep('contactsintro')}
+                  >
+                    Not Now
+                  </Button>
+                </div>
+              </div>
+            </TutorialMessage>
           </div>
-        </TutorialMessage>
+        </div>
       );
     }
 
@@ -252,8 +297,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             direction="up"
             style={{
               position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`
+              top: `${arrowPosition.top}px`,
+              left: `${arrowPosition.left}px`
             }}
           />
           <TutorialMessage 
@@ -289,8 +334,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             direction="up"
             style={{
               position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`
+              top: `${arrowPosition.top}px`,
+              left: `${arrowPosition.left}px`
             }}
           />
           <TutorialMessage 
@@ -325,8 +370,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             direction="left"
             style={{
               position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`
+              top: `${arrowPosition.top}px`,
+              left: `${arrowPosition.left}px`
             }}
           />
           <TutorialMessage 
