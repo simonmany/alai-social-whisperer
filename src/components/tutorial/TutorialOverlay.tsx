@@ -255,7 +255,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 50
+              zIndex: 50,
+              backgroundColor: 'hsl(var(--primary))',
+              color: 'hsl(var(--primary-foreground))',
+              padding: '1rem',
+              borderRadius: '0.5rem',
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
             }}
           >
             <div className="space-y-4">
