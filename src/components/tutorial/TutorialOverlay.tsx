@@ -94,16 +94,18 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         <div className="max-w-2xl w-full mx-4 space-y-8 text-left font-cormorant">
           {screens.map((text, index) => (
             index <= currentScreen && (
-              <div key={index} className={`text-lg ${index === 0 ? 'text-4xl font-medium mb-8' : 'text-xl'}`}>
+              <div key={index}>
                 {completedScreens.includes(index) ? (
-                  <div>{text}</div>
+                  <div className={index === 0 ? "text-4xl font-medium mb-8" : "text-xl"}>
+                    {text}
+                  </div>
                 ) : (
                   <TypewriterText
                     text={text}
                     onComplete={() => handleScreenComplete(index)}
                     delay={250}
                     typingSpeed={25}
-                    className="text-left"
+                    className={`text-left ${index === 0 ? "text-4xl font-medium mb-8" : "text-xl"}`}
                   />
                 )}
               </div>
