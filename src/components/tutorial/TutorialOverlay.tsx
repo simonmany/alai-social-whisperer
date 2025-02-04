@@ -27,7 +27,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
@@ -144,6 +144,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   };
 
   const renderTutorialContent = () => {
+    if (isProfileLoading) {
+      return null; // Don't render anything while loading
+    }
+
     if (showCompletionMessage) {
       return (
         <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
