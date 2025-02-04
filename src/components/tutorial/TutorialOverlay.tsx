@@ -26,6 +26,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // State for splash screen message sequence
+  const [hasPlayedGreeting, setHasPlayedGreeting] = useState(false);
+  const [showJourneyMessage, setShowJourneyMessage] = useState(false);
+  const [hasPlayedJourneyMessage, setHasPlayedJourneyMessage] = useState(false);
+  const [showFinalPrompt, setShowFinalPrompt] = useState(false);
+
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: async () => {
@@ -177,33 +183,40 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             className="text-4xl font-medium"
             delay={500}
             onComplete={() => {
-              setTimeout(() => {
-                document.getElementById('second-message')?.classList.remove('opacity-0');
-              }, 500);
+              if (!hasPlayedGreeting) {
+                setHasPlayedGreeting(true);
+                setTimeout(() => setShowJourneyMessage(true), 500);
+              }
             }}
           />
-          <div id="second-message" className="space-y-8 opacity-0 transition-opacity duration-500">
-            <TypewriterText 
-              text="I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable."
-              className="text-2xl"
-              delay={0}
-              onComplete={() => {
-                setTimeout(() => {
-                  document.getElementById('get-started')?.classList.remove('opacity-0');
-                }, 500);
-              }}
-            />
-            <div className="space-y-4">
-              <p className="text-2xl">Ready to get started?</p>
-              <button
-                id="get-started"
-                onClick={handleSplashComplete}
-                className="pointer-events-auto w-full bg-primary text-primary-foreground p-4 rounded-lg hover:bg-primary/90 transition-colors text-xl opacity-0 transition-opacity duration-500"
-              >
-                Let's go!
-              </button>
+          
+          {showJourneyMessage && (
+            <div className="space-y-8">
+              <TypewriterText 
+                text="I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable."
+                className="text-2xl"
+                delay={0}
+                onComplete={() => {
+                  if (!hasPlayedJourneyMessage) {
+                    setHasPlayedJourneyMessage(true);
+                    setTimeout(() => setShowFinalPrompt(true), 500);
+                  }
+                }}
+              />
+              
+              {showFinalPrompt && (
+                <div className="space-y-4">
+                  <p className="text-2xl">Ready to get started?</p>
+                  <button
+                    onClick={handleSplashComplete}
+                    className="pointer-events-auto w-full bg-primary text-primary-foreground p-4 rounded-lg hover:bg-primary/90 transition-colors text-xl animate-fade-in"
+                  >
+                    Let's go!
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
     );
