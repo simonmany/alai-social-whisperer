@@ -288,8 +288,10 @@ export type Database = {
           goals: Json | null
           google_access_token: string | null
           google_refresh_token: string | null
+          google_token_expired: boolean
           google_token_expires_at: string | null
           has_completed_tutorial: boolean | null
+          has_google_calendar: boolean
           id: string
           languages: Json | null
           music_preferences: Json | null
@@ -315,8 +317,10 @@ export type Database = {
           goals?: Json | null
           google_access_token?: string | null
           google_refresh_token?: string | null
+          google_token_expired?: boolean
           google_token_expires_at?: string | null
           has_completed_tutorial?: boolean | null
+          has_google_calendar?: boolean
           id: string
           languages?: Json | null
           music_preferences?: Json | null
@@ -342,8 +346,10 @@ export type Database = {
           goals?: Json | null
           google_access_token?: string | null
           google_refresh_token?: string | null
+          google_token_expired?: boolean
           google_token_expires_at?: string | null
           has_completed_tutorial?: boolean | null
+          has_google_calendar?: boolean
           id?: string
           languages?: Json | null
           music_preferences?: Json | null

@@ -17,7 +17,6 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
-import { ContactCard } from "@/components/ContactCard";
 
 interface Message {
   content: string;
@@ -47,7 +46,6 @@ const Index = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
-  const [hideButtons, setHideButtons] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -65,28 +63,29 @@ const Index = () => {
           .from('profiles')
           .update({ 
             onboarding_completed: true,
-            onboarding_step: 'initial',
+            onboarding_step: 'splash',
             has_completed_tutorial: false
           })
           .eq('id', session.user.id);
 
         setShowOnboarding(false);
         setTutorialComplete(false);
-        setHideButtons(false);
-        setShowProfileButton(true);
+        setShowProfileButton(false); // Hide profile button during splash
       } else {
         // Just restart the tutorial
         await supabase
           .from('profiles')
           .update({ 
-            onboarding_step: 'initial',
+            onboarding_step: 'splash',
             has_completed_tutorial: false
           })
           .eq('id', session.user.id);
 
         setTutorialComplete(false);
-        setShowProfileButton(true);
+        setShowProfileButton(false); // Hide profile button during splash
       }
+      
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
       toast({
         title: "Tutorial started",
@@ -117,7 +116,7 @@ const Index = () => {
 
       setShowOnboarding(false);
       setTutorialComplete(true);
-      setHideButtons(false);
+      setShowProfileButton(false);
       
       toast({
         title: "Onboarding skipped",
@@ -193,9 +192,8 @@ const Index = () => {
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
         
-        if (data.onboarding_step !== 'initial') {
-          setShowProfileButton(true);
-        }
+        // Only show profile button if we're past the splash screen
+        setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
       } catch (error) {
         console.error('Error checking tutorial status:', error);
       }
@@ -218,7 +216,6 @@ const Index = () => {
         if (error) throw error;
 
         setShowOnboarding(!data.onboarding_completed);
-        setHideButtons(!data.onboarding_completed);
       } catch (error) {
         console.error('Error checking onboarding status:', error);
       }
@@ -355,7 +352,6 @@ const Index = () => {
 
       setShowOnboarding(true);
       setTutorialComplete(false);
-      setHideButtons(true);
       setShowProfileButton(false);
       
       toast({
@@ -402,6 +398,36 @@ const Index = () => {
     };
   };
 
+  const handleOnboardingComplete = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(false);
+      setShowProfileButton(false); // Hide profile button until splash screen is done
+      
+      toast({
+        title: "Onboarding completed",
+        description: "Let's get started with the tutorial!",
+      });
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -410,7 +436,6 @@ const Index = () => {
             isConnectingCalendar={isConnectingCalendar}
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
-            hideButtons={hideButtons}
           />
         </div>
       </div>
@@ -418,15 +443,11 @@ const Index = () => {
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
           <OnboardingFlow 
-            onComplete={() => {
-              setShowOnboarding(false);
-              setHideButtons(false);
-              setShowProfileButton(true);
-            }} 
+            onComplete={handleOnboardingComplete}
           />
         ) : (
           <>
-            {!tutorialComplete && showProfileButton && (
+            {!tutorialComplete && (
               <TutorialOverlay 
                 onComplete={handleTutorialComplete} 
                 isProfileOpen={isProfileOpen}

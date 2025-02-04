@@ -12,12 +12,10 @@ interface MainNavigationProps {
   isConnectingCalendar: boolean;
   onProfileOpen: () => void;
   onGoogleSignIn: () => void;
-  hideButtons?: boolean;
 }
 
 export const MainNavigation = ({
   onProfileOpen,
-  hideButtons = false,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,10 +39,6 @@ export const MainNavigation = ({
 
   const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
 
-  if (hideButtons) {
-    return null;
-  }
-
   return (
     <div className="flex justify-between items-center gap-2 mb-6">
       <div className="flex-1">
@@ -52,6 +46,7 @@ export const MainNavigation = ({
           variant="ghost"
           size="icon"
           onClick={() => navigate('/calendar')}
+          aria-label="Open calendar"
         >
           <Calendar className="h-5 w-5" />
         </Button>
@@ -61,6 +56,7 @@ export const MainNavigation = ({
           variant="ghost"
           size="icon"
           onClick={() => navigate('/contacts')}
+          aria-label="Open contacts"
         >
           <Users className="h-5 w-5" />
         </Button>
