@@ -20,7 +20,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           id?: string
-          name: string
+          name?: string
         }
         Update: {
           category?: string | null
@@ -229,7 +229,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           id?: string
-          name: string
+          name?: string
         }
         Update: {
           category?: string | null
@@ -268,7 +268,7 @@ export type Database = {
           category?: string | null
           created_at?: string
           id?: string
-          name: string
+          name?: string
         }
         Update: {
           category?: string | null
@@ -280,91 +280,97 @@ export type Database = {
       }
       profiles: {
         Row: {
-          age: number | null
+          id: string
+          username: string | null
           avatar_url: string | null
-          city: string | null
-          current_interests: Json | null
-          desired_interests: Json | null
-          display_name: string | null
-          food_preferences: Json | null
-          gender: string | null
-          goals: Json | null
+          updated_at: string | null
           google_access_token: string | null
           google_refresh_token: string | null
-          google_token_expired: boolean
           google_token_expires_at: string | null
+          display_name: string | null
+          onboarding_completed: boolean | null
+          goals: Json | null
+          personality_traits: Json | null
+          personality_comments: string[] | null
+          current_interests: Json | null
+          desired_interests: Json | null
+          food_preferences: Json | null
+          desired_food_preferences: Json | null
+          music_preferences: Json | null
+          desired_music_preferences: Json | null
+          age: number | null
+          city: string | null
+          languages: Json | null
+          relationship_status: string | null
+          gender: string | null
+          occupation: string | null
+          onboarding_step: string | null
+          onboarding_started_at: string | null
           has_completed_tutorial: boolean | null
           has_google_calendar: boolean
-          id: string
-          languages: Json | null
-          music_preferences: Json | null
-          occupation: string | null
-          onboarding_completed: boolean | null
-          onboarding_started_at: string | null
-          onboarding_step: string | null
-          personality_comments: string[] | null
-          personality_traits: Json | null
-          relationship_status: string | null
-          updated_at: string | null
-          username: string | null
+          google_token_expired: boolean
         }
         Insert: {
-          age?: number | null
+          id: string
+          username?: string | null
           avatar_url?: string | null
-          city?: string | null
-          current_interests?: Json | null
-          desired_interests?: Json | null
-          display_name?: string | null
-          food_preferences?: Json | null
-          gender?: string | null
-          goals?: Json | null
+          updated_at?: string | null
           google_access_token?: string | null
           google_refresh_token?: string | null
-          google_token_expired?: boolean
           google_token_expires_at?: string | null
+          display_name?: string | null
+          onboarding_completed?: boolean | null
+          goals?: Json | null
+          personality_traits?: Json | null
+          personality_comments?: string[] | null
+          current_interests?: Json | null
+          desired_interests?: Json | null
+          food_preferences?: Json | null
+          desired_food_preferences?: Json | null
+          music_preferences?: Json | null
+          desired_music_preferences?: Json | null
+          age?: number | null
+          city?: string | null
+          languages?: Json | null
+          relationship_status?: string | null
+          gender?: string | null
+          occupation?: string | null
+          onboarding_step?: string | null
+          onboarding_started_at?: string | null
           has_completed_tutorial?: boolean | null
           has_google_calendar?: boolean
-          id: string
-          languages?: Json | null
-          music_preferences?: Json | null
-          occupation?: string | null
-          onboarding_completed?: boolean | null
-          onboarding_started_at?: string | null
-          onboarding_step?: string | null
-          personality_comments?: string[] | null
-          personality_traits?: Json | null
-          relationship_status?: string | null
-          updated_at?: string | null
-          username?: string | null
+          google_token_expired?: boolean
         }
         Update: {
-          age?: number | null
+          id?: string
+          username?: string | null
           avatar_url?: string | null
-          city?: string | null
-          current_interests?: Json | null
-          desired_interests?: Json | null
-          display_name?: string | null
-          food_preferences?: Json | null
-          gender?: string | null
-          goals?: Json | null
+          updated_at?: string | null
           google_access_token?: string | null
           google_refresh_token?: string | null
-          google_token_expired?: boolean
           google_token_expires_at?: string | null
+          display_name?: string | null
+          onboarding_completed?: boolean | null
+          goals?: Json | null
+          personality_traits?: Json | null
+          personality_comments?: string[] | null
+          current_interests?: Json | null
+          desired_interests?: Json | null
+          food_preferences?: Json | null
+          desired_food_preferences?: Json | null
+          music_preferences?: Json | null
+          desired_music_preferences?: Json | null
+          age?: number | null
+          city?: string | null
+          languages?: Json | null
+          relationship_status?: string | null
+          gender?: string | null
+          occupation?: string | null
+          onboarding_step?: string | null
+          onboarding_started_at?: string | null
           has_completed_tutorial?: boolean | null
           has_google_calendar?: boolean
-          id?: string
-          languages?: Json | null
-          music_preferences?: Json | null
-          occupation?: string | null
-          onboarding_completed?: boolean | null
-          onboarding_started_at?: string | null
-          onboarding_step?: string | null
-          personality_comments?: string[] | null
-          personality_traits?: Json | null
-          relationship_status?: string | null
-          updated_at?: string | null
-          username?: string | null
+          google_token_expired?: boolean
         }
         Relationships: []
       }
@@ -404,7 +410,7 @@ export type Tables<
   TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
     ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
         Database[PublicTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never,
 > = PublicTableNameOrOptions extends { schema: keyof Database }
   ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
       Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
