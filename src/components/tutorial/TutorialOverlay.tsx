@@ -1,382 +1,235 @@
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { TutorialArrow } from "./TutorialArrow";
+import { useState, useEffect, useCallback } from "react";
 import { TutorialMessage } from "./TutorialMessage";
+import { TutorialArrow } from "./TutorialArrow";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { TypewriterText } from "@/components/TypewriterText";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
-  isProfileOpen?: boolean;
+  isProfileOpen: boolean;
 }
 
-interface Position {
+type ArrowPosition = {
   top: number;
   left: number;
-}
+};
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'profile' | 'goals' | 'complete'>('splash');
-  const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
-  const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
-  const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
-  const [closeButtonPosition, setCloseButtonPosition] = useState<Position>({ top: 0, left: 0 });
-  const [contactsButtonPosition, setContactsButtonPosition] = useState<Position>({ top: 0, left: 0 });
-  const [calendarButtonPosition, setCalendarButtonPosition] = useState<Position>({ top: 0, left: 0 });
-  const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
-  const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
-  const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
-  const [showCompletionMessage, setShowCompletionMessage] = useState(false);
-  const { session } = useAuth();
+  const [step, setStep] = useState<'splash' | 'profile' | 'goals' | 'complete'>('splash');
+  const [splashMessagePlayed, setSplashMessagePlayed] = useState(false);
+  const [profileMessagePlayed, setProfileMessagePlayed] = useState(false);
+  const [goalsMessagePlayed, setGoalsMessagePlayed] = useState(false);
+  const [profileArrowPosition, setProfileArrowPosition] = useState<ArrowPosition | null>(null);
+  const [goalsArrowPositions, setGoalArrowPositions] = useState<ArrowPosition[]>([]);
   const { toast } = useToast();
-  const location = useLocation();
   const queryClient = useQueryClient();
 
-  // Watch for profile being opened and update step
-  useEffect(() => {
-    if (step === 'profileintro' && isProfileOpen) {
-      setStep('profile');
-    }
-  }, [isProfileOpen, step]);
-
   const { data: profile } = useQuery({
-    queryKey: ['profile', session?.user?.id],
+    queryKey: ['profile'],
     queryFn: async () => {
-      if (!session?.user?.id) return null;
-      const { data, error } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data: profile, error } = await supabase
         .from('profiles')
-        .select('onboarding_step, has_completed_tutorial, goals, display_name')
-        .eq('id', session.user.id)
+        .select('goals, onboarding_step')
+        .eq('id', user.id)
         .single();
-      
+
       if (error) throw error;
-      return data;
-    },
-    enabled: !!session?.user?.id
+      return profile;
+    }
   });
 
-  useEffect(() => {
-    if (step === 'profileintro') {
-      const profileButton = document.querySelector('[aria-label="Open profile"]');
-      if (profileButton) {
-        const rect = profileButton.getBoundingClientRect();
-        setArrowPosition({
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 100
-        });
-      }
-    } else if (step === 'calendarintro') {
-      const calendarButton = document.querySelector('[aria-label="Open calendar"]');
-      if (calendarButton) {
-        const rect = calendarButton.getBoundingClientRect();
-        setCalendarButtonPosition({
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 100
-        });
-      }
-    } else if (step === 'contactsintro') {
-      const contactsButton = document.querySelector('[aria-label="Open contacts"]');
-      if (contactsButton) {
-        const rect = contactsButton.getBoundingClientRect();
-        setContactsButtonPosition({
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 100
-        });
-      }
-    } else if (step === 'profile') {
-      // Track all "Goal Missing" buttons
-      const goalButtons = document.querySelectorAll('.cursor-pointer.hover\\:bg-destructive\\/90');
-      const positions = Array.from(goalButtons).map(button => {
-        const rect = button.getBoundingClientRect();
-        return {
-          top: rect.top + rect.height / 2,
-          left: rect.left - 40  // Position arrow to the left of the button
-        };
-      });
-      setGoalArrowPositions(positions);
-    }
-  }, [step, isProfileOpen]);
+  const updateOnboardingStep = async (newStep: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-  const handleTutorialComplete = async () => {
-    if (!session?.user.id) return;
-    
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ onboarding_step: newStep })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    } catch (error: any) {
+      console.error('Error updating onboarding step:', error);
+      toast({
+        title: "Error updating progress",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleComplete = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          onboarding_step: 'complete',
-          has_completed_tutorial: true 
+          has_completed_tutorial: true,
+          onboarding_step: 'complete'
         })
-        .eq('id', session.user.id);
+        .eq('id', user.id);
 
-      if (error) {
-        console.error('Error completing tutorial:', error);
-        return;
-      }
-
-      setShowCompletionMessage(true);
-      setTimeout(() => {
-        setShowCompletionMessage(false);
-        onComplete();
-      }, 3000);
-    } catch (error) {
-      console.error('Error in handleTutorialComplete:', error);
+      if (error) throw error;
+      
+      onComplete();
+    } catch (error: any) {
+      console.error('Error completing tutorial:', error);
+      toast({
+        title: "Error completing tutorial",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
-  const renderTutorialContent = () => {
-    if (showCompletionMessage) {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
-          <div className="text-2xl">
-            <TypewriterText
-              text="That's it! I'm looking forward to being your Alai."
-              delay={0}
-              onComplete={() => {}}
-            />
-          </div>
-        </div>
-      );
+  const updateProfileArrowPosition = useCallback(() => {
+    const button = document.querySelector('[data-testid="profile-button"]');
+    if (button) {
+      const rect = button.getBoundingClientRect();
+      setProfileArrowPosition({
+        top: rect.top + rect.height / 2,
+        left: rect.left - 40  // Position arrow to the left of the button
+      });
     }
+  }, []);
 
-    if (step === 'splash') {
-      const userName = profile?.display_name || 'there';
-      
-      return (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
-          <div className="max-w-xl space-y-8 p-8">
-            <div className="relative space-y-6">
-              <div className="min-h-[4rem]">
-                {!hasPlayedLine1 && (
-                  <TypewriterText
-                    text={`Hi ${userName}, it's nice to meet you.`}
-                    delay={250}
-                    typingSpeed={25}
-                    className="text-4xl font-cormorant block"
-                    onComplete={() => setHasPlayedLine1(true)}
-                  />
-                )}
-                {hasPlayedLine1 && (
-                  <div className="text-4xl font-cormorant">{`Hi ${userName}, it's nice to meet you.`}</div>
-                )}
-              </div>
-              
-              <div className="min-h-[3rem]">
-                {hasPlayedLine1 && !hasPlayedLine2 && (
-                  <TypewriterText
-                    text="I'm excited for our journey together."
-                    delay={250}
-                    typingSpeed={25}
-                    className="text-lg block"
-                    onComplete={() => setHasPlayedLine2(true)}
-                  />
-                )}
-                {hasPlayedLine2 && (
-                  <div className="text-lg">I'm excited for our journey together.</div>
-                )}
-              </div>
-              
-              <div className="min-h-[3rem]">
-                {hasPlayedLine2 && !hasPlayedLine3 && (
-                  <TypewriterText
-                    text="Ready to get started?"
-                    delay={250}
-                    typingSpeed={25}
-                    className="text-lg block"
-                    onComplete={() => setHasPlayedLine3(true)}
-                  />
-                )}
-                {hasPlayedLine3 && (
-                  <div className="text-lg">Ready to get started?</div>
-                )}
-              </div>
-            </div>
-            
-            {hasPlayedLine3 && (
-              <Button 
-                onClick={() => {
-                  if (session?.user?.id) {
-                    supabase
-                      .from('profiles')
-                      .update({ 
-                        onboarding_step: 'calendarintro',
-                        has_completed_tutorial: false
-                      })
-                      .eq('id', session.user.id)
-                      .then(({ error }) => {
-                        if (error) console.error('Error updating onboarding step:', error);
-                        else {
-                          setStep('calendarintro');
-                          queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-                        }
-                      });
-                  }
-                }}
-                size="lg"
-                className="w-full animate-fade-in"
-              >
-                Let's go!
-              </Button>
-            )}
-          </div>
-        </div>
-      );
+  const updateGoalArrowPositions = useCallback(() => {
+    const buttons = document.querySelectorAll('[data-testid="goal-button"]');
+    const positions = Array.from(buttons).map(button => {
+      const rect = button.getBoundingClientRect();
+      return {
+        top: rect.top + rect.height / 2,
+        left: rect.left - 40  // Position arrow to the left of the button
+      };
+    });
+    setGoalArrowPositions(positions);
+  }, []);
+
+  useEffect(() => {
+    if (profile?.onboarding_step) {
+      setStep(profile.onboarding_step as any);
     }
+  }, [profile?.onboarding_step]);
 
-    if (step === 'calendarintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${calendarButtonPosition.top}px`,
-              left: `${calendarButtonPosition.left}px`,
-              zIndex: 9999
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 9999
-            }}
-          >
-            <div className="space-y-4">
-              <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => setStep('contactsintro')}
-                >
-                  Connect Calendar
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setStep('contactsintro')}
-                >
-                  Not Now
-                </Button>
-              </div>
-            </div>
-          </TutorialMessage>
-        </>
-      );
-    }
+  useEffect(() => {
+    const handleResize = () => {
+      if (step === 'profile') {
+        updateProfileArrowPosition();
+      } else if (step === 'goals' && isProfileOpen) {
+        updateGoalArrowPositions();
+      }
+    };
 
-    if (step === 'contactsintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${contactsButtonPosition.top}px`,
-              left: `${contactsButtonPosition.left}px`,
-              zIndex: 9999
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 9999
-            }}
-          >
-            <div className="space-y-4">
-              <p>Let's add some contacts to help you achieve your goals.</p>
-              <div className="flex gap-2">
-                <Button 
-                  onClick={() => setStep('profileintro')}
-                >
-                  Connect Contacts
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setStep('profileintro')}
-                >
-                  Not Now
-                </Button>
-              </div>
-            </div>
-          </TutorialMessage>
-        </>
-      );
-    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [step, isProfileOpen, updateProfileArrowPosition, updateGoalArrowPositions]);
 
-    if (step === 'profileintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up" 
-            style={{
-              position: 'fixed',
-              top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 9999
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 9999
-            }}
-          >
-            I've created a profile for you here. Click to take a look.
-          </TutorialMessage>
-        </>
-      );
-    }
-
+  useEffect(() => {
     if (step === 'profile') {
-      return (
+      updateProfileArrowPosition();
+    }
+  }, [step, updateProfileArrowPosition]);
+
+  useEffect(() => {
+    if (step === 'goals' && isProfileOpen) {
+      updateGoalArrowPositions();
+    }
+  }, [step, isProfileOpen, updateGoalArrowPositions]);
+
+  // Check if user has set any goals
+  useEffect(() => {
+    if (step === 'goals' && profile?.goals && profile.goals.length > 0) {
+      handleComplete();
+    }
+  }, [step, profile?.goals]);
+
+  const handleSplashComplete = () => {
+    setSplashMessagePlayed(true);
+    updateOnboardingStep('profile');
+    setStep('profile');
+  };
+
+  const handleProfileMessageComplete = () => {
+    setProfileMessagePlayed(true);
+  };
+
+  const handleGoalsMessageComplete = () => {
+    setGoalsMessagePlayed(true);
+  };
+
+  if (step === 'splash') {
+    return (
+      <div className="fixed inset-0 z-50 pointer-events-none">
+        <TutorialMessage
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+        >
+          <div className="space-y-4">
+            <p>Hi! I'm Al, your social life assistant.</p>
+            <p>Let me show you around!</p>
+            <button
+              onClick={handleSplashComplete}
+              className="pointer-events-auto bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Get Started
+            </button>
+          </div>
+        </TutorialMessage>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 pointer-events-none">
+      {step === 'profile' && profileArrowPosition && (
         <>
-          <TutorialMessage 
-            className="right-[450px] top-32 max-w-[300px] z-[9999]"
+          <TutorialMessage
+            className="absolute top-24 left-1/2 -translate-x-1/2"
+            style={{ maxWidth: '90vw' }}
           >
-            Let's start by setting some goals. What would you like to achieve?
+            Click on your profile to set some goals and tell me about yourself!
           </TutorialMessage>
-          {goalArrowPositions.map((pos, index) => (
+          <TutorialArrow
+            direction="right"
+            style={{
+              position: 'fixed',
+              top: profileArrowPosition.top,
+              left: profileArrowPosition.left,
+            }}
+          />
+        </>
+      )}
+
+      {step === 'goals' && isProfileOpen && (
+        <>
+          <TutorialMessage
+            className="absolute top-24 left-1/2 -translate-x-1/2"
+            style={{ maxWidth: '90vw' }}
+          >
+            Set a goal to get started!
+          </TutorialMessage>
+          {goalsArrowPositions.map((position, index) => (
             <TutorialArrow
               key={index}
               direction="right"
               style={{
                 position: 'fixed',
-                top: `${pos.top}px`,
-                left: `${pos.left}px`,
+                top: position.top,
+                left: position.left,
                 zIndex: 9999
               }}
             />
           ))}
         </>
-      );
-    }
-
-    return null;
-  };
-
-  return createPortal(
-    renderTutorialContent(),
-    document.body
+      )}
+    </div>
   );
 };
