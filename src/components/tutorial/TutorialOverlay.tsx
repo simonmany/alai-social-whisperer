@@ -17,7 +17,6 @@ interface TutorialOverlayProps {
 type TutorialStep = 'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'goalset' | 'complete';
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<TutorialStep>('splash');
   const [arrowPosition, setArrowPosition] = useState({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<{ top: number; left: number }[]>([]);
@@ -49,24 +48,15 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   // Log step changes
   useEffect(() => {
-    console.log('Tutorial step changed to:', step);
+    console.log('Tutorial step changed to:', profile?.onboarding_step);
     console.log('Current profile data:', profile);
     console.log('Is profile open?', isProfileOpen);
-  }, [step, profile, isProfileOpen]);
-
-  // Initialize step from profile data only on first mount
-  useEffect(() => {
-    if (profile?.onboarding_step && !isProfileLoading) {
-      // Only set the step from profile data on initial mount
-      setStep(profile.onboarding_step as TutorialStep);
-    }
-  }, [profile?.onboarding_step, isProfileLoading]);
+  }, [profile, isProfileOpen]);
 
   // Watch for profile being opened and update step
   useEffect(() => {
-    if (step === 'profileintro' && isProfileOpen) {
+    if (profile?.onboarding_step === 'profileintro' && isProfileOpen) {
       console.log('Profile opened while in profileintro step, transitioning to goalset');
-      setStep('goalset');
       
       // Update the database to reflect this transition
       if (session?.user?.id) {
@@ -82,10 +72,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           });
       }
     }
-  }, [isProfileOpen, step, session?.user?.id, queryClient]);
+  }, [isProfileOpen, profile?.onboarding_step, session?.user?.id, queryClient]);
 
   const updatePositions = () => {
-    if (step === 'calendarintro') {
+    if (profile?.onboarding_step === 'calendarintro') {
       const calendarButton = document.querySelector('[aria-label="Open calendar"]');
       if (calendarButton) {
         const rect = calendarButton.getBoundingClientRect();
@@ -98,7 +88,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           left: rect.left - 100
         });
       }
-    } else if (step === 'contactsintro') {
+    } else if (profile?.onboarding_step === 'contactsintro') {
       const contactsButton = document.querySelector('[aria-label="Open contacts"]');
       if (contactsButton) {
         const rect = contactsButton.getBoundingClientRect();
@@ -111,7 +101,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           left: rect.left - 100
         });
       }
-    } else if (step === 'profileintro') {
+    } else if (profile?.onboarding_step === 'profileintro') {
       const profileButton = document.querySelector('[aria-label="Open profile"]');
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
@@ -124,7 +114,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           left: rect.left - 200
         });
       }
-    } else if (step === 'goalset') {
+    } else if (profile?.onboarding_step === 'goalset') {
       // Find all "Goal Missing" buttons
       const goalButtons = document.querySelectorAll('.alert-destructive');
       const positions: { top: number; left: number }[] = [];
@@ -145,7 +135,31 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     updatePositions();
     window.addEventListener('resize', updatePositions);
     return () => window.removeEventListener('resize', updatePositions);
-  }, [step]);
+  }, [profile?.onboarding_step]);
+
+  const handleStepChange = async (newStep: TutorialStep) => {
+    if (!session?.user?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ onboarding_step: newStep })
+        .eq('id', session.user.id);
+
+      if (error) {
+        console.error('Error updating onboarding step:', error);
+        toast({
+          title: "Error updating tutorial progress",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      }
+    } catch (error) {
+      console.error('Error updating step:', error);
+    }
+  };
 
   const renderTutorialContent = () => {
     if (isProfileLoading || !profile) {
@@ -165,6 +179,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         </div>
       );
     }
+
+    const step = profile.onboarding_step as TutorialStep;
 
     if (step === 'splash') {
       const userName = profile?.display_name || 'there';
@@ -220,24 +236,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             
             {hasPlayedLine3 && (
               <Button 
-                onClick={() => {
-                  if (session?.user?.id) {
-                    supabase
-                      .from('profiles')
-                      .update({ 
-                        onboarding_step: 'calendarintro',
-                        has_completed_tutorial: false
-                      })
-                      .eq('id', session.user.id)
-                      .then(({ error }) => {
-                        if (error) console.error('Error updating onboarding step:', error);
-                        else {
-                          setStep('calendarintro');
-                          queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-                        }
-                      });
-                  }
-                }}
+                onClick={() => handleStepChange('calendarintro')}
                 size="lg"
                 className="w-full animate-fade-in"
               >
@@ -272,12 +271,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             <div className="space-y-4">
               <p>Connecting your calendar will help me plan events for you smoothly.</p>
               <div className="flex gap-2">
-                <Button onClick={() => setStep('contactsintro')}>
+                <Button onClick={() => handleStepChange('contactsintro')}>
                   Connect Calendar
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => setStep('contactsintro')}
+                  onClick={() => handleStepChange('contactsintro')}
                 >
                   Not Now
                 </Button>
@@ -311,12 +310,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             <div className="space-y-4">
               <p>Let's add some contacts to help you achieve your goals.</p>
               <div className="flex gap-2">
-                <Button onClick={() => setStep('profileintro')}>
+                <Button onClick={() => handleStepChange('profileintro')}>
                   Connect Contacts
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => setStep('profileintro')}
+                  onClick={() => handleStepChange('profileintro')}
                 >
                   Not Now
                 </Button>
