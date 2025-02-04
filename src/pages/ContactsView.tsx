@@ -429,7 +429,7 @@ const ContactsView = () => {
 
   if (isInTutorial) {
     return (
-      <>
+      <div className="fixed inset-0">
         <div className="fixed inset-0 flex items-center justify-center z-[9999] mt-32">
           <div className="bg-card/80 backdrop-blur-sm p-6 rounded-lg shadow-lg max-w-md text-center space-y-6">
             <p className="text-lg text-white">
@@ -471,11 +471,7 @@ const ContactsView = () => {
               </div>
 
               <div className="flex-1 relative">
-                {selectedGroup === "Home" ? (
-                  renderHomeView()
-                ) : (
-                  renderGroupView()
-                )}
+                {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
               </div>
 
               <div className="space-y-2 mb-16">
@@ -529,7 +525,8 @@ const ContactsView = () => {
             }}
           />
         </div>
-      </>
+      </div>
+    );
   }
 
   return (
@@ -557,32 +554,7 @@ const ContactsView = () => {
           </div>
 
           <div className="flex-1 relative">
-            {selectedGroup === "Home" ? (
-              renderHomeView()
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                {/* Central user avatar */}
-                <div className="relative">
-                  <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
-                  <AvatarUpload
-                    url={profileData?.avatar_url ?? undefined}
-                    onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
-                    fallback={getInitials(profileData?.display_name || 'U')}
-                    size="lg"
-                  />
-                </div>
-
-                {/* Orbiting contacts */}
-                {filteredContacts.map((contact, index) => {
-                  const angle = (index * 2 * Math.PI) / filteredContacts.length;
-                  const radius = 140 * (1 - contact.closeness * 0.5);
-                  const x = Math.cos(angle) * radius;
-                  const y = Math.sin(angle) * radius;
-
-                  return renderContactAvatar(contact, x, y, true);
-                })}
-              </div>
-            )}
+            {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
           </div>
 
           <div className="space-y-2 mb-16">
