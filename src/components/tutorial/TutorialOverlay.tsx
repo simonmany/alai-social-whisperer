@@ -37,6 +37,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const location = useLocation();
   const queryClient = useQueryClient();
 
+  // Watch for profile being opened and update step
+  useEffect(() => {
+    if (step === 'profileintro' && isProfileOpen) {
+      setStep('profile');
+    }
+  }, [isProfileOpen, step]);
+
   const { data: profile } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
