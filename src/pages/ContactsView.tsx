@@ -221,11 +221,13 @@ const ContactsView = () => {
     );
   };
 
-  const renderContactAvatar = (contact: Contact, x: number, y: number) => (
+  const renderContactAvatar = (contact: Contact, x: number, y: number, isAnimating: boolean = false) => (
     <Drawer key={contact.id}>
       <DrawerTrigger asChild>
         <button
-          className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
+          className={`absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-500 ${
+            isAnimating ? 'animate-fade-in' : ''
+          }`}
           style={{
             left: `calc(50% + ${x}px)`,
             top: `calc(50% + ${y}px)`,
@@ -233,9 +235,7 @@ const ContactsView = () => {
         >
           <div className="relative">
             <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
-              <AvatarFallback>
-                {getInitials(contact.name)}
-              </AvatarFallback>
+              <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
             </Avatar>
             {getContactEmoji(contact.id) && (
               <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
@@ -252,9 +252,7 @@ const ContactsView = () => {
         <div className="p-4 space-y-4">
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
-              <AvatarFallback>
-                {getInitials(contact.name)}
-              </AvatarFallback>
+              <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
             </Avatar>
             <div>
               <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
@@ -292,7 +290,7 @@ const ContactsView = () => {
         {/* Inner orbit contacts */}
         {innerOrbitContacts.map((contact, index) => {
           const angle = (index * 2 * Math.PI) / innerOrbitContacts.length;
-          const radius = 120; // Closer orbit for inner circle
+          const radius = 120;
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
           return renderContactAvatar(contact, x, y);
@@ -302,7 +300,7 @@ const ContactsView = () => {
         {userGroups.map((group, groupIndex) => {
           const groupContacts = getContactsForGroup(group.name);
           const groupAngle = (groupIndex * 2 * Math.PI) / userGroups.length;
-          const groupRadius = 280; // Outer orbit for groups
+          const groupRadius = 280;
           const groupX = Math.cos(groupAngle) * groupRadius;
           const groupY = Math.sin(groupAngle) * groupRadius;
 
@@ -316,9 +314,13 @@ const ContactsView = () => {
               }}
             >
               <div className="relative">
-                <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 text-white text-sm font-medium">
+                <Badge
+                  variant="outline"
+                  className="absolute -top-8 left-1/2 transform -translate-x-1/2 cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100"
+                  onClick={() => setSelectedGroup(group.name)}
+                >
                   {group.emoji} {group.name}
-                </div>
+                </Badge>
                 <div className="relative grid grid-cols-2 gap-2">
                   {groupContacts.slice(0, 4).map((contact, contactIndex) => {
                     const size = contactIndex === 0 ? 'h-12 w-12' : 'h-8 w-8';
@@ -442,56 +444,7 @@ const ContactsView = () => {
                       const x = Math.cos(angle) * radius;
                       const y = Math.sin(angle) * radius;
 
-                      return (
-                        <Drawer key={contact.id}>
-                          <DrawerTrigger asChild>
-                            <button
-                              className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
-                              style={{
-                                left: `calc(50% + ${x}px)`,
-                                top: `calc(50% + ${y}px)`,
-                              }}
-                            >
-                              <div className="relative">
-                                <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
-                                  <AvatarFallback>
-                                    {getInitials(contact.name)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                {getContactEmoji(contact.id) && (
-                                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
-                                    {getContactEmoji(contact.id)}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
-                                {contact.name}
-                              </div>
-                            </button>
-                          </DrawerTrigger>
-                          <DrawerContent className="bg-black/90 border-purple-500/50">
-                            <div className="p-4 space-y-4">
-                              <div className="flex items-center space-x-4">
-                                <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
-                                  <AvatarFallback>
-                                    {getInitials(contact.name)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
-                                  {contact.email && (
-                                    <p className="text-purple-300">{contact.email}</p>
-                                  )}
-                                  <p className="text-sm text-purple-400 mt-2">
-                                    Orbit Distance: {((1 - contact.closeness) * 100).toFixed(0)}%
-                                  </p>
-                                </div>
-                              </div>
-                              <ContactGroupsManager contactId={contact.id} />
-                            </div>
-                          </DrawerContent>
-                        </Drawer>
-                      );
+                      return renderContactAvatar(contact, x, y, true);
                     })}
                   </div>
                 )}
@@ -599,56 +552,7 @@ const ContactsView = () => {
                   const x = Math.cos(angle) * radius;
                   const y = Math.sin(angle) * radius;
 
-                  return (
-                    <Drawer key={contact.id}>
-                      <DrawerTrigger asChild>
-                        <button
-                          className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
-                          style={{
-                            left: `calc(50% + ${x}px)`,
-                            top: `calc(50% + ${y}px)`,
-                          }}
-                        >
-                          <div className="relative">
-                            <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
-                              <AvatarFallback>
-                                {getInitials(contact.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            {getContactEmoji(contact.id) && (
-                              <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
-                                {getContactEmoji(contact.id)}
-                              </div>
-                            )}
-                          </div>
-                          <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
-                            {contact.name}
-                          </div>
-                        </button>
-                      </DrawerTrigger>
-                      <DrawerContent className="bg-black/90 border-purple-500/50">
-                        <div className="p-4 space-y-4">
-                          <div className="flex items-center space-x-4">
-                            <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
-                              <AvatarFallback>
-                                {getInitials(contact.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
-                              {contact.email && (
-                                <p className="text-purple-300">{contact.email}</p>
-                              )}
-                              <p className="text-sm text-purple-400 mt-2">
-                                Orbit Distance: {((1 - contact.closeness) * 100).toFixed(0)}%
-                              </p>
-                            </div>
-                          </div>
-                          <ContactGroupsManager contactId={contact.id} />
-                        </div>
-                      </DrawerContent>
-                    </Drawer>
-                  );
+                  return renderContactAvatar(contact, x, y, true);
                 })}
               </div>
             )}
