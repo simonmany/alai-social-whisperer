@@ -56,6 +56,7 @@ export const MainNavigation = ({
           variant="ghost"
           size="icon"
           onClick={() => navigate('/contacts')}
+          aria-label="Open contacts"
         >
           <Users className="h-5 w-5" />
         </Button>

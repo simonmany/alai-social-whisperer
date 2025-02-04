@@ -80,6 +80,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           left: rect.left - 100
         });
       }
+    } else if (step === 'contactsintro') {
+      const contactsButton = document.querySelector('[aria-label="Open contacts"]');
+      if (contactsButton) {
+        const rect = contactsButton.getBoundingClientRect();
+        setContactsButtonPosition({
+          top: rect.bottom + 10,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.bottom + 50,
+          left: rect.left - 100
+        });
+      }
     }
   }, [step]);
 
@@ -239,6 +252,45 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       );
     }
 
+    if (step === 'contactsintro') {
+      return (
+        <>
+          <TutorialArrow 
+            direction="up"
+            style={{
+              position: 'fixed',
+              top: `${contactsButtonPosition.top}px`,
+              left: `${contactsButtonPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            style={{
+              position: 'fixed',
+              top: `${messagePosition.top}px`,
+              left: `${messagePosition.left}px`,
+            }}
+          >
+            <div className="space-y-4">
+              <p>Let's add some contacts to help you achieve your goals.</p>
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setStep('profileintro')}
+                >
+                  Connect Contacts
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setStep('profileintro')}
+                >
+                  Not Now
+                </Button>
+              </div>
+            </div>
+          </TutorialMessage>
+        </>
+      );
+    }
+
     if (step === 'profileintro') {
       return (
         <>
@@ -301,30 +353,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             className="right-[450px] top-32 max-w-[300px]"
           >
             Great! Now let's close this and move on.
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'contactsintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${contactsButtonPosition.top}px`,
-              left: `${contactsButtonPosition.left}px`,
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-            }}
-          >
-            Let's add some contacts to help you achieve your goals. Click here to open your contacts.
           </TutorialMessage>
         </>
       );
