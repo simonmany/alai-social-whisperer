@@ -71,7 +71,6 @@ export type Database = {
           created_at: string
           id: string
           is_ai: boolean
-          is_onboarding_message: boolean | null
           message: string
           user_id: string
         }
@@ -79,7 +78,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_ai?: boolean
-          is_onboarding_message?: boolean | null
           message: string
           user_id: string
         }
@@ -87,7 +85,6 @@ export type Database = {
           created_at?: string
           id?: string
           is_ai?: boolean
-          is_onboarding_message?: boolean | null
           message?: string
           user_id?: string
         }

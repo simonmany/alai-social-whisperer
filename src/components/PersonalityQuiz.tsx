@@ -114,7 +114,7 @@ export const PersonalityQuiz = ({
       prompt += `. Give them a very brief (max 50 words), friendly and personal response that speaks directly to them about this aspect of their personality. Use "you" instead of third person.`;
       
       const response = await generateChatResponse(prompt);
-      setAiResponse(response.response);
+      setAiResponse(response);
     } catch (error) {
       console.error('Error getting AI response:', error);
       toast({
