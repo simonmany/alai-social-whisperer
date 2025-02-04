@@ -32,6 +32,16 @@ interface GroupMembership {
   group_id: string;
 }
 
+// Utility function to get initials from a name
+const getInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -135,6 +145,11 @@ const ContactsView = () => {
     },
     enabled: !!session?.user?.id,
   });
+
+  // Filter contacts based on search query
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const { data: groups = [], isLoading: isLoadingGroups } = useQuery({
     queryKey: ['contact_groups', session?.user?.id],
