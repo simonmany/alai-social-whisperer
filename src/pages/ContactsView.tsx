@@ -474,28 +474,7 @@ const ContactsView = () => {
                 {selectedGroup === "Home" ? (
                   renderHomeView()
                 ) : (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    {/* Central user avatar */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
-                      <AvatarUpload
-                        url={profileData?.avatar_url ?? undefined}
-                        onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
-                        fallback={getInitials(profileData?.display_name || 'U')}
-                        size="lg"
-                      />
-                    </div>
-
-                    {/* Orbiting contacts */}
-                    {filteredContacts.map((contact, index) => {
-                      const angle = (index * 2 * Math.PI) / filteredContacts.length;
-                      const radius = 140 * (1 - contact.closeness * 0.5);
-                      const x = Math.cos(angle) * radius;
-                      const y = Math.sin(angle) * radius;
-
-                      return renderContactAvatar(contact, x, y, true);
-                    })}
-                  </div>
+                  renderGroupView()
                 )}
               </div>
 
