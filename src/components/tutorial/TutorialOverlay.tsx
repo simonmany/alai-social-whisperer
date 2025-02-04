@@ -1,9 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { TutorialMessage } from "./TutorialMessage";
 import { TutorialArrow } from "./TutorialArrow";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TypewriterText } from "../TypewriterText";
 
 interface TutorialOverlayProps {
@@ -20,13 +17,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [step, setStep] = useState<'splash' | 'profile' | 'goals' | 'complete'>('splash');
   const [profileArrowPosition, setProfileArrowPosition] = useState<ArrowPosition | null>(null);
   const [goalsArrowPositions, setGoalArrowPositions] = useState<ArrowPosition[]>([]);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-
-  // State for splash screen message sequence
-  const [greetingComplete, setGreetingComplete] = useState(false);
-  const [journeyComplete, setJourneyComplete] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState(0);
+  const [completedScreens, setCompletedScreens] = useState<number[]>([]);
   const [showFinalPrompt, setShowFinalPrompt] = useState(false);
+
+  const screens = [
+    "Hi, Simon. It's nice to meet you.",
+    "I'm excited for our journey together."
+  ];
 
   const updateProfileArrowPosition = useCallback(() => {
     const button = document.querySelector('[data-testid="profile-button"]');
@@ -76,28 +74,41 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [step, isProfileOpen, updateGoalArrowPositions]);
 
+  const handleScreenComplete = (screenIndex: number) => {
+    if (!completedScreens.includes(screenIndex)) {
+      setCompletedScreens(prev => [...prev, screenIndex]);
+      
+      if (screenIndex < screens.length - 1) {
+        setTimeout(() => {
+          setCurrentScreen(screenIndex + 1);
+        }, 250);
+      } else {
+        setShowFinalPrompt(true);
+      }
+    }
+  };
+
   if (step === 'splash') {
     return (
       <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center bg-background/80 backdrop-blur-sm">
         <div className="max-w-2xl w-full mx-4 space-y-8 text-left font-cormorant">
-          <TypewriterText 
-            text="Hi, Simon. It's nice to meet you."
-            className="text-4xl font-medium"
-            delay={500}
-            onComplete={() => setGreetingComplete(true)}
-          />
-          
-          {greetingComplete && (
-            <TypewriterText 
-              text="I'm excited for our journey together."
-              className="text-2xl"
-              delay={0}
-              onComplete={() => {
-                setJourneyComplete(true);
-                setShowFinalPrompt(true);
-              }}
-            />
-          )}
+          {screens.map((text, index) => (
+            index <= currentScreen && (
+              <div key={index} className="text-lg">
+                {completedScreens.includes(index) ? (
+                  <div>{text}</div>
+                ) : (
+                  <TypewriterText
+                    text={text}
+                    onComplete={() => handleScreenComplete(index)}
+                    delay={250}
+                    typingSpeed={25}
+                    className="text-left"
+                  />
+                )}
+              </div>
+            )
+          ))}
           
           {showFinalPrompt && (
             <div className="space-y-4 animate-fade-in">
