@@ -39,26 +39,23 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         .single();
       
       if (error) throw error;
-      console.log('Profile data fetched:', data);
+      console.log('Profile data:', data);
       return data;
     },
     enabled: !!session?.user?.id,
-    staleTime: 30000 // Prevent frequent refetches
+    staleTime: 30000
   });
 
-  // Log step changes
   useEffect(() => {
-    console.log('Tutorial step changed to:', profile?.onboarding_step);
-    console.log('Current profile data:', profile);
+    console.log('Tutorial step:', profile?.onboarding_step);
+    console.log('Profile data:', profile);
     console.log('Is profile open?', isProfileOpen);
   }, [profile, isProfileOpen]);
 
-  // Watch for profile being opened and update step
   useEffect(() => {
     if (profile?.onboarding_step === 'profileintro' && isProfileOpen) {
-      console.log('Profile opened while in profileintro step, transitioning to goalset');
+      console.log('Profile opened, transitioning to goalset');
       
-      // Update the database to reflect this transition
       if (session?.user?.id) {
         supabase
           .from('profiles')
@@ -115,20 +112,24 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
     } else if (profile?.onboarding_step === 'goalset') {
-      // Find all goal missing buttons
-      const goalButtons = document.querySelectorAll('button:has(.alert-destructive)');
+      // Find all goal missing buttons by looking for the alert-destructive class within buttons
+      const goalButtons = Array.from(document.querySelectorAll('.alert-destructive')).map(
+        alert => alert.closest('button')
+      ).filter((button): button is HTMLElement => button !== null);
+
       const positions: { top: number; left: number }[] = [];
       
       goalButtons.forEach((button) => {
         const rect = button.getBoundingClientRect();
         positions.push({
-          top: rect.top + rect.height / 2 - 20, // Center vertically
-          left: rect.left - 60 // Position to the left of the button
+          top: rect.top + (rect.height / 2) - 20,
+          left: rect.left - 60
         });
       });
       
+      console.log('Found goal buttons:', goalButtons.length);
+      console.log('Goal arrow positions:', positions);
       setGoalArrowPositions(positions);
-      console.log('Goal arrow positions updated:', positions, 'Number of buttons found:', goalButtons.length);
     }
   };
 
