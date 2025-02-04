@@ -84,13 +84,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     setStep('calendarintro');
   };
 
-  useEffect(() => {
-    console.log('Tutorial step changed to:', step);
-  }, [step]);
-
   const renderTutorialContent = () => {
-    console.log('Rendering tutorial content for step:', step);
-    
     if (showCompletionMessage) {
       return (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
@@ -106,58 +100,64 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
 
     if (step === 'splash') {
-      console.log('Rendering splash screen, animation states:', {
-        hasPlayedLine1,
-        hasPlayedLine2,
-        hasPlayedLine3
-      });
+      const userName = profile?.display_name || 'there';
       
       return (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
           <div className="max-w-xl space-y-8 p-8">
             <div className="space-y-6">
-              <TypewriterText
-                text={`Hi, ${profile?.display_name || 'there'}. It's nice to meet you.`}
-                delay={250}
-                typingSpeed={25}
-                className="text-4xl font-cormorant block"
-                onComplete={() => {
-                  console.log('Line 1 complete');
-                  setHasPlayedLine1(true);
-                }}
-              />
+              {!hasPlayedLine1 && (
+                <TypewriterText
+                  text={`Hi ${userName}, it's nice to meet you.`}
+                  delay={250}
+                  typingSpeed={25}
+                  className="text-4xl font-cormorant block"
+                  onComplete={() => setHasPlayedLine1(true)}
+                />
+              )}
               
-              {hasPlayedLine1 && (
+              {hasPlayedLine1 && !hasPlayedLine2 && (
                 <TypewriterText
                   text="I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable."
                   delay={250}
                   typingSpeed={25}
                   className="text-lg block"
-                  onComplete={() => {
-                    console.log('Line 2 complete');
-                    setHasPlayedLine2(true);
-                  }}
+                  onComplete={() => setHasPlayedLine2(true)}
                 />
               )}
               
-              {hasPlayedLine2 && (
+              {hasPlayedLine2 && !hasPlayedLine3 && (
                 <TypewriterText
                   text="Ready to get started?"
                   delay={250}
                   typingSpeed={25}
                   className="text-lg block"
-                  onComplete={() => {
-                    console.log('Line 3 complete');
-                    setHasPlayedLine3(true);
-                  }}
+                  onComplete={() => setHasPlayedLine3(true)}
                 />
+              )}
+
+              {hasPlayedLine1 && (
+                <div className="text-4xl font-cormorant block">
+                  Hi {userName}, it's nice to meet you.
+                </div>
+              )}
+              
+              {hasPlayedLine2 && (
+                <div className="text-lg block">
+                  I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable.
+                </div>
+              )}
+              
+              {hasPlayedLine3 && (
+                <div className="text-lg block">
+                  Ready to get started?
+                </div>
               )}
             </div>
             
             {hasPlayedLine3 && (
               <Button 
                 onClick={() => {
-                  console.log('Moving to initial step');
                   if (session?.user?.id) {
                     supabase
                       .from('profiles')
