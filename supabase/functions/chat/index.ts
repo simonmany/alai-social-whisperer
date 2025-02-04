@@ -359,7 +359,7 @@ serve(async (req) => {
 
     // // Extract names from the message and get their contact info
     let mentionedContacts = contactInfo ? [contactInfo] : [];
-    if (!contactInfo) {
+    if (contactInfo === undefined) {
       // only need to lookup if info wasn't passed in
       const names = await extractNamesFromText(message);
       if (names.length > 0) { 
