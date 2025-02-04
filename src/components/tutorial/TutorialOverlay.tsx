@@ -25,17 +25,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'goalset' | 'goals' | 'complete'>('splash');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
-  const [goalArrowPositions, setGoalArrowPositions] = useState<Position[]>([]);
-  const [closeButtonPosition, setCloseButtonPosition] = useState<Position>({ top: 0, left: 0 });
-  const [contactsButtonPosition, setContactsButtonPosition] = useState<Position>({ top: 0, left: 0 });
-  const [calendarButtonPosition, setCalendarButtonPosition] = useState<Position>({ top: 0, left: 0 });
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
-  const location = useLocation();
   const queryClient = useQueryClient();
 
   const { data: profile } = useQuery({
@@ -66,7 +61,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     if (step === 'goalset' && profile?.goals) {
       const goalsArray = profile.goals as Goal[];
       if (Array.isArray(goalsArray) && goalsArray.length > 0) {
-        // Update the onboarding step in the database
         if (session?.user?.id) {
           handleTutorialComplete();
         }
@@ -78,33 +72,33 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   useEffect(() => {
     const updatePositions = () => {
       if (step === 'calendarintro') {
-        const calendarButton = document.querySelector('[data-calendar-button]');
+        const calendarButton = document.querySelector('[aria-label="Open calendar"]');
         if (calendarButton) {
           const rect = calendarButton.getBoundingClientRect();
-          setCalendarButtonPosition({ 
+          setArrowPosition({ 
             top: rect.top + window.scrollY - 40,
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
             top: rect.bottom + window.scrollY + 20,
-            left: rect.left
+            left: rect.left - 100
           });
         }
       } else if (step === 'contactsintro') {
-        const contactsButton = document.querySelector('[data-contacts-button]');
+        const contactsButton = document.querySelector('[aria-label="Open contacts"]');
         if (contactsButton) {
           const rect = contactsButton.getBoundingClientRect();
-          setContactsButtonPosition({ 
+          setArrowPosition({ 
             top: rect.top + window.scrollY - 40,
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
             top: rect.bottom + window.scrollY + 20,
-            left: rect.left
+            left: rect.left - 100
           });
         }
       } else if (step === 'profileintro') {
-        const profileButton = document.querySelector('[data-profile-button]');
+        const profileButton = document.querySelector('[aria-label="Open profile"]');
         if (profileButton) {
           const rect = profileButton.getBoundingClientRect();
           setArrowPosition({ 
@@ -113,7 +107,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           });
           setMessagePosition({
             top: rect.bottom + window.scrollY + 20,
-            left: rect.left
+            left: rect.left - 200
           });
         }
       }
@@ -265,8 +259,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             direction="up"
             style={{
               position: 'fixed',
-              top: `${calendarButtonPosition.top}px`,
-              left: `${calendarButtonPosition.left}px`,
+              top: `${arrowPosition.top}px`,
+              left: `${arrowPosition.left}px`,
               zIndex: 99999
             }}
           />
@@ -306,8 +300,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             direction="up"
             style={{
               position: 'fixed',
-              top: `${contactsButtonPosition.top}px`,
-              left: `${contactsButtonPosition.left}px`,
+              top: `${arrowPosition.top}px`,
+              left: `${arrowPosition.left}px`,
               zIndex: 99999
             }}
           />
@@ -375,18 +369,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
-          {goalArrowPositions.map((pos, index) => (
-            <TutorialArrow
-              key={index}
-              direction="right"
-              style={{
-                position: 'fixed',
-                top: `${pos.top}px`,
-                left: `${pos.left}px`,
-                zIndex: 99999
-              }}
-            />
-          ))}
         </>
       );
     }
@@ -398,8 +380,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             direction="left"
             style={{
               position: 'fixed',
-              top: `${closeButtonPosition.top}px`,
-              left: `${closeButtonPosition.left}px`,
+              top: `${arrowPosition.top}px`,
+              left: `${arrowPosition.left}px`,
               zIndex: 99999
             }}
           />
