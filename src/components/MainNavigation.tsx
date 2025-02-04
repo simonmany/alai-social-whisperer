@@ -46,6 +46,7 @@ export const MainNavigation = ({
           variant="ghost"
           size="icon"
           onClick={() => navigate('/calendar')}
+          aria-label="Open calendar"
         >
           <Calendar className="h-5 w-5" />
         </Button>

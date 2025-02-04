@@ -68,6 +68,20 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           left: rect.left - 100
         });
       }
+    } else if (step === 'calendarintro') {
+      // Find the calendar button
+      const calendarButton = document.querySelector('[aria-label="Open calendar"]');
+      if (calendarButton) {
+        const rect = calendarButton.getBoundingClientRect();
+        setCalendarButtonPosition({
+          top: rect.bottom + 10,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.bottom + 50,
+          left: rect.left - 100
+        });
+      }
     }
   }, [step]);
 
