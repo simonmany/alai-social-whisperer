@@ -53,6 +53,24 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     enabled: !!session?.user?.id
   });
 
+  useEffect(() => {
+    if (step === 'initial') {
+      // Find the profile button
+      const profileButton = document.querySelector('[aria-label="Open profile"]');
+      if (profileButton) {
+        const rect = profileButton.getBoundingClientRect();
+        setArrowPosition({
+          top: rect.top - 20,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.top + rect.height + 20,
+          left: rect.left - 100
+        });
+      }
+    }
+  }, [step]);
+
   const handleTutorialComplete = async () => {
     if (!session?.user.id) return;
     
@@ -107,64 +125,40 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           <div className="max-w-xl space-y-8 p-8">
             <div className="relative space-y-6">
               <div className="min-h-[4rem]">
-                {(!hasPlayedLine1 || hasPlayedLine1) && (
-                  <div className={`absolute top-0 left-0 right-0 ${hasPlayedLine1 ? '' : 'animate-fade-in'}`}>
-                    {!hasPlayedLine1 ? (
-                      <TypewriterText
-                        text={`Hi ${userName}, it's nice to meet you.`}
-                        delay={250}
-                        typingSpeed={25}
-                        className="text-4xl font-cormorant block"
-                        onComplete={() => setHasPlayedLine1(true)}
-                      />
-                    ) : (
-                      <div className="text-4xl font-cormorant block">
-                        Hi {userName}, it's nice to meet you.
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="absolute top-0 left-0 right-0">
+                  <TypewriterText
+                    text={`Hi ${userName}, it's nice to meet you.`}
+                    delay={250}
+                    typingSpeed={25}
+                    className="text-4xl font-cormorant block"
+                    onComplete={() => setHasPlayedLine1(true)}
+                  />
+                </div>
               </div>
               
-              <div className="min-h-[3rem]">
-                {hasPlayedLine1 && (
-                  <div className={`${!hasPlayedLine2 ? 'animate-fade-in' : ''}`}>
-                    {!hasPlayedLine2 ? (
-                      <TypewriterText
-                        text="I'm excited for our journey together."
-                        delay={250}
-                        typingSpeed={25}
-                        className="text-lg block"
-                        onComplete={() => setHasPlayedLine2(true)}
-                      />
-                    ) : (
-                      <div className="text-lg block">
-                        I'm excited for our journey together.
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              {hasPlayedLine1 && (
+                <div className="min-h-[3rem]">
+                  <TypewriterText
+                    text="I'm excited for our journey together."
+                    delay={250}
+                    typingSpeed={25}
+                    className="text-lg block"
+                    onComplete={() => setHasPlayedLine2(true)}
+                  />
+                </div>
+              )}
               
-              <div className="min-h-[3rem]">
-                {hasPlayedLine2 && (
-                  <div className={`${!hasPlayedLine3 ? 'animate-fade-in' : ''}`}>
-                    {!hasPlayedLine3 ? (
-                      <TypewriterText
-                        text="Ready to get started?"
-                        delay={250}
-                        typingSpeed={25}
-                        className="text-lg block"
-                        onComplete={() => setHasPlayedLine3(true)}
-                      />
-                    ) : (
-                      <div className="text-lg block">
-                        Ready to get started?
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
+              {hasPlayedLine2 && (
+                <div className="min-h-[3rem]">
+                  <TypewriterText
+                    text="Ready to get started?"
+                    delay={250}
+                    typingSpeed={25}
+                    className="text-lg block"
+                    onComplete={() => setHasPlayedLine3(true)}
+                  />
+                </div>
+              )}
             </div>
             
             {hasPlayedLine3 && (
