@@ -346,7 +346,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialMessage 
-            className="right-[450px] top-32 max-w-[300px]"
+            className="right-[450px] top-32 max-w-[300px] z-[9999]"
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
@@ -358,6 +358,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 position: 'fixed',
                 top: `${pos.top}px`,
                 left: `${pos.left}px`,
+                zIndex: 9999
               }}
             />
           ))}
@@ -374,10 +375,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${closeButtonPosition.top}px`,
               left: `${closeButtonPosition.left}px`,
+              zIndex: 9999
             }}
           />
           <TutorialMessage 
-            className="right-[450px] top-32 max-w-[300px]"
+            className="right-[450px] top-32 max-w-[300px] z-[9999]"
           >
             Great! Now let's close this and move on.
           </TutorialMessage>
