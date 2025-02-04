@@ -141,11 +141,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   };
 
   const renderTutorialContent = () => {
-    console.log('Rendering tutorial content:', { step, isProfileOpen, showCompletionMessage });
-
     if (showCompletionMessage) {
       return (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="text-2xl">
             <TypewriterText
               text="That's it! I'm looking forward to being your Alai."
@@ -160,7 +158,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     if (step === 'splash') {
       const userName = profile?.display_name || 'there';
       return (
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="max-w-xl space-y-8 p-8">
             <div className="relative space-y-6">
               <div className="min-h-[4rem]">
@@ -248,16 +246,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 99999
+              left: `${arrowPosition.left}px`
             }}
           />
           <TutorialMessage 
             style={{
               position: 'fixed',
               top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 99999
+              left: `${messagePosition.left}px`
             }}
           >
             <div className="space-y-4">
@@ -287,16 +283,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 99999
+              left: `${arrowPosition.left}px`
             }}
           />
           <TutorialMessage 
             style={{
               position: 'fixed',
               top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 99999
+              left: `${messagePosition.left}px`
             }}
           >
             <div className="space-y-4">
@@ -326,16 +320,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 99999
+              left: `${arrowPosition.left}px`
             }}
           />
           <TutorialMessage 
             style={{
               position: 'fixed',
               top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 99999
+              left: `${messagePosition.left}px`
             }}
           >
             I've created a profile for you here. Click to take a look.
@@ -349,7 +341,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         <>
           <TutorialMessage 
             className="right-[450px] top-32 max-w-[300px]"
-            style={{ zIndex: 99999 }}
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
@@ -365,13 +356,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 99999
+              left: `${arrowPosition.left}px`
             }}
           />
           <TutorialMessage 
             className="right-[450px] top-32 max-w-[300px]"
-            style={{ zIndex: 99999 }}
           >
             Great! Now let's close this and move on.
           </TutorialMessage>
@@ -381,8 +370,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     return null;
   };
-
-  console.log('TutorialOverlay rendering with step:', step);
 
   return createPortal(
     renderTutorialContent(),
