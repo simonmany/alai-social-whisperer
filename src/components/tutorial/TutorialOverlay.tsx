@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { TypewriterText } from "@/components/TypewriterText";
+import { Goal } from "@/types/goals";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -73,9 +74,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   // Add effect to watch for goals changes
   useEffect(() => {
-    if (profile?.onboarding_step === 'goalset' && profile.goals?.length > 0) {
+    if (profile?.onboarding_step === 'goalset' && profile.goals) {
+      const goalsArray = profile.goals as (string | Goal)[];
+      
       // Check if there's at least one goal with timeframe
-      const hasTimeframeGoal = profile.goals.some(goal => 
+      const hasTimeframeGoal = goalsArray.some(goal => 
         typeof goal === 'object' && 'timeframe' in goal
       );
 
