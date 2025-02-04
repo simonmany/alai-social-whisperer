@@ -35,7 +35,7 @@ interface GroupMembership {
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [selectedGroup, setSelectedGroup] = useState<string>("All contacts");
+  const [selectedGroup, setSelectedGroup] = useState<string>("Home");
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -147,7 +147,14 @@ const ContactsView = () => {
         .eq('user_id', session.user.id);
 
       if (error) throw error;
-      return [{ id: 'all', name: 'All contacts', emoji: '🌌' }, ...data] as Group[];
+      
+      // Add default groups
+      const defaultGroups = [
+        { id: 'home', name: 'Home', emoji: '🏠' },
+        { id: 'inner-orbit', name: 'Inner Orbit', emoji: '✨' }
+      ];
+      
+      return [...defaultGroups, ...data] as Group[];
     },
     enabled: !!session?.user?.id,
   });
@@ -182,9 +189,21 @@ const ContactsView = () => {
 
   const filteredContacts = contacts.filter((contact) => {
     const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGroup = selectedGroup === "All contacts" || 
-      getContactGroups(contact.id).some(g => g.name === selectedGroup);
-    return matchesSearch && matchesGroup;
+    
+    if (selectedGroup === "Home") {
+      return matchesSearch;
+    }
+    
+    if (selectedGroup === "Inner Orbit") {
+      // Get the 6 closest contacts
+      const closestContacts = [...contacts]
+        .sort((a, b) => (b.closeness || 0) - (a.closeness || 0))
+        .slice(0, 6)
+        .map(c => c.id);
+      return matchesSearch && closestContacts.includes(contact.id);
+    }
+    
+    return matchesSearch && getContactGroups(contact.id).some(g => g.name === selectedGroup);
   });
 
   const getInitials = (name: string): string => {
