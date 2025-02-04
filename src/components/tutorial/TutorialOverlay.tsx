@@ -65,32 +65,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   };
 
-  const handleComplete = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          has_completed_tutorial: true,
-          onboarding_step: 'complete'
-        })
-        .eq('id', user.id);
-
-      if (error) throw error;
-      
-      onComplete();
-    } catch (error: any) {
-      console.error('Error completing tutorial:', error);
-      toast({
-        title: "Error completing tutorial",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
   const updateProfileArrowPosition = useCallback(() => {
     const button = document.querySelector('[data-testid="profile-button"]');
     if (button) {
@@ -129,6 +103,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   }, [profile?.onboarding_step]);
 
   useEffect(() => {
+    if (step === 'profile') {
+      updateProfileArrowPosition();
+    }
+  }, [step, updateProfileArrowPosition]);
+
+  useEffect(() => {
     const handleResize = () => {
       if (step === 'profile') {
         updateProfileArrowPosition();
@@ -140,12 +120,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [step, isProfileOpen, updateProfileArrowPosition, updateGoalArrowPositions]);
-
-  useEffect(() => {
-    if (step === 'profile') {
-      updateProfileArrowPosition();
-    }
-  }, [step, updateProfileArrowPosition]);
 
   useEffect(() => {
     if (step === 'goals' && isProfileOpen) {
@@ -167,12 +141,36 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     setGoalsMessagePlayed(true);
   };
 
+  const handleComplete = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          has_completed_tutorial: true,
+          onboarding_step: 'complete'
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+      
+      onComplete();
+    } catch (error: any) {
+      console.error('Error completing tutorial:', error);
+      toast({
+        title: "Error completing tutorial",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (step === 'splash') {
     return (
-      <div className="fixed inset-0 z-50 pointer-events-none">
-        <TutorialMessage
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
-        >
+      <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
+        <TutorialMessage className="max-w-sm">
           <div className="space-y-4">
             <p>Hi! I'm Al, your social life assistant.</p>
             <p>Let me show you around!</p>
