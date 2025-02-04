@@ -100,8 +100,19 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           left: rect.left - 100
         });
       }
+    } else if (step === 'profile') {
+      // Track all "Goal Missing" buttons
+      const goalButtons = document.querySelectorAll('.cursor-pointer.hover\\:bg-destructive\\/90');
+      const positions = Array.from(goalButtons).map(button => {
+        const rect = button.getBoundingClientRect();
+        return {
+          top: rect.top + rect.height / 2,
+          left: rect.left - 40  // Position arrow to the left of the button
+        };
+      });
+      setGoalArrowPositions(positions);
     }
-  }, [step]);
+  }, [step, isProfileOpen]);
 
   const handleTutorialComplete = async () => {
     if (!session?.user.id) return;
