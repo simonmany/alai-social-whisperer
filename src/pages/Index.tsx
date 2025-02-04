@@ -412,7 +412,11 @@ const Index = () => {
         .eq('id', session.user.id);
 
       setShowOnboarding(false);
-      setShowProfileButton(false); // Hide profile button until splash screen is done
+      setTutorialComplete(false);
+      setShowProfileButton(false);
+      
+      // Force a refresh of the tutorial status
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
       toast({
         title: "Onboarding completed",
