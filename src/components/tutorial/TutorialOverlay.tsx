@@ -43,7 +43,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       console.log('Profile data fetched:', data);
       return data;
     },
-    enabled: !!session?.user?.id
+    enabled: !!session?.user?.id,
+    staleTime: 30000 // Prevent frequent refetches
   });
 
   // Log step changes
