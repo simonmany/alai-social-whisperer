@@ -44,7 +44,7 @@ const CalendarView = () => {
         // Get Google token from profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('google_access_token, google_refresh_token, google_token_expires_at')
+          .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired')
           .eq('id', session.user.id)
           .single();
 
@@ -53,8 +53,13 @@ const CalendarView = () => {
           return { events: [], isConnected: false };
         }
 
-        if (!profile?.google_access_token) {
-          console.log('No Google access token in profile');
+        // Check if calendar is properly connected
+        if (!profile?.has_google_calendar || profile.google_token_expired) {
+          console.log('Calendar not properly connected:', {
+            hasAccessToken: !!profile?.google_access_token,
+            hasGoogleCalendar: !!profile?.has_google_calendar,
+            tokenExpired: !!profile?.google_token_expired
+          });
           return { events: [], isConnected: false };
         }
 
@@ -175,8 +180,20 @@ const CalendarView = () => {
     gcTime: 0
   });
 
-  const handleConnectCalendar = () => {
-    navigate('/connect/calendar');
+  const handleConnectCalendar = async () => {
+    // Get current user's provider
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('Error getting user:', userError);
+      return;
+    }
+
+    // Route based on provider
+    if (user?.app_metadata?.provider === 'email') {
+      navigate('/email-calendar/connect');
+    } else {
+      navigate('/connect-calendar');
+    }
   };
 
   const handlePrompt = (message: string) => {
@@ -225,7 +242,13 @@ const CalendarView = () => {
           </div>
 
           <div className="flex-1 relative">
-            {!calendarData.isConnected ? (
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
+                <p className="text-center text-muted-foreground">
+                  Verifying Google Calendar connection...
+                </p>
+              </div>
+            ) : !calendarData.isConnected ? (
               <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
                 <p className="text-center text-muted-foreground">
                   Connect your Google Calendar to see and manage your events
@@ -264,6 +287,8 @@ const CalendarView = () => {
                             google_access_token: null,
                             google_refresh_token: null,
                             google_token_expires_at: null,
+                            has_google_calendar: false,
+                            google_token_expired: false,
                             updated_at: new Date().toISOString()
                           } satisfies Partial<ProfileUpdate>)
                           .eq('id', session.user.id);

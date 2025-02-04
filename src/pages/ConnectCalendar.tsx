@@ -20,6 +20,12 @@ export default function ConnectCalendar() {
         return;
       }
 
+      // Redirect email users to the email-specific flow
+      if (session.user.app_metadata.provider === 'email') {
+        navigate('/email-calendar/connect', { replace: true });
+        return;
+      }
+
       try {
         const profile = await getProfileWithAuth(supabase, session.user.id);
         setConnected(!!profile?.hasGoogleCalendar && !profile?.googleTokenExpired);
@@ -43,7 +49,7 @@ export default function ConnectCalendar() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/calendar/callback`,
+          redirectTo: `${import.meta.env.VITE_PUBLIC_SITE_URL}/calendar/callback`,
           scopes: [
             'https://www.googleapis.com/auth/calendar.events',
             'https://www.googleapis.com/auth/userinfo.email',

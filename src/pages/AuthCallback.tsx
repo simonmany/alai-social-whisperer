@@ -24,6 +24,36 @@ export default function AuthCallback() {
           metadata: session.user.app_metadata
         });
 
+        // If we have calendar tokens, store them
+        if (session.provider_token && session.provider_refresh_token &&
+            session.user.app_metadata?.provider === 'google') {
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({
+              google_access_token: session.provider_token,
+              google_refresh_token: session.provider_refresh_token,
+              google_token_expires_at: new Date(Date.now() + (55 * 60 * 1000)).toISOString(),
+              has_google_calendar: true,
+              google_token_expired: false,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', session.user.id);
+
+          if (updateError) {
+            console.error('Failed to store tokens:', updateError);
+            throw new Error('Failed to store calendar tokens');
+          }
+
+          console.log('Calendar tokens stored successfully:', {
+            userId: session.user.id,
+            hasAccessToken: true,
+            hasRefreshToken: true,
+            expiresAt: new Date(Date.now() + (55 * 60 * 1000)).toISOString(),
+            hasGoogleCalendar: true,
+            googleTokenExpired: false
+          });
+        }
+
         // Navigate to home page
         navigate('/', { replace: true });
 

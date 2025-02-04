@@ -24,6 +24,12 @@ export default function CalendarCallback() {
           metadata: session.user.app_metadata
         });
 
+        // If user is signed in with email, redirect to email calendar flow
+        if (session.user.app_metadata?.provider === 'email') {
+          navigate('/email-calendar/connect', { replace: true });
+          return;
+        }
+
         if (!session.provider_token || !session.provider_refresh_token) {
           throw new Error('Missing required tokens in session');
         }
@@ -35,6 +41,8 @@ export default function CalendarCallback() {
             google_access_token: session.provider_token,
             google_refresh_token: session.provider_refresh_token,
             google_token_expires_at: new Date(Date.now() + (55 * 60 * 1000)).toISOString(), // 55 minutes from now
+            has_google_calendar: true,
+            google_token_expired: false,
             updated_at: new Date().toISOString()
           })
           .eq('id', session.user.id);
@@ -43,6 +51,15 @@ export default function CalendarCallback() {
           console.error('Failed to store tokens:', updateError);
           throw new Error('Failed to store calendar tokens');
         }
+
+        console.log('Calendar tokens stored successfully:', {
+          userId: session.user.id,
+          hasAccessToken: true,
+          hasRefreshToken: true,
+          expiresAt: new Date(Date.now() + (55 * 60 * 1000)).toISOString(),
+          hasGoogleCalendar: true,
+          googleTokenExpired: false
+        });
 
         // Show success message
         toast({

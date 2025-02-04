@@ -10,6 +10,8 @@ import AuthCallback from "./pages/AuthCallback";
 import ConnectCalendar from "./pages/ConnectCalendar";
 import CalendarCallback from "./pages/CalendarCallback";
 import CalendarView from "./pages/CalendarView";
+import EmailCalendarConnect from "./pages/EmailCalendarConnect";
+import EmailCalendarCallback from "./pages/EmailCalendarCallback";
 import ContactsView from "./pages/ContactsView";
 
 const queryClient = new QueryClient();
@@ -75,6 +77,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <CalendarView />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/email-calendar/connect"
+              element={
+                <ProtectedRoute>
+                  <EmailCalendarConnect />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/email-calendar/callback"
+              element={
+                <ProtectedRoute>
+                  <EmailCalendarCallback />
                 </ProtectedRoute>
               }
             />

@@ -228,6 +228,8 @@ export type Database = {
           google_access_token: string | null
           google_refresh_token: string | null
           google_token_expires_at: string | null
+          has_google_calendar: boolean | null
+          google_token_expired: boolean | null
           id: string
           languages: Json | null
           occupation: string | null
@@ -250,6 +252,8 @@ export type Database = {
           google_access_token?: string | null
           google_refresh_token?: string | null
           google_token_expires_at?: string | null
+          has_google_calendar?: boolean | null
+          google_token_expired?: boolean | null
           id: string
           languages?: Json | null
           occupation?: string | null
@@ -272,6 +276,8 @@ export type Database = {
           google_access_token?: string | null
           google_refresh_token?: string | null
           google_token_expires_at?: string | null
+          has_google_calendar?: boolean | null
+          google_token_expired?: boolean | null
           id?: string
           languages?: Json | null
           occupation?: string | null

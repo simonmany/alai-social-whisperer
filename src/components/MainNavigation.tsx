@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { REDIRECT_URL } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,7 @@ export const MainNavigation = ({
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
@@ -37,37 +38,66 @@ export const MainNavigation = ({
       if (userError) throw userError;
       if (!user) throw new Error('No user found');
 
-      // Get profile data
+      // Get profile data with all fields
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('goals, google_access_token, google_refresh_token, google_token_expires_at')
+        .select(`
+          *,
+          google_access_token,
+          google_refresh_token,
+          google_token_expires_at,
+          has_google_calendar,
+          google_token_expired
+        `)
         .eq('id', user.id)
         .single();
 
       if (error) throw error;
-      
-      // Check if we have valid tokens in profile
-      const expiresAt = profile?.google_token_expires_at ? new Date(profile.google_token_expires_at) : null;
-      const hasValidTokens = !!(
-        profile?.google_access_token &&
-        profile?.google_refresh_token &&
-        expiresAt &&
-        expiresAt > new Date()
-      );
 
-      console.log('Token status:', {
+      console.log('Raw profile data:', {
+        hasGoogleCalendar: profile?.has_google_calendar,
+        googleTokenExpired: profile?.google_token_expired,
         hasAccessToken: !!profile?.google_access_token,
         hasRefreshToken: !!profile?.google_refresh_token,
         tokenExpiresAt: profile?.google_token_expires_at,
-        isExpired: expiresAt ? expiresAt <= new Date() : true
+        provider: session?.user?.app_metadata?.provider,
+        userId: user.id
+      });
+      
+      // Format profile data
+      const formattedProfile = {
+        ...profile,
+        hasGoogleCalendar: profile?.has_google_calendar || false,
+        googleTokenExpired: profile?.google_token_expired || false,
+        tokenExpiresAt: profile?.google_token_expires_at ? new Date(profile.google_token_expires_at) : null,
+        hasAccessToken: !!profile?.google_access_token,
+        hasRefreshToken: !!profile?.google_refresh_token
+      };
+
+      // Check if calendar is properly connected and tokens are valid
+      const hasValidTokens = formattedProfile.hasGoogleCalendar && !formattedProfile.googleTokenExpired;
+
+      console.log('Token status:', {
+        hasAccessToken: formattedProfile.hasAccessToken,
+        hasRefreshToken: formattedProfile.hasRefreshToken,
+        tokenExpiresAt: formattedProfile.tokenExpiresAt,
+        isExpired: formattedProfile.tokenExpiresAt ? formattedProfile.tokenExpiresAt <= new Date() : true,
+        hasGoogleCalendar: formattedProfile.hasGoogleCalendar,
+        googleTokenExpired: formattedProfile.googleTokenExpired,
+        hasValidTokens,
+        userId: user.id
       });
       
       return {
         ...profile,
+        ...formattedProfile,
         hasValidTokens
       };
     },
-    refetchInterval: 5000 // Refetch every 5 seconds until we see the tokens
+    refetchInterval: 5000, // Refetch every 5 seconds until we see the tokens
+    retry: 3, // Retry failed requests 3 times
+    retryDelay: 1000, // Wait 1 second between retries
+    staleTime: 0 // Consider data immediately stale to ensure we get fresh data
   });
 
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
@@ -76,7 +106,9 @@ export const MainNavigation = ({
     if (!profile) return;
 
     const isConnected = profile.hasValidTokens;
-    console.log('Calendar connection status:', isConnected ? 'Connected' : 'Not connected');
+    console.log('Calendar connection status:', isConnected ? 'Connected' : 'Not connected', {
+      userId: profile.id
+    });
 
     if (isConnected !== isCalendarConnected) {
       setIsCalendarConnected(isConnected);
@@ -93,6 +125,10 @@ export const MainNavigation = ({
 
   const handleSignOut = async () => {
     try {
+      // Clear profile data before signing out
+      queryClient.setQueryData(['profile'], null);
+      setIsCalendarConnected(false);
+
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Sign out error:", error);
@@ -111,10 +147,23 @@ export const MainNavigation = ({
 
   const handleGoogleCalendarConnect = async () => {
     try {
-      setIsConnectingCalendar(true);
       console.log("[Calendar] Starting Google Calendar connection flow...");
 
-      // Optionally store a random state param
+      // Get current user's provider
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error('No user found');
+
+      // If user is signed in with email, redirect to email calendar flow
+      if (user.app_metadata.provider === 'email') {
+        navigate('/email-calendar/connect');
+        return;
+      }
+
+      // Only set connecting state for Google sign-in users
+      setIsConnectingCalendar(true);
+
+      // For Google sign-in users, continue with existing flow
       const stateToken = crypto.randomUUID();
       localStorage.setItem('oauth_state', stateToken);
 
@@ -122,7 +171,8 @@ export const MainNavigation = ({
         state: stateToken,
         redirectUrl: REDIRECT_URL,
         mode: import.meta.env.MODE,
-        dev: import.meta.env.DEV
+        dev: import.meta.env.DEV,
+        userId: user.id
       });
       
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -134,7 +184,7 @@ export const MainNavigation = ({
             prompt: 'consent',
             state: stateToken
           },
-          redirectTo: REDIRECT_URL,
+          redirectTo: `${import.meta.env.VITE_PUBLIC_SITE_URL}/calendar/callback`,
           skipBrowserRedirect: false
         }
       });
@@ -162,21 +212,6 @@ export const MainNavigation = ({
       console.log("[Calendar] Redirecting to OAuth URL");
       window.location.href = data.url;
 
-      if (error) {
-        console.error("[Calendar] Google auth error:", error);
-        toast({
-          title: "Error connecting to Google Calendar",
-          description: "Please try again or contact support if the issue persists.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("[Calendar] Auth URL generated:", data?.url ? "Yes" : "No");
-
-      if (data?.url) {
-        window.location.href = data.url;
-      }
     } catch (error: any) {
       console.error("[Calendar] Calendar connection error:", error);
       toast({
@@ -198,7 +233,7 @@ export const MainNavigation = ({
         <Button
           variant={isCalendarConnected ? "ghost" : "outline"}
           onClick={handleGoogleCalendarConnect}
-          disabled={isConnectingCalendar || isLoading}
+          disabled={isConnectingCalendar || isLoading || isCalendarConnected}
           className="flex items-center gap-2"
         >
           <img

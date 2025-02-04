@@ -75,30 +75,91 @@ serve(async (req: Request) => {
       throw new Error('Missing timeMin/timeMax for list action');
     }
 
-    // Log the token being used (first 10 chars only for security)
-    console.log('Calendar API Request:', {
-      tokenPreview: google_token ? `${google_token.substring(0, 10)}...` : 'none',
-      tokenLength: google_token?.length,
-      timeMin,
-      timeMax
-    });
+    // Function to refresh access token
+    async function refreshAccessToken(): Promise<string> {
+      // Get refresh token from profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('google_refresh_token')
+        .eq('id', user.id)
+        .single();
 
-    // Make request to Google Calendar API
-    const calendarUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
-    
-    // Log full request details
-    console.log('Making Calendar API request:', {
-      url: calendarUrl,
-      hasToken: !!google_token,
-      tokenLength: google_token?.length
-    });
-
-    const response = await fetch(calendarUrl, {
-      headers: {
-        'Authorization': `Bearer ${google_token}`,
-        'Content-Type': 'application/json'
+      if (profileError || !profile?.google_refresh_token) {
+        throw new Error('Failed to get refresh token');
       }
-    });
+
+      // Exchange refresh token for new access token
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: Deno.env.get('GOOGLE_CLIENT_ID')!,
+          client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET')!,
+          refresh_token: profile.google_refresh_token,
+          grant_type: 'refresh_token',
+        }),
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to refresh Google access token');
+      }
+
+      const tokens = await tokenResponse.json();
+
+      // Update profile with new access token
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          google_access_token: tokens.access_token,
+          google_token_expires_at: new Date(Date.now() + (tokens.expires_in * 1000)).toISOString(),
+          google_token_expired: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw new Error('Failed to update access token');
+      }
+
+      return tokens.access_token;
+    }
+
+    // Function to make calendar API request
+    async function fetchCalendarEvents(token: string) {
+      const calendarUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+      
+      console.log('Making Calendar API request:', {
+        url: calendarUrl,
+        hasToken: !!token,
+        tokenLength: token?.length
+      });
+
+      const response = await fetch(calendarUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      return response;
+    }
+
+    // Make initial request with provided token
+    let response = await fetchCalendarEvents(google_token);
+
+    // If unauthorized, try refreshing token and retry request
+    if (response.status === 401) {
+      console.log('Access token expired, attempting refresh...');
+      try {
+        const newToken = await refreshAccessToken();
+        response = await fetchCalendarEvents(newToken);
+      } catch (error) {
+        console.error('Token refresh failed:', error);
+        throw new Error('Failed to refresh Google access token');
+      }
+    }
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -117,7 +178,6 @@ serve(async (req: Request) => {
         statusText: response.statusText,
         error: parsedError,
         requestDetails: {
-          url: calendarUrl,
           tokenLength: google_token?.length,
           tokenPreview: google_token ? `${google_token.substring(0, 10)}...` : 'none'
         }

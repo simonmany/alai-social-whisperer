@@ -2,15 +2,16 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
+    "noEmit": true,
     "strict": true,
+    "jsx": "react-jsx",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "checkJs": false,
-    "lib": ["esnext", "dom", "deno.ns", "deno.window"],
-    "types": ["@types/node"]
+    "lib": ["esnext", "dom"]
   },
   "include": ["**/*.ts"],
   "exclude": ["node_modules"]
