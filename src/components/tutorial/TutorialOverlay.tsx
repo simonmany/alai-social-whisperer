@@ -74,13 +74,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         const calendarButton = document.querySelector('[aria-label="Open calendar"]');
         if (calendarButton) {
           const rect = calendarButton.getBoundingClientRect();
-          setArrowPosition({ 
-            top: rect.bottom + 10,
-            left: rect.left + rect.width / 2 - 20
-          });
           setMessagePosition({
-            top: rect.bottom + window.scrollY + 20,
-            left: rect.left - 100
+            top: rect.bottom + window.scrollY + 50, // 50px below the calendar icon
+            left: rect.left - 100 // Centered relative to the icon
           });
         }
       } else if (step === 'contactsintro') {
@@ -248,45 +244,30 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (step === 'calendarintro') {
       return (
-        <div className="fixed inset-0 z-[99999] pointer-events-none">
-          <div className="absolute inset-0 bg-black/50 pointer-events-auto" />
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 99999,
-              pointerEvents: 'none'
-            }}
-          />
-          <div
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 99999,
-              pointerEvents: 'auto'
-            }}
-          >
-            <TutorialMessage className="w-[300px]">
-              <div className="space-y-4">
-                <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
-                <div className="flex gap-2">
-                  <Button onClick={() => setStep('contactsintro')}>
-                    Connect Calendar
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setStep('contactsintro')}
-                  >
-                    Not Now
-                  </Button>
-                </div>
-              </div>
-            </TutorialMessage>
+        <TutorialMessage 
+          style={{
+            position: 'fixed',
+            top: `${messagePosition.top}px`,
+            left: `${messagePosition.left}px`,
+            zIndex: 99999
+          }}
+          className="w-[300px]"
+        >
+          <div className="space-y-4">
+            <p>Connecting your calendar will help me plan events for you smoothly.</p>
+            <div className="flex gap-2">
+              <Button onClick={() => setStep('contactsintro')}>
+                Connect Calendar
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => setStep('contactsintro')}
+              >
+                Not Now
+              </Button>
+            </div>
           </div>
-        </div>
+        </TutorialMessage>
       );
     }
 
