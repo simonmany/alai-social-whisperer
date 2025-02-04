@@ -13,7 +13,6 @@ import { TypewriterText } from "@/components/TypewriterText";
 interface TutorialOverlayProps {
   onComplete: () => void;
   isProfileOpen?: boolean;
-  onGoogleSignIn: () => void;
 }
 
 interface Position {
@@ -21,7 +20,7 @@ interface Position {
   left: number;
 }
 
-export const TutorialOverlay = ({ onComplete, isProfileOpen, onGoogleSignIn }: TutorialOverlayProps) => {
+export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'profile' | 'goals' | 'complete'>('splash');
   const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
@@ -109,10 +108,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen, onGoogleSignIn }: T
     } catch (error) {
       console.error('Error in handleTutorialComplete:', error);
     }
-  };
-
-  const handleContactsResponse = () => {
-    setStep('profileintro');
   };
 
   const renderTutorialContent = () => {
@@ -227,10 +222,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen, onGoogleSignIn }: T
               <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => {
-                    onGoogleSignIn();
-                    setStep('contactsintro');
-                  }}
+                  onClick={() => setStep('contactsintro')}
                 >
                   Connect Calendar
                 </Button>
