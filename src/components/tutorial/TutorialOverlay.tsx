@@ -115,7 +115,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
     } else if (profile?.onboarding_step === 'goalset') {
-      // Find all "Goal Missing" buttons
+      // Find all "Goal Missing" buttons within alerts
       const goalButtons = document.querySelectorAll('.alert-destructive');
       const positions: { top: number; left: number }[] = [];
       
@@ -128,6 +128,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       });
       
       setGoalArrowPositions(positions);
+      console.log('Goal arrow positions updated:', positions);
     }
   };
 
