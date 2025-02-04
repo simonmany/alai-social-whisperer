@@ -4,6 +4,7 @@ import { TutorialArrow } from "./TutorialArrow";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { TypewriterText } from "../TypewriterText";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -169,19 +170,41 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
   if (step === 'splash') {
     return (
-      <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
-        <TutorialMessage className="max-w-sm">
-          <div className="space-y-4">
-            <p>Hi! I'm Al, your social life assistant.</p>
-            <p>Let me show you around!</p>
-            <button
-              onClick={handleSplashComplete}
-              className="pointer-events-auto bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Get Started
-            </button>
+      <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="max-w-2xl w-full mx-4 space-y-8 text-left font-cormorant">
+          <TypewriterText 
+            text="Hi, Simon. It's nice to meet you."
+            className="text-4xl font-medium"
+            delay={500}
+            onComplete={() => {
+              setTimeout(() => {
+                document.getElementById('second-message')?.classList.remove('opacity-0');
+              }, 500);
+            }}
+          />
+          <div id="second-message" className="space-y-8 opacity-0 transition-opacity duration-500">
+            <TypewriterText 
+              text="I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable."
+              className="text-2xl"
+              delay={0}
+              onComplete={() => {
+                setTimeout(() => {
+                  document.getElementById('get-started')?.classList.remove('opacity-0');
+                }, 500);
+              }}
+            />
+            <div className="space-y-4">
+              <p className="text-2xl">Ready to get started?</p>
+              <button
+                id="get-started"
+                onClick={handleSplashComplete}
+                className="pointer-events-auto w-full bg-primary text-primary-foreground p-4 rounded-lg hover:bg-primary/90 transition-colors text-xl opacity-0 transition-opacity duration-500"
+              >
+                Let's go!
+              </button>
+            </div>
           </div>
-        </TutorialMessage>
+        </div>
       </div>
     );
   }
