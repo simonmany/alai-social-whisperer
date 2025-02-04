@@ -8,6 +8,29 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+async function callLLM(apiKey: string, messages: any[], tools?: any[]) {
+  const requestBody: any = {
+    model: 'gpt-4o-mini',
+    messages,
+    temperature: 0.7,
+    max_tokens: 800,
+  };
+
+  if (tools) {
+    requestBody.tools = tools;
+    requestBody.tool_choice = 'auto';
+  }
+
+  return await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(requestBody),
+  });
+}
+
 function constructSystemPrompt(profileData: any, events: any[], contacts: any[]) {
   let prompt = `You are Al, a friendly and helpful AI assistant focused on helping users with their social life. Your goal is to help them maintain and improve their relationships, try new activities, and achieve their social goals.`;
 
@@ -185,7 +208,7 @@ serve(async (req) => {
       end_time: new Date(event.end_time).toLocaleString()
     }));
 
-    const systemPrompt = constructSystemPrompt(profileData, events, contacts)
+    const systemPrompt = constructSystemPrompt(profileData, formattedEvents, contacts)
 
     const messages = [
       { role: 'system', content: systemPrompt },
