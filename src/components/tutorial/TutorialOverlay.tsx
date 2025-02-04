@@ -60,11 +60,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       if (profileButton) {
         const rect = profileButton.getBoundingClientRect();
         setArrowPosition({
-          top: rect.top - 20,
+          top: rect.bottom + 10, // Changed from rect.top - 20 to rect.bottom + 10
           left: rect.left + rect.width / 2 - 20
         });
         setMessagePosition({
-          top: rect.top + rect.height + 20,
+          top: rect.bottom + 50, // Adjusted to be below the arrow
           left: rect.left - 100
         });
       }
