@@ -385,16 +385,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 </Alert>
               )}
 
-              {/* Interests Section */}
-              <InterestsCard
-                currentInterests={profileData?.current_interests as string[]}
-                desiredInterests={profileData?.desired_interests as string[]}
-                foodPreferences={profileData?.food_preferences as string[]}
-                desiredFoodPreferences={profileData?.desired_food_preferences as string[]}
-                musicPreferences={profileData?.music_preferences as string[]}
-                desiredMusicPreferences={profileData?.desired_music_preferences as string[]}
-              />
-
               {/* Goals Section */}
               <Card>
                 <CardHeader className="pb-2">
@@ -418,6 +408,16 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 <MessageCircle className="h-4 w-4" />
                 Set a new goal
               </Button>
+
+              {/* Interests Section - Moved below Goals */}
+              <InterestsCard
+                currentInterests={profileData?.current_interests as string[]}
+                desiredInterests={profileData?.desired_interests as string[]}
+                foodPreferences={profileData?.food_preferences as string[]}
+                desiredFoodPreferences={profileData?.desired_food_preferences as string[]}
+                musicPreferences={profileData?.music_preferences as string[]}
+                desiredMusicPreferences={profileData?.desired_music_preferences as string[]}
+              />
 
               {/* Stats Section */}
               <StatsCard />
