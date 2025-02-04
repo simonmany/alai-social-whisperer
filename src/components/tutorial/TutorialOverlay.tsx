@@ -66,6 +66,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [isProfileOpen, step, session?.user?.id, queryClient]);
 
+  // Watch for goals being set
+  useEffect(() => {
+    if (step === 'goalset' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
+      console.log('Goals detected, completing tutorial');
+      handleTutorialComplete();
+    }
+  }, [profile?.goals, step]);
+
   // Update positions based on step
   useEffect(() => {
     const updatePositions = () => {
@@ -165,7 +173,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (showCompletionMessage) {
       return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50">
           <div className="text-2xl">
             <TypewriterText
               text="That's it! I'm looking forward to being your Alai."
@@ -397,7 +405,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             />
           ))}
           <TutorialMessage 
-            className="fixed right-[450px] top-32 max-w-[300px] bg-primary text-primary-foreground p-4 rounded-lg shadow-lg"
+            className="fixed right-[450px] top-32 max-w-[300px] bg-primary text-primary-foreground p-4 rounded-lg shadow-lg z-50"
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
