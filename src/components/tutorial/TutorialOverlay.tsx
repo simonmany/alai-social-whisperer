@@ -168,7 +168,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (showCompletionMessage) {
       return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[9999]">
           <div className="text-2xl">
             <TypewriterText
               text="That's it! I'm looking forward to being your Alai."
@@ -365,12 +365,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 position: 'fixed',
                 top: `${position.top}px`,
                 left: `${position.left}px`,
-                zIndex: 50
+                zIndex: 99999
               }}
             />
           ))}
           <TutorialMessage 
-            className="fixed right-[450px] top-32 max-w-[300px]"
+            className="fixed right-[450px] top-32 max-w-[300px] z-[99999]"
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
