@@ -49,29 +49,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   });
 
-  const updateOnboardingStep = async (newStep: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ onboarding_step: newStep })
-        .eq('id', user.id);
-
-      if (error) throw error;
-      
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-    } catch (error: any) {
-      console.error('Error updating onboarding step:', error);
-      toast({
-        title: "Error updating progress",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
   const updateProfileArrowPosition = useCallback(() => {
     const button = document.querySelector('[data-testid="profile-button"]');
     if (button) {
@@ -94,20 +71,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     });
     setGoalArrowPositions(positions);
   }, []);
-
-  // Check if user has set any goals
-  useEffect(() => {
-    if (step === 'goals' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
-      setStep('complete');
-      updateOnboardingStep('complete');
-    }
-  }, [step, profile?.goals]);
-
-  useEffect(() => {
-    if (profile?.onboarding_step) {
-      setStep(profile.onboarding_step as any);
-    }
-  }, [profile?.onboarding_step]);
 
   useEffect(() => {
     if (step === 'profile') {
@@ -134,21 +97,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [step, isProfileOpen, updateGoalArrowPositions]);
 
-  const handleSplashComplete = () => {
-    setSplashMessagePlayed(true);
-    updateOnboardingStep('profile');
-    setStep('profile');
-  };
-
-  const handleProfileMessageComplete = () => {
-    setProfileMessagePlayed(true);
-  };
-
-  const handleGoalsMessageComplete = () => {
-    setGoalsMessagePlayed(true);
-  };
-
-  const handleComplete = async () => {
+  const handleSplashComplete = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -156,18 +105,18 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       const { error } = await supabase
         .from('profiles')
         .update({ 
-          has_completed_tutorial: true,
-          onboarding_step: 'complete'
+          onboarding_step: 'profile'
         })
         .eq('id', user.id);
 
       if (error) throw error;
       
-      onComplete();
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      setStep('profile');
     } catch (error: any) {
-      console.error('Error completing tutorial:', error);
+      console.error('Error updating onboarding step:', error);
       toast({
-        title: "Error completing tutorial",
+        title: "Error updating progress",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -193,7 +142,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           {showJourneyMessage && (
             <div className="space-y-8">
               <TypewriterText 
-                text="I'm excited for our journey together. We're going to make your relationships thoughtful, your time intentional, and your life unforgettable."
+                text="I'm excited for our journey together."
                 className="text-2xl"
                 delay={0}
                 onComplete={() => {
@@ -274,7 +223,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           <div className="space-y-4">
             <p>That's it! You're all set to start using the app.</p>
             <button
-              onClick={handleComplete}
+              onClick={onComplete}
               className="pointer-events-auto bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
             >
               Start Using App
