@@ -114,6 +114,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     setGoalArrowPositions(positions);
   }, []);
 
+  // Check if user has set any goals
+  useEffect(() => {
+    if (step === 'goals' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
+      setStep('complete');
+      updateOnboardingStep('complete');
+    }
+  }, [step, profile?.goals]);
+
   useEffect(() => {
     if (profile?.onboarding_step) {
       setStep(profile.onboarding_step as any);
@@ -144,13 +152,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       updateGoalArrowPositions();
     }
   }, [step, isProfileOpen, updateGoalArrowPositions]);
-
-  // Check if user has set any goals
-  useEffect(() => {
-    if (step === 'goals' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
-      handleComplete();
-    }
-  }, [step, profile?.goals]);
 
   const handleSplashComplete = () => {
     setSplashMessagePlayed(true);
@@ -229,6 +230,23 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             />
           ))}
         </>
+      )}
+
+      {step === 'complete' && (
+        <TutorialMessage
+          className="absolute top-24 left-1/2 -translate-x-1/2"
+          style={{ maxWidth: '90vw' }}
+        >
+          <div className="space-y-4">
+            <p>That's it! You're all set to start using the app.</p>
+            <button
+              onClick={handleComplete}
+              className="pointer-events-auto bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+            >
+              Start Using App
+            </button>
+          </div>
+        </TutorialMessage>
       )}
     </div>
   );
