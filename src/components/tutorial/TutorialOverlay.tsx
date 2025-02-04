@@ -54,13 +54,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     console.log('Is profile open?', isProfileOpen);
   }, [step, profile, isProfileOpen]);
 
-  // Initialize step from profile data
+  // Initialize step from profile data only on first mount
   useEffect(() => {
     if (profile?.onboarding_step && !isProfileLoading) {
-      // Only set the step if it hasn't been set yet or if it's 'splash'
-      if (step === 'splash') {
-        setStep(profile.onboarding_step as TutorialStep);
-      }
+      // Only set the step from profile data on initial mount
+      setStep(profile.onboarding_step as TutorialStep);
     }
   }, [profile?.onboarding_step, isProfileLoading]);
 
