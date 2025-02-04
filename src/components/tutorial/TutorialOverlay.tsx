@@ -80,6 +80,50 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [profile?.goals, step, session?.user?.id]);
 
+  // Update positions based on step
+  useEffect(() => {
+    if (step === 'calendarintro') {
+      const calendarButton = document.querySelector('[data-calendar-button]');
+      if (calendarButton) {
+        const rect = calendarButton.getBoundingClientRect();
+        setCalendarButtonPosition({ 
+          top: rect.top + window.scrollY - 40,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.bottom + window.scrollY + 20,
+          left: rect.left
+        });
+      }
+    } else if (step === 'contactsintro') {
+      const contactsButton = document.querySelector('[data-contacts-button]');
+      if (contactsButton) {
+        const rect = contactsButton.getBoundingClientRect();
+        setContactsButtonPosition({ 
+          top: rect.top + window.scrollY - 40,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.bottom + window.scrollY + 20,
+          left: rect.left
+        });
+      }
+    } else if (step === 'profileintro') {
+      const profileButton = document.querySelector('[data-profile-button]');
+      if (profileButton) {
+        const rect = profileButton.getBoundingClientRect();
+        setArrowPosition({ 
+          top: rect.top + window.scrollY - 40,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.bottom + window.scrollY + 20,
+          left: rect.left
+        });
+      }
+    }
+  }, [step]);
+
   const handleTutorialComplete = async () => {
     if (!session?.user.id) return;
     
