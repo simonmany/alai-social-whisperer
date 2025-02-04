@@ -249,7 +249,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${calendarButtonPosition.top}px`,
               left: `${calendarButtonPosition.left}px`,
-              zIndex: 9999
             }}
           />
           <TutorialMessage 
@@ -257,7 +256,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 9999
             }}
           >
             <div className="space-y-4">
@@ -290,7 +288,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${contactsButtonPosition.top}px`,
               left: `${contactsButtonPosition.left}px`,
-              zIndex: 9999
             }}
           />
           <TutorialMessage 
@@ -298,7 +295,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 9999
             }}
           >
             <div className="space-y-4">
@@ -331,7 +327,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
-              zIndex: 9999
             }}
           />
           <TutorialMessage 
@@ -339,7 +334,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 9999
             }}
           >
             I've created a profile for you here. Click to take a look.
@@ -352,7 +346,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       return (
         <>
           <TutorialMessage 
-            className="right-[450px] top-32 max-w-[300px] z-[9999]"
+            className="right-[450px] top-32 max-w-[300px]"
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
@@ -364,10 +358,29 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 position: 'fixed',
                 top: `${pos.top}px`,
                 left: `${pos.left}px`,
-                zIndex: 9999
               }}
             />
           ))}
+        </>
+      );
+    }
+
+    if (step === 'goals' && !isProfileOpen) {
+      return (
+        <>
+          <TutorialArrow 
+            direction="left"
+            style={{
+              position: 'fixed',
+              top: `${closeButtonPosition.top}px`,
+              left: `${closeButtonPosition.left}px`,
+            }}
+          />
+          <TutorialMessage 
+            className="right-[450px] top-32 max-w-[300px]"
+          >
+            Great! Now let's close this and move on.
+          </TutorialMessage>
         </>
       );
     }
