@@ -141,6 +141,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   };
 
   const renderTutorialContent = () => {
+    console.log('Rendering tutorial content:', { step, isProfileOpen, showCompletionMessage });
+
     if (showCompletionMessage) {
       return (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
@@ -157,7 +159,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (step === 'splash') {
       const userName = profile?.display_name || 'there';
-      
       return (
         <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-background/80 backdrop-blur-sm">
           <div className="max-w-xl space-y-8 p-8">
@@ -373,6 +374,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     return null;
   };
+
+  console.log('TutorialOverlay rendering with step:', step);
 
   return createPortal(
     renderTutorialContent(),

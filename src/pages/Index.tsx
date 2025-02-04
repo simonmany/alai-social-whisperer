@@ -446,15 +446,14 @@ const Index = () => {
 
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
-          <OnboardingFlow 
-            onComplete={handleOnboardingComplete}
-          />
+          <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : (
           <>
             {!tutorialComplete && (
               <TutorialOverlay 
                 onComplete={handleTutorialComplete} 
                 isProfileOpen={isProfileOpen}
+                key={isProfileOpen ? 'profile-open' : 'profile-closed'}
               />
             )}
             <ChatContainer
