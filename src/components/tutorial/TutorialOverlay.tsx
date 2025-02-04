@@ -38,15 +38,23 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         .single();
       
       if (error) throw error;
+      console.log('Profile data fetched:', data);
       return data;
     },
     enabled: !!session?.user?.id
   });
 
+  // Log step changes
+  useEffect(() => {
+    console.log('Tutorial step changed to:', step);
+    console.log('Current profile data:', profile);
+    console.log('Is profile open?', isProfileOpen);
+  }, [step, profile, isProfileOpen]);
+
   // Watch for profile being opened and update step
   useEffect(() => {
     if (step === 'profileintro' && isProfileOpen) {
-      console.log('Profile opened, setting step to goalset');
+      console.log('Profile opened while in profileintro step, transitioning to goalset');
       setStep('goalset');
     }
   }, [isProfileOpen, step]);
@@ -54,7 +62,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   // Watch for goals being set
   useEffect(() => {
     if (step === 'goalset' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
-      console.log('Goals detected, completing tutorial');
+      console.log('Goals detected, completing tutorial:', profile.goals);
       handleTutorialComplete();
     }
   }, [profile?.goals, step]);
@@ -125,8 +133,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const handleTutorialComplete = async () => {
     if (!session?.user.id) return;
 
+    console.log('Handling tutorial completion');
     try {
-      await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({ 
           onboarding_step: 'complete',
@@ -134,6 +143,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         })
         .eq('id', session.user.id);
 
+      if (error) throw error;
+
+      console.log('Tutorial completion status updated in database');
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       setShowCompletionMessage(true);
       setTimeout(() => {
