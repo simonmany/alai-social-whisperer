@@ -87,7 +87,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
-            top: rect.bottom + window.scrollY + 20,
+            top: rect.bottom + 50,
             left: rect.left - 100
           });
         }
@@ -100,7 +100,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
-            top: rect.bottom + window.scrollY + 20,
+            top: rect.bottom + 50,
             left: rect.left - 200
           });
         }
