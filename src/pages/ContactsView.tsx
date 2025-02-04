@@ -213,21 +213,32 @@ const ContactsView = () => {
   };
 
   const getContactsForGroup = (groupName: string) => {
+    console.log('Getting contacts for group:', groupName);
+    console.log('Available groups:', groups);
+    
     if (groupName === "Inner Orbit") {
       return getInnerOrbitContacts();
     }
     if (groupName === "Home") {
       return filteredContacts;
     }
+    
     // For other groups, filter contacts based on group membership
     const selectedGroupData = groups.find(g => g.name === groupName);
+    console.log('Selected group data:', selectedGroupData);
+    
     if (!selectedGroupData) return [];
     
-    return filteredContacts.filter(contact => 
+    const groupContacts = filteredContacts.filter(contact => 
       groupMemberships.some(m => 
         m.contact_id === contact.id && m.group_id === selectedGroupData.id
       )
     );
+    
+    console.log('Group memberships:', groupMemberships);
+    console.log('Filtered contacts for group:', groupContacts);
+    
+    return groupContacts;
   };
 
   const renderContactAvatar = (contact: Contact, x: number, y: number, isAnimating: boolean = false) => (
@@ -540,7 +551,6 @@ const ContactsView = () => {
           />
         </div>
       </>
-    );
   }
 
   return (
