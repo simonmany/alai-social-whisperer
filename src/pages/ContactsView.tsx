@@ -287,9 +287,9 @@ const ContactsView = () => {
             <div className="space-y-2">
               <h4 className="text-lg font-medium text-white">Last Hangout</h4>
               <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                <p className="text-white">Add a photo</p>
+                <p className="text-white font-medium">Add a photo</p>
               </div>
-              <p className="text-white">
+              <p className="text-white font-medium">
                 {contact.meeting_story || "Add a quick note about your last hangout"}
               </p>
             </div>
@@ -305,14 +305,14 @@ const ContactsView = () => {
               <h4 className="text-lg font-medium text-white mb-4">Highlights of your friendship</h4>
               <div className="relative">
                 <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                  <p className="text-white">Add photos to your friendship timeline</p>
+                  <p className="text-white font-medium">Add photos to your friendship timeline</p>
                 </div>
               </div>
             </div>
 
             <div>
               <h4 className="text-lg font-medium text-white mb-2">Your Story</h4>
-              <p className="text-white">
+              <p className="text-white font-medium">
                 {contact.meeting_story || "Add a description of how you met and your journey together"}
               </p>
             </div>
