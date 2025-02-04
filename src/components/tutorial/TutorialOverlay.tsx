@@ -14,8 +14,10 @@ interface TutorialOverlayProps {
   isProfileOpen?: boolean;
 }
 
+type TutorialStep = 'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'goalset' | 'complete';
+
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
-  const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'goalset' | 'goals' | 'complete'>('splash');
+  const [step, setStep] = useState<TutorialStep>('splash');
   const [arrowPosition, setArrowPosition] = useState({ top: 0, left: 0 });
   const [messagePosition, setMessagePosition] = useState({ top: 0, left: 0 });
   const [goalArrowPositions, setGoalArrowPositions] = useState<{ top: number; left: number }[]>([]);
@@ -27,7 +29,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
@@ -281,12 +283,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 50,
-              backgroundColor: 'hsl(var(--primary))',
-              color: 'hsl(var(--primary-foreground))',
-              padding: '1rem',
-              borderRadius: '0.5rem',
-              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
+              zIndex: 50
             }}
           >
             <div className="space-y-4">
@@ -401,11 +398,25 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             />
           ))}
           <TutorialMessage 
-            className="fixed right-[450px] top-32 max-w-[300px] bg-primary text-primary-foreground p-4 rounded-lg shadow-lg z-50"
+            className="fixed right-[450px] top-32 max-w-[300px]"
           >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
         </>
+      );
+    }
+
+    if (showCompletionMessage) {
+      return (
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50">
+          <div className="text-2xl">
+            <TypewriterText
+              text="That's it! I'm looking forward to being your Alai."
+              delay={0}
+              onComplete={() => {}}
+            />
+          </div>
+        </div>
       );
     }
 
