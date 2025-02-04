@@ -27,6 +27,22 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { data: profile } = useQuery({
+    queryKey: ['profile', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('onboarding_step, has_completed_tutorial, goals, display_name')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id
+  });
+
   // Watch for profile being opened and update step
   useEffect(() => {
     if (step === 'profileintro' && isProfileOpen) {
