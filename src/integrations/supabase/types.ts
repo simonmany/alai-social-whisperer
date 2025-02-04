@@ -284,7 +284,9 @@ export type Database = {
           avatar_url: string | null
           city: string | null
           current_interests: Json | null
+          desired_food_preferences: Json | null
           desired_interests: Json | null
+          desired_music_preferences: Json | null
           display_name: string | null
           food_preferences: Json | null
           gender: string | null
@@ -313,7 +315,9 @@ export type Database = {
           avatar_url?: string | null
           city?: string | null
           current_interests?: Json | null
+          desired_food_preferences?: Json | null
           desired_interests?: Json | null
+          desired_music_preferences?: Json | null
           display_name?: string | null
           food_preferences?: Json | null
           gender?: string | null
@@ -342,7 +346,9 @@ export type Database = {
           avatar_url?: string | null
           city?: string | null
           current_interests?: Json | null
+          desired_food_preferences?: Json | null
           desired_interests?: Json | null
+          desired_music_preferences?: Json | null
           display_name?: string | null
           food_preferences?: Json | null
           gender?: string | null

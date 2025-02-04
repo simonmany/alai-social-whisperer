@@ -415,7 +415,11 @@ const Index = () => {
         .eq('id', session.user.id);
 
       setShowOnboarding(false);
-      setShowProfileButton(false); // Hide profile button until splash screen is done
+      setTutorialComplete(false);
+      setShowProfileButton(false);
+      
+      // Force a refresh of the tutorial status
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
       toast({
         title: "Onboarding completed",
@@ -445,15 +449,14 @@ const Index = () => {
 
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
-          <OnboardingFlow 
-            onComplete={handleOnboardingComplete}
-          />
+          <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : (
           <>
             {!tutorialComplete && (
               <TutorialOverlay 
                 onComplete={handleTutorialComplete} 
                 isProfileOpen={isProfileOpen}
+                key={isProfileOpen ? 'profile-open' : 'profile-closed'}
               />
             )}
             <ChatContainer

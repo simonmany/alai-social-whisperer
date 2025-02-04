@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
+import { InterestsCard } from "@/components/profile/InterestsCard";
 
 interface ProfileProps {
   open: boolean;
@@ -57,7 +58,15 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
       const { data: profile, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          current_interests,
+          desired_interests,
+          food_preferences,
+          desired_food_preferences,
+          music_preferences,
+          desired_music_preferences
+        `)
         .eq('id', userData.id)
         .single();
 
@@ -130,9 +139,23 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     // Remove the goal at the specified index
     currentGoals.splice(goalIndex, 1);
 
+    // For legacy string goals, convert them to the new format
+    const formattedGoals = currentGoals.map(goal => {
+      if (typeof goal === 'string') {
+        return {
+          type: "Connection",
+          description: goal.toLowerCase(),
+          timeframe: "today",
+          completed: false,
+          created_at: new Date().toISOString()
+        };
+      }
+      return goal;
+    });
+
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: currentGoals })
+      .update({ goals: formattedGoals })
       .eq('id', userData.id);
 
     if (!error) {
@@ -385,6 +408,16 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 <MessageCircle className="h-4 w-4" />
                 Set a new goal
               </Button>
+
+              {/* Interests Section - Moved below Goals */}
+              <InterestsCard
+                currentInterests={profileData?.current_interests as string[]}
+                desiredInterests={profileData?.desired_interests as string[]}
+                foodPreferences={profileData?.food_preferences as string[]}
+                desiredFoodPreferences={profileData?.desired_food_preferences as string[]}
+                musicPreferences={profileData?.music_preferences as string[]}
+                desiredMusicPreferences={profileData?.desired_music_preferences as string[]}
+              />
 
               {/* Stats Section */}
               <StatsCard />
