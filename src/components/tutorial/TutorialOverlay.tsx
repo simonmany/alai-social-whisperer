@@ -46,6 +46,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   // Watch for profile being opened and update step
   useEffect(() => {
     if (step === 'profileintro' && isProfileOpen) {
+      console.log('Profile opened, setting step to goalset');
       setStep('goalset');
     }
   }, [isProfileOpen, step]);
@@ -343,10 +344,17 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 50
+              zIndex: 50,
+              backgroundColor: 'hsl(var(--primary))',
+              color: 'hsl(var(--primary-foreground))',
+              padding: '1rem',
+              borderRadius: '0.5rem',
+              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)'
             }}
           >
-            I've created a profile for you here. Click to take a look.
+            <div className="space-y-4">
+              <p>I've created a profile for you here. Click to take a look.</p>
+            </div>
           </TutorialMessage>
         </>
       );
@@ -354,13 +362,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
     if (step === 'goalset') {
       return (
-        <>
-          <TutorialMessage 
-            className="right-[450px] top-32 max-w-[300px]"
-          >
-            Let's start by setting some goals. What would you like to achieve?
-          </TutorialMessage>
-        </>
+        <TutorialMessage className="right-[450px] top-32 max-w-[300px]">
+          Let's start by setting some goals. What would you like to achieve?
+        </TutorialMessage>
       );
     }
 
