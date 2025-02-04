@@ -344,19 +344,18 @@ const ContactsView = () => {
                 </div>
               </div>
 
-              <div className="flex justify-center gap-2 mt-8 mb-4">
-                <Button
-                  variant="outline"
-                  className="w-full max-w-sm bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
-                  onClick={() => setIsGroupDialogOpen(true)}
-                >
-                  <Plus className="mr-2" />
-                  Create New Group
-                </Button>
-              </div>
-
               <div className="space-y-2 mb-16">
-                <h3 className="text-lg font-semibold text-white mb-4">Contact Groups</h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+                    onClick={() => setIsGroupDialogOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {groups.map((group) => (
                     <Badge
@@ -490,19 +489,18 @@ const ContactsView = () => {
             </div>
           </div>
 
-          <div className="flex justify-center gap-2 mt-8 mb-4">
-            <Button
-              variant="outline"
-              className="w-full max-w-sm bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
-              onClick={() => setIsGroupDialogOpen(true)}
-            >
-              <Plus className="mr-2" />
-              Create New Group
-            </Button>
-          </div>
-
           <div className="space-y-2 mb-16">
-            <h3 className="text-lg font-semibold text-white mb-4">Contact Groups</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+                onClick={() => setIsGroupDialogOpen(true)}
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {groups.map((group) => (
                 <Badge
