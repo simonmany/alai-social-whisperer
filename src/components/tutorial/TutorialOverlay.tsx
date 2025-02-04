@@ -274,6 +274,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             </div>
           </TutorialMessage>
         </>
+      );
     }
 
     if (step === 'contactsintro') {
@@ -310,6 +311,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             </div>
           </TutorialMessage>
         </>
+      );
     }
 
     if (step === 'profileintro') {
@@ -333,6 +335,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             I've created a profile for you here. Click to take a look.
           </TutorialMessage>
         </>
+      );
     }
 
     if (step === 'goalset') {
@@ -345,6 +348,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
         </>
+      );
     }
 
     if (step === 'goals' && !isProfileOpen) {
@@ -365,6 +369,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             Great! Now let's close this and move on.
           </TutorialMessage>
         </>
+      );
     }
 
     return null;
