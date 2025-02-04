@@ -16,15 +16,10 @@ interface TutorialOverlayProps {
   isProfileOpen?: boolean;
 }
 
-interface Position {
-  top: number;
-  left: number;
-}
-
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'splash' | 'calendarintro' | 'contactsintro' | 'profileintro' | 'goalset' | 'goals' | 'complete'>('splash');
-  const [arrowPosition, setArrowPosition] = useState<Position>({ top: 0, left: 0 });
-  const [messagePosition, setMessagePosition] = useState<Position>({ top: 0, left: 0 });
+  const [arrowPosition, setArrowPosition] = useState({ top: 0, left: 0 });
+  const [messagePosition, setMessagePosition] = useState({ top: 0, left: 0 });
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
@@ -76,7 +71,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         if (calendarButton) {
           const rect = calendarButton.getBoundingClientRect();
           setArrowPosition({ 
-            top: rect.bottom + 10, // Position arrow 10px below the button
+            top: rect.bottom + 10,
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
@@ -89,7 +84,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         if (contactsButton) {
           const rect = contactsButton.getBoundingClientRect();
           setArrowPosition({ 
-            top: rect.bottom + 10, // Position arrow 10px below the button
+            top: rect.bottom + 10,
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
@@ -102,7 +97,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         if (profileButton) {
           const rect = profileButton.getBoundingClientRect();
           setArrowPosition({ 
-            top: rect.bottom + 10, // Position arrow 10px below the button
+            top: rect.bottom + 10,
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
@@ -113,16 +108,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
     };
 
-    // Initial update
     updatePositions();
-
-    // Add resize listener
     window.addEventListener('resize', updatePositions);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', updatePositions);
-    };
+    return () => window.removeEventListener('resize', updatePositions);
   }, [step]);
 
   const handleTutorialComplete = async () => {
@@ -261,7 +249,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
-              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -269,15 +256,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 99999
             }}
           >
             <div className="space-y-4">
               <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
               <div className="flex gap-2">
-                <Button 
-                  onClick={() => setStep('contactsintro')}
-                >
+                <Button onClick={() => setStep('contactsintro')}>
                   Connect Calendar
                 </Button>
                 <Button 
@@ -290,7 +274,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             </div>
           </TutorialMessage>
         </>
-      );
     }
 
     if (step === 'contactsintro') {
@@ -302,7 +285,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
-              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -310,15 +292,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 99999
             }}
           >
             <div className="space-y-4">
               <p>Let's add some contacts to help you achieve your goals.</p>
               <div className="flex gap-2">
-                <Button 
-                  onClick={() => setStep('profileintro')}
-                >
+                <Button onClick={() => setStep('profileintro')}>
                   Connect Contacts
                 </Button>
                 <Button 
@@ -331,7 +310,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             </div>
           </TutorialMessage>
         </>
-      );
     }
 
     if (step === 'profileintro') {
@@ -343,7 +321,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
-              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -351,13 +328,11 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${messagePosition.top}px`,
               left: `${messagePosition.left}px`,
-              zIndex: 99999
             }}
           >
             I've created a profile for you here. Click to take a look.
           </TutorialMessage>
         </>
-      );
     }
 
     if (step === 'goalset') {
@@ -370,7 +345,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
         </>
-      );
     }
 
     if (step === 'goals' && !isProfileOpen) {
@@ -382,7 +356,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               position: 'fixed',
               top: `${arrowPosition.top}px`,
               left: `${arrowPosition.left}px`,
-              zIndex: 99999
             }}
           />
           <TutorialMessage 
@@ -392,7 +365,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             Great! Now let's close this and move on.
           </TutorialMessage>
         </>
-      );
     }
 
     return null;
