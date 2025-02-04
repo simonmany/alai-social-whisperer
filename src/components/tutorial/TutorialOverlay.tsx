@@ -60,59 +60,21 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     enabled: !!session?.user?.id
   });
 
+  // Watch for goals being set
   useEffect(() => {
-    if (step === 'profileintro') {
-      const profileButton = document.querySelector('[aria-label="Open profile"]');
-      if (profileButton) {
-        const rect = profileButton.getBoundingClientRect();
-        setArrowPosition({
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 100
-        });
+    if (step === 'goalset' && profile?.goals && profile.goals.length > 0) {
+      // Update the onboarding step in the database
+      if (session?.user?.id) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_step: 'complete' })
+          .eq('id', session.user.id)
+          .then(() => {
+            handleTutorialComplete();
+          });
       }
-    } else if (step === 'calendarintro') {
-      const calendarButton = document.querySelector('[aria-label="Open calendar"]');
-      if (calendarButton) {
-        const rect = calendarButton.getBoundingClientRect();
-        setCalendarButtonPosition({
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 100
-        });
-      }
-    } else if (step === 'contactsintro') {
-      const contactsButton = document.querySelector('[aria-label="Open contacts"]');
-      if (contactsButton) {
-        const rect = contactsButton.getBoundingClientRect();
-        setContactsButtonPosition({
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 100
-        });
-      }
-    } else if (step === 'goalset') {
-      // Track all "Goal Missing" buttons within the profile sheet
-      const goalButtons = document.querySelectorAll('.cursor-pointer.hover\\:bg-destructive\\/90');
-      const positions = Array.from(goalButtons).map(button => {
-        const rect = button.getBoundingClientRect();
-        return {
-          top: rect.top + rect.height / 2,
-          left: rect.left - 40  // Position arrow to the left of the button
-        };
-      });
-      setGoalArrowPositions(positions);
     }
-  }, [step, isProfileOpen]);
+  }, [profile?.goals, step, session?.user?.id]);
 
   const handleTutorialComplete = async () => {
     if (!session?.user.id) return;
