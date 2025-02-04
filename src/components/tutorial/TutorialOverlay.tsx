@@ -48,8 +48,23 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     if (step === 'profileintro' && isProfileOpen) {
       console.log('Profile opened, setting step to goalset');
       setStep('goalset');
+      
+      // Update the profile's onboarding step
+      if (session?.user?.id) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_step: 'goalset' })
+          .eq('id', session.user.id)
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error updating onboarding step:', error);
+            } else {
+              queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+            }
+          });
+      }
     }
-  }, [isProfileOpen, step]);
+  }, [isProfileOpen, step, session?.user?.id, queryClient]);
 
   // Update positions based on step
   useEffect(() => {
@@ -144,8 +159,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   };
 
   const renderTutorialContent = () => {
-    if (isProfileLoading) {
-      return null; // Don't render anything while loading
+    if (isProfileLoading || !profile) {
+      return null;
     }
 
     if (showCompletionMessage) {
@@ -381,7 +396,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               }}
             />
           ))}
-          <TutorialMessage className="fixed right-[450px] top-32 max-w-[300px]">
+          <TutorialMessage 
+            className="fixed right-[450px] top-32 max-w-[300px] bg-primary text-primary-foreground p-4 rounded-lg shadow-lg"
+          >
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
         </>
