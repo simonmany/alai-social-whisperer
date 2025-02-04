@@ -27,6 +27,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  console.log("[Tutorial] Current step:", step);
+  console.log("[Tutorial] Profile open:", isProfileOpen);
+  console.log("[Tutorial] Show completion:", showCompletionMessage);
+
   const { data: profile } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
@@ -38,6 +42,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         .single();
       
       if (error) throw error;
+      console.log("[Tutorial] Profile data:", data);
       return data;
     },
     enabled: !!session?.user?.id
@@ -141,9 +146,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   };
 
   const renderTutorialContent = () => {
+    console.log("[Tutorial] Rendering content for step:", step);
+
     if (showCompletionMessage) {
+      console.log("[Tutorial] Showing completion message");
       return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[99999]">
           <div className="text-2xl">
             <TypewriterText
               text="That's it! I'm looking forward to being your Alai."
@@ -156,9 +164,10 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
 
     if (step === 'splash') {
+      console.log("[Tutorial] Rendering splash screen");
       const userName = profile?.display_name || 'there';
       return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[99999]">
           <div className="max-w-xl space-y-8 p-8">
             <div className="relative space-y-6">
               <div className="min-h-[4rem]">
@@ -368,11 +377,15 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       );
     }
 
+    console.log("[Tutorial] No content rendered for step:", step);
     return null;
   };
 
+  const content = renderTutorialContent();
+  console.log("[Tutorial] Content rendered:", !!content);
+
   return createPortal(
-    renderTutorialContent(),
+    content,
     document.body
   );
 };
