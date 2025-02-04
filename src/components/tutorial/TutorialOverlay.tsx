@@ -235,6 +235,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             )}
           </div>
         </div>
+      );
     }
 
     if (step === 'calendarintro') {
