@@ -283,13 +283,13 @@ const ContactsView = () => {
             You and {contact.name.split(' ')[0]}
           </h3>
           
-          <div className="bg-purple-900/20 rounded-lg p-4 space-y-4">
+          <div className="bg-purple-900/20 backdrop-blur-sm rounded-lg p-4 space-y-4">
             <div className="space-y-2">
               <h4 className="text-lg font-medium text-white">Last Hangout</h4>
               <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                <p className="text-white font-medium">Add a photo</p>
+                <p className="text-white font-medium z-10">Add a photo</p>
               </div>
-              <p className="text-white font-medium">
+              <p className="text-white font-medium z-10">
                 {contact.meeting_story || "Add a quick note about your last hangout"}
               </p>
             </div>
@@ -297,7 +297,7 @@ const ContactsView = () => {
             {contact.relationship && (
               <div>
                 <h4 className="text-lg font-medium text-white mb-2">Known Since</h4>
-                <p className="text-white">{contact.relationship}</p>
+                <p className="text-white z-10">{contact.relationship}</p>
               </div>
             )}
 
@@ -305,14 +305,14 @@ const ContactsView = () => {
               <h4 className="text-lg font-medium text-white mb-4">Highlights of your friendship</h4>
               <div className="relative">
                 <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                  <p className="text-white font-medium">Add photos to your friendship timeline</p>
+                  <p className="text-white font-medium z-10">Add photos to your friendship timeline</p>
                 </div>
               </div>
             </div>
 
             <div>
               <h4 className="text-lg font-medium text-white mb-2">Your Story</h4>
-              <p className="text-white font-medium">
+              <p className="text-white font-medium z-10">
                 {contact.meeting_story || "Add a description of how you met and your journey together"}
               </p>
             </div>
