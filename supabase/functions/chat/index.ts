@@ -8,6 +8,38 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+function constructSystemPrompt(profileData: any, events: any[], contacts: any[]) {
+  let prompt = `You are Al, a friendly and helpful AI assistant focused on helping users with their social life. Your goal is to help them maintain and improve their relationships, try new activities, and achieve their social goals.`;
+
+  if (profileData) {
+    prompt += `\n\nUser Profile:`;
+    if (profileData.username) prompt += `\nUsername: ${profileData.username}`;
+    if (profileData.goals?.length) prompt += `\nGoals: ${profileData.goals.join(', ')}`;
+    if (profileData.current_interests?.length) prompt += `\nInterests: ${profileData.current_interests.join(', ')}`;
+    if (profileData.desired_interests?.length) prompt += `\nDesired Interests: ${profileData.desired_interests.join(', ')}`;
+    if (profileData.city) prompt += `\nLocation: ${profileData.city}`;
+  }
+
+  if (events?.length) {
+    prompt += `\n\nUpcoming Events (next 30 days):`;
+    events.forEach(event => {
+      prompt += `\n- ${event.title} (${event.start_time})`;
+    });
+  }
+
+  if (contacts?.length) {
+    prompt += `\n\nClose Contacts:`;
+    contacts.slice(0, 5).forEach(contact => {
+      prompt += `\n- ${contact.name}`;
+      if (contact.relationship) prompt += ` (${contact.relationship})`;
+    });
+  }
+
+  prompt += `\n\nPlease be conversational and friendly in your responses. Keep responses concise and focused on helping the user with their social life.`;
+
+  return prompt;
+}
+
 export enum ChatFunction {
   GetContactsByNames = 'getContactsByNames',
   UpsertContacts = 'upsertContacts',
@@ -43,116 +75,6 @@ const tools = [{
       }
   }
 }];
-
-async function callLLM(apikey: string, messages: any[], tools: any[]) {
-  console.log('Sending request to OpenAI:', { 
-    messageCount: messages.length,
-    lastMessage: messages[messages.length - 1]
-  });
-
-  try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apikey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4',
-        messages: messages,
-        temperature: 0.7,
-        max_tokens: 500,
-        tools: tools
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
-    }
-
-    return response;
-  } catch (error) {
-    console.error('Error calling OpenAI:', error);
-    throw error;
-  }
-}
-
-async function getContactsByNames(userId: string, names: string[]) {
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  if (!names.length) return { data: null, error: null };
-
-  const { data, error } = await supabaseClient
-    .from('contacts')
-    .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship')
-    .eq('user_id', userId)
-    .in('name', names);
-
-  if (error) {
-    console.error('Error fetching contacts:', error);
-    throw new Error(`Error fetching contacts: ${error.message}`);
-  }
-
-  if (!data) {
-    return "No information found for the friends "+names.join(" ")
-  }
-
-  return data;
-}
-
-async function upsertContacts(userId: string, contacts: { name: string; email?: string; phone?: string; instagram?: string; linkedin?: string; twitter?: string; meeting_story?: string; relationship?: string }[]) {
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  const { data, error } = await supabaseClient
-    .from('contacts')
-    .upsert(contacts.map(contact => ({
-      ...contact,
-      user_id: userId,
-    })));
-
-  if (error) {
-    console.error('Error inserting contacts:', error);
-    throw new Error(`Error upserting contacts: ${error.message}`);
-  }
-
-  return data;
-}
-
-async function createContact(userId: string, contact: { name: string; email?: string; phone?: string; instagram?: string; linkedin?: string; twitter?: string; meetingStory?: string; relationship?: string }) {
-  const supabaseClient = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-  );
-
-  const { data, error } = await supabaseClient
-  .from('contacts')
-  .insert([{
-    user_id: userId,
-    name: contact.name,
-    phone: contact.phone,
-    instagram: contact.instagram,
-    linkedin: contact.linkedin,
-    twitter: contact.twitter,
-    meeting_story: contact.meetingStory,
-    relationship: contact.relationship,
-    created_at: new Date().toISOString()
-  }]);
-
-  if (error) {
-    console.error('Error inserting contact:', error);
-    throw new Error(`Error inserting contact: ${error.message}`);
-  }
-
-  return data;
-}
 
 serve(async (req) => {
   // Handle CORS preflight requests
