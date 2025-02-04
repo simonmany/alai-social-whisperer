@@ -49,7 +49,6 @@ interface ContactDrawerContent {
   description?: string;
 }
 
-// Utility function to get initials from a name
 const getInitials = (name: string): string => {
   return name
     .split(' ')
@@ -69,7 +68,6 @@ const ContactsView = () => {
   const queryClient = useQueryClient();
   const { session } = useAuth();
 
-  // Query to check if user is in tutorial
   const { data: profileData } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
@@ -87,7 +85,6 @@ const ContactsView = () => {
     enabled: !!session?.user?.id
   });
 
-  // Update tutorial step when component mounts if needed
   useEffect(() => {
     const updateTutorialStep = async () => {
       if (
@@ -163,7 +160,6 @@ const ContactsView = () => {
     enabled: !!session?.user?.id,
   });
 
-  // Filter contacts based on search query
   const filteredContacts = contacts.filter(contact =>
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -180,7 +176,6 @@ const ContactsView = () => {
 
       if (error) throw error;
       
-      // Add default groups
       const defaultGroups = [
         { id: 'home', name: 'Home', emoji: '🏠' },
         { id: 'inner-orbit', name: 'Inner Orbit', emoji: '✨' }
@@ -240,7 +235,6 @@ const ContactsView = () => {
       return filteredContacts;
     }
     
-    // For other groups, filter contacts based on group membership
     const selectedGroupData = groups.find(g => g.name === groupName);
     console.log('Selected group data:', selectedGroupData);
     
@@ -293,9 +287,9 @@ const ContactsView = () => {
             <div className="space-y-2">
               <h4 className="text-lg font-medium text-white">Last Hangout</h4>
               <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                <p className="text-white text-sm">Add a photo</p>
+                <p className="text-white/80">Add a photo</p>
               </div>
-              <p className="text-white text-sm">
+              <p className="text-white/80">
                 {contact.meeting_story || "Add a quick note about your last hangout"}
               </p>
             </div>
@@ -311,14 +305,14 @@ const ContactsView = () => {
               <h4 className="text-lg font-medium text-white mb-4">Highlights of your friendship</h4>
               <div className="relative">
                 <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                  <p className="text-white text-sm">Add photos to your friendship timeline</p>
+                  <p className="text-white/80">Add photos to your friendship timeline</p>
                 </div>
               </div>
             </div>
 
             <div>
               <h4 className="text-lg font-medium text-white mb-2">Your Story</h4>
-              <p className="text-white">
+              <p className="text-white/80">
                 {contact.meeting_story || "Add a description of how you met and your journey together"}
               </p>
             </div>
@@ -365,7 +359,6 @@ const ContactsView = () => {
 
     return (
       <div className="absolute inset-0 flex items-center justify-center">
-        {/* Central user avatar */}
         <div className="relative">
           <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
           <AvatarUpload
@@ -376,7 +369,6 @@ const ContactsView = () => {
           />
         </div>
 
-        {/* Inner orbit contacts */}
         {innerOrbitContacts.map((contact, index) => {
           const angle = (index * 2 * Math.PI) / innerOrbitContacts.length;
           const radius = 120;
@@ -385,7 +377,6 @@ const ContactsView = () => {
           return renderContactAvatar(contact, x, y);
         })}
 
-        {/* Group clusters */}
         {userGroups.map((group, groupIndex) => {
           const groupContacts = getContactsForGroup(group.name);
           const groupAngle = (groupIndex * 2 * Math.PI) / userGroups.length;
@@ -440,7 +431,6 @@ const ContactsView = () => {
     
     return (
       <div className="absolute inset-0 flex items-center justify-center">
-        {/* Central user avatar */}
         <div className="relative">
           <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
           <AvatarUpload
@@ -451,7 +441,6 @@ const ContactsView = () => {
           />
         </div>
 
-        {/* Orbiting contacts */}
         {groupContacts.map((contact, index) => {
           const angle = (index * 2 * Math.PI) / groupContacts.length;
           const radius = 140;
@@ -496,7 +485,6 @@ const ContactsView = () => {
         </div>
         
         <div className="fixed inset-0 overflow-hidden">
-          {/* Galaxy background */}
           <div 
             className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
             style={{ 
