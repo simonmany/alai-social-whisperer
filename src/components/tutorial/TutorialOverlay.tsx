@@ -115,20 +115,20 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
     } else if (profile?.onboarding_step === 'goalset') {
-      // Find all "Goal Missing" buttons within alerts
-      const goalButtons = document.querySelectorAll('.alert-destructive');
+      // Find all goal missing buttons
+      const goalButtons = document.querySelectorAll('button:has(.alert-destructive)');
       const positions: { top: number; left: number }[] = [];
       
       goalButtons.forEach((button) => {
         const rect = button.getBoundingClientRect();
         positions.push({
-          top: rect.top + rect.height / 2,
-          left: rect.left - 40 // Position arrow to the left of the button
+          top: rect.top + rect.height / 2 - 20, // Center vertically
+          left: rect.left - 60 // Position to the left of the button
         });
       });
       
       setGoalArrowPositions(positions);
-      console.log('Goal arrow positions updated:', positions);
+      console.log('Goal arrow positions updated:', positions, 'Number of buttons found:', goalButtons.length);
     }
   };
 
