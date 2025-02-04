@@ -18,18 +18,14 @@ type ArrowPosition = {
 
 export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayProps) => {
   const [step, setStep] = useState<'splash' | 'profile' | 'goals' | 'complete'>('splash');
-  const [splashMessagePlayed, setSplashMessagePlayed] = useState(false);
-  const [profileMessagePlayed, setProfileMessagePlayed] = useState(false);
-  const [goalsMessagePlayed, setGoalsMessagePlayed] = useState(false);
   const [profileArrowPosition, setProfileArrowPosition] = useState<ArrowPosition | null>(null);
   const [goalsArrowPositions, setGoalArrowPositions] = useState<ArrowPosition[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // State for splash screen message sequence
-  const [hasPlayedGreeting, setHasPlayedGreeting] = useState(false);
-  const [showJourneyMessage, setShowJourneyMessage] = useState(false);
-  const [hasPlayedJourneyMessage, setHasPlayedJourneyMessage] = useState(false);
+  const [greetingComplete, setGreetingComplete] = useState(false);
+  const [journeyComplete, setJourneyComplete] = useState(false);
   const [showFinalPrompt, setShowFinalPrompt] = useState(false);
 
   const { data: profile } = useQuery({
@@ -55,7 +51,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       const rect = button.getBoundingClientRect();
       setProfileArrowPosition({
         top: rect.top + rect.height / 2,
-        left: rect.left - 40  // Position arrow to the left of the button
+        left: rect.left - 40
       });
     }
   }, []);
@@ -66,7 +62,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       const rect = button.getBoundingClientRect();
       return {
         top: rect.top + rect.height / 2,
-        left: rect.left - 40  // Position arrow to the left of the button
+        left: rect.left - 40
       };
     });
     setGoalArrowPositions(positions);
@@ -131,39 +127,30 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             text="Hi, Simon. It's nice to meet you."
             className="text-4xl font-medium"
             delay={500}
-            onComplete={() => {
-              if (!hasPlayedGreeting) {
-                setHasPlayedGreeting(true);
-                setTimeout(() => setShowJourneyMessage(true), 500);
-              }
-            }}
+            onComplete={() => setGreetingComplete(true)}
           />
           
-          {showJourneyMessage && (
-            <div className="space-y-8">
-              <TypewriterText 
-                text="I'm excited for our journey together."
-                className="text-2xl"
-                delay={0}
-                onComplete={() => {
-                  if (!hasPlayedJourneyMessage) {
-                    setHasPlayedJourneyMessage(true);
-                    setTimeout(() => setShowFinalPrompt(true), 500);
-                  }
-                }}
-              />
-              
-              {showFinalPrompt && (
-                <div className="space-y-4">
-                  <p className="text-2xl">Ready to get started?</p>
-                  <button
-                    onClick={handleSplashComplete}
-                    className="pointer-events-auto w-full bg-primary text-primary-foreground p-4 rounded-lg hover:bg-primary/90 transition-colors text-xl animate-fade-in"
-                  >
-                    Let's go!
-                  </button>
-                </div>
-              )}
+          {greetingComplete && (
+            <TypewriterText 
+              text="I'm excited for our journey together."
+              className="text-2xl"
+              delay={0}
+              onComplete={() => {
+                setJourneyComplete(true);
+                setShowFinalPrompt(true);
+              }}
+            />
+          )}
+          
+          {showFinalPrompt && (
+            <div className="space-y-4 animate-fade-in">
+              <p className="text-2xl">Ready to get started?</p>
+              <button
+                onClick={handleSplashComplete}
+                className="pointer-events-auto w-full bg-primary text-primary-foreground p-4 rounded-lg hover:bg-primary/90 transition-colors text-xl"
+              >
+                Let's go!
+              </button>
             </div>
           )}
         </div>

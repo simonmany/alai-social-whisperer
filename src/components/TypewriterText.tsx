@@ -18,64 +18,60 @@ export const TypewriterText = ({
 }: TypewriterTextProps) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const hasStartedRef = useRef(false);
-  const hasCompletedRef = useRef(false);
-  const intervalIdRef = useRef<NodeJS.Timeout | null>(null);
-  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup function to clear any existing timers
-  const cleanup = () => {
-    if (intervalIdRef.current) {
-      clearInterval(intervalIdRef.current);
-      intervalIdRef.current = null;
-    }
-    if (timeoutIdRef.current) {
-      clearTimeout(timeoutIdRef.current);
-      timeoutIdRef.current = null;
-    }
-  };
-
-  // Function to immediately complete the current text
-  const completeCurrentText = () => {
-    cleanup();
-    setDisplayedText(text);
-    setIsTyping(false);
-    if (!hasCompletedRef.current) {
-      hasCompletedRef.current = true;
-      onComplete?.();
-    }
-  };
+  const [hasStarted, setHasStarted] = useState(false);
+  const [isComplete, setIsComplete] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Reset refs and state when text changes
-    hasStartedRef.current = false;
-    hasCompletedRef.current = false;
+    // Reset state when text changes
     setDisplayedText('');
     setIsTyping(false);
-    cleanup();
+    setHasStarted(false);
+    setIsComplete(false);
+
+    // Clear any existing timers
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
 
     if (!text) return;
 
-    // Start the typing animation after the delay
-    timeoutIdRef.current = setTimeout(() => {
+    // Start typing after delay
+    timeoutRef.current = setTimeout(() => {
       setIsTyping(true);
-      hasStartedRef.current = true;
+      setHasStarted(true);
       let currentIndex = 0;
-      
-      intervalIdRef.current = setInterval(() => {
+
+      intervalRef.current = setInterval(() => {
         if (currentIndex < text.length) {
           setDisplayedText(text.slice(0, currentIndex + 1));
           currentIndex++;
         } else {
-          completeCurrentText();
+          // Cleanup and mark as complete
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+          }
+          setIsTyping(false);
+          setIsComplete(true);
+          onComplete?.();
         }
       }, typingSpeed);
-
     }, delay);
 
-    // Cleanup when component unmounts or text changes
-    return cleanup;
-  }, [text, onComplete, delay, typingSpeed]);
+    // Cleanup function
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [text, delay, typingSpeed, onComplete]);
 
   return (
     <div className={cn("relative inline-block", className)}>
