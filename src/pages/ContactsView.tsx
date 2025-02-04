@@ -298,7 +298,8 @@ const ContactsView = () => {
           />
         </div>
 
-        {selectedGroup === "Home" ? (
+        {/* Only render orbiting contacts if we're in the Home view */}
+        {selectedGroup === "Home" && (
           <>
             {/* Inner orbit contacts */}
             {innerOrbitContacts.map((contact, index) => {
@@ -336,7 +337,6 @@ const ContactsView = () => {
                     </Badge>
                     <div className="relative grid grid-cols-2 gap-2">
                       {groupContacts.slice(0, 4).map((contact, contactIndex) => {
-                        const size = contactIndex === 0 ? 'h-12 w-12' : 'h-8 w-8';
                         return renderContactAvatar(contact, 0, 0);
                       })}
                     </div>
@@ -345,13 +345,15 @@ const ContactsView = () => {
               );
             })}
           </>
-        ) : (
-          // Display only the selected group's contacts in a circle
+        )}
+
+        {/* Render selected group's contacts in a circle */}
+        {selectedGroup !== "Home" && (
           <>
             {getContactsForGroup(selectedGroup).map((contact, index) => {
               const totalContacts = getContactsForGroup(selectedGroup).length;
               const angle = (index * 2 * Math.PI) / totalContacts;
-              const radius = 140; // Consistent radius for group view
+              const radius = 140;
               const x = Math.cos(angle) * radius;
               const y = Math.sin(angle) * radius;
               return renderContactAvatar(contact, x, y, true);
