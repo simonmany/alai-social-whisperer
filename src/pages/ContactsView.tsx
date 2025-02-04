@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import GroupManagementDialog from "@/components/GroupManagementDialog";
 import ContactGroupsManager from "@/components/ContactGroupsManager";
 import { useAuth } from "@/components/AuthProvider";
+import { DeepSpaceView } from "@/components/DeepSpaceView";
 
 interface Contact {
   id: string;
@@ -63,6 +64,7 @@ const ContactsView = () => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<string>("Home");
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
+  const [showDeepSpace, setShowDeepSpace] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -478,102 +480,30 @@ const ContactsView = () => {
     return <div className="flex items-center justify-center h-screen text-white">Loading...</div>;
   }
 
-  if (isInTutorial) {
+  if (showDeepSpace) {
     return (
-      <div className="fixed inset-0">
-        <div className="fixed inset-0 flex items-center justify-center z-[9999] mt-32">
-          <div className="bg-card/80 backdrop-blur-sm p-6 rounded-lg shadow-lg max-w-md text-center space-y-6">
-            <p className="text-lg text-white">
-              Your relationships are a beautiful constellation, but it's looking a bit empty right now.
-            </p>
-            <div className="flex justify-center gap-4">
-              <Button onClick={handleSkipContacts}>
-                Connect Contacts
-              </Button>
-              <Button variant="outline" onClick={handleSkipContacts}>
-                Not Now
-              </Button>
-            </div>
-          </div>
+      <div className="fixed inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
+          style={{ 
+            backgroundImage: 'url("/lovable-uploads/2d5625f4-eacc-494d-b391-4d338902ebb4.png")',
+            backgroundSize: 'cover'
+          }}>
+          <div className="absolute inset-0 bg-black bg-opacity-50" />
         </div>
-        
-        <div className="fixed inset-0 overflow-hidden">
-          <div 
-            className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
-            style={{ 
-              backgroundImage: 'url("/lovable-uploads/2d5625f4-eacc-494d-b391-4d338902ebb4.png")',
-              backgroundSize: 'cover'
-            }}
-          >
-            <div className="absolute inset-0 bg-black bg-opacity-50" />
+
+        <div className="container mx-auto p-4 relative z-10">
+          <div className="flex justify-between items-center mb-8">
+            <Button
+              variant="ghost"
+              className="text-white hover:bg-purple-900/50"
+              onClick={() => setShowDeepSpace(false)}
+            >
+              ← Back to Orbit View
+            </Button>
+            <h2 className="text-2xl font-bold text-white">Deep Space</h2>
           </div>
-
-          <div className="container max-w-2xl mx-auto p-4 h-full relative z-10">
-            <div className="relative flex flex-col h-full">
-              <div className="relative mb-8">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search contacts..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-black/50 border-purple-500/50 text-white"
-                />
-              </div>
-
-              <div className="flex-1 relative">
-                {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
-              </div>
-
-              <div className="space-y-2 mb-16">
-                <div className="flex items-center gap-2 mb-4">
-                  <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
-                    onClick={() => setIsGroupDialogOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {groups.map((group) => (
-                    <Badge
-                      key={group.id}
-                      variant={selectedGroup === group.name ? "default" : "outline"}
-                      className={`cursor-pointer hover:bg-purple-800/50 ${
-                        selectedGroup === group.name
-                          ? "bg-purple-600"
-                          : "bg-purple-900/50 border-purple-500/50 text-purple-100"
-                      }`}
-                      onClick={() => setSelectedGroup(group.name)}
-                    >
-                      {group.emoji || "👥"} {group.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50"
-                onClick={() => navigate("/")}
-              >
-                <ChevronUp className="h-6 w-6" />
-              </Button>
-            </div>
-          </div>
-
-          <GroupManagementDialog
-            open={isGroupDialogOpen}
-            onOpenChange={setIsGroupDialogOpen}
-            contacts={contacts}
-            onGroupCreated={() => {
-              queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
-              queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
-            }}
-          />
+          
+          <DeepSpaceView contacts={contacts} />
         </div>
       </div>
     );
@@ -634,6 +564,13 @@ const ContactsView = () => {
                   {group.emoji || "👥"} {group.name}
                 </Badge>
               ))}
+              <Badge
+                variant="outline"
+                className="cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100"
+                onClick={() => setShowDeepSpace(true)}
+              >
+                🌌 Deep Space
+              </Badge>
             </div>
           </div>
 
