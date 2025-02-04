@@ -213,11 +213,22 @@ const ContactsView = () => {
   };
 
   const getContactsForGroup = (groupName: string) => {
+    if (groupName === "Home") {
+      return contacts;
+    }
     if (groupName === "Inner Orbit") {
       return getInnerOrbitContacts();
     }
+    // For user-created groups, filter contacts that belong to the selected group
+    const selectedGroup = groups.find(g => g.name === groupName);
+    if (!selectedGroup) return [];
+    
     return contacts.filter(contact => 
-      getContactGroups(contact.id).some(g => g.name === groupName)
+      groupMemberships.some(
+        membership => 
+          membership.contact_id === contact.id && 
+          membership.group_id === selectedGroup.id
+      )
     );
   };
 
@@ -326,36 +337,7 @@ const ContactsView = () => {
                     <div className="relative grid grid-cols-2 gap-2">
                       {groupContacts.slice(0, 4).map((contact, contactIndex) => {
                         const size = contactIndex === 0 ? 'h-12 w-12' : 'h-8 w-8';
-                        return (
-                          <Drawer key={contact.id}>
-                            <DrawerTrigger asChild>
-                              <button className="transform hover:scale-110 transition-transform">
-                                <Avatar className={`${size} bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400`}>
-                                  <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
-                                </Avatar>
-                              </button>
-                            </DrawerTrigger>
-                            <DrawerContent className="bg-black/90 border-purple-500/50">
-                              <div className="p-4 space-y-4">
-                                <div className="flex items-center space-x-4">
-                                  <Avatar className="h-20 w-20 bg-purple-900/50 border-2 border-purple-500/50">
-                                    <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <h2 className="text-2xl font-bold text-white">{contact.name}</h2>
-                                    {contact.email && (
-                                      <p className="text-purple-300">{contact.email}</p>
-                                    )}
-                                    <p className="text-sm text-purple-400 mt-2">
-                                      Orbit Distance: {((1 - contact.closeness) * 100).toFixed(0)}%
-                                    </p>
-                                  </div>
-                                </div>
-                                <ContactGroupsManager contactId={contact.id} />
-                              </div>
-                            </DrawerContent>
-                          </Drawer>
-                        );
+                        return renderContactAvatar(contact, 0, 0);
                       })}
                     </div>
                   </div>
