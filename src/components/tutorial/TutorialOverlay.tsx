@@ -74,7 +74,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             left: rect.left + rect.width / 2 - 20
           });
           setMessagePosition({
-            top: rect.bottom + window.scrollY + 20,
+            top: rect.bottom + 50,
             left: rect.left - 100
           });
         }
@@ -235,7 +235,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             )}
           </div>
         </div>
-      );
     }
 
     if (step === 'calendarintro') {
@@ -246,18 +245,20 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`
+              left: `${arrowPosition.left}px`,
+              zIndex: 50
             }}
           />
           <TutorialMessage 
             style={{
               position: 'fixed',
               top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`
+              left: `${messagePosition.left}px`,
+              zIndex: 50
             }}
           >
             <div className="space-y-4">
-              <p>First, let's connect your calendar so I can help you plan and track your social life.</p>
+              <p>Connecting your calendar will help me plan events for you smoothly.</p>
               <div className="flex gap-2">
                 <Button onClick={() => setStep('contactsintro')}>
                   Connect Calendar
@@ -283,14 +284,16 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`
+              left: `${arrowPosition.left}px`,
+              zIndex: 50
             }}
           />
           <TutorialMessage 
             style={{
               position: 'fixed',
               top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`
+              left: `${messagePosition.left}px`,
+              zIndex: 50
             }}
           >
             <div className="space-y-4">
@@ -320,14 +323,16 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             style={{
               position: 'fixed',
               top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`
+              left: `${arrowPosition.left}px`,
+              zIndex: 50
             }}
           />
           <TutorialMessage 
             style={{
               position: 'fixed',
               top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`
+              left: `${messagePosition.left}px`,
+              zIndex: 50
             }}
           >
             I've created a profile for you here. Click to take a look.
@@ -343,26 +348,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             className="right-[450px] top-32 max-w-[300px]"
           >
             Let's start by setting some goals. What would you like to achieve?
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'goals' && !isProfileOpen) {
-      return (
-        <>
-          <TutorialArrow 
-            direction="left"
-            style={{
-              position: 'fixed',
-              top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`
-            }}
-          />
-          <TutorialMessage 
-            className="right-[450px] top-32 max-w-[300px]"
-          >
-            Great! Now let's close this and move on.
           </TutorialMessage>
         </>
       );
