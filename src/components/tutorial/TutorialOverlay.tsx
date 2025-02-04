@@ -112,22 +112,21 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
       }
     } else if (profile?.onboarding_step === 'goalset') {
-      // Find all goal missing buttons by looking for the alert-destructive class within buttons
-      const goalButtons = Array.from(document.querySelectorAll('.alert-destructive'))
-        .map(alert => alert.closest('button'))
-        .filter((button): button is HTMLButtonElement => button !== null && button instanceof HTMLButtonElement);
-
+      // Find all alerts with the destructive variant
+      const goalAlerts = Array.from(document.querySelectorAll('[role="alert"]'));
+      console.log('Found goal alerts:', goalAlerts.length);
+      
       const positions: { top: number; left: number }[] = [];
       
-      goalButtons.forEach((button) => {
-        const rect = button.getBoundingClientRect();
+      goalAlerts.forEach((alert) => {
+        const rect = alert.getBoundingClientRect();
         positions.push({
           top: rect.top + (rect.height / 2) - 20,
           left: rect.left - 60
         });
+        console.log('Alert position:', { top: rect.top, left: rect.left, height: rect.height });
       });
       
-      console.log('Found goal buttons:', goalButtons.length);
       console.log('Goal arrow positions:', positions);
       setGoalArrowPositions(positions);
     }
@@ -136,8 +135,15 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   useEffect(() => {
     updatePositions();
     window.addEventListener('resize', updatePositions);
-    return () => window.removeEventListener('resize', updatePositions);
-  }, [profile?.onboarding_step]);
+    
+    // Add a small delay to ensure the DOM is fully rendered
+    const timeout = setTimeout(updatePositions, 100);
+    
+    return () => {
+      window.removeEventListener('resize', updatePositions);
+      clearTimeout(timeout);
+    };
+  }, [profile?.onboarding_step, isProfileOpen]);
 
   const handleStepChange = async (newStep: TutorialStep) => {
     if (!session?.user?.id) return;
