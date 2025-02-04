@@ -94,6 +94,7 @@ async function callLLM(apikey: string, messages: any[], tools: any[]) {
       messages: messages,
       temperature: 0.7,
       max_tokens: 500,
+      response_format: { type: "json_object" },
       //tools: tools
     }),
   });
@@ -107,33 +108,56 @@ async function callLLM(apikey: string, messages: any[], tools: any[]) {
 
 function constructSystemPrompt(profile: any, events: any, contacts: any) {
   return `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
-  - Profile: ${JSON.stringify(profile, null, 2)}
-  - Calendar Events for the next 30 days: ${JSON.stringify(events, null, 2)}
-  - Friend data: ${JSON.stringify(contacts, null, 2)}
+      - Profile: ${JSON.stringify(profile)}
+      - Calendar Events for the next 30 days: ${JSON.stringify(events)}
+      
+      When discussing calendar events, always format dates and times in a user-friendly way.
+      If asked about the calendar or scheduling, you can:
+      - List upcoming events
+      - Suggest free time slots for new activities
+      - Help identify scheduling conflicts
+      - Provide summaries of the user's schedule
+      
+      When suggesting times for activities:
+      1. Check the existing calendar events to avoid conflicts
+      2. Suggest specific dates and times that work around existing commitments
+      3. Consider typical timing for the suggested activity (e.g., dinner in the evening)
 
-  When discussing a friend, refer to the friend data for information about them and their contact information.
-  If the contact does not have any additional information besides their name, ask the user for at least one contact method (phone, email, instagram, etc).
-  If the user provides about new information about a contact or contacts, update the contact data and return it as a JSON object which is an array of the updated contacts.
-    Example JSON response format:
-    {
-      contacts: [
-        {
-          name: string
-          email: optional string
-          phone: optional string
-          instagram: optional string
-          linkedin: optional string
-          twitter: optional string
-          meeting_story: optional string
-          relationship: optional string
-        }
-      ]
-    }
-  
-  When discussing calendar events, always format dates and times in a user-friendly way.
-  
-  When the user says they want to contact a friend, include the contact information at the very end of your message.
-  Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
+      When users mention meeting someone new or talk about a contact:
+      1. Extract the person's name and any contact information shared
+      2. If they mention meeting someone new, respond in a way that shows interest in the new connection
+      3. Ask follow-up questions about the person if not much information was shared
+
+      When users provide feedback about a social interaction or "hang":
+      1. Ask thoughtful follow-up questions about:
+         - The quality of the conversation and connection
+         - Any interesting topics or shared interests discovered
+         - Their comfort level and engagement during the interaction
+         - Whether they'd like to plan another hang with these people
+      2. Look for patterns in their social preferences
+      3. Use their feedback to make better suggestions for future social activities
+      4. If they express any concerns or negative experiences, provide empathetic support and constructive suggestions
+
+      Ask these questions one at a time to not overwhelm the user. Keep a natural conversational flow.
+      
+      Your response should be in this JSON format:
+      {
+        "text": "your conversational response here",
+        contacts: [
+          {
+            name: string
+            email?: string
+            phone?: string
+            instagram?: string
+            linkedin?: string
+            twitter?: string
+            meeting_story?: string
+            relationship?: string
+          }
+        ]
+      }
+      
+      Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
 }
 
 async function extractNamesFromText(text: string): Promise<string[]> {
@@ -219,7 +243,7 @@ async function upsertContacts(userId: string, contacts: { name: string; email?: 
     })));
 
   if (error) {
-    console.error('Error inserting contacts:', error);
+    console.error('Error upserting contacts:', error);
     throw new Error(`Error upserting contacts: ${error.message}`);
   }
 
@@ -270,7 +294,7 @@ serve(async (req) => {
       throw new Error('Missing environment variables');
     }
 
-    console.log('Processing chat request:', { userId, messageLength: message.length });
+    console.log('Processing chat request:', { userId, contactInfo });
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -281,6 +305,17 @@ serve(async (req) => {
       if (contactError) {
         console.error('Error storing contact:', contactError);
       }
+    }
+
+    const { error: userMessageError } = await supabase
+    .from('chat_history')
+    .insert([
+      { user_id: userId, message, is_ai: false }
+    ]);
+
+    if (userMessageError) {
+      console.error('Error storing user message:', userMessageError);
+      throw userMessageError;
     }
 
     const { data: profile } = await supabase
@@ -322,16 +357,19 @@ serve(async (req) => {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    // Extract names from the message and get their contact info
-    let mentionedContacts = []
-    const names = await extractNamesFromText(message);
-    if (names.length > 0) { 
-      mentionedContacts = await searchContactsByNames(userId, names);
-      if (mentionedContacts.length === 0) {
-        mentionedContacts = await upsertContacts(userId, names.map(name => ({name})));
-        console.log('Upserting new contacts ', mentionedContacts);
+    // // Extract names from the message and get their contact info
+    let mentionedContacts = contactInfo ? [contactInfo] : [];
+    if (!contactInfo) {
+      // only need to lookup if info wasn't passed in
+      const names = await extractNamesFromText(message);
+      if (names.length > 0) { 
+        mentionedContacts = await searchContactsByNames(userId, names);
+        if (mentionedContacts.length === 0) {
+          await upsertContacts(userId, names.map(name => ({name})));
+          console.log('Upserting new contacts ', names);
+        }
+        mentionedContacts = await searchContactsByNames(userId, names);
       }
-      mentionedContacts = await searchContactsByNames(userId, names);
     }
 
     // // Get closest contacts
@@ -357,9 +395,15 @@ serve(async (req) => {
       content: msg.message
     })) || [];
 
+    let contactContext = '';
+    if (mentionedContacts.length > 0) {
+      contactContext = `We are talking about my ${mentionedContacts.length === 1 ? 'friend' : 'friends'}. Their data is:\n${JSON.stringify(mentionedContacts, null, 2)}\n`;
+      console.log('Inserting contextual contact data ', contactContext)
+    }
+
     messages.push({
       role: 'user',
-      content: message
+      content: contactContext + message
     });
 
     const systemPrompt = constructSystemPrompt(profileData, events, mentionedContacts);
@@ -403,9 +447,41 @@ serve(async (req) => {
       aiResponse = responseData.choices[0].message.content;
     }
 
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(aiResponse);
+    } catch (e) {
+      console.error('Error parsing AI response:', e);
+      parsedResponse = {
+        text: aiResponse,
+        contacts: []
+      };
+    }
+    console.log('parsed response', parsedResponse)
+
+    // Handle multiple contacts
+    if (parsedResponse.contacts && Array.isArray(parsedResponse.contacts && parsedResponse.contacts.length > 0)) {
+      const { error: contactError } = await upsertContacts(userId, parsedResponse.contacts);
+
+      if (contactError) {
+        console.error('Error storing contacts:', contactError);
+      }
+    }
+
+    const { error: aiMessageError } = await supabase
+      .from('chat_history')
+      .insert([
+        { user_id: userId, message: parsedResponse.text, is_ai: true }
+      ]);
+
+    if (aiMessageError) {
+      console.error('Error storing AI message:', aiMessageError);
+      throw aiMessageError;
+    }
+
     return new Response(JSON.stringify({ 
-      response: aiResponse,
-      contacts: mentionedContacts
+      response: parsedResponse.text,
+      contacts: parsedResponse.contacts
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
