@@ -54,116 +54,100 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     console.log('Is profile open?', isProfileOpen);
   }, [step, profile, isProfileOpen]);
 
+  // Initialize step from profile data
+  useEffect(() => {
+    if (profile?.onboarding_step && !isProfileLoading) {
+      // Only set the step if it hasn't been set yet or if it's 'splash'
+      if (step === 'splash') {
+        setStep(profile.onboarding_step as TutorialStep);
+      }
+    }
+  }, [profile?.onboarding_step, isProfileLoading]);
+
   // Watch for profile being opened and update step
   useEffect(() => {
     if (step === 'profileintro' && isProfileOpen) {
       console.log('Profile opened while in profileintro step, transitioning to goalset');
       setStep('goalset');
-    }
-  }, [isProfileOpen, step]);
-
-  // Watch for goals being set
-  useEffect(() => {
-    if (step === 'goalset' && profile?.goals && Array.isArray(profile.goals) && profile.goals.length > 0) {
-      console.log('Goals detected, completing tutorial:', profile.goals);
-      handleTutorialComplete();
-    }
-  }, [profile?.goals, step]);
-
-  useEffect(() => {
-    const updatePositions = () => {
-      if (step === 'calendarintro') {
-        const calendarButton = document.querySelector('[aria-label="Open calendar"]');
-        if (calendarButton) {
-          const rect = calendarButton.getBoundingClientRect();
-          setArrowPosition({ 
-            top: rect.bottom + 10,
-            left: rect.left + rect.width / 2 - 20
+      
+      // Update the database to reflect this transition
+      if (session?.user?.id) {
+        supabase
+          .from('profiles')
+          .update({ onboarding_step: 'goalset' })
+          .eq('id', session.user.id)
+          .then(({ error }) => {
+            if (error) console.error('Error updating onboarding step:', error);
+            else {
+              queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+            }
           });
-          setMessagePosition({
-            top: rect.bottom + 50,
-            left: rect.left - 100
-          });
-        }
-      } else if (step === 'contactsintro') {
-        const contactsButton = document.querySelector('[aria-label="Open contacts"]');
-        if (contactsButton) {
-          const rect = contactsButton.getBoundingClientRect();
-          setArrowPosition({ 
-            top: rect.bottom + 10,
-            left: rect.left + rect.width / 2 - 20
-          });
-          setMessagePosition({
-            top: rect.bottom + 50,
-            left: rect.left - 100
-          });
-        }
-      } else if (step === 'profileintro') {
-        const profileButton = document.querySelector('[aria-label="Open profile"]');
-        if (profileButton) {
-          const rect = profileButton.getBoundingClientRect();
-          setArrowPosition({ 
-            top: rect.bottom + 10,
-            left: rect.left + rect.width / 2 - 20
-          });
-          setMessagePosition({
-            top: rect.bottom + 50,
-            left: rect.left - 200
-          });
-        }
-      } else if (step === 'goalset') {
-        // Find all "Goal Missing" buttons
-        const goalButtons = document.querySelectorAll('.alert-destructive');
-        const positions: { top: number; left: number }[] = [];
-        
-        goalButtons.forEach((button) => {
-          const rect = button.getBoundingClientRect();
-          positions.push({
-            top: rect.top + rect.height / 2,
-            left: rect.left - 40 // Position arrow to the left of the button
-          });
-        });
-        
-        setGoalArrowPositions(positions);
       }
-    };
+    }
+  }, [isProfileOpen, step, session?.user?.id, queryClient]);
 
+  const updatePositions = () => {
+    if (step === 'calendarintro') {
+      const calendarButton = document.querySelector('[aria-label="Open calendar"]');
+      if (calendarButton) {
+        const rect = calendarButton.getBoundingClientRect();
+        setArrowPosition({ 
+          top: rect.bottom + 10,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.bottom + 50,
+          left: rect.left - 100
+        });
+      }
+    } else if (step === 'contactsintro') {
+      const contactsButton = document.querySelector('[aria-label="Open contacts"]');
+      if (contactsButton) {
+        const rect = contactsButton.getBoundingClientRect();
+        setArrowPosition({ 
+          top: rect.bottom + 10,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.bottom + 50,
+          left: rect.left - 100
+        });
+      }
+    } else if (step === 'profileintro') {
+      const profileButton = document.querySelector('[aria-label="Open profile"]');
+      if (profileButton) {
+        const rect = profileButton.getBoundingClientRect();
+        setArrowPosition({ 
+          top: rect.bottom + 10,
+          left: rect.left + rect.width / 2 - 20
+        });
+        setMessagePosition({
+          top: rect.bottom + 50,
+          left: rect.left - 200
+        });
+      }
+    } else if (step === 'goalset') {
+      // Find all "Goal Missing" buttons
+      const goalButtons = document.querySelectorAll('.alert-destructive');
+      const positions: { top: number; left: number }[] = [];
+      
+      goalButtons.forEach((button) => {
+        const rect = button.getBoundingClientRect();
+        positions.push({
+          top: rect.top + rect.height / 2,
+          left: rect.left - 40 // Position arrow to the left of the button
+        });
+      });
+      
+      setGoalArrowPositions(positions);
+    }
+  };
+
+  useEffect(() => {
     updatePositions();
     window.addEventListener('resize', updatePositions);
     return () => window.removeEventListener('resize', updatePositions);
   }, [step]);
-
-  const handleTutorialComplete = async () => {
-    if (!session?.user.id) return;
-
-    console.log('Handling tutorial completion');
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_step: 'complete',
-          has_completed_tutorial: true
-        })
-        .eq('id', session.user.id);
-
-      if (error) throw error;
-
-      console.log('Tutorial completion status updated in database');
-      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-      setShowCompletionMessage(true);
-      setTimeout(() => {
-        setShowCompletionMessage(false);
-        onComplete();
-      }, 3000);
-    } catch (error: any) {
-      console.error('Error completing tutorial:', error);
-      toast({
-        title: "Error completing tutorial",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
 
   const renderTutorialContent = () => {
     if (isProfileLoading || !profile) {
@@ -264,7 +248,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             )}
           </div>
         </div>
-      );
+      }
     }
 
     if (step === 'calendarintro') {
@@ -394,20 +378,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
             Let's start by setting some goals. What would you like to achieve?
           </TutorialMessage>
         </>
-      );
-    }
-
-    if (showCompletionMessage) {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-50">
-          <div className="text-2xl">
-            <TypewriterText
-              text="That's it! I'm looking forward to being your Alai."
-              delay={0}
-              onComplete={() => {}}
-            />
-          </div>
-        </div>
       );
     }
 
