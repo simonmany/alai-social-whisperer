@@ -220,8 +220,13 @@ const ContactsView = () => {
       return filteredContacts;
     }
     // For other groups, filter contacts based on group membership
+    const selectedGroupData = groups.find(g => g.name === groupName);
+    if (!selectedGroupData) return [];
+    
     return filteredContacts.filter(contact => 
-      getContactGroups(contact.id).some(g => g.name === groupName)
+      groupMemberships.some(m => 
+        m.contact_id === contact.id && m.group_id === selectedGroupData.id
+      )
     );
   };
 
