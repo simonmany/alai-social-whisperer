@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { TutorialMessage } from "./TutorialMessage";
 import { TutorialArrow } from "./TutorialArrow";
 import { TypewriterText } from "../TypewriterText";
+import { Button } from "../ui/button";
 
 interface TutorialOverlayProps {
   onComplete: () => void;
@@ -126,13 +127,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         >
           First, let's connect your calendar to help me understand your schedule
         </TutorialMessage>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-          <button
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Button 
             onClick={() => setStep('contactsintro')}
-            className="pointer-events-auto bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+            className="pointer-events-auto"
+            variant="default"
           >
-            Continue
-          </button>
+            Connect Google Calendar
+          </Button>
         </div>
       </div>
     );
@@ -147,13 +149,14 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         >
           Great! Now, let's import your contacts so I can help you stay in touch
         </TutorialMessage>
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-          <button
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+          <Button 
             onClick={() => setStep('profileintro')}
-            className="pointer-events-auto bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+            className="pointer-events-auto"
+            variant="default"
           >
-            Continue
-          </button>
+            Import Contacts
+          </Button>
         </div>
       </div>
     );
@@ -179,12 +182,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           />
         )}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-          <button
+          <Button 
             onClick={() => setStep('profile')}
-            className="pointer-events-auto bg-primary text-primary-foreground px-6 py-3 rounded-lg hover:bg-primary/90 transition-colors"
+            className="pointer-events-auto"
+            variant="default"
           >
             Continue
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -241,12 +245,13 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         >
           <div className="space-y-4">
             <p>That's it! You're all set to start using the app.</p>
-            <button
+            <Button
               onClick={onComplete}
-              className="pointer-events-auto bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors"
+              className="pointer-events-auto"
+              variant="default"
             >
               Start Using App
-            </button>
+            </Button>
           </div>
         </TutorialMessage>
       )}
