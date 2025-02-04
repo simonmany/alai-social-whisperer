@@ -94,7 +94,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         <div className="max-w-2xl w-full mx-4 space-y-8 text-left font-cormorant">
           {screens.map((text, index) => (
             index <= currentScreen && (
-              <div key={index} className="text-lg">
+              <div key={index} className={`text-lg ${index === 0 ? 'text-4xl font-medium mb-8' : 'text-xl'}`}>
                 {completedScreens.includes(index) ? (
                   <div>{text}</div>
                 ) : (
@@ -115,7 +115,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
               <p className="text-2xl">Ready to get started?</p>
               <button
                 onClick={() => setStep('profile')}
-                className="pointer-events-auto w-full bg-primary text-primary-foreground p-4 rounded-lg hover:bg-primary/90 transition-colors text-xl"
+                className="pointer-events-auto w-full bg-[#14171F] text-white p-4 rounded-lg hover:bg-[#14171F]/90 transition-colors text-xl"
               >
                 Let's go!
               </button>
