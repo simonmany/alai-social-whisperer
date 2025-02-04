@@ -254,7 +254,7 @@ const ContactsView = () => {
 
   const renderContactDrawerContent = (contact: Contact) => (
     <DrawerContent className="bg-black/90 border-purple-500/50 h-[100vh] overflow-y-auto">
-      <div className="p-6 space-y-8">
+      <div className="p-6 space-y-8 relative z-10">
         <div className="flex items-start space-x-6">
           <Avatar className="h-24 w-24 bg-purple-900/50 border-2 border-purple-500/50">
             <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
@@ -283,36 +283,37 @@ const ContactsView = () => {
             You and {contact.name.split(' ')[0]}
           </h3>
           
-          <div className="bg-purple-900/20 backdrop-blur-sm rounded-lg p-4 space-y-4">
-            <div className="space-y-2">
+          <div className="bg-purple-900/20 backdrop-blur-sm rounded-lg p-4 space-y-4 relative">
+            <div className="absolute inset-0 bg-black/40 rounded-lg" />
+            <div className="space-y-2 relative">
               <h4 className="text-lg font-medium text-white">Last Hangout</h4>
-              <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                <p className="text-white font-medium z-10">Add a photo</p>
+              <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center relative">
+                <p className="text-white font-medium relative">Add a photo</p>
               </div>
-              <p className="text-white font-medium z-10">
+              <p className="text-white font-medium relative">
                 {contact.meeting_story || "Add a quick note about your last hangout"}
               </p>
             </div>
 
             {contact.relationship && (
-              <div>
+              <div className="relative">
                 <h4 className="text-lg font-medium text-white mb-2">Known Since</h4>
-                <p className="text-white z-10">{contact.relationship}</p>
+                <p className="text-white relative">{contact.relationship}</p>
               </div>
             )}
 
-            <div>
+            <div className="relative">
               <h4 className="text-lg font-medium text-white mb-4">Highlights of your friendship</h4>
               <div className="relative">
                 <div className="aspect-video bg-purple-800/30 rounded-lg flex items-center justify-center">
-                  <p className="text-white font-medium z-10">Add photos to your friendship timeline</p>
+                  <p className="text-white font-medium relative">Add photos to your friendship timeline</p>
                 </div>
               </div>
             </div>
 
-            <div>
+            <div className="relative">
               <h4 className="text-lg font-medium text-white mb-2">Your Story</h4>
-              <p className="text-white font-medium z-10">
+              <p className="text-white font-medium relative">
                 {contact.meeting_story || "Add a description of how you met and your journey together"}
               </p>
             </div>
