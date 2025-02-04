@@ -113,9 +113,9 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       }
     } else if (profile?.onboarding_step === 'goalset') {
       // Find all goal missing buttons by looking for the alert-destructive class within buttons
-      const goalButtons = Array.from(document.querySelectorAll('.alert-destructive')).map(
-        alert => alert.closest('button')
-      ).filter((button): button is HTMLElement => button !== null);
+      const goalButtons = Array.from(document.querySelectorAll('.alert-destructive'))
+        .map(alert => alert.closest('button'))
+        .filter((button): button is HTMLButtonElement => button !== null && button instanceof HTMLButtonElement);
 
       const positions: { top: number; left: number }[] = [];
       
