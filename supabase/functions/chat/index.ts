@@ -5,7 +5,40 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
+
+// function constructSystemPrompt(profileData: any, events: any[], contacts: any[]) {
+//   let prompt = `You are Al, a friendly and helpful AI assistant focused on helping users with their social life. Your goal is to help them maintain and improve their relationships, try new activities, and achieve their social goals.`;
+
+//   if (profileData) {
+//     prompt += `\n\nUser Profile:`;
+//     if (profileData.username) prompt += `\nUsername: ${profileData.username}`;
+//     if (profileData.goals?.length) prompt += `\nGoals: ${profileData.goals.join(', ')}`;
+//     if (profileData.current_interests?.length) prompt += `\nInterests: ${profileData.current_interests.join(', ')}`;
+//     if (profileData.desired_interests?.length) prompt += `\nDesired Interests: ${profileData.desired_interests.join(', ')}`;
+//     if (profileData.city) prompt += `\nLocation: ${profileData.city}`;
+//   }
+
+//   if (events?.length) {
+//     prompt += `\n\nUpcoming Events (next 30 days):`;
+//     events.forEach(event => {
+//       prompt += `\n- ${event.title} (${event.start_time})`;
+//     });
+//   }
+
+//   if (contacts?.length) {
+//     prompt += `\n\nClose Contacts:`;
+//     contacts.slice(0, 5).forEach(contact => {
+//       prompt += `\n- ${contact.name}`;
+//       if (contact.relationship) prompt += ` (${contact.relationship})`;
+//     });
+//   }
+
+//   prompt += `\n\nPlease be conversational and friendly in your responses. Keep responses concise and focused on helping the user with their social life.`;
+
+//   return prompt;
+// }
 
 export enum ChatFunction {
   UpsertContacts = 'upsertContacts',
@@ -76,7 +109,19 @@ const tools = [{
   }
 }];
 
-async function callLLM(apikey: string, messages: any[], tools: any[]) {
+async function callLLM(apiKey: string, messages: any[], tools?: any[]) {
+  const requestBody: any = {
+    model: 'gpt-4o-mini',
+    messages,
+    temperature: 0.7,
+    max_tokens: 800,
+    response_format: { type: "json_object" },
+  };
+
+  if (tools) {
+    requestBody.tools = tools;
+    requestBody.tool_choice = 'auto';
+  }
   console.log('Sending request to OpenAI:', { 
     messageCount: messages.length,
     lastMessage: messages[messages.length - 1]
@@ -87,16 +132,9 @@ async function callLLM(apikey: string, messages: any[], tools: any[]) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apikey}`,
+      'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 500,
-      response_format: { type: "json_object" },
-      //tools: tools
-    }),
+    body: JSON.stringify(requestBody),
   });
   if (!response.ok) {
     const errorData = await response.json();
@@ -281,7 +319,10 @@ async function createContact(userId: string, contact: { name: string; email?: st
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
   }
 
   try {
@@ -291,7 +332,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!openAIApiKey || !supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing environment variables');
+      console.error('Missing required environment variables');
+      throw new Error('Server configuration error');
     }
 
     console.log('Processing chat request:', { userId, contactInfo });
@@ -300,13 +342,11 @@ serve(async (req) => {
 
     // Save contact info if provided
     if (contactInfo && contactInfo.name) {
-      const { data, error: contactError } = await createContact(userId, contactInfo);
-
-      if (contactError) {
-        console.error('Error storing contact:', contactError);
-      }
+      console.log('Creating contact:', contactInfo);
+      await createContact(userId, contactInfo);
     }
 
+    // Store user message
     const { error: userMessageError } = await supabase
     .from('chat_history')
     .insert([
@@ -412,8 +452,7 @@ serve(async (req) => {
       content: systemPrompt
     });
 
-    let response = await callLLM(openAIApiKey, messages, tools);
-
+    let response = await callLLM(openAIApiKey, messages);
     let responseData = await response.json();
     let aiResponse = responseData.choices[0].message.content;
 
@@ -430,18 +469,14 @@ serve(async (req) => {
           data = await upsertContacts(userId, toolInput.contacts);
         }
 
-        if (!data) {
-          throw new Error('Invalid tool call selected', toolCall);
-        }
-        console.log(data)
-        
-        messages.push(responseData.choices[0].message); // append model's function call message
-        messages.push({                               // append result message
-            role: "tool",
-            tool_call_id: responseData.choices[0].message.tool_calls[0].id,
-            content: data.toString()
+        messages.push(responseData.choices[0].message);
+        messages.push({
+          role: "tool",
+          tool_call_id: toolCall.id,
+          content: JSON.stringify(data)
         });
       }
+
       response = await callLLM(openAIApiKey, messages, tools);
       responseData = await response.json();
       aiResponse = responseData.choices[0].message.content;
@@ -488,11 +523,13 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in chat function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message || 'An unexpected error occurred' 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'An unexpected error occurred' 
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });

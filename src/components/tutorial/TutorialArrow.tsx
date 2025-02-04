@@ -17,7 +17,7 @@ export const TutorialArrow = ({ direction = "up", className, style }: TutorialAr
   return (
     <div 
       className={cn(
-        "fixed animate-bounce pointer-events-none z-[9999]",
+        "fixed animate-bounce pointer-events-none z-[99999]",
         className
       )}
       style={style}

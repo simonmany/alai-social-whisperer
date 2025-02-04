@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
+import { TypewriterText } from "@/components/TypewriterText";
 import { ChatInput } from "@/components/ChatInput";
-import { ChatMessage } from "@/components/ChatMessage";
-import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { TypewriterText } from "@/components/TypewriterText";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Autocomplete from 'react-google-autocomplete';
 
 interface DemographicsSectionProps {
@@ -53,7 +53,19 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
   }, [step, toast]);
 
   const handleAgeSubmit = async () => {
+    if (!age) {
+      toast({
+        title: "Please enter your age",
+        description: "Age is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Convert age to number and validate
     const ageNum = parseInt(age);
+    console.log('Validating age:', { input: age, parsed: ageNum });
+    
     if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
       toast({
         title: "Invalid age",
@@ -195,7 +207,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             {!hasPlayedIntro ? (
               <TypewriterText
                 text="Together, we're gonna make sure you spend time doing more of what you already love - and explore new things, too."
-                delay={0}
+                delay={250}
                 typingSpeed={25}
                 onComplete={() => setHasPlayedIntro(true)}
               />
@@ -205,7 +217,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             {hasPlayedIntro && !hasPlayedDetails ? (
               <TypewriterText
                 text="Now, some details - we're almost done."
-                delay={0}
+                delay={250}
                 typingSpeed={25}
                 onComplete={() => setHasPlayedDetails(true)}
               />
@@ -215,7 +227,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             {hasPlayedDetails && !hasPlayedQuestion ? (
               <TypewriterText
                 text="How many trips around the sun have you completed?"
-                delay={0}
+                delay={250}
                 typingSpeed={25}
                 onComplete={() => setHasPlayedQuestion(true)}
               />
@@ -224,16 +236,17 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             )}
           </div>
           <div className="space-y-4">
-            <ChatInput
-              onSend={(value) => setAge(value)}
-              placeholder="Enter your age..."
+            <Input
               type="number"
-              initialValue={age}
-              showSendButton={false}
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="Enter your age..."
+              className="w-full"
             />
             <Button 
               onClick={handleAgeSubmit}
               className="w-full"
+              disabled={!age}
             >
               Continue
             </Button>
