@@ -50,13 +50,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSessionError = async (error: any) => {
     console.error("Session error:", error);
     
-    // Check if it's a refresh token error
-    const isRefreshTokenError = 
+    // Check if it's a session-related error or HTTP client error
+    const isSessionError = 
+      error.message?.includes('session_not_found') ||
+      error.message?.includes('Session from session_id') ||
       error.message?.includes('refresh_token_not_found') || 
-      error.message?.includes('Invalid Refresh Token');
+      error.message?.includes('Invalid Refresh Token') ||
+      error.message?.includes('failed to call url') ||
+      error.error_type === 'http_client_error' ||
+      error.code === 'refresh_token_not_found';
 
-    if (isRefreshTokenError) {
-      console.log("Refresh token error detected, signing out...");
+    if (isSessionError) {
+      console.log("Session error detected, signing out...");
       await supabase.auth.signOut();
       setSession(null);
       navigate("/auth");
@@ -81,19 +86,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
-        const { data: { session: initialSession }, error: sessionError } = 
+        const { data: { session: currentSession }, error: sessionError } = 
           await supabase.auth.getSession();
-        
+
         if (sessionError) {
           await handleSessionError(sessionError);
           return;
         }
 
-        if (initialSession?.user) {
-          await updateProfileWithGoogleData(initialSession.user);
-          setSession(initialSession);
+        if (currentSession?.user) {
+          setSession(currentSession);
+          await updateProfileWithGoogleData(currentSession.user);
         } else {
-          // If no session, redirect to auth page
           navigate("/auth");
         }
       } catch (error) {

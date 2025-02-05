@@ -13,9 +13,10 @@ interface Group {
 
 interface ContactGroupsManagerProps {
   contactId: string;
+  className?: string; // Added className prop
 }
 
-const ContactGroupsManager = ({ contactId }: ContactGroupsManagerProps) => {
+const ContactGroupsManager = ({ contactId, className }: ContactGroupsManagerProps) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [memberGroups, setMemberGroups] = useState<string[]>([]);
   const { toast } = useToast();
@@ -80,7 +81,7 @@ const ContactGroupsManager = ({ contactId }: ContactGroupsManagerProps) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${className || ''}`}>
       <h3 className="text-sm font-medium">Groups</h3>
       <ScrollArea className="h-[100px]">
         <div className="flex flex-wrap gap-2">

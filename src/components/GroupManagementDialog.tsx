@@ -42,6 +42,16 @@ const GroupManagementDialog = ({
       return;
     }
 
+    // Prevent creating groups with reserved names
+    if (groupName.toLowerCase() === "home" || groupName.toLowerCase() === "inner orbit") {
+      toast({
+        title: "Error",
+        description: "This group name is reserved. Please choose a different name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Get the current user's ID
       const { data: { user } } = await supabase.auth.getUser();

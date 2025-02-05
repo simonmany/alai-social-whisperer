@@ -257,6 +257,36 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          created_at: string | null
+          direction: string | null
+          id: number
+          message: string | null
+          phone_number: string | null
+          status: string | null
+          twilio_message_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          direction?: string | null
+          id?: number
+          message?: string | null
+          phone_number?: string | null
+          status?: string | null
+          twilio_message_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string | null
+          id?: number
+          message?: string | null
+          phone_number?: string | null
+          status?: string | null
+          twilio_message_id?: string | null
+        }
+        Relationships: []
+      }
       music_genres: {
         Row: {
           category: string | null
