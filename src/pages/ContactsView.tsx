@@ -53,6 +53,15 @@ const getContactGradient = (contactId: string) => {
   return gradients[index];
 };
 
+const getInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+};
+
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -739,3 +748,4 @@ const ContactsView = () => {
 };
 
 export default ContactsView;
+
