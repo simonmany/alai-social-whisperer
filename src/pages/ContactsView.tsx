@@ -436,29 +436,43 @@ const ContactsView = () => {
                 >
                   {group.emoji} {group.name}
                 </Badge>
-                <div className="relative grid grid-cols-2 gap-2">
+                <div className="relative">
                   {groupContacts.slice(0, 4).map((contact, contactIndex) => {
-                    const size = contactIndex === 0 ? 'h-12 w-12' : 'h-8 w-8';
+                    const miniOrbitAngle = (contactIndex * 2 * Math.PI) / 4;
+                    const miniOrbitRadius = 40;
+                    const miniX = Math.cos(miniOrbitAngle) * miniOrbitRadius;
+                    const miniY = Math.sin(miniOrbitAngle) * miniOrbitRadius;
+
                     return (
                       <Drawer key={contact.id}>
                         <DrawerTrigger asChild>
-                          <button className="transform hover:scale-110 transition-transform">
-                            <div 
-                              className={`${size} rounded-full shadow-lg flex items-center justify-center relative overflow-hidden`}
-                              style={{
-                                background: getContactGradient(contact.id),
-                              }}
-                            >
-                              <div className="absolute inset-0 bg-black/10"></div>
-                              <span className="relative text-white font-semibold text-sm z-10">
-                                {getInitials(contact.name)}
-                              </span>
-                            </div>
-                            <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
-                              {getContactEmoji(contact.id)}
-                            </div>
-                            <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
-                              {contact.name}
+                          <button 
+                            className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
+                            style={{
+                              left: `${miniX + 40}px`,
+                              top: `${miniY + 40}px`,
+                            }}
+                          >
+                            <div className="relative">
+                              <div 
+                                className="h-8 w-8 rounded-full shadow-lg flex items-center justify-center relative overflow-hidden"
+                                style={{
+                                  background: getContactGradient(contact.id),
+                                }}
+                              >
+                                <div className="absolute inset-0 bg-black/10"></div>
+                                <span className="relative text-white font-semibold text-xs z-10">
+                                  {getInitials(contact.name)}
+                                </span>
+                              </div>
+                              {getContactEmoji(contact.id) && (
+                                <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-xs backdrop-blur-sm">
+                                  {getContactEmoji(contact.id)}
+                                </div>
+                              )}
+                              <div className="absolute top-full mt-1 text-[10px] text-white whitespace-nowrap left-1/2 -translate-x-1/2">
+                                {contact.name}
+                              </div>
                             </div>
                           </button>
                         </DrawerTrigger>
