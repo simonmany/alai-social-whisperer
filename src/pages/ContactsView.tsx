@@ -53,15 +53,6 @@ const getContactGradient = (contactId: string) => {
   return gradients[index];
 };
 
-const getInitials = (name: string): string => {
-  return name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-};
-
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -341,6 +332,45 @@ const ContactsView = () => {
   );
 
   const renderHomeView = () => {
+    // If there's a search query, show filtered results in grid view
+    if (searchQuery) {
+      return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {filteredContacts.map((contact) => (
+            <Drawer key={contact.id}>
+              <DrawerTrigger asChild>
+                <button className="w-full">
+                  <div className="group relative flex flex-col items-center">
+                    <div 
+                      className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                      style={{
+                        background: getContactGradient(contact.id),
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-black/10"></div>
+                      <span className="relative text-white font-semibold text-sm z-10">
+                        {getInitials(contact.name)}
+                      </span>
+                    </div>
+                    {getContactEmoji(contact.id) && (
+                      <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
+                        {getContactEmoji(contact.id)}
+                      </div>
+                    )}
+                    <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {contact.name}
+                    </div>
+                  </div>
+                </button>
+              </DrawerTrigger>
+              {renderContactDrawerContent(contact)}
+            </Drawer>
+          ))}
+        </div>
+      );
+    }
+
+    // Original orbital view for no search query
     const innerOrbitContacts = getInnerOrbitContacts();
     const userGroups = getUserCreatedGroups();
     
