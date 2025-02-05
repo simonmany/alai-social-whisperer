@@ -4,7 +4,7 @@ import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ContactGroupsManager } from "./ContactGroupsManager";
+import ContactGroupsManager from "./ContactGroupsManager";
 
 interface DeepSpaceViewProps {
   contacts: Contact[];
