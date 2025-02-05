@@ -4,10 +4,20 @@ import { ChatInput } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Message {
   content: string;
   isAl: boolean;
+  contactInfo?: {
+    name: string;
+    phone?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+    meetingStory?: string;
+    relationship?: string;
+  };
 }
 
 interface ChatContainerProps {
@@ -15,6 +25,8 @@ interface ChatContainerProps {
   isLoading: boolean;
   onSend: (content: string) => void;
   onSuggestedPrompt: (prompt: string) => void;
+  disabled?: boolean;
+  children: React.ReactNode;
 }
 
 export const ChatContainer = ({
@@ -22,6 +34,8 @@ export const ChatContainer = ({
   isLoading,
   onSend,
   onSuggestedPrompt,
+  disabled = false,
+  children,
 }: ChatContainerProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -39,23 +53,44 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
+  // Filter out personality quiz prompts and responses
+  const filteredMessages = messages.filter((message, index) => {
+    // Check if current message is a personality quiz prompt
+    const isPersonalityPrompt = message.content.includes("Hey, I'm learning about") && 
+                               message.content.includes("personality") &&
+                               message.content.includes("Give a very brief");
+    
+    // Check if next message is an AI response to a personality quiz prompt
+    const isPersonalityResponse = index > 0 &&
+                                 messages[index - 1].content.includes("Hey, I'm learning about") &&
+                                 messages[index - 1].content.includes("personality") &&
+                                 messages[index - 1].content.includes("Give a very brief") &&
+                                 message.isAl;
+
+    return !isPersonalityPrompt && !isPersonalityResponse;
+  });
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   return (
-    <div className="relative flex flex-col h-full min-h-[calc(100vh-12rem)]">
+    <div className={cn(
+      "relative flex flex-col h-full min-h-[calc(100vh-12rem)]",
+      disabled && "opacity-50 pointer-events-none"
+    )}>
       <div 
         ref={containerRef}
         className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4"
         onScroll={handleScroll}
       >
-        {messages.map((message, index) => (
+        {filteredMessages.map((message, index) => (
           <ChatMessage
             key={index}
             content={message.content}
             isAl={message.isAl}
-            animate={index === messages.length - 1}
+            animate={index === filteredMessages.length - 1}
+            contacts={message.contactInfo ? [message.contactInfo] : undefined}
           />
         ))}
         {isLoading && (
@@ -84,11 +119,11 @@ export const ChatContainer = ({
           <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
           <div className="flex gap-2 flex-wrap">
             <SuggestedPrompt
-              text="plan me a hang"
+              text="plan a future hang"
               onClick={() => onSuggestedPrompt("plan me a hang")}
             />
             <SuggestedPrompt
-              text="talk about a hang"
+              text="talk about past hang"
               onClick={() => onSuggestedPrompt("talk about a hang")}
             />
             <SuggestedPrompt
@@ -102,6 +137,7 @@ export const ChatContainer = ({
           </div>
         </div>
         <ChatInput onSend={onSend} />
+        {children}
       </div>
     </div>
   );

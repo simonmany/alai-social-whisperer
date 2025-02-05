@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { TypewriterText } from "@/components/TypewriterText";
 import { ChatInput } from "@/components/ChatInput";
-import { ChatMessage } from "@/components/ChatMessage";
-import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { TypewriterText } from "@/components/TypewriterText";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Autocomplete from 'react-google-autocomplete';
 
 interface DemographicsSectionProps {
   session: any;
@@ -14,10 +15,57 @@ interface DemographicsSectionProps {
 
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
   const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
+  const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
+  const [age, setAge] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+  const [occupation, setOccupation] = useState("");
+  const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
+  const [hasPlayedDetails, setHasPlayedDetails] = useState(false);
+  const [hasPlayedQuestion, setHasPlayedQuestion] = useState(false);
   const { toast } = useToast();
 
-  const handleAgeSubmit = async (age: string) => {
+  useEffect(() => {
+    const fetchMapsKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-maps-key');
+        if (error) {
+          console.error('Supabase function error:', error);
+          throw error;
+        }
+        if (!data?.apiKey) {
+          console.error('No API key returned:', data);
+          throw new Error('No API key returned from function');
+        }
+        setMapsApiKey(data.apiKey);
+      } catch (error: any) {
+        console.error('Error fetching Maps API key:', error);
+        toast({
+          title: "Error loading location selector",
+          description: "Please try refreshing the page",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (step === 'age') {
+      fetchMapsKey();
+    }
+  }, [step, toast]);
+
+  const handleAgeSubmit = async () => {
+    if (!age) {
+      toast({
+        title: "Please enter your age",
+        description: "Age is required",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Convert age to number and validate
     const ageNum = parseInt(age);
+    console.log('Validating age:', { input: age, parsed: ageNum });
+    
     if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
       toast({
         title: "Invalid age",
@@ -43,11 +91,20 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
   };
 
-  const handleCitySubmit = async (city: string) => {
+  const handleCitySubmit = async () => {
+    if (!selectedCity) {
+      toast({
+        title: "Please select a city",
+        description: "Select a city from the dropdown",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await supabase
         .from('profiles')
-        .update({ city })
+        .update({ city: selectedCity })
         .eq('id', session?.user.id);
 
       setStep('languages');
@@ -111,18 +168,29 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
   };
 
-  const handleOccupationSubmit = async (occupation: string) => {
+  const handleOccupationSubmit = async () => {
+    if (!occupation.trim()) {
+      toast({
+        title: "Please enter your occupation",
+        description: "Tell us what you do for work",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await supabase
         .from('profiles')
         .update({ 
           occupation,
-          onboarding_completed: true 
+          onboarding_completed: true,
+          onboarding_started_at: new Date().toISOString()
         })
         .eq('id', session?.user.id);
 
       onComplete();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
       toast({
         title: "Error completing onboarding",
         description: "Please try again",
@@ -135,18 +203,54 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     <div className="space-y-4">
       {step === 'age' && (
         <>
-          <div className="text-lg">
-            <TypewriterText
-              text="How old are you?"
-              delay={250}
-              typingSpeed={25}
-            />
+          <div className="text-lg space-y-4">
+            {!hasPlayedIntro ? (
+              <TypewriterText
+                text="Together, we're gonna make sure you spend time doing more of what you already love - and explore new things, too."
+                delay={250}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedIntro(true)}
+              />
+            ) : (
+              <div>{`Together, we're gonna make sure you spend time doing more of what you already love - and explore new things, too.`}</div>
+            )}
+            {hasPlayedIntro && !hasPlayedDetails ? (
+              <TypewriterText
+                text="Now, some details - we're almost done."
+                delay={250}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedDetails(true)}
+              />
+            ) : hasPlayedIntro && (
+              <div>Now, some details - we're almost done.</div>
+            )}
+            {hasPlayedDetails && !hasPlayedQuestion ? (
+              <TypewriterText
+                text="How many trips around the sun have you completed?"
+                delay={250}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedQuestion(true)}
+              />
+            ) : hasPlayedDetails && (
+              <div>How many trips around the sun have you completed?</div>
+            )}
           </div>
-          <ChatInput
-            onSend={handleAgeSubmit}
-            placeholder="Enter your age..."
-            type="number"
-          />
+          <div className="space-y-4">
+            <Input
+              type="number"
+              value={age}
+              onChange={(e) => setAge(e.target.value)}
+              placeholder="Enter your age..."
+              className="w-full"
+            />
+            <Button 
+              onClick={handleAgeSubmit}
+              className="w-full"
+              disabled={!age}
+            >
+              Continue
+            </Button>
+          </div>
         </>
       )}
 
@@ -159,10 +263,40 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
           </div>
-          <ChatInput
-            onSend={handleCitySubmit}
-            placeholder="Enter your city..."
-          />
+          <div className="space-y-4">
+            {mapsApiKey ? (
+              <div className="w-full max-w-md">
+                <Autocomplete
+                  apiKey={mapsApiKey}
+                  onPlaceSelected={(place: any) => {
+                    console.log('Selected place:', place);
+                    if (place && typeof place === 'object') {
+                      const address = place.formatted_address || place.name || '';
+                      console.log('Using address:', address);
+                      if (address) {
+                        setSelectedCity(address);
+                      }
+                    }
+                  }}
+                  options={{
+                    types: ['(cities)'],
+                    fields: ['formatted_address']
+                  }}
+                  className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="Enter your city..."
+                />
+              </div>
+            ) : (
+              <div className="text-sm text-gray-500">Loading location selector...</div>
+            )}
+            <Button 
+              onClick={handleCitySubmit}
+              className="w-full"
+              disabled={!selectedCity}
+            >
+              Continue
+            </Button>
+          </div>
         </>
       )}
 
@@ -236,10 +370,21 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
               typingSpeed={25}
             />
           </div>
-          <ChatInput
-            onSend={handleOccupationSubmit}
-            placeholder="What do you do for work?"
-          />
+          <div className="space-y-4">
+            <ChatInput
+              onSend={(value) => setOccupation(value)}
+              placeholder="What do you do for work?"
+              showSendButton={false}
+              initialValue={occupation}
+            />
+            <Button 
+              onClick={handleOccupationSubmit}
+              className="w-full"
+              disabled={!occupation.trim()}
+            >
+              Finish
+            </Button>
+          </div>
         </>
       )}
     </div>

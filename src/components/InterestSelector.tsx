@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface Activity {
+interface Item {
   id: string;
   name: string;
   category: string | null;
@@ -15,115 +15,125 @@ interface InterestSelectorProps {
   placeholder?: string;
   minSelections?: number;
   initialSelections?: string[];
+  type?: 'activities' | 'food' | 'music';
 }
 
 export const InterestSelector = ({ 
   onComplete, 
   placeholder = "Type to search or add new activities...",
-  minSelections = 3,
-  initialSelections = []
+  minSelections = 1,
+  initialSelections = [],
+  type = 'activities'
 }: InterestSelectorProps) => {
-  const [activities, setActivities] = useState<Activity[]>([]);
-  const [filteredActivities, setFilteredActivities] = useState<Activity[]>([]);
+  const [items, setItems] = useState<Item[]>([]);
+  const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedActivities, setSelectedActivities] = useState<string[]>(initialSelections);
+  const [selectedItems, setSelectedItems] = useState<string[]>(initialSelections);
   const { toast } = useToast();
 
+  const getTableName = () => {
+    switch (type) {
+      case 'food':
+        return 'food_items';
+      case 'music':
+        return 'music_genres';
+      default:
+        return 'activities';
+    }
+  };
+
+  // Fetch items on mount and when type changes
   useEffect(() => {
-    const fetchActivities = async () => {
+    const fetchItems = async () => {
       const { data, error } = await supabase
-        .from('activities')
+        .from(getTableName())
         .select('*')
         .order('name');
       
       if (error) {
         toast({
-          title: "Error fetching activities",
+          title: `Error fetching ${type}`,
           description: error.message,
           variant: "destructive",
         });
         return;
       }
 
-      setActivities(data);
+      setItems(data);
     };
 
-    fetchActivities();
-  }, [toast]);
+    fetchItems();
+  }, [type, toast]);
 
+  // Filter items when search term changes
   useEffect(() => {
     if (searchTerm) {
-      const filtered = activities.filter(activity =>
-        activity.name.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = items.filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
-      setFilteredActivities(filtered);
+      setFilteredItems(filtered);
     } else {
-      setFilteredActivities([]);
+      setFilteredItems([]);
     }
-  }, [searchTerm, activities]);
+  }, [searchTerm, items]);
 
-  const handleActivitySelect = (activityName: string) => {
-    if (selectedActivities.includes(activityName)) {
-      setSelectedActivities(prev => prev.filter(name => name !== activityName));
-    } else {
-      setSelectedActivities(prev => [...prev, activityName]);
-    }
+  const handleItemSelect = (itemName: string) => {
+    const newSelectedItems = selectedItems.includes(itemName)
+      ? selectedItems.filter(name => name !== itemName)
+      : [...selectedItems, itemName];
+    
+    setSelectedItems(newSelectedItems);
+    onComplete(newSelectedItems);
     setSearchTerm("");
-    setFilteredActivities([]);
+    setFilteredItems([]);
   };
 
-  const validateActivityName = (name: string): boolean => {
-    // Check for common SQL injection patterns
+  const validateItemName = (name: string): boolean => {
     const sqlPatterns = [
       /(\b(select|insert|update|delete|drop|union|exec|declare|alter)\b)|(--)|(;)|(\/\*|\*\/)|(')/gi,
       /(\b(table|database|schema)\b)/gi,
       /(\b(waitfor|delay|sleep)\b)/gi
     ];
 
-    // Test for any SQL injection patterns
     return !sqlPatterns.some(pattern => pattern.test(name));
   };
 
-  const createNewActivity = async (name: string) => {
-    // Validate input
-    if (!validateActivityName(name)) {
+  const createNewItem = async (name: string) => {
+    if (!validateItemName(name)) {
       toast({
-        title: "Invalid activity name",
-        description: "Please enter a valid activity name without special characters",
+        title: "Invalid name",
+        description: "Please enter a valid name without special characters",
         variant: "destructive",
       });
       return null;
     }
 
-    // Additional sanitization: only allow alphanumeric characters, spaces, and basic punctuation
     const sanitizedName = name.replace(/[^a-zA-Z0-9\s\-_.,!?]/g, '').trim();
     
     if (sanitizedName !== name) {
       toast({
-        title: "Activity name modified",
+        title: "Name modified",
         description: "Some special characters were removed for security",
         variant: "default",
       });
     }
 
-    // TODO (ari) fuzzy-match to existing activities to avoid activity proliferation
-
     const { data, error } = await supabase
-      .from('activities')
+      .from(getTableName())
       .insert({ name: sanitizedName })
       .select()
       .single();
 
     if (error) {
       toast({
-        title: "Error creating activity",
+        title: `Error creating ${type} item`,
         description: error.message,
         variant: "destructive",
       });
       return null;
     }
 
-    setActivities(prev => [...prev, data]);
+    setItems(prev => [...prev, data]);
     return data;
   };
 
@@ -133,46 +143,34 @@ export const InterestSelector = ({
       const inputValue = searchTerm.trim();
       if (!inputValue) return;
 
-      // Handle multiple entries
-      const newActivities = inputValue.split(',').map(act => act.trim()).filter(Boolean);
+      const newItems = inputValue.split(',').map(act => act.trim()).filter(Boolean);
 
-      for (const activityName of newActivities) {
-        if (!activityName) continue;
+      for (const itemName of newItems) {
+        if (!itemName) continue;
 
-        // Check if activity exists
-        const existingActivity = activities.find(
-          a => a.name.toLowerCase() === activityName.toLowerCase()
+        const existingItem = items.find(
+          a => a.name.toLowerCase() === itemName.toLowerCase()
         );
 
-        if (existingActivity) {
-          // Add existing activity
-          if (!selectedActivities.includes(existingActivity.name)) {
-            setSelectedActivities(prev => [...prev, existingActivity.name]);
+        if (existingItem) {
+          if (!selectedItems.includes(existingItem.name)) {
+            const newSelectedItems = [...selectedItems, existingItem.name];
+            setSelectedItems(newSelectedItems);
+            onComplete(newSelectedItems);
           }
         } else {
-          // Create new activity
-          const newActivity = await createNewActivity(activityName);
-          if (newActivity) {
-            setSelectedActivities(prev => [...prev, newActivity.name]);
+          const newItem = await createNewItem(itemName);
+          if (newItem) {
+            const newSelectedItems = [...selectedItems, newItem.name];
+            setSelectedItems(newSelectedItems);
+            onComplete(newSelectedItems);
           }
         }
       }
 
       setSearchTerm("");
-      setFilteredActivities([]);
+      setFilteredItems([]);
     }
-  };
-
-  const handleSubmit = () => {
-    if (selectedActivities.length < minSelections) {
-      toast({
-        title: `Please select at least ${minSelections} activities`,
-        description: `You've selected ${selectedActivities.length} so far`,
-        variant: "destructive",
-      });
-      return;
-    }
-    onComplete(selectedActivities);
   };
 
   return (
@@ -184,43 +182,34 @@ export const InterestSelector = ({
         placeholder={placeholder}
       />
       
-      {filteredActivities.length > 0 && (
+      {filteredItems.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-2 space-y-1">
-          {filteredActivities.map((activity) => (
+          {filteredItems.map((item) => (
             <Button
-              key={activity.id}
+              key={item.id}
               variant="ghost"
               className="w-full justify-start"
-              onClick={() => handleActivitySelect(activity.name)}
+              onClick={() => handleItemSelect(item.name)}
             >
-              {activity.name}
+              {item.name}
             </Button>
           ))}
         </div>
       )}
 
       <div className="flex flex-wrap gap-2">
-        {selectedActivities.map((activity) => (
+        {selectedItems.map((item) => (
           <Button
-            key={activity}
+            key={item}
             variant="secondary"
-            onClick={() => handleActivitySelect(activity)}
+            onClick={() => handleItemSelect(item)}
             className="group"
           >
-            {activity}
+            {item}
             <span className="ml-2 opacity-0 group-hover:opacity-100">×</span>
           </Button>
         ))}
       </div>
-
-      {selectedActivities.length > 0 && (
-        <div className="flex justify-between items-center">
-          <p className="text-sm text-gray-500">
-            {selectedActivities.length} selected (minimum {minSelections})
-          </p>
-          <Button onClick={handleSubmit}>Continue</Button>
-        </div>
-      )}
     </div>
   );
 };

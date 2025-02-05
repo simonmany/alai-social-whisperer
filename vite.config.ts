@@ -7,6 +7,9 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    hmr: {
+      timeout: 60000 // Increase timeout to 60 seconds
+    }
   },
   build: {
     target: "esnext"

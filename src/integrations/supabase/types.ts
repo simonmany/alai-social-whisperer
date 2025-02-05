@@ -71,6 +71,7 @@ export type Database = {
           created_at: string
           id: string
           is_ai: boolean
+          is_onboarding_message: boolean | null
           message: string
           user_id: string
         }
@@ -78,6 +79,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_ai?: boolean
+          is_onboarding_message?: boolean | null
           message: string
           user_id: string
         }
@@ -85,6 +87,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_ai?: boolean
+          is_onboarding_message?: boolean | null
           message?: string
           user_id?: string
         }
@@ -150,7 +153,13 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          instagram: string | null
+          linkedin: string | null
+          meeting_story: string | null
           name: string
+          phone: string | null
+          relationship: string | null
+          twitter: string | null
           user_id: string
         }
         Insert: {
@@ -158,7 +167,13 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          meeting_story?: string | null
           name: string
+          phone?: string | null
+          relationship?: string | null
+          twitter?: string | null
           user_id: string
         }
         Update: {
@@ -166,7 +181,13 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          instagram?: string | null
+          linkedin?: string | null
+          meeting_story?: string | null
           name?: string
+          phone?: string | null
+          relationship?: string | null
+          twitter?: string | null
           user_id?: string
         }
         Relationships: []
@@ -197,6 +218,27 @@ export type Database = {
           },
         ]
       }
+      food_items: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       languages: {
         Row: {
           created_at: string
@@ -215,14 +257,38 @@ export type Database = {
         }
         Relationships: []
       }
+      music_genres: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           age: number | null
           avatar_url: string | null
           city: string | null
           current_interests: Json | null
+          desired_food_preferences: Json | null
           desired_interests: Json | null
+          desired_music_preferences: Json | null
           display_name: string | null
+          food_preferences: Json | null
           gender: string | null
           goals: Json | null
           google_access_token: string | null
@@ -230,10 +296,14 @@ export type Database = {
           google_token_expires_at: string | null
           has_google_calendar: boolean | null
           google_token_expired: boolean | null
+          has_completed_tutorial: boolean | null
           id: string
           languages: Json | null
+          music_preferences: Json | null
           occupation: string | null
           onboarding_completed: boolean | null
+          onboarding_started_at: string | null
+          onboarding_step: string | null
           personality_comments: string[] | null
           personality_traits: Json | null
           relationship_status: string | null
@@ -245,8 +315,11 @@ export type Database = {
           avatar_url?: string | null
           city?: string | null
           current_interests?: Json | null
+          desired_food_preferences?: Json | null
           desired_interests?: Json | null
+          desired_music_preferences?: Json | null
           display_name?: string | null
+          food_preferences?: Json | null
           gender?: string | null
           goals?: Json | null
           google_access_token?: string | null
@@ -254,10 +327,14 @@ export type Database = {
           google_token_expires_at?: string | null
           has_google_calendar?: boolean | null
           google_token_expired?: boolean | null
+          has_completed_tutorial?: boolean | null
           id: string
           languages?: Json | null
+          music_preferences?: Json | null
           occupation?: string | null
           onboarding_completed?: boolean | null
+          onboarding_started_at?: string | null
+          onboarding_step?: string | null
           personality_comments?: string[] | null
           personality_traits?: Json | null
           relationship_status?: string | null
@@ -269,8 +346,11 @@ export type Database = {
           avatar_url?: string | null
           city?: string | null
           current_interests?: Json | null
+          desired_food_preferences?: Json | null
           desired_interests?: Json | null
+          desired_music_preferences?: Json | null
           display_name?: string | null
+          food_preferences?: Json | null
           gender?: string | null
           goals?: Json | null
           google_access_token?: string | null
@@ -278,10 +358,14 @@ export type Database = {
           google_token_expires_at?: string | null
           has_google_calendar?: boolean | null
           google_token_expired?: boolean | null
+          has_completed_tutorial?: boolean | null
           id?: string
           languages?: Json | null
+          music_preferences?: Json | null
           occupation?: string | null
           onboarding_completed?: boolean | null
+          onboarding_started_at?: string | null
+          onboarding_step?: string | null
           personality_comments?: string[] | null
           personality_traits?: Json | null
           relationship_status?: string | null

@@ -25,3 +25,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# supabase
+supabase/.*
+supabase/*.sql
+supabase/migrations
+

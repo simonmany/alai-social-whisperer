@@ -46,7 +46,7 @@ serve(async (req: Request) => {
 
     // Initialize Supabase client
     const supabase = createClient(
-      'https://ejqucnzpgebbujlnmdzx.supabase.co',
+      Deno.env.get('SUPABASE_URL'),
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 

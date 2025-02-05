@@ -8,7 +8,7 @@ import { MainNavigation } from "@/components/MainNavigation";
 import { ChatContainer } from "@/components/ChatContainer";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { Button } from "@/components/ui/button";
-import { Redo } from "lucide-react";
+import { Redo, Play } from "lucide-react";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
@@ -22,10 +22,20 @@ import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { REDIRECT_URL } from "@/integrations/supabase/client";
 import { Separator } from "@/components/ui/separator";
+import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 
 interface Message {
   content: string;
   isAl: boolean;
+  contacts?: {
+    name: string;
+    phone?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+    meetingStory?: string;
+    relationship?: string;
+  }[];
 }
 
 const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
@@ -46,12 +56,93 @@ const Index = () => {
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [passwordError, setPasswordError] = useState("");
 
+  const [tutorialComplete, setTutorialComplete] = useState(false);
+  const [showProfileButton, setShowProfileButton] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+
+  const handleStartTutorial = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      // If user is in onboarding, mark it as completed first
+      if (showOnboarding) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            onboarding_completed: true,
+            onboarding_step: 'splash',
+            has_completed_tutorial: false
+          })
+          .eq('id', session.user.id);
+
+        setShowOnboarding(false);
+        setTutorialComplete(false);
+        setShowProfileButton(false); // Hide profile button during splash
+      } else {
+        // Just restart the tutorial
+        await supabase
+          .from('profiles')
+          .update({ 
+            onboarding_step: 'splash',
+            has_completed_tutorial: false
+          })
+          .eq('id', session.user.id);
+
+        setTutorialComplete(false);
+        setShowProfileButton(false); // Hide profile button during splash
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      
+      toast({
+        title: "Tutorial started",
+        description: "Follow the instructions to learn how to use the app!",
+      });
+    } catch (error: any) {
+      console.error('Error starting tutorial:', error);
+      toast({
+        title: "Error starting tutorial",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSkipOnboarding = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          has_completed_tutorial: true,
+          onboarding_step: 'complete'
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(false);
+      setTutorialComplete(true);
+      setShowProfileButton(false);
+      
+      toast({
+        title: "Onboarding skipped",
+        description: "You can restart onboarding using the button in the bottom left",
+      });
+    } catch (error: any) {
+      console.error('Error skipping onboarding:', error);
+      toast({
+        title: "Error skipping onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
 
   useEffect(() => {
     const loadChatHistory = async () => {
@@ -90,6 +181,38 @@ const Index = () => {
 
     loadChatHistory();
   }, [session?.user.id, toast]);
+
+  useEffect(() => {
+    const checkTutorialStatus = async () => {
+      if (!session?.user.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('has_completed_tutorial, onboarding_completed, onboarding_step')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) throw error;
+
+        console.log('Tutorial status check:', {
+          hasCompletedTutorial: data.has_completed_tutorial,
+          onboardingCompleted: data.onboarding_completed,
+          onboardingStep: data.onboarding_step
+        });
+
+        setTutorialComplete(!!data.has_completed_tutorial);
+        setShowOnboarding(!data.onboarding_completed);
+        
+        // Only show profile button if we're past the splash screen
+        setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
+      } catch (error) {
+        console.error('Error checking tutorial status:', error);
+      }
+    };
+
+    checkTutorialStatus();
+  }, [session?.user.id]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -328,22 +451,28 @@ const Index = () => {
     }
   };
 
-  const handleSend = async (content: string) => {
-    if (!session?.user.id) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to send messages",
-        variant: "destructive",
-      });
-      return;
-    }
+  const handleSend = async (message: string) => {
+    if (!message.trim()) return;
 
-    setMessages(prev => [...prev, { content, isAl: false }]);
+    // Parse contact information if the message is from ContactsDialog
+    const contactInfo = message.startsWith("I met ") ? parseContactInfo(message) : undefined;
+
+    const newMessage: Message = {
+      content: message,
+      isAl: false,
+      contacts: contactInfo ? [contactInfo] : undefined
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
     setIsLoading(true);
 
     try {
-      const response = await generateChatResponse(content);
-      setMessages(prev => [...prev, { content: response, isAl: true }]);
+      const response = await generateChatResponse(message, contactInfo);
+      setMessages((prev) => [...prev, { 
+        content: response.response, 
+        isAl: true,
+        contacts: response.contacts
+      }]);
     } catch (error: any) {
       console.error('Error generating response:', error);
       toast({
@@ -381,16 +510,122 @@ const Index = () => {
     }
   };
 
-  const containerClasses = isMobile
-    ? "min-h-screen bg-black flex flex-col"
-    : "min-h-screen bg-gray-50 flex flex-col";
+  const handleTutorialComplete = () => {
+    setTutorialComplete(true);
+  };
 
-  const contentClasses = isMobile
-    ? "flex-1 container max-w-2xl py-8 flex flex-col bg-gray-50 h-[calc(100vh-8rem)] my-16"
-    : "flex-1 container max-w-2xl py-8 flex flex-col";
+  const handleRestartOnboarding = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: false,
+          has_completed_tutorial: false,
+          onboarding_step: 'initial',
+          personality_traits: {},
+          personality_comments: [],
+          current_interests: [],
+          desired_interests: [],
+          goals: [],
+          display_name: null,
+          age: null,
+          city: null,
+          languages: [],
+          relationship_status: null,
+          gender: null,
+          occupation: null
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(true);
+      setTutorialComplete(false);
+      setShowProfileButton(false);
+      
+      toast({
+        title: "Onboarding restarted",
+        description: "Let's start fresh!",
+      });
+    } catch (error: any) {
+      console.error('Error restarting onboarding:', error);
+      toast({
+        title: "Error restarting onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const parseContactInfo = (message: string) => {
+    const nameMatch = message.match(/I met (.+?) (?:at|\.)/);
+    const meetingMatch = message.match(/at (.+?)\./);
+    const contactsMatch = message.match(/Their contacts are (.+?)\./);
+    const relationshipMatch = message.match(/They are\.\.\. (.+)$/);
+
+    if (!nameMatch) return undefined;
+
+    const contacts = contactsMatch?.[1] || "";
+    const contactInfo = {
+      name: nameMatch[1],
+      meetingStory: meetingMatch?.[1],
+      relationship: relationshipMatch?.[1],
+    };
+
+    // Parse individual contact methods
+    const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
+    const instagram = contacts.match(/📸 @([^💼🐦\s]+)/)?.[1]?.trim();
+    const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
+    const twitter = contacts.match(/🐦 @([^\s]+)/)?.[1]?.trim();
+
+    if (!phone || !instagram || !linkedin || !twitter) return undefined;
+    // If the user did not provide any other information, let the LLM take care of it
+
+    return {
+      ...contactInfo,
+      phone,
+      instagram,
+      linkedin,
+      twitter,
+    };
+  };
+
+  const handleOnboardingComplete = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
+        })
+        .eq('id', session.user.id);
+
+      setShowOnboarding(false);
+      setTutorialComplete(false);
+      setShowProfileButton(false);
+      
+      // Force a refresh of the tutorial status
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      
+      toast({
+        title: "Onboarding completed",
+        description: "Let's get started with the tutorial!",
+      });
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className={containerClasses}>
+    <div className="min-h-screen bg-background flex flex-col">
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container max-w-2xl py-4">
           <MainNavigation
@@ -402,28 +637,59 @@ const Index = () => {
         </div>
       </div>
 
-      <div className={contentClasses}>
+      <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
-          <OnboardingFlow onComplete={() => setShowOnboarding(false)} />
+          <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : (
-          <ChatContainer
-            messages={messages}
-            isLoading={isLoading}
-            onSend={handleSend}
-            onSuggestedPrompt={handleSuggestedPrompt}
-          />
+          <>
+            {!tutorialComplete && (
+              <TutorialOverlay 
+                onComplete={handleTutorialComplete} 
+                isProfileOpen={isProfileOpen}
+                key={isProfileOpen ? 'profile-open' : 'profile-closed'}
+              />
+            )}
+            <ChatContainer
+              messages={messages}
+              isLoading={isLoading}
+              onSend={handleSend}
+              onSuggestedPrompt={handleSuggestedPrompt}
+              disabled={!tutorialComplete}
+            >
+              <></>
+            </ChatContainer>
+          </>
         )}
       </div>
 
-      <Button
-        variant="outline"
-        size="sm"
-        className="fixed bottom-4 left-4 gap-2"
-        onClick={() => setShowOnboarding(true)}
-      >
-        <Redo className="h-4 w-4" />
-        Restart Onboarding
-      </Button>
+      <div className="fixed bottom-4 left-4 flex flex-col gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleStartTutorial}
+        >
+          <Play className="h-4 w-4" />
+          Start Tutorial
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleSkipOnboarding}
+        >
+          Skip Onboarding (Dev Only)
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleRestartOnboarding}
+        >
+          <Redo className="h-4 w-4" />
+          Restart Onboarding
+        </Button>
+      </div>
 
       <Profile 
         open={isProfileOpen} 

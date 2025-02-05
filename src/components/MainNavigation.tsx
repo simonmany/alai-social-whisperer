@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, UserRound, LogOut } from "lucide-react";
+import { UserRound, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { REDIRECT_URL } from "@/integrations/supabase/client";
@@ -21,7 +21,6 @@ export const MainNavigation = ({
   isConnectingCalendar,
   setIsConnectingCalendar,
   onProfileOpen,
-  onGoogleSignIn,
 }: MainNavigationProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -49,6 +48,7 @@ export const MainNavigation = ({
           has_google_calendar,
           google_token_expired
         `)
+        //.select('goals, onboarding_step')
         .eq('id', user.id)
         .single();
 
@@ -225,11 +225,18 @@ export const MainNavigation = ({
   };
 
   return (
-    <div className="flex justify-between items-center mb-6">
-      <div className="flex gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/calendar")}>
+    <div className="flex justify-between items-center gap-2 mb-6">
+      <div className="flex-1">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/calendar')}
+          aria-label="Open calendar"
+        >
           <Calendar className="h-5 w-5" />
         </Button>
+      </div>
+      <div className="flex-1 flex items-center">
         <Button
           variant={isCalendarConnected ? "ghost" : "outline"}
           onClick={handleGoogleCalendarConnect}
@@ -251,26 +258,35 @@ export const MainNavigation = ({
           }
         </Button>
       </div>
-      <Button variant="ghost" size="icon" onClick={() => navigate("/contacts")}>
-        <Users className="h-5 w-5" />
-      </Button>
-      <div className="flex gap-2">
+      <div className="flex-1 flex justify-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/contacts')}
+          aria-label="Open contacts"
+        >
+          <Users className="h-5 w-5" />
+        </Button>
+      </div>
+      <div className="flex-1 flex justify-end">
         <div className="relative">
-          <Button variant="ghost" size="icon" onClick={onProfileOpen}>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onProfileOpen}
+            aria-label="Open profile"
+          >
             <UserRound className="h-5 w-5" />
             {missingGoalsCount > 0 && (
               <Badge 
                 variant="destructive" 
-                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
               >
                 {missingGoalsCount}
               </Badge>
             )}
           </Button>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleSignOut}>
-          <LogOut className="h-5 w-5" />
-        </Button>
       </div>
     </div>
   );

@@ -42,11 +42,15 @@ export const ChatInput = ({
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+  };
+
   return (
     <form onSubmit={handleSubmit} className="flex gap-2">
       <Textarea
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className="flex-1 min-h-[44px] resize-none"
