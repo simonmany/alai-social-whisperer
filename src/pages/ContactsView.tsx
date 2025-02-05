@@ -14,16 +14,7 @@ import GroupManagementDialog from "@/components/GroupManagementDialog";
 import ContactGroupsManager from "@/components/ContactGroupsManager";
 import { useAuth } from "@/components/AuthProvider";
 import { DeepSpaceView } from "@/components/DeepSpaceView";
-
-interface Contact {
-  id: string;
-  name: string;
-  email: string | null;
-  closeness: number;
-  phone?: string;
-  meeting_story?: string;
-  relationship?: string;
-}
+import { Contact } from "@/types/contacts";
 
 interface Group {
   id: string;
@@ -363,13 +354,15 @@ const ContactsView = () => {
           >
             <div className="relative group">
               <div 
-                className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110"
+                className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
                 style={{
                   background: getContactGradient(contact.id),
-                  animation: 'spin 20s linear infinite',
                 }}
               >
-                <div className="absolute inset-0 rounded-full bg-black/10"></div>
+                <div className="absolute inset-0 bg-black/10"></div>
+                <span className="relative text-white font-semibold text-sm z-10">
+                  {getInitials(contact.name)}
+                </span>
               </div>
               {getContactEmoji(contact.id) && (
                 <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
@@ -451,12 +444,21 @@ const ContactsView = () => {
                         <DrawerTrigger asChild>
                           <button className="transform hover:scale-110 transition-transform">
                             <div 
-                              className={`${size} rounded-full shadow-lg`}
+                              className={`${size} rounded-full shadow-lg flex items-center justify-center relative overflow-hidden`}
                               style={{
                                 background: getContactGradient(contact.id),
                               }}
                             >
-                              <div className="absolute inset-0 rounded-full bg-black/10"></div>
+                              <div className="absolute inset-0 bg-black/10"></div>
+                              <span className="relative text-white font-semibold text-sm z-10">
+                                {getInitials(contact.name)}
+                              </span>
+                            </div>
+                            <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
+                              {getContactEmoji(contact.id)}
+                            </div>
+                            <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
+                              {contact.name}
                             </div>
                           </button>
                         </DrawerTrigger>
@@ -484,12 +486,15 @@ const ContactsView = () => {
               <button className="transform hover:scale-110 transition-all duration-300">
                 <div className="relative">
                   <div 
-                    className="h-16 w-16 rounded-full shadow-lg"
+                    className="h-16 w-16 rounded-full shadow-lg flex items-center justify-center relative overflow-hidden"
                     style={{
                       background: getContactGradient(contact.id),
                     }}
                   >
-                    <div className="absolute inset-0 rounded-full bg-black/10"></div>
+                    <div className="absolute inset-0 bg-black/10"></div>
+                    <span className="relative text-white font-semibold text-sm z-10">
+                      {getInitials(contact.name)}
+                    </span>
                   </div>
                   <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
                     {getContactEmoji(contact.id)}
