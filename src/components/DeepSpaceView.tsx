@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Contact } from "@/types/contacts";
 import { ContactCard } from "./ContactCard";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import ContactGroupsManager from "./ContactGroupsManager";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DeepSpaceViewProps {
   contacts: Contact[];
@@ -20,6 +22,27 @@ const getInitials = (name: string): string => {
 };
 
 export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
+  const [ungroupedContacts, setUngroupedContacts] = useState<Contact[]>([]);
+
+  useEffect(() => {
+    const fetchUngroupedContacts = async () => {
+      // Get all contact_group_memberships
+      const { data: memberships } = await supabase
+        .from('contact_group_memberships')
+        .select('contact_id');
+
+      // Create a Set of contact IDs that are in groups
+      const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
+
+      // Filter contacts to only include those NOT in any group
+      const filteredContacts = contacts.filter(contact => !groupedContactIds.has(contact.id));
+      
+      setUngroupedContacts(filteredContacts);
+    };
+
+    fetchUngroupedContacts();
+  }, [contacts]);
+
   const renderContactDrawerContent = (contact: Contact) => (
     <DrawerContent className="bg-black/90 border-purple-500/50 h-[100vh] overflow-y-auto">
       <div className="p-6 space-y-8 relative z-10">
@@ -104,7 +127,7 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   return (
     <div className="absolute inset-0 overflow-y-auto bg-black/90 p-4 pb-40">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {contacts.map((contact) => (
+        {ungroupedContacts.map((contact) => (
           <Drawer key={contact.id}>
             <DrawerTrigger className="w-full">
               <ContactCard
