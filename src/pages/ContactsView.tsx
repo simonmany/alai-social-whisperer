@@ -234,28 +234,29 @@ const ContactsView = () => {
     console.log('Getting contacts for group:', groupName);
     console.log('Available groups:', groups);
     
+    let groupContacts: Contact[] = [];
+    
     if (groupName === "Inner Orbit") {
-      return getInnerOrbitContacts();
+      groupContacts = getInnerOrbitContacts();
+    } else if (groupName === "Home") {
+      groupContacts = contacts;
+    } else {
+      const selectedGroupData = groups.find(g => g.name === groupName);
+      console.log('Selected group data:', selectedGroupData);
+      
+      if (!selectedGroupData) return [];
+      
+      groupContacts = contacts.filter(contact => 
+        groupMemberships.some(m => 
+          m.contact_id === contact.id && m.group_id === selectedGroupData.id
+        )
+      );
     }
-    if (groupName === "Home") {
-      return filteredContacts;
-    }
     
-    const selectedGroupData = groups.find(g => g.name === groupName);
-    console.log('Selected group data:', selectedGroupData);
-    
-    if (!selectedGroupData) return [];
-    
-    const groupContacts = filteredContacts.filter(contact => 
-      groupMemberships.some(m => 
-        m.contact_id === contact.id && m.group_id === selectedGroupData.id
-      )
+    // Apply search filter to the group contacts
+    return groupContacts.filter(contact =>
+      contact.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    
-    console.log('Group memberships:', groupMemberships);
-    console.log('Filtered contacts for group:', groupContacts);
-    
-    return groupContacts;
   };
 
   const renderContactDrawerContent = (contact: Contact) => (
