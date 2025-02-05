@@ -26,7 +26,7 @@ export default function AuthCallback() {
 
         // If we have calendar tokens, store them
         if (session.provider_token && session.provider_refresh_token &&
-            session.user.app_metadata?.provider === 'google') {
+            session.user.app_metadata?.providers?.includes('google')) {
           const { error: updateError } = await supabase
             .from('profiles')
             .update({
