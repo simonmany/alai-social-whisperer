@@ -50,13 +50,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const handleSessionError = async (error: any) => {
     console.error("Session error:", error);
     
-    // Check if it's a session-related error
+    // Check if it's a session-related error or HTTP client error
     const isSessionError = 
       error.message?.includes('session_not_found') ||
       error.message?.includes('Session from session_id') ||
       error.message?.includes('refresh_token_not_found') || 
       error.message?.includes('Invalid Refresh Token') ||
       error.message?.includes('failed to call url') ||
+      error.error_type === 'http_client_error' ||
       error.code === 'refresh_token_not_found';
 
     if (isSessionError) {
