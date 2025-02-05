@@ -50,6 +50,18 @@ interface ContactDrawerContent {
   description?: string;
 }
 
+const getContactGradient = (contactId: string) => {
+  const gradients = [
+    'linear-gradient(225deg, #FFE29F 0%, #FFA99F 48%, #FF719A 100%)',
+    'linear-gradient(90deg, hsla(221, 45%, 73%, 1) 0%, hsla(220, 78%, 29%, 1) 100%)',
+    'linear-gradient(90deg, hsla(24, 100%, 83%, 1) 0%, hsla(341, 91%, 68%, 1) 100%)',
+    'linear-gradient(90deg, hsla(29, 92%, 70%, 1) 0%, hsla(0, 87%, 73%, 1) 100%)',
+    'linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%)',
+  ];
+  const index = parseInt(contactId.slice(-3), 16) % gradients.length;
+  return gradients[index];
+};
+
 const getInitials = (name: string): string => {
   return name
     .split(' ')
@@ -337,19 +349,6 @@ const ContactsView = () => {
   );
 
   const renderContactAvatar = (contact: Contact, x: number, y: number, isAnimating: boolean = false) => {
-    // Generate a consistent but random-looking gradient for each contact based on their id
-    const getContactGradient = (contactId: string) => {
-      const gradients = [
-        'linear-gradient(225deg, #FFE29F 0%, #FFA99F 48%, #FF719A 100%)',
-        'linear-gradient(90deg, hsla(221, 45%, 73%, 1) 0%, hsla(220, 78%, 29%, 1) 100%)',
-        'linear-gradient(90deg, hsla(24, 100%, 83%, 1) 0%, hsla(341, 91%, 68%, 1) 100%)',
-        'linear-gradient(90deg, hsla(29, 92%, 70%, 1) 0%, hsla(0, 87%, 73%, 1) 100%)',
-        'linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%)',
-      ];
-      const index = parseInt(contactId.slice(-3), 16) % gradients.length;
-      return gradients[index];
-    };
-
     return (
       <Drawer key={contact.id}>
         <DrawerTrigger asChild>
@@ -470,6 +469,40 @@ const ContactsView = () => {
             </div>
           );
         })}
+      </div>
+    );
+  };
+
+  const renderGroupView = () => {
+    const groupContacts = getContactsForGroup(selectedGroup);
+    
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
+        {groupContacts.map((contact) => (
+          <Drawer key={contact.id}>
+            <DrawerTrigger asChild>
+              <button className="transform hover:scale-110 transition-all duration-300">
+                <div className="relative">
+                  <div 
+                    className="h-16 w-16 rounded-full shadow-lg"
+                    style={{
+                      background: getContactGradient(contact.id),
+                    }}
+                  >
+                    <div className="absolute inset-0 rounded-full bg-black/10"></div>
+                  </div>
+                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
+                    {getContactEmoji(contact.id)}
+                  </div>
+                  <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
+                    {contact.name}
+                  </div>
+                </div>
+              </button>
+            </DrawerTrigger>
+            {renderContactDrawerContent(contact)}
+          </Drawer>
+        ))}
       </div>
     );
   };
