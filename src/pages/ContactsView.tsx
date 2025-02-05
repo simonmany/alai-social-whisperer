@@ -491,7 +491,7 @@ const ContactsView = () => {
           <div className="absolute inset-0 bg-black bg-opacity-50" />
         </div>
 
-        <div className="container mx-auto p-4 relative z-10">
+        <div className="container mx-auto p-4 relative z-10 h-full flex flex-col">
           <div className="flex justify-between items-center mb-8">
             <Button
               variant="ghost"
@@ -503,65 +503,72 @@ const ContactsView = () => {
             <h2 className="text-2xl font-bold text-white">Deep Space</h2>
           </div>
           
-          <DeepSpaceView contacts={contacts} />
-        </div>
+          <div className="flex-1 overflow-auto">
+            <DeepSpaceView contacts={contacts} />
+          </div>
 
-        <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-4 z-20">
-          <div className="container max-w-2xl mx-auto">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
-                  onClick={() => setIsGroupDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {groups.map((group) => (
-                  <Badge
-                    key={group.id}
-                    variant={selectedGroup === group.name ? "default" : "outline"}
-                    className={`cursor-pointer hover:bg-purple-800/50 ${
-                      selectedGroup === group.name
-                        ? "bg-purple-600"
-                        : "bg-purple-900/50 border-purple-500/50 text-purple-100"
-                    }`}
-                    onClick={() => {
-                      setSelectedGroup(group.name);
-                      setShowDeepSpace(false);
-                    }}
+          <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-4 z-20">
+            <div className="container max-w-2xl mx-auto">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 mb-4">
+                  <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
+                    onClick={() => setIsGroupDialogOpen(true)}
                   >
-                    {group.emoji || "👥"} {group.name}
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {groups.map((group) => (
+                    <Badge
+                      key={group.id}
+                      variant={selectedGroup === group.name ? "default" : "outline"}
+                      className={`cursor-pointer hover:bg-purple-800/50 ${
+                        selectedGroup === group.name
+                          ? "bg-purple-600"
+                          : "bg-purple-900/50 border-purple-500/50 text-purple-100"
+                      }`}
+                      onClick={() => {
+                        setSelectedGroup(group.name);
+                        setShowDeepSpace(false);
+                      }}
+                    >
+                      {group.emoji || "👥"} {group.name}
+                    </Badge>
+                  ))}
+                  <Badge
+                    variant="default"
+                    className="cursor-pointer bg-purple-600 hover:bg-purple-800/50"
+                  >
+                    🌌 Deep Space
                   </Badge>
-                ))}
-                <Badge
-                  variant={showDeepSpace ? "default" : "outline"}
-                  className={`cursor-pointer hover:bg-purple-800/50 ${
-                    showDeepSpace
-                      ? "bg-purple-600"
-                      : "bg-purple-900/50 border-purple-500/50 text-purple-100"
-                  }`}
-                  onClick={() => setShowDeepSpace(true)}
-                >
-                  🌌 Deep Space
-                </Badge>
+                </div>
               </div>
-            </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50"
-              onClick={() => navigate("/")}
-            >
-              <ChevronUp className="h-6 w-6" />
-            </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50"
+                onClick={() => navigate("/")}
+              >
+                <ChevronUp className="h-6 w-6" />
+              </Button>
+            </div>
           </div>
         </div>
+
+        <GroupManagementDialog
+          open={isGroupDialogOpen}
+          onOpenChange={setIsGroupDialogOpen}
+          contacts={contacts}
+          onGroupCreated={() => {
+            queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+            queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
+          }}
+        />
       </div>
     );
   }
