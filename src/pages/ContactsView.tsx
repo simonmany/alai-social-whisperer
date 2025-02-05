@@ -339,54 +339,12 @@ const ContactsView = () => {
     </DrawerContent>
   );
 
-  const renderContactAvatar = (contact: Contact, x: number, y: number, isAnimating: boolean = false) => {
-    return (
-      <Drawer key={contact.id}>
-        <DrawerTrigger asChild>
-          <button
-            className={`absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-500 ${
-              isAnimating ? 'animate-fade-in' : ''
-            }`}
-            style={{
-              left: `calc(50% + ${x}px)`,
-              top: `calc(50% + ${y}px)`,
-            }}
-          >
-            <div className="relative group">
-              <div 
-                className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
-                style={{
-                  background: getContactGradient(contact.id),
-                }}
-              >
-                <div className="absolute inset-0 bg-black/10"></div>
-                <span className="relative text-white font-semibold text-sm z-10">
-                  {getInitials(contact.name)}
-                </span>
-              </div>
-              {getContactEmoji(contact.id) && (
-                <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
-                  {getContactEmoji(contact.id)}
-                </div>
-              )}
-              <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                {contact.name}
-              </div>
-            </div>
-          </button>
-        </DrawerTrigger>
-        {renderContactDrawerContent(contact)}
-      </Drawer>
-    );
-  };
-
-  const renderHomeView = () => {
-    const innerOrbitContacts = getInnerOrbitContacts();
-    const userGroups = getUserCreatedGroups();
-
+  const renderGroupView = () => {
+    const groupContacts = getContactsForGroup(selectedGroup);
+    
     return (
       <div className="absolute inset-0 flex items-center justify-center">
-        {/* Central star (user) */}
+        {/* Central user avatar */}
         <div className="relative z-10">
           <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse"></div>
           <div className="relative">
@@ -402,126 +360,50 @@ const ContactsView = () => {
           </div>
         </div>
 
-        {/* Inner orbit contacts */}
-        {innerOrbitContacts.map((contact, index) => {
-          const angle = (index * 2 * Math.PI) / innerOrbitContacts.length;
-          const radius = 120;
+        {/* Group contacts in orbit */}
+        {groupContacts.map((contact, index) => {
+          const angle = (index * 2 * Math.PI) / groupContacts.length;
+          const radius = 180; // Slightly larger than inner orbit but smaller than group orbit
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
-          return renderContactAvatar(contact, x, y);
-        })}
-
-        {/* Group orbits */}
-        {userGroups.map((group, groupIndex) => {
-          const groupContacts = getContactsForGroup(group.name);
-          const groupAngle = (groupIndex * 2 * Math.PI) / userGroups.length;
-          const groupRadius = 280;
-          const groupX = Math.cos(groupAngle) * groupRadius;
-          const groupY = Math.sin(groupAngle) * groupRadius;
 
           return (
-            <div
-              key={group.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2"
-              style={{
-                left: `calc(50% + ${groupX}px)`,
-                top: `calc(50% + ${groupY}px)`,
-              }}
-            >
-              <div className="relative">
-                <Badge
-                  variant="outline"
-                  className="absolute -top-8 left-1/2 transform -translate-x-1/2 cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100 backdrop-blur-sm"
-                  onClick={() => setSelectedGroup(group.name)}
+            <Drawer key={contact.id}>
+              <DrawerTrigger asChild>
+                <button
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-300"
+                  style={{
+                    left: `calc(50% + ${x}px)`,
+                    top: `calc(50% + ${y}px)`,
+                  }}
                 >
-                  {group.emoji} {group.name}
-                </Badge>
-                <div className="relative">
-                  {groupContacts.slice(0, 4).map((contact, contactIndex) => {
-                    const miniOrbitAngle = (contactIndex * 2 * Math.PI) / 4;
-                    const miniOrbitRadius = 40;
-                    const miniX = Math.cos(miniOrbitAngle) * miniOrbitRadius;
-                    const miniY = Math.sin(miniOrbitAngle) * miniOrbitRadius;
-
-                    return (
-                      <Drawer key={contact.id}>
-                        <DrawerTrigger asChild>
-                          <button 
-                            className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-transform"
-                            style={{
-                              left: `${miniX + 40}px`,
-                              top: `${miniY + 40}px`,
-                            }}
-                          >
-                            <div className="relative">
-                              <div 
-                                className="h-8 w-8 rounded-full shadow-lg flex items-center justify-center relative overflow-hidden"
-                                style={{
-                                  background: getContactGradient(contact.id),
-                                }}
-                              >
-                                <div className="absolute inset-0 bg-black/10"></div>
-                                <span className="relative text-white font-semibold text-xs z-10">
-                                  {getInitials(contact.name)}
-                                </span>
-                              </div>
-                              {getContactEmoji(contact.id) && (
-                                <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-xs backdrop-blur-sm">
-                                  {getContactEmoji(contact.id)}
-                                </div>
-                              )}
-                              <div className="absolute top-full mt-1 text-[10px] text-white whitespace-nowrap left-1/2 -translate-x-1/2">
-                                {contact.name}
-                              </div>
-                            </div>
-                          </button>
-                        </DrawerTrigger>
-                        {renderContactDrawerContent(contact)}
-                      </Drawer>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+                  <div className="relative group">
+                    <div 
+                      className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                      style={{
+                        background: getContactGradient(contact.id),
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-black/10"></div>
+                      <span className="relative text-white font-semibold text-sm z-10">
+                        {getInitials(contact.name)}
+                      </span>
+                    </div>
+                    {getContactEmoji(contact.id) && (
+                      <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
+                        {getContactEmoji(contact.id)}
+                      </div>
+                    )}
+                    <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {contact.name}
+                    </div>
+                  </div>
+                </button>
+              </DrawerTrigger>
+              {renderContactDrawerContent(contact)}
+            </Drawer>
           );
         })}
-      </div>
-    );
-  };
-
-  const renderGroupView = () => {
-    const groupContacts = getContactsForGroup(selectedGroup);
-    
-    return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4">
-        {groupContacts.map((contact) => (
-          <Drawer key={contact.id}>
-            <DrawerTrigger asChild>
-              <button className="transform hover:scale-110 transition-all duration-300">
-                <div className="relative">
-                  <div 
-                    className="h-16 w-16 rounded-full shadow-lg flex items-center justify-center relative overflow-hidden"
-                    style={{
-                      background: getContactGradient(contact.id),
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-black/10"></div>
-                    <span className="relative text-white font-semibold text-sm z-10">
-                      {getInitials(contact.name)}
-                    </span>
-                  </div>
-                  <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
-                    {getContactEmoji(contact.id)}
-                  </div>
-                  <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
-                    {contact.name}
-                  </div>
-                </div>
-              </button>
-            </DrawerTrigger>
-            {renderContactDrawerContent(contact)}
-          </Drawer>
-        ))}
       </div>
     );
   };
