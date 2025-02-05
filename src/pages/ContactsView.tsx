@@ -586,7 +586,7 @@ const ContactsView = () => {
       </div>
 
       <div className="container max-w-2xl mx-auto p-4 h-full relative z-10">
-        <div className="relative flex flex-col h-full pb-32"> {/* Added pb-32 for consistent spacing */}
+        <div className="relative flex flex-col h-full">
           <div className="relative mb-8">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
