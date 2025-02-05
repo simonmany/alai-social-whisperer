@@ -336,36 +336,57 @@ const ContactsView = () => {
     </DrawerContent>
   );
 
-  const renderContactAvatar = (contact: Contact, x: number, y: number, isAnimating: boolean = false) => (
-    <Drawer key={contact.id}>
-      <DrawerTrigger asChild>
-        <button
-          className={`absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-500 ${
-            isAnimating ? 'animate-fade-in' : ''
-          }`}
-          style={{
-            left: `calc(50% + ${x}px)`,
-            top: `calc(50% + ${y}px)`,
-          }}
-        >
-          <div className="relative">
-            <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
-              <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
-            </Avatar>
-            {getContactEmoji(contact.id) && (
-              <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
-                {getContactEmoji(contact.id)}
+  const renderContactAvatar = (contact: Contact, x: number, y: number, isAnimating: boolean = false) => {
+    // Generate a consistent but random-looking gradient for each contact based on their id
+    const getContactGradient = (contactId: string) => {
+      const gradients = [
+        'linear-gradient(225deg, #FFE29F 0%, #FFA99F 48%, #FF719A 100%)',
+        'linear-gradient(90deg, hsla(221, 45%, 73%, 1) 0%, hsla(220, 78%, 29%, 1) 100%)',
+        'linear-gradient(90deg, hsla(24, 100%, 83%, 1) 0%, hsla(341, 91%, 68%, 1) 100%)',
+        'linear-gradient(90deg, hsla(29, 92%, 70%, 1) 0%, hsla(0, 87%, 73%, 1) 100%)',
+        'linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%)',
+      ];
+      const index = parseInt(contactId.slice(-3), 16) % gradients.length;
+      return gradients[index];
+    };
+
+    return (
+      <Drawer key={contact.id}>
+        <DrawerTrigger asChild>
+          <button
+            className={`absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-500 ${
+              isAnimating ? 'animate-fade-in' : ''
+            }`}
+            style={{
+              left: `calc(50% + ${x}px)`,
+              top: `calc(50% + ${y}px)`,
+            }}
+          >
+            <div className="relative group">
+              <div 
+                className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110"
+                style={{
+                  background: getContactGradient(contact.id),
+                  animation: 'spin 20s linear infinite',
+                }}
+              >
+                <div className="absolute inset-0 rounded-full bg-black/10"></div>
               </div>
-            )}
-          </div>
-          <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
-            {contact.name}
-          </div>
-        </button>
-      </DrawerTrigger>
-      {renderContactDrawerContent(contact)}
-    </Drawer>
-  );
+              {getContactEmoji(contact.id) && (
+                <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
+                  {getContactEmoji(contact.id)}
+                </div>
+              )}
+              <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                {contact.name}
+              </div>
+            </div>
+          </button>
+        </DrawerTrigger>
+        {renderContactDrawerContent(contact)}
+      </Drawer>
+    );
+  };
 
   const renderHomeView = () => {
     const innerOrbitContacts = getInnerOrbitContacts();
@@ -373,16 +394,23 @@ const ContactsView = () => {
 
     return (
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative">
-          <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
-          <AvatarUpload
-            url={profileData?.avatar_url ?? undefined}
-            onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
-            fallback={getInitials(profileData?.display_name || 'U')}
-            size="lg"
-          />
+        {/* Central star (user) */}
+        <div className="relative z-10">
+          <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse"></div>
+          <div className="relative">
+            <div className="absolute -inset-4 bg-orange-500/20 rounded-full animate-pulse"></div>
+            <div className="absolute -inset-2 bg-orange-400/30 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+            <AvatarUpload
+              url={profileData?.avatar_url ?? undefined}
+              onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
+              fallback={getInitials(profileData?.display_name || 'U')}
+              size="lg"
+              className="relative z-10 border-2 border-orange-400/50 shadow-lg shadow-orange-500/30"
+            />
+          </div>
         </div>
 
+        {/* Inner orbit contacts */}
         {innerOrbitContacts.map((contact, index) => {
           const angle = (index * 2 * Math.PI) / innerOrbitContacts.length;
           const radius = 120;
@@ -391,6 +419,7 @@ const ContactsView = () => {
           return renderContactAvatar(contact, x, y);
         })}
 
+        {/* Group orbits */}
         {userGroups.map((group, groupIndex) => {
           const groupContacts = getContactsForGroup(group.name);
           const groupAngle = (groupIndex * 2 * Math.PI) / userGroups.length;
@@ -410,7 +439,7 @@ const ContactsView = () => {
               <div className="relative">
                 <Badge
                   variant="outline"
-                  className="absolute -top-8 left-1/2 transform -translate-x-1/2 cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100"
+                  className="absolute -top-8 left-1/2 transform -translate-x-1/2 cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100 backdrop-blur-sm"
                   onClick={() => setSelectedGroup(group.name)}
                 >
                   {group.emoji} {group.name}
@@ -422,9 +451,14 @@ const ContactsView = () => {
                       <Drawer key={contact.id}>
                         <DrawerTrigger asChild>
                           <button className="transform hover:scale-110 transition-transform">
-                            <Avatar className={`${size} bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400`}>
-                              <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
-                            </Avatar>
+                            <div 
+                              className={`${size} rounded-full shadow-lg`}
+                              style={{
+                                background: getContactGradient(contact.id),
+                              }}
+                            >
+                              <div className="absolute inset-0 rounded-full bg-black/10"></div>
+                            </div>
                           </button>
                         </DrawerTrigger>
                         {renderContactDrawerContent(contact)}
@@ -435,33 +469,6 @@ const ContactsView = () => {
               </div>
             </div>
           );
-        })}
-      </div>
-    );
-  };
-
-  const renderGroupView = () => {
-    const groupContacts = getContactsForGroup(selectedGroup);
-    
-    return (
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative">
-          <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
-          <AvatarUpload
-            url={profileData?.avatar_url ?? undefined}
-            onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
-            fallback={getInitials(profileData?.display_name || 'U')}
-            size="lg"
-          />
-        </div>
-
-        {groupContacts.map((contact, index) => {
-          const angle = (index * 2 * Math.PI) / groupContacts.length;
-          const radius = 140;
-          const x = Math.cos(angle) * radius;
-          const y = Math.sin(angle) * radius;
-
-          return renderContactAvatar(contact, x, y, true);
         })}
       </div>
     );
@@ -662,4 +669,3 @@ const ContactsView = () => {
 };
 
 export default ContactsView;
-
