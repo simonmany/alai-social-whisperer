@@ -507,7 +507,7 @@ const ContactsView = () => {
             <DeepSpaceView contacts={contacts} />
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-4 z-20">
+          <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-4 pb-16 z-20">
             <div className="container max-w-2xl mx-auto">
               <div className="space-y-2">
                 <div className="flex items-center gap-2 mb-4">
@@ -547,17 +547,17 @@ const ContactsView = () => {
                   </Badge>
                 </div>
               </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50"
-                onClick={() => navigate("/")}
-              >
-                <ChevronUp className="h-6 w-6" />
-              </Button>
             </div>
           </div>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50 z-30"
+            onClick={() => navigate("/")}
+          >
+            <ChevronUp className="h-6 w-6" />
+          </Button>
         </div>
 
         <GroupManagementDialog
