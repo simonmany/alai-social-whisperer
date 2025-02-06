@@ -4,7 +4,6 @@ import {
   RadarChart,
   PolarGrid,
   PolarAngleAxis,
-  PolarRadiusAxis,
   Radar,
   ResponsiveContainer,
   Tooltip,
@@ -80,7 +79,6 @@ export const SkillsRadar = ({ skills }: SkillsRadarProps) => {
                   );
                 }}
               />
-              <PolarRadiusAxis domain={[0, 100]} />
               <Tooltip />
               <Radar
                 name="Skill Level"
