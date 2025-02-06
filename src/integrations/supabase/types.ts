@@ -337,6 +337,11 @@ export type Database = {
           personality_comments: string[] | null
           personality_traits: Json | null
           relationship_status: string | null
+          skill_aesthete: number | null
+          skill_athlete: number | null
+          skill_gourmand: number | null
+          skill_reveler: number | null
+          skill_traveler: number | null
           updated_at: string | null
           username: string | null
         }
@@ -368,6 +373,11 @@ export type Database = {
           personality_comments?: string[] | null
           personality_traits?: Json | null
           relationship_status?: string | null
+          skill_aesthete?: number | null
+          skill_athlete?: number | null
+          skill_gourmand?: number | null
+          skill_reveler?: number | null
+          skill_traveler?: number | null
           updated_at?: string | null
           username?: string | null
         }
@@ -399,6 +409,11 @@ export type Database = {
           personality_comments?: string[] | null
           personality_traits?: Json | null
           relationship_status?: string | null
+          skill_aesthete?: number | null
+          skill_athlete?: number | null
+          skill_gourmand?: number | null
+          skill_reveler?: number | null
+          skill_traveler?: number | null
           updated_at?: string | null
           username?: string | null
         }

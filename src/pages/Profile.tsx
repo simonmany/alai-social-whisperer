@@ -16,6 +16,7 @@ import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
 import { InterestsCard } from "@/components/profile/InterestsCard";
+import { SkillsRadar } from "@/components/profile/SkillsRadar";
 
 interface ProfileProps {
   open: boolean;
@@ -410,13 +411,16 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
               </Button>
 
               {/* Interests Section - Moved below Goals */}
-              <InterestsCard
-                currentInterests={profileData?.current_interests as string[]}
-                desiredInterests={profileData?.desired_interests as string[]}
-                foodPreferences={profileData?.food_preferences as string[]}
-                desiredFoodPreferences={profileData?.desired_food_preferences as string[]}
-                musicPreferences={profileData?.music_preferences as string[]}
-                desiredMusicPreferences={profileData?.desired_music_preferences as string[]}
+
+              {/* Replace InterestsCard with SkillsRadar */}
+              <SkillsRadar
+                skills={{
+                  gourmand: profileData?.skill_gourmand || 0,
+                  aesthete: profileData?.skill_aesthete || 0,
+                  traveler: profileData?.skill_traveler || 0,
+                  athlete: profileData?.skill_athlete || 0,
+                  reveler: profileData?.skill_reveler || 0,
+                }}
               />
 
               {/* Stats Section */}
