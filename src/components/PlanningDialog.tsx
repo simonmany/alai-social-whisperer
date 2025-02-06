@@ -343,7 +343,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   onClick={handleAiPickActivity}
                 >
                   <Bot className="h-3.5 w-3.5" />
-                  Have AI pick
+                  Have Al pick
                 </Button>
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -476,7 +476,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                 onClick={handleAiPickContact}
               >
                 <Bot className="h-3.5 w-3.5" />
-                Have AI pick
+                Have Al pick
               </Button>
             </div>
             <div className="relative">
@@ -537,7 +537,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                 onClick={handleAiPickDateTime}
               >
                 <Bot className="h-3.5 w-3.5" />
-                Have AI pick
+                Have Al pick
               </Button>
             </div>
             <div className="flex gap-2">
