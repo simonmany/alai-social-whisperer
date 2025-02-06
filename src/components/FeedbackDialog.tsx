@@ -11,6 +11,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import { ContactCard } from "@/components/ContactCard";
 
 interface Event {
   title: string;
@@ -134,17 +136,27 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               <div className="flex gap-2">
                 <TooltipProvider>
                   {selectedEvent.attendees.map((attendee) => (
-                    <Tooltip key={attendee.name}>
-                      <TooltipTrigger>
-                        <Avatar>
-                          <AvatarImage src={attendee.image} alt={attendee.name} />
-                          <AvatarFallback>{attendee.name[0]}</AvatarFallback>
-                        </Avatar>
+                    <Drawer key={attendee.name}>
+                      <TooltipTrigger asChild>
+                        <DrawerTrigger asChild>
+                          <button className="hover:scale-110 transition-transform">
+                            <Avatar>
+                              <AvatarImage src={attendee.image} alt={attendee.name} />
+                              <AvatarFallback>{attendee.name[0]}</AvatarFallback>
+                            </Avatar>
+                          </button>
+                        </DrawerTrigger>
                       </TooltipTrigger>
+                      <DrawerContent className="p-4">
+                        <ContactCard 
+                          name={attendee.name}
+                          meetingStory={`Met at ${selectedEvent.title}`}
+                        />
+                      </DrawerContent>
                       <TooltipContent>
                         <p>{attendee.name}</p>
                       </TooltipContent>
-                    </Tooltip>
+                    </Drawer>
                   ))}
                 </TooltipProvider>
               </div>
