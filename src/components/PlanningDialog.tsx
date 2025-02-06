@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X } from "lucide-react";
+import { X, Utensils, Palette, MapPin, PartyPopper, Plane } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface PlanningDialogProps {
@@ -188,20 +188,26 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("Food / Drinks")}
+                    className="flex flex-col gap-2 h-auto py-4"
                   >
-                    Food / Drinks
+                    <Utensils className="h-5 w-5" />
+                    <span>Food / Drinks</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("Recreation")}
+                    className="flex flex-col gap-2 h-auto py-4"
                   >
-                    Recreation
+                    <MapPin className="h-5 w-5" />
+                    <span>Recreation</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("Arts")}
+                    className="flex flex-col gap-2 h-auto py-4"
                   >
-                    Arts
+                    <Palette className="h-5 w-5" />
+                    <span>Arts</span>
                   </Button>
                 </div>
               </div>
@@ -211,14 +217,18 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("A Party!")}
+                    className="flex flex-col gap-2 h-auto py-4"
                   >
-                    A Party!
+                    <PartyPopper className="h-5 w-5" />
+                    <span>A Party!</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("A Trip")}
+                    className="flex flex-col gap-2 h-auto py-4"
                   >
-                    A Trip
+                    <Plane className="h-5 w-5" />
+                    <span>A Trip</span>
                   </Button>
                 </div>
               </div>
