@@ -9,7 +9,7 @@ const execAsync = promisify(exec);
 dotenv.config();
 
 const PROJECT_ID = 'ejqucnzpgebbujlnmdzx';
-const FUNCTIONS = ['store_auth', 'calendar'];
+const FUNCTIONS = ['store_auth', 'calendar', 'email-calendar-auth'];
 
 async function setupSecrets() {
   try {

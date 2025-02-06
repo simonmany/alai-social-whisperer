@@ -34,8 +34,13 @@ serve(async (req: Request) => {
     const sessionToken = authHeader.replace('Bearer ', '');
 
     // Initialize Supabase client
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+    if (!SUPABASE_URL) {
+      throw new Error('Missing SUPABASE_URL environment variable');
+    }
+
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
+      SUPABASE_URL,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
