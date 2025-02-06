@@ -50,10 +50,10 @@ export const SkillsRadar = ({ skills }: SkillsRadarProps) => {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
+      <CardHeader className="pb-1 pt-4">
         <CardTitle className="text-lg">Growth</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-0">
         <div className="h-[300px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>

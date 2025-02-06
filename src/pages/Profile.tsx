@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { LogOut, MessageCircle, Settings, Share2, Target, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +9,6 @@ import GoalsDialog from "@/components/GoalsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Goal } from "@/types/goals";
-import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/profile/StatsCard";
@@ -313,22 +312,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="overflow-y-auto">
-          <SheetHeader className="mb-2">
-            <SheetTitle>
-              {showIntegrations ? (
-                <Button 
-                  variant="ghost" 
-                  className="p-0 font-normal flex items-center gap-2"
-                  onClick={() => setShowIntegrations(false)}
-                >
-                  <X className="h-4 w-4" /> Back to Profile
-                </Button>
-              ) : (
-                "Profile"
-              )}
-            </SheetTitle>
-          </SheetHeader>
-
           {showIntegrations ? (
             <IntegrationsMenu
               onGoogleSignIn={handleGoogleCalendarConnect}
@@ -367,13 +350,13 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
               {/* Goals Section */}
               <Card>
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1 pt-4">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Target className="h-5 w-5" />
                     Goals
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 pt-0">
                   {renderTimeframeSection('today', 'Today')}
                   {renderTimeframeSection('week', 'This Week')}
                   {renderTimeframeSection('month', 'This Month')}
@@ -389,7 +372,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 Set a new goal
               </Button>
 
-              {/* Replace InterestsCard with SkillsRadar */}
+              {/* Skills Radar */}
               <SkillsRadar
                 skills={{
                   gourmand: profileData?.skill_gourmand || 0,
