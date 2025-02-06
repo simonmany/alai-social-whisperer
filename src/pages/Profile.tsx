@@ -7,15 +7,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import GoalsDialog from "@/components/GoalsDialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Goal } from "@/types/goals";
-import { checkMissingGoals } from "@/utils/goalUtils";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
-import { InterestsCard } from "@/components/profile/InterestsCard";
 import { SkillsRadar } from "@/components/profile/SkillsRadar";
 
 interface ProfileProps {
@@ -105,7 +102,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   };
 
   const goals = (profileData?.goals as unknown as Goal[]) || [];
-  const { missingTimeframes } = checkMissingGoals(goals);
 
   // Get the best available display name and avatar URL
   const displayName = profileData?.display_name || userData?.user_metadata?.name || 'User';
@@ -187,131 +183,33 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     return (
       <div>
         <h3 className="text-sm font-bold text-primary mb-2">{title}</h3>
-        {!hasGoals ? (
-          <Alert 
-            variant="destructive" 
-            className="mb-2 cursor-pointer hover:bg-destructive/90 transition-colors"
-            onClick={handleNewGoal}
-          >
-            <AlertDescription className="text-sm">
-              Goal Missing! Set now?
-            </AlertDescription>
-          </Alert>
-        ) : (
-          timeframeGoals.map((goal: Goal, index: number) => (
-            <div key={index} className="mb-2 flex items-start gap-2">
-              <Checkbox
-                checked={goal.completed}
-                onCheckedChange={() => handleGoalComplete(index)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
-                  {goal.type}
-                </div>
-                <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
-                  {goal.description}
-                </div>
+        {hasGoals && timeframeGoals.map((goal: Goal, index: number) => (
+          <div key={index} className="mb-2 flex items-start gap-2">
+            <Checkbox
+              checked={goal.completed}
+              onCheckedChange={() => handleGoalComplete(index)}
+              className="mt-1"
+            />
+            <div className="flex-1">
+              <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                {goal.type}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => handleDeleteGoal(index)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
+                {goal.description}
+              </div>
             </div>
-          ))
-        )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={() => handleDeleteGoal(index)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
       </div>
     );
-  };
-
-  const handleGoogleCalendarConnect = async () => {
-    try {
-      setIsConnectingCalendar(true);
-      console.log("[Calendar] Starting Google Calendar connection flow...");
-      
-      const { data: session } = await supabase.auth.getSession();
-      console.log("[Calendar] Current session status:", session ? "Has session" : "No session");
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          skipBrowserRedirect: true
-        }
-      });
-
-      if (error) {
-        console.error("[Calendar] Google auth error:", error);
-        toast({
-          title: "Error connecting to Google Calendar",
-          description: "Please try again or contact support if the issue persists.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("[Calendar] Auth URL generated:", data?.url ? "Yes" : "No");
-
-      if (data?.url) {
-        const width = 600;
-        const height = 800;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        console.log("[Calendar] Opening auth popup...");
-        const newWindow = window.open(
-          data.url,
-          'googleAuthWindow',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-        
-        if (!newWindow) {
-          console.error("[Calendar] Popup blocked by browser");
-          toast({
-            title: "Popup Blocked",
-            description: "Please allow popups for this site to connect your Google Calendar.",
-            variant: "destructive",
-          });
-        } else {
-          console.log("[Calendar] Auth popup opened successfully");
-        }
-      }
-      
-    } catch (error: any) {
-      console.error("[Calendar] Calendar connection error:", error);
-      toast({
-        title: "Error connecting to Google Calendar",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnectingCalendar(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account",
-      });
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      toast({
-        title: "Error signing out",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
   };
 
   return (
@@ -370,21 +268,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                     </>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">Instagram</Button>
-                  <Button variant="outline" size="sm">Twitter</Button>
-                </div>
               </div>
-
-              {/* Goals Alert */}
-              {missingTimeframes.length > 0 && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>
-                    You haven't set any goals for {missingTimeframes.join(', ')}. 
-                    Set some goals to track your social progress!
-                  </AlertDescription>
-                </Alert>
-              )}
 
               {/* Goals Section */}
               <Card>
@@ -410,9 +294,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 Set a new goal
               </Button>
 
-              {/* Interests Section - Moved below Goals */}
-
-              {/* Replace InterestsCard with SkillsRadar */}
+              {/* Skills Radar */}
               <SkillsRadar
                 skills={{
                   gourmand: profileData?.skill_gourmand || 0,
