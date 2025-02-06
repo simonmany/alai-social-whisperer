@@ -1,9 +1,16 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface Event {
   title: string;
@@ -51,19 +58,27 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [selectedFeedback, setSelectedFeedback] = useState<string | null>(null);
   const [customFeedback, setCustomFeedback] = useState("");
 
+  const formatAttendeeNames = (attendees: Array<{ name: string }>) => {
+    if (attendees.length === 0) return "";
+    if (attendees.length === 1) return attendees[0].name;
+    if (attendees.length === 2) return `${attendees[0].name} and ${attendees[1].name}`;
+    const allButLast = attendees.slice(0, -1).map(a => a.name).join(", ");
+    return `${allButLast}, and ${attendees[attendees.length - 1].name}`;
+  };
+
   const handleSubmit = () => {
     if (selectedEvent) {
-      const attendeeNames = selectedEvent.attendees.map(a => a.name).join(", ");
+      const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
       const feedback = customFeedback.trim() || selectedFeedback;
       if (feedback) {
-        const message = `I attended ${selectedEvent.title} at ${selectedEvent.location} with ${attendeeNames} on ${selectedEvent.date.toLocaleDateString([], {
+        const message = `I had a hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
           weekday: "long",
           month: "long",
           day: "numeric",
         })} at ${selectedEvent.date.toLocaleTimeString([], {
           hour: "numeric",
           minute: "2-digit",
-        })}. It was ${feedback}.`;
+        })}. We ${selectedEvent.title.toLowerCase()} and it was ${feedback.toLowerCase()}.`;
         onSubmit(message);
         onOpenChange(false);
         // Reset state
@@ -117,12 +132,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             <div className="space-y-2">
               <h3 className="font-medium">Attendees:</h3>
               <div className="flex gap-2">
-                {selectedEvent.attendees.map((attendee) => (
-                  <Avatar key={attendee.name}>
-                    <AvatarImage src={attendee.image} alt={attendee.name} />
-                    <AvatarFallback>{attendee.name[0]}</AvatarFallback>
-                  </Avatar>
-                ))}
+                <TooltipProvider>
+                  {selectedEvent.attendees.map((attendee) => (
+                    <Tooltip key={attendee.name}>
+                      <TooltipTrigger>
+                        <Avatar>
+                          <AvatarImage src={attendee.image} alt={attendee.name} />
+                          <AvatarFallback>{attendee.name[0]}</AvatarFallback>
+                        </Avatar>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{attendee.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ))}
+                </TooltipProvider>
               </div>
             </div>
           )}
