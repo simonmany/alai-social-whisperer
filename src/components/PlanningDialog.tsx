@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,10 +5,15 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Utensils, Palette, MapPin, PartyPopper, Plane } from "lucide-react";
+import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Autocomplete from 'react-google-autocomplete';
+import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -23,11 +27,20 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [activity, setActivity] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<ActivityCategory>(null);
   const [showCustomSpot, setShowCustomSpot] = useState(false);
-  const [time, setTime] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTime, setSelectedTime] = useState<string>();
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contactInput, setContactInput] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const { toast } = useToast();
+
+  // Generate time slots from 7 AM to 11 PM
+  const timeSlots = Array.from({ length: 17 }, (_, i) => {
+    const hour = i + 7;
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:00 ${period}`;
+  });
 
   useEffect(() => {
     const fetchMapsKey = async () => {
@@ -140,41 +153,45 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const generateMessage = () => {
     const hasActivity = activity.trim() !== "";
     const hasContacts = selectedContacts.length > 0;
-    const hasTime = time.trim() !== "";
+    const hasDateTime = selectedDate && selectedTime;
 
     // All fields blank
-    if (!hasActivity && !hasContacts && !hasTime) {
+    if (!hasActivity && !hasContacts && !hasDateTime) {
       return "Find me something to do!";
     }
 
     // Only one field filled
-    if (hasActivity && !hasContacts && !hasTime) {
+    if (hasActivity && !hasContacts && !hasDateTime) {
       return `I want to ${activity}. Find me some people and a time!`;
     }
-    if (!hasActivity && hasContacts && !hasTime) {
+    if (!hasActivity && hasContacts && !hasDateTime) {
       const contactNames = selectedContacts.map(c => c.name).join(", ");
       return `I want to hang with ${contactNames}. Find us an activity and a time!`;
     }
-    if (!hasActivity && !hasContacts && hasTime) {
-      return `Find me a hang at ${time}`;
+    if (!hasActivity && !hasContacts && hasDateTime) {
+      const formattedDate = format(selectedDate, 'MMMM do');
+      return `Find me a hang on ${formattedDate} at ${selectedTime}`;
     }
 
     // Two fields filled
-    if (hasActivity && hasContacts && !hasTime) {
+    if (hasActivity && hasContacts && !hasDateTime) {
       const contactNames = selectedContacts.map(c => c.name).join(", ");
       return `Find me a time to ${activity} with ${contactNames}!`;
     }
-    if (hasActivity && !hasContacts && hasTime) {
-      return `Find me someone to ${activity} with at ${time}!`;
+    if (hasActivity && !hasContacts && hasDateTime) {
+      const formattedDate = format(selectedDate, 'MMMM do');
+      return `Find me someone to ${activity} with on ${formattedDate} at ${selectedTime}!`;
     }
-    if (!hasActivity && hasContacts && hasTime) {
+    if (!hasActivity && hasContacts && hasDateTime) {
       const contactNames = selectedContacts.map(c => c.name).join(", ");
-      return `Find me something to do with ${contactNames} at ${time}!`;
+      const formattedDate = format(selectedDate, 'MMMM do');
+      return `Find me something to do with ${contactNames} on ${formattedDate} at ${selectedTime}!`;
     }
 
     // All fields filled
     const contactNames = selectedContacts.map(c => c.name).join(", ");
-    return `I want to ${activity} with ${contactNames} at ${time}`;
+    const formattedDate = format(selectedDate, 'MMMM do');
+    return `I want to ${activity} with ${contactNames} on ${formattedDate} at ${selectedTime}`;
   };
 
   const handleSubmit = () => {
@@ -184,7 +201,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedCategory(null);
     setShowCustomSpot(false);
     setSelectedContacts([]);
-    setTime("");
+    setSelectedDate(undefined);
+    setSelectedTime(undefined);
     onOpenChange(false);
   };
 
@@ -381,12 +399,44 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-medium">Select a time, or have AI pick:</label>
-            <Input
-              placeholder="Enter a time (optional)"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-            />
+            <label className="text-sm font-medium">Select a date and time, or have AI pick:</label>
+            <div className="flex gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[240px] justify-start text-left font-normal",
+                      !selectedDate && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+
+              <Select value={selectedTime} onValueChange={setSelectedTime}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Pick a time" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeSlots.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <Button onClick={handleSubmit}>
@@ -399,4 +449,3 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
-
