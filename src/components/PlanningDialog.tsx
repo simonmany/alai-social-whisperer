@@ -121,6 +121,27 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     }
   });
 
+  const getFilteredSuggestions = () => {
+    if (!activity.trim()) return [];
+
+    switch (selectedCategory) {
+      case "Food / Drinks":
+        return foodItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase())
+        ) || [];
+      case "Recreation":
+        return recreationItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase())
+        ) || [];
+      case "Arts":
+        return artsItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase())
+        ) || [];
+      default:
+        return [];
+    }
+  };
+
   const handleAiPickActivity = () => {
     const categories = [
       { type: "Food / Drinks", items: foodItems },
@@ -387,12 +408,27 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
               )}
               {!showCustomSpot ? (
                 <>
-                  <Input
-                    placeholder={`Search ${selectedCategory} suggestions...`}
-                    value={activity}
-                    onChange={(e) => setActivity(e.target.value)}
-                    className="h-8"
-                  />
+                  <div className="relative">
+                    <Input
+                      placeholder={`Search ${selectedCategory} suggestions...`}
+                      value={activity}
+                      onChange={(e) => setActivity(e.target.value)}
+                      className="h-8"
+                    />
+                    {activity && getFilteredSuggestions().length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                        {getFilteredSuggestions().map((item) => (
+                          <div
+                            key={item.name}
+                            className="px-2 py-1 hover:bg-accent cursor-pointer"
+                            onClick={() => setActivity(item.name)}
+                          >
+                            <span className="text-sm">{item.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <Button 
                     variant="outline" 
                     className="w-full h-8 text-sm"
