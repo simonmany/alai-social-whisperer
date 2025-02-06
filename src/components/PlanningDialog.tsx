@@ -120,7 +120,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <label className="text-sm font-medium">I want to...</label>
+            <label className="text-sm font-medium">Choose an activity, or have AI pick:</label>
             <Input
               placeholder="Enter an activity (optional)"
               value={activity}
@@ -129,7 +129,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-medium">with...</label>
+            <label className="text-sm font-medium">Invite some people, or have AI pick:</label>
             <div className="relative">
               <Input
                 placeholder="Type to search contacts..."
@@ -178,7 +178,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           </div>
 
           <div className="grid gap-2">
-            <label className="text-sm font-medium">at...</label>
+            <label className="text-sm font-medium">Select a time, or have AI pick:</label>
             <Input
               placeholder="Enter a time (optional)"
               value={time}
