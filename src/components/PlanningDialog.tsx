@@ -23,7 +23,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [commandOpen, setCommandOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: contacts } = useQuery({
+  const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -141,18 +141,22 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   />
                   <CommandEmpty>No contacts found.</CommandEmpty>
                   <CommandGroup>
-                    {filteredContacts.map((contact) => (
-                      <CommandItem
-                        key={contact.id}
-                        onSelect={() => {
-                          setSelectedContacts([...selectedContacts, contact]);
-                          setSearchQuery("");
-                          setCommandOpen(false);
-                        }}
-                      >
-                        {contact.name}
-                      </CommandItem>
-                    ))}
+                    {isLoading ? (
+                      <CommandItem disabled>Loading contacts...</CommandItem>
+                    ) : (
+                      filteredContacts.map((contact) => (
+                        <CommandItem
+                          key={contact.id}
+                          onSelect={() => {
+                            setSelectedContacts([...selectedContacts, contact]);
+                            setSearchQuery("");
+                            setCommandOpen(false);
+                          }}
+                        >
+                          {contact.name}
+                        </CommandItem>
+                      ))
+                    )}
                   </CommandGroup>
                 </Command>
               </PopoverContent>
