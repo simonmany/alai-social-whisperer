@@ -259,6 +259,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     const timeframeGoals = goals.filter((goal: Goal) => goal.timeframe === timeframe);
     const hasGoals = timeframeGoals.length > 0;
 
+    const alertText = {
+      today: "Set Daily Goal",
+      week: "Set Weekly Goal",
+      month: "Set Monthly Goal"
+    }[timeframe];
+
     return (
       <div>
         <h3 className="text-sm font-bold text-primary mb-2">{title}</h3>
@@ -269,7 +275,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
             onClick={handleNewGoal}
           >
             <AlertDescription className="text-sm">
-              Goal Missing! Set now?
+              {alertText}
             </AlertDescription>
           </Alert>
         ) : (
