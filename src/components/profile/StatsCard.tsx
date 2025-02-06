@@ -74,9 +74,9 @@ export const StatsCard = () => {
         {/* Meteorite Image */}
         <div className="relative w-full aspect-square max-w-[200px] mx-auto">
           <img
-            src="/placeholder.svg"
+            src="https://banner2.cleanpng.com/20180610/aow/aa8rs3y75.webp"
             alt="Meteorite Level"
-            className="w-full h-full object-cover rounded-lg"
+            className="w-full h-full object-contain rounded-lg"
           />
         </div>
 
