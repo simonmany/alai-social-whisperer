@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -154,22 +153,25 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <DialogTitle>Plan a Hang</DialogTitle>
             {selectedCategory && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {selectedCategory}
-                </span>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6" 
-                  onClick={handleCategoryDeselect}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              <>
+                <span className="text-muted-foreground">·</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    {selectedCategory}
+                  </span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6" 
+                    onClick={handleCategoryDeselect}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </DialogHeader>
