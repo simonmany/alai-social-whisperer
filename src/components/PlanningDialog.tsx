@@ -23,7 +23,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [commandOpen, setCommandOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: contacts = [], isLoading } = useQuery({
+  const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -35,12 +35,13 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         .eq('user_id', user.id);
       
       if (error) throw error;
-      return data as Contact[];
-    }
+      return data as Contact[] || [];
+    },
+    initialData: [] // Provide initial data to prevent undefined
   });
 
-  // Move filteredContacts inside component to ensure it's always defined
-  const filteredContacts = contacts.filter(contact => 
+  // Filter contacts based on search and already selected contacts
+  const filteredContacts = (contacts || []).filter(contact => 
     !selectedContacts.some(selected => selected.id === contact.id) &&
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
