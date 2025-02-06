@@ -39,10 +39,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     }
   });
 
-  const filteredContacts = contacts?.filter(contact => 
+  // Move filteredContacts inside component to ensure it's always defined
+  const filteredContacts = contacts.filter(contact => 
     !selectedContacts.some(selected => selected.id === contact.id) &&
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  );
 
   const removeContact = (contactToRemove: Contact) => {
     setSelectedContacts(selectedContacts.filter(c => c.id !== contactToRemove.id));
@@ -162,7 +163,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
               </PopoverContent>
             </Popover>
 
-            {/* Selected contacts bubbles */}
             {selectedContacts.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
                 {selectedContacts.map((contact) => (
