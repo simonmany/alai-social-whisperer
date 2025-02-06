@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -89,7 +88,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   const handleCategorySelect = (category: ActivityCategory) => {
     setSelectedCategory(category);
-    setShowCustomSpot(false);
+    if (category === "A Party!") {
+      setShowCustomSpot(true);
+    } else {
+      setShowCustomSpot(false);
+    }
     setActivity("");
   };
 
@@ -222,6 +225,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
             </div>
           ) : (
             <div className="space-y-2">
+              {selectedCategory === "A Party!" && (
+                <div className="text-sm text-muted-foreground mb-4">
+                  Nice! Where's the party at?
+                </div>
+              )}
               {!showCustomSpot ? (
                 <>
                   <Input
