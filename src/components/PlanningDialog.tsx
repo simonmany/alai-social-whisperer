@@ -6,9 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Search } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X } from "lucide-react";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -20,8 +18,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [activity, setActivity] = useState("");
   const [time, setTime] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
-  const [commandOpen, setCommandOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [contactInput, setContactInput] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ['contacts'],
@@ -41,11 +38,16 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   const contacts = data || [];
 
-  // Filter contacts based on search and already selected contacts
+  // Filter contacts based on search input and already selected contacts
   const filteredContacts = contacts.filter(contact => 
     !selectedContacts.some(selected => selected.id === contact.id) &&
-    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+    contact.name.toLowerCase().includes(contactInput.toLowerCase())
   );
+
+  const addContact = (contact: Contact) => {
+    setSelectedContacts([...selectedContacts, contact]);
+    setContactInput("");
+  };
 
   const removeContact = (contactToRemove: Contact) => {
     setSelectedContacts(selectedContacts.filter(c => c.id !== contactToRemove.id));
@@ -118,52 +120,26 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
           <div className="grid gap-2">
             <label className="text-sm font-medium">with...</label>
-            <Popover open={commandOpen} onOpenChange={setCommandOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={commandOpen}
-                  className="justify-between w-full"
-                >
-                  <span className="text-muted-foreground">
-                    {selectedContacts.length > 0 
-                      ? `${selectedContacts.length} contact${selectedContacts.length > 1 ? 's' : ''} selected`
-                      : "Select contacts..."
-                    }
-                  </span>
-                  <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0">
-                <Command>
-                  <CommandInput 
-                    placeholder="Search contacts..." 
-                    value={searchQuery}
-                    onValueChange={setSearchQuery}
-                  />
-                  <CommandEmpty>No contacts found.</CommandEmpty>
-                  <CommandGroup>
-                    {isLoading ? (
-                      <CommandItem disabled>Loading contacts...</CommandItem>
-                    ) : (
-                      filteredContacts.map((contact) => (
-                        <CommandItem
-                          key={contact.id}
-                          onSelect={() => {
-                            setSelectedContacts([...selectedContacts, contact]);
-                            setSearchQuery("");
-                            setCommandOpen(false);
-                          }}
-                        >
-                          {contact.name}
-                        </CommandItem>
-                      ))
-                    )}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <div className="relative">
+              <Input
+                placeholder="Type to search contacts..."
+                value={contactInput}
+                onChange={(e) => setContactInput(e.target.value)}
+              />
+              {contactInput && filteredContacts.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
+                  {filteredContacts.map((contact) => (
+                    <div
+                      key={contact.id}
+                      className="px-4 py-2 hover:bg-accent cursor-pointer"
+                      onClick={() => addContact(contact)}
+                    >
+                      {contact.name}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {selectedContacts.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-2">
