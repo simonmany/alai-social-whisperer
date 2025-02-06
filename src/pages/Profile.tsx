@@ -41,7 +41,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       console.log("Auth user data:", user);
       return user;
     },
-    enabled: open, // Only run when profile is open
+    enabled: open,
   });
 
   // Second query to get profile data
@@ -76,10 +76,57 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       console.log("Profile data fetched:", profile);
       return profile;
     },
-    enabled: !!userData?.id && open, // Only run when we have a user ID and profile is open
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: !!userData?.id && open,
+    staleTime: 1000 * 60 * 5,
     retry: 2
   });
+
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account",
+      });
+      onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Error signing out",
+        description: error.message || "An error occurred while signing out",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGoogleCalendarConnect = async () => {
+    setIsConnectingCalendar(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar',
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        toast({
+          title: "Success",
+          description: "Google Calendar connected successfully",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error connecting calendar",
+        description: error.message || "Failed to connect Google Calendar",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnectingCalendar(false);
+    }
+  };
 
   const handleGoalSubmit = async (message: string) => {
     if (onSend) {
@@ -130,13 +177,9 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const handleDeleteGoal = async (goalIndex: number) => {
     if (!userData?.id || !profileData) return;
 
-    // Create a copy of the current goals array
     const currentGoals = Array.isArray(profileData.goals) ? [...profileData.goals] : [];
-    
-    // Remove the goal at the specified index
     currentGoals.splice(goalIndex, 1);
 
-    // For legacy string goals, convert them to the new format
     const formattedGoals = currentGoals.map(goal => {
       if (typeof goal === 'string') {
         return {
@@ -160,7 +203,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         title: "Goal deleted",
         description: "Your goal has been removed successfully",
       });
-      // Invalidate the profile query to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ['profile', userData.id] });
     } else {
       toast({
