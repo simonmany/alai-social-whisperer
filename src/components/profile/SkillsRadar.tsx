@@ -50,11 +50,11 @@ export const SkillsRadar = ({ skills }: SkillsRadarProps) => {
 
   return (
     <Card>
-      <CardHeader className="pb-1 pt-4">
+      <CardHeader className="pb-0 pt-3">
         <CardTitle className="text-lg">Growth</CardTitle>
       </CardHeader>
       <CardContent className="pt-0">
-        <div className="h-[300px] w-full">
+        <div className="h-[250px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data}>
               <PolarGrid />

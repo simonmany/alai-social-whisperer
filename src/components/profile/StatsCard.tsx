@@ -47,11 +47,11 @@ export const StatsCard = () => {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader className="pb-1 pt-4">
+        <CardHeader className="pb-0 pt-3">
           <CardTitle className="text-lg">Gravity</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4 pt-0">
-          <div className="animate-pulse space-y-4">
+        <CardContent className="space-y-3 pt-0">
+          <div className="animate-pulse space-y-3">
             <div className="bg-muted h-32 rounded-lg" />
             <div className="bg-muted h-4 rounded w-3/4" />
             <div className="grid grid-cols-3 gap-2">
@@ -67,12 +67,12 @@ export const StatsCard = () => {
 
   return (
     <Card>
-      <CardHeader className="pb-1 pt-4">
+      <CardHeader className="pb-0 pt-3">
         <CardTitle className="text-lg">Gravity</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3 pt-0">
+      <CardContent className="space-y-2 pt-0">
         {/* Meteorite Image */}
-        <div className="relative w-full aspect-square max-w-[200px] mx-auto">
+        <div className="relative w-full aspect-square max-w-[180px] mx-auto">
           <img
             src="https://banner2.cleanpng.com/20180610/aow/aa8rs3y75.webp"
             alt="Meteorite Level"
@@ -81,7 +81,7 @@ export const StatsCard = () => {
         </div>
 
         {/* XP Progress */}
-        <div className="space-y-2">
+        <div className="space-y-1">
           <div className="text-sm text-center font-medium">Current Level: Meteorite</div>
           <Progress value={50} className="h-2" />
         </div>
