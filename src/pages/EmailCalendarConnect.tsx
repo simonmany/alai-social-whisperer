@@ -9,7 +9,11 @@ import { useQueryClient } from '@tanstack/react-query';
 
 export default function EmailCalendarConnect() {
   const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
+  const [connecting, setConnecting] = useState(() => {
+    // Check if we were in the middle of connecting
+    const stored = localStorage.getItem('calendar-connecting');
+    return stored === 'true';
+  });
   const [connected, setConnected] = useState(false);
   const { session } = useAuth();
   const navigate = useNavigate();
@@ -17,6 +21,13 @@ export default function EmailCalendarConnect() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    // Clear connecting state from localStorage if it exists
+    const storedConnecting = localStorage.getItem('calendar-connecting');
+    if (storedConnecting === 'true') {
+      localStorage.removeItem('calendar-connecting');
+      setConnecting(false);
+    }
+
     const checkConnection = async () => {
       if (!session?.user.id) {
         navigate('/auth', { replace: true });
@@ -59,6 +70,7 @@ export default function EmailCalendarConnect() {
   const handleConnect = async () => {
     try {
       setConnecting(true);
+      localStorage.setItem('calendar-connecting', 'true');
       console.log('Starting email calendar connection:', {
         userId: session?.user.id,
         provider: session?.user?.app_metadata?.provider,
@@ -121,7 +133,9 @@ export default function EmailCalendarConnect() {
         description: error.message || 'Failed to connect Google Calendar',
         variant: 'destructive'
       });
-      setConnecting(false); // Reset state on error
+      // Reset connecting state
+      setConnecting(false);
+      localStorage.removeItem('calendar-connecting');
     }
   };
 
