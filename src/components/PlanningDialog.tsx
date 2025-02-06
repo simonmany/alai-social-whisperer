@@ -254,43 +254,78 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     const hasContacts = selectedContacts.length > 0;
     const hasDateTime = selectedDate && selectedTime;
 
+    // Helper to format contact names naturally
+    const formatContacts = (contacts: Contact[]) => {
+      if (contacts.length === 0) return "";
+      if (contacts.length === 1) return contacts[0].name;
+      if (contacts.length === 2) return `${contacts[0].name} and ${contacts[1].name}`;
+      const allButLast = contacts.slice(0, -1).map(c => c.name).join(", ");
+      return `${allButLast}, and ${contacts[contacts.length - 1].name}`;
+    };
+
+    // Helper to format activity based on category
+    const formatActivity = () => {
+      switch (selectedCategory) {
+        case "Food / Drinks":
+          return `get ${activity.toLowerCase()}`;
+        case "Recreation":
+          return activity.toLowerCase();
+        case "Arts":
+          return `go to ${activity.toLowerCase()}`;
+        case "A Party!":
+          return `have a party at ${activity}`;
+        case "A Trip":
+          return `take a trip to ${activity}`;
+        default:
+          return activity.toLowerCase();
+      }
+    };
+
     // All fields blank
     if (!hasActivity && !hasContacts && !hasDateTime) {
-      return "Find me something to do!";
+      return "Help me plan something fun!";
     }
 
-    // Only one field filled
+    // Only activity
     if (hasActivity && !hasContacts && !hasDateTime) {
-      return `I want to ${activity}. Find me some people and a time!`;
+      return `I want to ${formatActivity()}. Can you help me find some people and a good time?`;
     }
+
+    // Only contacts
     if (!hasActivity && hasContacts && !hasDateTime) {
-      const contactNames = selectedContacts.map(c => c.name).join(", ");
-      return `I want to hang with ${contactNames}. Find us an activity and a time!`;
+      const contactNames = formatContacts(selectedContacts);
+      return `I'd like to plan something with ${contactNames}. What should we do?`;
     }
+
+    // Only date/time
     if (!hasActivity && !hasContacts && hasDateTime) {
       const formattedDate = format(selectedDate, 'MMMM do');
-      return `Find me a hang on ${formattedDate} at ${selectedTime}`;
+      return `I'm free on ${formattedDate} at ${selectedTime}. What should I do?`;
     }
 
-    // Two fields filled
+    // Activity and contacts
     if (hasActivity && hasContacts && !hasDateTime) {
-      const contactNames = selectedContacts.map(c => c.name).join(", ");
-      return `Find me a time to ${activity} with ${contactNames}!`;
+      const contactNames = formatContacts(selectedContacts);
+      return `I want to ${formatActivity()} with ${contactNames}. When would be a good time?`;
     }
+
+    // Activity and date/time
     if (hasActivity && !hasContacts && hasDateTime) {
       const formattedDate = format(selectedDate, 'MMMM do');
-      return `Find me someone to ${activity} with on ${formattedDate} at ${selectedTime}!`;
+      return `I want to ${formatActivity()} on ${formattedDate} at ${selectedTime}. Who should I invite?`;
     }
+
+    // Contacts and date/time
     if (!hasActivity && hasContacts && hasDateTime) {
-      const contactNames = selectedContacts.map(c => c.name).join(", ");
+      const contactNames = formatContacts(selectedContacts);
       const formattedDate = format(selectedDate, 'MMMM do');
-      return `Find me something to do with ${contactNames} on ${formattedDate} at ${selectedTime}!`;
+      return `I'm meeting with ${contactNames} on ${formattedDate} at ${selectedTime}. What should we do?`;
     }
 
     // All fields filled
-    const contactNames = selectedContacts.map(c => c.name).join(", ");
+    const contactNames = formatContacts(selectedContacts);
     const formattedDate = format(selectedDate, 'MMMM do');
-    return `I want to ${activity} with ${contactNames} on ${formattedDate} at ${selectedTime}`;
+    return `I want to ${formatActivity()} with ${contactNames} on ${formattedDate} at ${selectedTime}. Can you help make this happen?`;
   };
 
   const handleSubmit = () => {
