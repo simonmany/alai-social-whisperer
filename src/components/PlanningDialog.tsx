@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
 import { X, Utensils, Palette, MapPin, PartyPopper, Plane } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import Autocomplete from 'react-google-autocomplete';
 
 interface PlanningDialogProps {
   open: boolean;
@@ -23,6 +26,36 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [time, setTime] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contactInput, setContactInput] = useState("");
+  const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchMapsKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-maps-key');
+        if (error) {
+          console.error('Supabase function error:', error);
+          throw error;
+        }
+        if (!data?.apiKey) {
+          console.error('No API key returned:', data);
+          throw new Error('No API key returned from function');
+        }
+        setMapsApiKey(data.apiKey);
+      } catch (error: any) {
+        console.error('Error fetching Maps API key:', error);
+        toast({
+          title: "Error loading location selector",
+          description: "Please try refreshing the page",
+          variant: "destructive",
+        });
+      }
+    };
+
+    if (selectedCategory === "A Trip") {
+      fetchMapsKey();
+    }
+  }, [selectedCategory, toast]);
 
   const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts'],
@@ -89,6 +122,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const handleCategorySelect = (category: ActivityCategory) => {
     setSelectedCategory(category);
     if (category === "A Party!") {
+      setShowCustomSpot(true);
+    } else if (category === "A Trip") {
       setShowCustomSpot(true);
     } else {
       setShowCustomSpot(false);
@@ -240,6 +275,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   Nice! Where's the party at?
                 </div>
               )}
+              {selectedCategory === "A Trip" && (
+                <div className="text-sm text-muted-foreground mb-4">
+                  Nice! Where are we going?
+                </div>
+              )}
               {!showCustomSpot ? (
                 <>
                   <Input
@@ -264,11 +304,29 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   </Button>
                 </>
               ) : (
-                <Input
-                  placeholder="Enter your spot! (Google Maps API to be integrated)"
-                  value={activity}
-                  onChange={(e) => setActivity(e.target.value)}
-                />
+                <>
+                  {selectedCategory === "A Trip" && mapsApiKey ? (
+                    <Autocomplete
+                      apiKey={mapsApiKey}
+                      onPlaceSelected={(place: any) => {
+                        if (place && typeof place === 'object') {
+                          const address = place.formatted_address || place.name || '';
+                          if (address) {
+                            setActivity(address);
+                          }
+                        }
+                      }}
+                      className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm"
+                      placeholder="Enter your destination..."
+                    />
+                  ) : (
+                    <Input
+                      placeholder={selectedCategory === "A Trip" ? "Loading location selector..." : "Enter your spot!"}
+                      value={activity}
+                      onChange={(e) => setActivity(e.target.value)}
+                    />
+                  )}
+                </>
               )}
             </div>
           )}
@@ -341,3 +399,4 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
+
