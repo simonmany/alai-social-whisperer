@@ -12,7 +12,7 @@ import Autocomplete from 'react-google-autocomplete';
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface PlanningDialogProps {
@@ -86,29 +86,107 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     }
   });
 
-  const { data: suggestions } = useQuery({
-    queryKey: ['suggestions', selectedCategory],
+  const { data: foodItems } = useQuery({
+    queryKey: ['food_items'],
     queryFn: async () => {
-      if (selectedCategory === "Food / Drinks") {
-        const { data, error } = await supabase
-          .from('food_items')
-          .select('name');
-        if (error) throw error;
-        return data.map(item => item.name);
-      } else if (selectedCategory === "Recreation" || selectedCategory === "Arts") {
-        const { data, error } = await supabase
-          .from('activities')
-          .select('name')
-          .filter('category', 'eq', selectedCategory === "Recreation" ? "recreation" : "arts");
-        if (error) throw error;
-        return data.map(item => item.name);
-      }
-      return [];
-    },
-    enabled: !!selectedCategory && ["Food / Drinks", "Recreation", "Arts"].includes(selectedCategory)
+      const { data, error } = await supabase
+        .from('food_items')
+        .select('name');
+      if (error) throw error;
+      return data || [];
+    }
   });
 
-  // Filter contacts based on search input and already selected contacts, limit to 5
+  const { data: recreationItems } = useQuery({
+    queryKey: ['recreation_activities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('name')
+        .eq('category', 'recreation');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const { data: artsItems } = useQuery({
+    queryKey: ['arts_activities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('name')
+        .eq('category', 'arts');
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const handleAiPickActivity = () => {
+    const categories = [
+      { type: "Food / Drinks", items: foodItems },
+      { type: "Recreation", items: recreationItems },
+      { type: "Arts", items: artsItems }
+    ].filter(category => category.items && category.items.length > 0);
+
+    if (categories.length === 0) {
+      toast({
+        title: "No activities available",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+    const randomItem = randomCategory.items[Math.floor(Math.random() * randomCategory.items.length)];
+    
+    handleCategorySelect(randomCategory.type as ActivityCategory);
+    setActivity(randomItem.name);
+  };
+
+  const handleAiPickContact = () => {
+    if (!contacts || contacts.length === 0) {
+      toast({
+        title: "No contacts available",
+        description: "Add some contacts first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const availableContacts = contacts.filter(
+      contact => !selectedContacts.some(selected => selected.id === contact.id)
+    );
+
+    if (availableContacts.length === 0) {
+      toast({
+        title: "All contacts already selected",
+        description: "Try removing some contacts first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
+    setSelectedContacts([...selectedContacts, randomContact]);
+  };
+
+  const handleAiPickDateTime = () => {
+    // Generate a random date between today and 30 days from now
+    const today = new Date();
+    const randomDays = Math.floor(Math.random() * 30);
+    const randomDate = addDays(today, randomDays);
+    
+    // Generate a random time between 7 AM and 11 PM
+    const randomHour = Math.floor(Math.random() * 17) + 7; // 7 AM to 11 PM
+    const period = randomHour >= 12 ? 'PM' : 'AM';
+    const displayHour = randomHour > 12 ? randomHour - 12 : randomHour;
+    const randomTime = `${displayHour}:00 ${period}`;
+
+    setSelectedDate(randomDate);
+    setSelectedTime(randomTime);
+  };
+
   const filteredContacts = (contacts || []).filter(contact => 
     !selectedContacts.some(selected => selected.id === contact.id) &&
     contact.name.toLowerCase().includes(contactInput.toLowerCase())
@@ -241,7 +319,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   variant="ghost"
                   size="sm"
                   className="h-7 text-xs gap-1.5"
-                  onClick={() => handleCategorySelect("Food / Drinks")}
+                  onClick={handleAiPickActivity}
                 >
                   <Bot className="h-3.5 w-3.5" />
                   Have AI pick
@@ -367,7 +445,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                 variant="ghost"
                 size="sm"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => setSelectedContacts([])}
+                onClick={handleAiPickContact}
               >
                 <Bot className="h-3.5 w-3.5" />
                 Have AI pick
@@ -428,10 +506,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                 variant="ghost"
                 size="sm"
                 className="h-7 text-xs gap-1.5"
-                onClick={() => {
-                  setSelectedDate(undefined);
-                  setSelectedTime(undefined);
-                }}
+                onClick={handleAiPickDateTime}
               >
                 <Bot className="h-3.5 w-3.5" />
                 Have AI pick
