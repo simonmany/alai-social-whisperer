@@ -137,25 +137,27 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                 <TooltipProvider>
                   {selectedEvent.attendees.map((attendee) => (
                     <Drawer key={attendee.name}>
-                      <TooltipTrigger asChild>
-                        <DrawerTrigger asChild>
-                          <button className="hover:scale-110 transition-transform">
-                            <Avatar>
-                              <AvatarImage src={attendee.image} alt={attendee.name} />
-                              <AvatarFallback>{attendee.name[0]}</AvatarFallback>
-                            </Avatar>
-                          </button>
-                        </DrawerTrigger>
-                      </TooltipTrigger>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <DrawerTrigger asChild>
+                            <button className="hover:scale-110 transition-transform">
+                              <Avatar>
+                                <AvatarImage src={attendee.image} alt={attendee.name} />
+                                <AvatarFallback>{attendee.name[0]}</AvatarFallback>
+                              </Avatar>
+                            </button>
+                          </DrawerTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{attendee.name}</p>
+                        </TooltipContent>
+                      </Tooltip>
                       <DrawerContent className="p-4">
                         <ContactCard 
                           name={attendee.name}
                           meetingStory={`Met at ${selectedEvent.title}`}
                         />
                       </DrawerContent>
-                      <TooltipContent>
-                        <p>{attendee.name}</p>
-                      </TooltipContent>
                     </Drawer>
                   ))}
                 </TooltipProvider>
