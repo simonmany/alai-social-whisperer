@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Robot } from "lucide-react";
+import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Autocomplete from 'react-google-autocomplete';
@@ -244,7 +243,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   className="h-7 text-xs gap-1.5"
                   onClick={() => handleCategorySelect("Food / Drinks")}
                 >
-                  <Robot className="h-3.5 w-3.5" />
+                  <Bot className="h-3.5 w-3.5" />
                   Have AI pick
                 </Button>
               </div>
@@ -370,7 +369,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                 className="h-7 text-xs gap-1.5"
                 onClick={() => setSelectedContacts([])}
               >
-                <Robot className="h-3.5 w-3.5" />
+                <Bot className="h-3.5 w-3.5" />
                 Have AI pick
               </Button>
             </div>
@@ -434,7 +433,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   setSelectedTime(undefined);
                 }}
               >
-                <Robot className="h-3.5 w-3.5" />
+                <Bot className="h-3.5 w-3.5" />
                 Have AI pick
               </Button>
             </div>
@@ -487,4 +486,3 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
-
