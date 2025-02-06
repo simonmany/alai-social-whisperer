@@ -15,13 +15,17 @@ interface PlanningDialogProps {
   onSubmit: (message: string) => void;
 }
 
+type ActivityCategory = "Food / Drinks" | "Recreation" | "Arts" | "A Party!" | "A Trip" | null;
+
 const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) => {
   const [activity, setActivity] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<ActivityCategory>(null);
+  const [showCustomSpot, setShowCustomSpot] = useState(false);
   const [time, setTime] = useState("");
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contactInput, setContactInput] = useState("");
 
-  const { data, isLoading } = useQuery({
+  const { data: contacts, isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -37,10 +41,30 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     }
   });
 
-  const contacts = data || [];
+  const { data: suggestions } = useQuery({
+    queryKey: ['suggestions', selectedCategory],
+    queryFn: async () => {
+      if (selectedCategory === "Food / Drinks") {
+        const { data, error } = await supabase
+          .from('food_items')
+          .select('name');
+        if (error) throw error;
+        return data.map(item => item.name);
+      } else if (selectedCategory === "Recreation" || selectedCategory === "Arts") {
+        const { data, error } = await supabase
+          .from('activities')
+          .select('name')
+          .eq('category', selectedCategory.toLowerCase());
+        if (error) throw error;
+        return data.map(item => item.name);
+      }
+      return [];
+    },
+    enabled: !!selectedCategory && ["Food / Drinks", "Recreation", "Arts"].includes(selectedCategory)
+  });
 
   // Filter contacts based on search input and already selected contacts, limit to 5
-  const filteredContacts = contacts.filter(contact => 
+  const filteredContacts = (contacts || []).filter(contact => 
     !selectedContacts.some(selected => selected.id === contact.id) &&
     contact.name.toLowerCase().includes(contactInput.toLowerCase())
   ).slice(0, 5);
@@ -61,6 +85,12 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   const removeContact = (contactToRemove: Contact) => {
     setSelectedContacts(selectedContacts.filter(c => c.id !== contactToRemove.id));
+  };
+
+  const handleCategorySelect = (category: ActivityCategory) => {
+    setSelectedCategory(category);
+    setShowCustomSpot(false);
+    setActivity("");
   };
 
   const generateMessage = () => {
@@ -107,6 +137,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     const message = generateMessage();
     onSubmit(message);
     setActivity("");
+    setSelectedCategory(null);
+    setShowCustomSpot(false);
     setSelectedContacts([]);
     setTime("");
     onOpenChange(false);
@@ -116,17 +148,93 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Plan a Hang</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Plan a Hang</DialogTitle>
+            {selectedCategory && (
+              <span className="text-sm text-muted-foreground">
+                {selectedCategory}
+              </span>
+            )}
+          </div>
         </DialogHeader>
         <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Choose an activity, or have AI pick:</label>
-            <Input
-              placeholder="Enter an activity (optional)"
-              value={activity}
-              onChange={(e) => setActivity(e.target.value)}
-            />
-          </div>
+          {!selectedCategory ? (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium mb-2">Little Plans</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCategorySelect("Food / Drinks")}
+                  >
+                    Food / Drinks
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCategorySelect("Recreation")}
+                  >
+                    Recreation
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCategorySelect("Arts")}
+                  >
+                    Arts
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium mb-2">Big Plans</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCategorySelect("A Party!")}
+                  >
+                    A Party!
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleCategorySelect("A Trip")}
+                  >
+                    A Trip
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {!showCustomSpot ? (
+                <>
+                  <Input
+                    placeholder={`Search ${selectedCategory} suggestions...`}
+                    value={activity}
+                    onChange={(e) => setActivity(e.target.value)}
+                    list="suggestions"
+                  />
+                  {suggestions && suggestions.length > 0 && (
+                    <datalist id="suggestions">
+                      {suggestions.map((suggestion, index) => (
+                        <option key={index} value={suggestion} />
+                      ))}
+                    </datalist>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => setShowCustomSpot(true)}
+                  >
+                    I have a spot in mind
+                  </Button>
+                </>
+              ) : (
+                <Input
+                  placeholder="Enter your spot! (Google Maps API to be integrated)"
+                  value={activity}
+                  onChange={(e) => setActivity(e.target.value)}
+                />
+              )}
+            </div>
+          )}
 
           <div className="grid gap-2">
             <label className="text-sm font-medium">Invite some people, or have AI pick:</label>
