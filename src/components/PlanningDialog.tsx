@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -208,10 +209,10 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[425px] p-4 gap-4">
+        <DialogHeader className="p-0">
           <div className="flex items-center gap-2">
-            <DialogTitle>Plan a Hang</DialogTitle>
+            <DialogTitle className="text-lg">Plan a Hang</DialogTitle>
             {selectedCategory && (
               <>
                 <span className="text-muted-foreground">·</span>
@@ -232,35 +233,35 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
             )}
           </div>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="space-y-4">
           {!selectedCategory ? (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
                 <h3 className="text-sm font-medium mb-2">Little Plans</h3>
                 <div className="grid grid-cols-3 gap-2">
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("Food / Drinks")}
-                    className="flex flex-col gap-2 h-auto py-4"
+                    className="flex flex-col gap-1 h-auto py-2 px-2"
                   >
-                    <Utensils className="h-5 w-5" />
-                    <span>Food / Drinks</span>
+                    <Utensils className="h-4 w-4" />
+                    <span className="text-xs">Food / Drinks</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("Recreation")}
-                    className="flex flex-col gap-2 h-auto py-4"
+                    className="flex flex-col gap-1 h-auto py-2 px-2"
                   >
-                    <MapPin className="h-5 w-5" />
-                    <span>Recreation</span>
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-xs">Recreation</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("Arts")}
-                    className="flex flex-col gap-2 h-auto py-4"
+                    className="flex flex-col gap-1 h-auto py-2 px-2"
                   >
-                    <Palette className="h-5 w-5" />
-                    <span>Arts</span>
+                    <Palette className="h-4 w-4" />
+                    <span className="text-xs">Arts</span>
                   </Button>
                 </div>
               </div>
@@ -270,18 +271,18 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("A Party!")}
-                    className="flex flex-col gap-2 h-auto py-4"
+                    className="flex flex-col gap-1 h-auto py-2"
                   >
-                    <PartyPopper className="h-5 w-5" />
-                    <span>A Party!</span>
+                    <PartyPopper className="h-4 w-4" />
+                    <span className="text-xs">A Party!</span>
                   </Button>
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("A Trip")}
-                    className="flex flex-col gap-2 h-auto py-4"
+                    className="flex flex-col gap-1 h-auto py-2"
                   >
-                    <Plane className="h-5 w-5" />
-                    <span>A Trip</span>
+                    <Plane className="h-4 w-4" />
+                    <span className="text-xs">A Trip</span>
                   </Button>
                 </div>
               </div>
@@ -289,12 +290,12 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           ) : (
             <div className="space-y-2">
               {selectedCategory === "A Party!" && (
-                <div className="text-sm text-muted-foreground mb-4">
+                <div className="text-sm text-muted-foreground mb-2">
                   Nice! Where's the party at?
                 </div>
               )}
               {selectedCategory === "A Trip" && (
-                <div className="text-sm text-muted-foreground mb-4">
+                <div className="text-sm text-muted-foreground mb-2">
                   Nice! Where are we going?
                 </div>
               )}
@@ -305,6 +306,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                     value={activity}
                     onChange={(e) => setActivity(e.target.value)}
                     list="suggestions"
+                    className="h-8"
                   />
                   {suggestions && suggestions.length > 0 && (
                     <datalist id="suggestions">
@@ -315,7 +317,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   )}
                   <Button 
                     variant="outline" 
-                    className="w-full"
+                    className="w-full h-8 text-sm"
                     onClick={() => setShowCustomSpot(true)}
                   >
                     I have a spot in mind
@@ -334,7 +336,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                           }
                         }
                       }}
-                      className="w-full px-3 py-2 bg-background border border-input rounded-md text-sm"
+                      className="w-full px-3 h-8 bg-background border border-input rounded-md text-sm"
                       placeholder="Enter your destination..."
                     />
                   ) : (
@@ -342,6 +344,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       placeholder={selectedCategory === "A Trip" ? "Loading location selector..." : "Enter your spot!"}
                       value={activity}
                       onChange={(e) => setActivity(e.target.value)}
+                      className="h-8"
                     />
                   )}
                 </>
@@ -349,26 +352,27 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
             </div>
           )}
 
-          <div className="grid gap-2">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Invite some people, or have AI pick:</label>
             <div className="relative">
               <Input
                 placeholder="Type to search contacts..."
                 value={contactInput}
                 onChange={(e) => setContactInput(e.target.value)}
+                className="h-8"
               />
               {contactInput && filteredContacts.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
+                <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                   {filteredContacts.map((contact) => (
                     <div
                       key={contact.id}
-                      className="px-4 py-2 hover:bg-accent cursor-pointer flex items-center gap-2"
+                      className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2"
                       onClick={() => addContact(contact)}
                     >
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
                       </Avatar>
-                      <span>{contact.name}</span>
+                      <span className="text-sm">{contact.name}</span>
                     </div>
                   ))}
                 </div>
@@ -376,14 +380,14 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
             </div>
 
             {selectedContacts.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
+              <div className="flex flex-wrap gap-1 mt-1">
                 {selectedContacts.map((contact) => (
                   <div
                     key={contact.id}
-                    className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-full text-sm"
+                    className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
                   >
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                    <Avatar className="h-4 w-4">
+                      <AvatarFallback className="text-[10px]">{getInitials(contact.name)}</AvatarFallback>
                     </Avatar>
                     <span>{contact.name}</span>
                     <button
@@ -398,7 +402,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
             )}
           </div>
 
-          <div className="grid gap-2">
+          <div className="space-y-2">
             <label className="text-sm font-medium">Select a date and time, or have AI pick:</label>
             <div className="flex gap-2">
               <Popover>
@@ -406,7 +410,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <Button
                     variant="outline"
                     className={cn(
-                      "w-[240px] justify-start text-left font-normal",
+                      "justify-start text-left font-normal h-8 text-sm flex-1",
                       !selectedDate && "text-muted-foreground"
                     )}
                   >
@@ -425,12 +429,12 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
               </Popover>
 
               <Select value={selectedTime} onValueChange={setSelectedTime}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="h-8 text-sm w-[130px]">
                   <SelectValue placeholder="Pick a time" />
                 </SelectTrigger>
                 <SelectContent>
                   {timeSlots.map((time) => (
-                    <SelectItem key={time} value={time}>
+                    <SelectItem key={time} value={time} className="text-sm">
                       {time}
                     </SelectItem>
                   ))}
@@ -439,7 +443,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
             </div>
           </div>
 
-          <Button onClick={handleSubmit}>
+          <Button onClick={handleSubmit} className="w-full h-8">
             Submit
           </Button>
         </div>
@@ -449,3 +453,4 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
+
