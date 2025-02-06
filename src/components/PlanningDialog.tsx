@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon } from "lucide-react";
+import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Robot } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Autocomplete from 'react-google-autocomplete';
@@ -236,34 +236,43 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         <div className="space-y-4">
           {!selectedCategory ? (
             <div className="space-y-3">
-              <div>
-                <h3 className="text-sm font-medium mb-2">Little Plans</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleCategorySelect("Food / Drinks")}
-                    className="flex flex-col gap-1 h-auto py-2 px-2"
-                  >
-                    <Utensils className="h-4 w-4" />
-                    <span className="text-xs">Food / Drinks</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleCategorySelect("Recreation")}
-                    className="flex flex-col gap-1 h-auto py-2 px-2"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    <span className="text-xs">Recreation</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleCategorySelect("Arts")}
-                    className="flex flex-col gap-1 h-auto py-2 px-2"
-                  >
-                    <Palette className="h-4 w-4" />
-                    <span className="text-xs">Arts</span>
-                  </Button>
-                </div>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium">Little Plans</h3>
+                <Button 
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs gap-1.5"
+                  onClick={() => handleCategorySelect("Food / Drinks")}
+                >
+                  <Robot className="h-3.5 w-3.5" />
+                  Have AI pick
+                </Button>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleCategorySelect("Food / Drinks")}
+                  className="flex flex-col gap-1 h-auto py-2 px-2"
+                >
+                  <Utensils className="h-4 w-4" />
+                  <span className="text-xs">Food / Drinks</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleCategorySelect("Recreation")}
+                  className="flex flex-col gap-1 h-auto py-2 px-2"
+                >
+                  <MapPin className="h-4 w-4" />
+                  <span className="text-xs">Recreation</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleCategorySelect("Arts")}
+                  className="flex flex-col gap-1 h-auto py-2 px-2"
+                >
+                  <Palette className="h-4 w-4" />
+                  <span className="text-xs">Arts</span>
+                </Button>
               </div>
               <div>
                 <h3 className="text-sm font-medium mb-2">Big Plans</h3>
@@ -353,7 +362,18 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           )}
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Invite some people, or have AI pick:</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Invite some people</label>
+              <Button 
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                onClick={() => setSelectedContacts([])}
+              >
+                <Robot className="h-3.5 w-3.5" />
+                Have AI pick
+              </Button>
+            </div>
             <div className="relative">
               <Input
                 placeholder="Type to search contacts..."
@@ -403,7 +423,21 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Select a date and time, or have AI pick:</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Select a date and time</label>
+              <Button 
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs gap-1.5"
+                onClick={() => {
+                  setSelectedDate(undefined);
+                  setSelectedTime(undefined);
+                }}
+              >
+                <Robot className="h-3.5 w-3.5" />
+                Have AI pick
+              </Button>
+            </div>
             <div className="flex gap-2">
               <Popover>
                 <PopoverTrigger asChild>
