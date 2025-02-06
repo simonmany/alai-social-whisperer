@@ -93,6 +93,12 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setActivity("");
   };
 
+  const handleCategoryDeselect = () => {
+    setSelectedCategory(null);
+    setShowCustomSpot(false);
+    setActivity("");
+  };
+
   const generateMessage = () => {
     const hasActivity = activity.trim() !== "";
     const hasContacts = selectedContacts.length > 0;
@@ -151,9 +157,19 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           <div className="flex items-center justify-between">
             <DialogTitle>Plan a Hang</DialogTitle>
             {selectedCategory && (
-              <span className="text-sm text-muted-foreground">
-                {selectedCategory}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedCategory}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-6 w-6" 
+                  onClick={handleCategoryDeselect}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             )}
           </div>
         </DialogHeader>
