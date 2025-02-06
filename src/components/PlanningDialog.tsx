@@ -391,16 +391,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                     placeholder={`Search ${selectedCategory} suggestions...`}
                     value={activity}
                     onChange={(e) => setActivity(e.target.value)}
-                    list="suggestions"
                     className="h-8"
                   />
-                  {suggestions && suggestions.length > 0 && (
-                    <datalist id="suggestions">
-                      {suggestions.map((suggestion, index) => (
-                        <option key={index} value={suggestion} />
-                      ))}
-                    </datalist>
-                  )}
                   <Button 
                     variant="outline" 
                     className="w-full h-8 text-sm"
