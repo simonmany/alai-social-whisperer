@@ -54,7 +54,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         const { data, error } = await supabase
           .from('activities')
           .select('name')
-          .eq('category', selectedCategory.toLowerCase());
+          .filter('category', 'eq', selectedCategory === "Recreation" ? "recreation" : "arts");
         if (error) throw error;
         return data.map(item => item.name);
       }
