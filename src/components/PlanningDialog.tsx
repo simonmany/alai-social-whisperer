@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -53,7 +54,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         const { data, error } = await supabase
           .from('activities')
           .select('name')
-          .eq('category', selectedCategory.toLowerCase());
+          .eq('category', selectedCategory === "Arts" ? "arts" : "recreation");
         if (error) throw error;
         return data.map(item => item.name);
       }
