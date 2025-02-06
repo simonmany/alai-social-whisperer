@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
 import { X } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -38,11 +39,20 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   const contacts = data || [];
 
-  // Filter contacts based on search input and already selected contacts
+  // Filter contacts based on search input and already selected contacts, limit to 5
   const filteredContacts = contacts.filter(contact => 
     !selectedContacts.some(selected => selected.id === contact.id) &&
     contact.name.toLowerCase().includes(contactInput.toLowerCase())
-  );
+  ).slice(0, 5);
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
   const addContact = (contact: Contact) => {
     setSelectedContacts([...selectedContacts, contact]);
@@ -131,10 +141,13 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   {filteredContacts.map((contact) => (
                     <div
                       key={contact.id}
-                      className="px-4 py-2 hover:bg-accent cursor-pointer"
+                      className="px-4 py-2 hover:bg-accent cursor-pointer flex items-center gap-2"
                       onClick={() => addContact(contact)}
                     >
-                      {contact.name}
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+                      </Avatar>
+                      <span>{contact.name}</span>
                     </div>
                   ))}
                 </div>
@@ -148,7 +161,10 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                     key={contact.id}
                     className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-full text-sm"
                   >
-                    {contact.name}
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                    </Avatar>
+                    <span>{contact.name}</span>
                     <button
                       onClick={() => removeContact(contact)}
                       className="hover:text-destructive"
