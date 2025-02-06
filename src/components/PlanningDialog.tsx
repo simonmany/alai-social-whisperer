@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,11 +23,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [commandOpen, setCommandOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const { data: contacts = [], isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) return [];
 
       const { data, error } = await supabase
         .from('contacts')
@@ -34,9 +35,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         .eq('user_id', user.id);
       
       if (error) throw error;
-      return data as Contact[] || [];
+      return data || [];
     }
   });
+
+  const contacts = data || [];
 
   // Filter contacts based on search and already selected contacts
   const filteredContacts = contacts.filter(contact => 
