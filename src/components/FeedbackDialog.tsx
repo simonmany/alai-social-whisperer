@@ -141,18 +141,22 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         })
       );
 
-      return eventsWithAttendees.filter((event): event is Event => event !== null);
+      return eventsWithAttendees.filter((event): event is Event => event !== null && event.attendees !== undefined);
     },
     enabled: !!session?.user?.id
   });
 
-  const filteredContacts = contacts.filter(contact => 
-    contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
-  );
+  const filteredContacts = contacts
+    .filter(contact => 
+      contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
+    )
+    .slice(0, 5); // Limit to 5 suggestions
 
-  const filteredActivities = activities.filter(activity =>
-    activity.name.toLowerCase().includes(manualActivity.toLowerCase())
-  );
+  const filteredActivities = activities
+    .filter(activity =>
+      activity.name.toLowerCase().includes(manualActivity.toLowerCase())
+    )
+    .slice(0, 5); // Limit to 5 suggestions
 
   const handleSubmit = async () => {
     if (isManualEntry) {
@@ -228,7 +232,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setContactSearchInput("");
   };
 
-  const formatAttendeeNames = (attendees: Contact[]) => {
+  const formatAttendeeNames = (attendees: EventAttendee[]) => {
     if (attendees.length === 0) return "";
     if (attendees.length === 1) return attendees[0].name;
     if (attendees.length === 2) return `${attendees[0].name} and ${attendees[1].name}`;
@@ -313,11 +317,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     />
                     
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="border rounded-md divide-y">
+                      <div className="border rounded-md overflow-hidden">
                         {filteredContacts.map((contact) => (
                           <div
                             key={contact.id}
-                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer"
+                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
                             onClick={() => {
                               if (!manualAttendees.includes(contact.id)) {
                                 setManualAttendees([...manualAttendees, contact.id]);
@@ -377,11 +381,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     />
                     
                     {manualActivity && filteredActivities.length > 0 && (
-                      <div className="border rounded-md divide-y">
+                      <div className="border rounded-md overflow-hidden">
                         {filteredActivities.map((activity) => (
                           <div
                             key={activity.id}
-                            className="p-2 hover:bg-accent cursor-pointer"
+                            className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
                             onClick={() => setManualActivity(activity.name)}
                           >
                             <span className="text-sm">{activity.name}</span>
