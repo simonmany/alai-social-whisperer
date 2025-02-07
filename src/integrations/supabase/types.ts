@@ -192,6 +192,39 @@ export type Database = {
         }
         Relationships: []
       }
+      event_attendees: {
+        Row: {
+          contact_id: string
+          created_at: string
+          event_id: string
+        }
+        Insert: {
+          contact_id: string
+          created_at?: string
+          event_id: string
+        }
+        Update: {
+          contact_id?: string
+          created_at?: string
+          event_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_attendees_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_feedback_status: {
         Row: {
           created_at: string | null
@@ -257,6 +290,36 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          created_at: string | null
+          direction: string | null
+          id: number
+          message: string | null
+          phone_number: string | null
+          status: string | null
+          twilio_message_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          direction?: string | null
+          id?: number
+          message?: string | null
+          phone_number?: string | null
+          status?: string | null
+          twilio_message_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          direction?: string | null
+          id?: number
+          message?: string | null
+          phone_number?: string | null
+          status?: string | null
+          twilio_message_id?: string | null
+        }
+        Relationships: []
+      }
       music_genres: {
         Row: {
           category: string | null
@@ -307,6 +370,11 @@ export type Database = {
           personality_comments: string[] | null
           personality_traits: Json | null
           relationship_status: string | null
+          skill_aesthete: number | null
+          skill_athlete: number | null
+          skill_gourmand: number | null
+          skill_reveler: number | null
+          skill_traveler: number | null
           updated_at: string | null
           username: string | null
         }
@@ -338,6 +406,11 @@ export type Database = {
           personality_comments?: string[] | null
           personality_traits?: Json | null
           relationship_status?: string | null
+          skill_aesthete?: number | null
+          skill_athlete?: number | null
+          skill_gourmand?: number | null
+          skill_reveler?: number | null
+          skill_traveler?: number | null
           updated_at?: string | null
           username?: string | null
         }
@@ -369,6 +442,11 @@ export type Database = {
           personality_comments?: string[] | null
           personality_traits?: Json | null
           relationship_status?: string | null
+          skill_aesthete?: number | null
+          skill_athlete?: number | null
+          skill_gourmand?: number | null
+          skill_reveler?: number | null
+          skill_traveler?: number | null
           updated_at?: string | null
           username?: string | null
         }

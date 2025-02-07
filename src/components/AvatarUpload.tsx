@@ -9,6 +9,7 @@ interface AvatarUploadProps {
   onUploadComplete: (url: string) => void;
   fallback: string;
   size?: "sm" | "md" | "lg";
+  className?: string;
 }
 
 const sizeClasses = {
@@ -17,11 +18,11 @@ const sizeClasses = {
   lg: "h-24 w-24",
 };
 
-export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: AvatarUploadProps) => {
+export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md", className }: AvatarUploadProps) => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
 
-  console.log('AvatarUpload rendered with URL:', url, typeof url); // Enhanced logging
+  console.log('AvatarUpload rendered with URL:', url, typeof url);
 
   const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
@@ -30,7 +31,6 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
       const file = event.target.files?.[0];
       if (!file) return;
 
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         toast({
           title: "Invalid file type",
@@ -40,7 +40,6 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
         return;
       }
 
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
           title: "File too large",
@@ -68,7 +67,6 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
         .from('avatars')
         .getPublicUrl(filePath);
 
-      // Update the profile with the new avatar URL
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
@@ -104,7 +102,7 @@ export const AvatarUpload = ({ url, onUploadComplete, fallback, size = "md" }: A
         onChange={uploadAvatar}
         disabled={uploading}
       />
-      <Avatar className={`${sizeClasses[size]} relative`}>
+      <Avatar className={`${sizeClasses[size]} ${className || ''} relative`}>
         {url && <AvatarImage src={url} alt="Profile" />}
         <AvatarFallback>{fallback}</AvatarFallback>
         {uploading && (
