@@ -105,11 +105,11 @@ serve(async (req) => {
           throw eventsError;
         }
 
-        message = `Good morning! I've reviewed your calendar for today. ${
+        message = `You're doing the morning check-in for your user. What they have scheduled for today is: ${
           events && events.length > 0 
-            ? `Here are your scheduled events: ${events.map(e => e.title).join(', ')}. ` 
-            : 'You have no scheduled events today. '
-        }Based on your schedule, let me help you plan your day and suggest some social activities that would fit well with your calendar.`;
+            ? events.map(e => e.title).join(', ')
+            : 'no scheduled events'
+        }. Summarize these events succinctly, and highlight any availabilities. Suggest potential activities to fill these availabilities, taking into account the user's interests, goals, and contacts.`;
 
       } else {
         message = 'How was your day? Let me know about any social interactions or activities you had.';
@@ -157,4 +157,3 @@ serve(async (req) => {
     });
   }
 });
-
