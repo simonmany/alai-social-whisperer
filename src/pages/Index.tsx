@@ -185,13 +185,15 @@ const Index = () => {
 
   const handleTestCompletedEvents = async () => {
     try {
-      const { data, error } = await supabase.rpc('check_completed_events');
+      const { data, error } = await supabase.functions.invoke('check-events');
       
       if (error) throw error;
       
       toast({
         title: "Completed events check triggered",
-        description: "The completed events check has been executed.",
+        description: data?.events_processed 
+          ? `Processed ${data.events_processed} events between ${new Date(data.time_window.start).toLocaleString()} and ${new Date(data.time_window.end).toLocaleString()}`
+          : "No events found in the specified time window",
       });
     } catch (error: any) {
       console.error('Error checking completed events:', error);
