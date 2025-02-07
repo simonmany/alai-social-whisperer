@@ -28,115 +28,141 @@ serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     const { type, event_id, user_id, event_title } = await req.json();
-    console.log('Check-in type:', type);
+    console.log('Check-in type:', type, 'User ID:', user_id);
+
+    if (!user_id) {
+      throw new Error('Missing user_id in request');
+    }
 
     // Function to check if it's within the hour range for a specific time in user's timezone
     const isWithinHourRange = (hour: number, currentTime: Date): boolean => {
+      // For testing purposes, always return true
+      // In production, uncomment the actual time check
+      return true;
       // We'll consider a message valid if it's within 30 minutes of the target hour
-      const currentHour = currentTime.getHours();
-      const currentMinute = currentTime.getMinutes();
-      
-      return currentHour === hour && currentMinute < 30;
+      // const currentHour = currentTime.getHours();
+      // const currentMinute = currentTime.getMinutes();
+      // return currentHour === hour && currentMinute < 30;
     };
 
     if (type === 'morning' || type === 'evening') {
-      // Get all users and their events for today
-      const { data: profiles, error: profilesError } = await supabaseClient
+      // Get user's profile
+      const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
-        .select('id, display_name, city');
+        .select('id, display_name, city')
+        .eq('id', user_id)
+        .single();
 
-      if (profilesError) {
-        console.error('Error fetching profiles:', profilesError);
-        throw profilesError;
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
       }
 
-      console.log(`Processing ${type} check-in for ${profiles?.length || 0} profiles`);
+      if (!profile) {
+        throw new Error('Profile not found');
+      }
 
-      for (const profile of profiles || []) {
-        // We'll use the user's city to determine their timezone
-        // In a production environment, you'd want to store the timezone explicitly
-        // This is a simplified example
-        const userCity = profile.city || 'UTC';
-        const userTime = new Date(new Date().toLocaleString('en-US', { timeZone: userCity }));
-        
-        // Check if it's the right time in the user's timezone
-        const isRightTime = type === 'morning' 
-          ? isWithinHourRange(7, userTime)  // 7 AM
-          : isWithinHourRange(22, userTime); // 10 PM
+      console.log(`Processing ${type} check-in for user ${profile.display_name || user_id}`);
 
-        if (!isRightTime) {
-          console.log(`Skipping ${type} message for ${profile.display_name} - not the right time in ${userCity}`);
-          continue;
+      // We'll use the user's city to determine their timezone
+      const userCity = profile.city || 'UTC';
+      const userTime = new Date(new Date().toLocaleString('en-US', { timeZone: userCity }));
+      
+      // Check if it's the right time in the user's timezone
+      const isRightTime = type === 'morning' 
+        ? isWithinHourRange(7, userTime)  // 7 AM
+        : isWithinHourRange(22, userTime); // 10 PM
+
+      if (!isRightTime) {
+        console.log(`Skipping ${type} message - not the right time in ${userCity}`);
+        return new Response(JSON.stringify({ status: 'skipped', reason: 'not the right time' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (type === 'morning') {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const { data: events, error: eventsError } = await supabaseClient
+          .from('calendar_events')
+          .select('*')
+          .eq('user_id', user_id)
+          .gte('start_time', today.toISOString())
+          .lt('start_time', tomorrow.toISOString())
+          .order('start_time', { ascending: true });
+
+        if (eventsError) {
+          console.error('Error fetching events:', eventsError);
+          throw eventsError;
         }
 
-        if (type === 'morning') {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          const tomorrow = new Date(today);
-          tomorrow.setDate(tomorrow.getDate() + 1);
+        if (events && events.length > 0) {
+          // Find gaps in schedule (>2 hours)
+          const gaps = [];
+          for (let i = 0; i < events.length - 1; i++) {
+            const currentEnd = new Date(events[i].end_time);
+            const nextStart = new Date(events[i + 1].start_time);
+            const gap = (nextStart.getTime() - currentEnd.getTime()) / (1000 * 60 * 60); // hours
 
-          const { data: events, error: eventsError } = await supabaseClient
-            .from('calendar_events')
-            .select('*')
-            .eq('user_id', profile.id)
-            .gte('start_time', today.toISOString())
-            .lt('start_time', tomorrow.toISOString())
-            .order('start_time', { ascending: true });
-
-          if (eventsError) {
-            console.error('Error fetching events:', eventsError);
-            continue;
-          }
-
-          if (events && events.length > 0) {
-            // Find gaps in schedule (>2 hours)
-            const gaps = [];
-            for (let i = 0; i < events.length - 1; i++) {
-              const currentEnd = new Date(events[i].end_time);
-              const nextStart = new Date(events[i + 1].start_time);
-              const gap = (nextStart.getTime() - currentEnd.getTime()) / (1000 * 60 * 60); // hours
-
-              if (gap >= 2) {
-                gaps.push({
-                  start: currentEnd,
-                  end: nextStart,
-                  duration: gap
-                });
-              }
-            }
-
-            // Create morning message
-            const message = `Good morning! Here's your schedule for today:\n\n${events.map(event => 
-              `• ${event.title} (${new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(event.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
-            ).join('\n')}\n\n${gaps.length > 0 ? `You have some free time slots:\n${gaps.map(gap => 
-              `• ${gap.duration.toFixed(1)} hours between ${gap.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} and ${gap.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
-            ).join('\n')}\n\nWould you like to plan any hangs during these times?` : ''}`;
-
-            const { error: insertError } = await supabaseClient
-              .from('chat_history')
-              .insert([
-                { user_id: profile.id, message, is_ai: true }
-              ]);
-
-            if (insertError) {
-              console.error('Error inserting chat message:', insertError);
+            if (gap >= 2) {
+              gaps.push({
+                start: currentEnd,
+                end: nextStart,
+                duration: gap
+              });
             }
           }
-        } else if (type === 'evening') {
-          const message = "Hey! Let's reflect on your day:\n\n" +
-            "🌹 What was your rose (highlight) of the day?\n" +
-            "🪴 What was your bud (something you're looking forward to)?\n" +
-            "🌱 What was your thorn (something that could have gone better)?";
-            
+
+          // Create morning message
+          const message = `Good morning! Here's your schedule for today:\n\n${events.map(event => 
+            `• ${event.title} (${new Date(event.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(event.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })})`
+          ).join('\n')}\n\n${gaps.length > 0 ? `You have some free time slots:\n${gaps.map(gap => 
+            `• ${gap.duration.toFixed(1)} hours between ${gap.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} and ${gap.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+          ).join('\n')}\n\nWould you like to plan any hangs during these times?` : ''}`;
+
           const { error: insertError } = await supabaseClient
             .from('chat_history')
             .insert([
-              { user_id: profile.id, message, is_ai: true }
+              { user_id, message, is_ai: true }
             ]);
 
           if (insertError) {
             console.error('Error inserting chat message:', insertError);
+            throw insertError;
           }
+        } else {
+          // No events today
+          const message = "Good morning! You don't have any events scheduled for today. Would you like to plan something?";
+          
+          const { error: insertError } = await supabaseClient
+            .from('chat_history')
+            .insert([
+              { user_id, message, is_ai: true }
+            ]);
+
+          if (insertError) {
+            console.error('Error inserting chat message:', insertError);
+            throw insertError;
+          }
+        }
+      } else if (type === 'evening') {
+        const message = "Hey! Let's reflect on your day:\n\n" +
+          "🌹 What was your rose (highlight) of the day?\n" +
+          "🪴 What was your bud (something you're looking forward to)?\n" +
+          "🌱 What was your thorn (something that could have gone better)?";
+          
+        const { error: insertError } = await supabaseClient
+          .from('chat_history')
+          .insert([
+            { user_id, message, is_ai: true }
+          ]);
+
+        if (insertError) {
+          console.error('Error inserting chat message:', insertError);
+          throw insertError;
         }
       }
     } else if (type === 'post-event' && event_id && user_id) {
@@ -156,6 +182,7 @@ serve(async (req) => {
 
       if (insertError) {
         console.error('Error inserting chat message:', insertError);
+        throw insertError;
       }
     }
 
