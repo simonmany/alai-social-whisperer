@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,23 +17,25 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 
+interface EventAttendee {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  meeting_story?: string;
+  relationship?: string;
+  closeness?: number;
+}
+
 interface Event {
   id: string;
   title: string;
   date: Date;
   location: string;
-  attendees: Array<{
-    id: string;
-    name: string;
-    email?: string | null;
-    phone?: string;
-    instagram?: string;
-    linkedin?: string;
-    twitter?: string;
-    meeting_story?: string;
-    relationship?: string;
-    closeness?: number;
-  }>;
+  attendees: EventAttendee[];
 }
 
 const feedbackOptions = ["Entertaining", "Energizing", "Educational", "It Sucked!"];
@@ -98,7 +99,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             title: event.title,
             date: new Date(event.start_time),
             location: event.description || "No location specified",
-            attendees: contacts
+            attendees: contacts as EventAttendee[]
           };
         })
       );
