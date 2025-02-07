@@ -52,9 +52,16 @@ serve(async (req) => {
       throw profileError;
     }
 
-    const userTimezone = await supabaseClient
+    // Get timezone from RPC function
+    console.log('Getting timezone for city:', profile.city);
+    const { data: userTimezone, error: timezoneError } = await supabaseClient
       .rpc('get_timezone_for_city', { city_name: profile.city || 'UTC' });
-    
+
+    if (timezoneError) {
+      console.error('Error getting timezone:', timezoneError);
+      throw timezoneError;
+    }
+
     console.log('User timezone:', userTimezone);
 
     // Function to check if it's within the hour range
