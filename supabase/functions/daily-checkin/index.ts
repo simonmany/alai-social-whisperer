@@ -112,7 +112,54 @@ serve(async (req) => {
         }. Summarize these events succinctly, and highlight any availabilities. Suggest potential activities to fill these availabilities, taking into account the user's interests, goals, and contacts.`;
 
       } else {
-        message = 'How was your day? Let me know about any social interactions or activities you had.';
+        // For evening check-in, get both past and upcoming events for today
+        const now = new Date();
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(now);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        // Get past events for today
+        const { data: pastEvents, error: pastEventsError } = await supabaseClient
+          .from('calendar_events')
+          .select('*')
+          .eq('user_id', user_id)
+          .gte('start_time', startOfDay.toISOString())
+          .lt('end_time', now.toISOString())
+          .order('start_time', { ascending: true });
+
+        if (pastEventsError) {
+          console.error('Error fetching past events:', pastEventsError);
+          throw pastEventsError;
+        }
+
+        // Get upcoming events for the rest of today
+        const { data: upcomingEvents, error: upcomingEventsError } = await supabaseClient
+          .from('calendar_events')
+          .select('*')
+          .eq('user_id', user_id)
+          .gte('start_time', now.toISOString())
+          .lt('start_time', endOfDay.toISOString())
+          .order('start_time', { ascending: true });
+
+        if (upcomingEventsError) {
+          console.error('Error fetching upcoming events:', upcomingEventsError);
+          throw upcomingEventsError;
+        }
+
+        message = `You're doing the evening recap with your user. Today, they'd scheduled ${
+          pastEvents && pastEvents.length > 0 
+            ? pastEvents.map(e => e.title).join(', ')
+            : 'no events'
+        }; tonight, they still have ${
+          upcomingEvents && upcomingEvents.length > 0
+            ? upcomingEvents.map(e => e.title).join(', ')
+            : 'no remaining events'
+        } on the calendar. Ask them how their day was, referencing and commenting upon specific events. Consider the context of their relationship with any attendees at these events, and their interests and progression along those interests.
+
+Ask the user for their rose, bud, and thorn of the day.
+
+Your goal is to better understand the user's likes and dislikes across people, activities, etc.`;
       }
     } else if (type === 'post-event' && event_id && event_title) {
       message = `How was ${event_title}? I'd love to hear about it!`;
