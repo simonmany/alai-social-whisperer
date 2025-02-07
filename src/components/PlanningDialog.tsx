@@ -127,16 +127,16 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     switch (selectedCategory) {
       case "Food / Drinks":
         return foodItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
-        ) || [];
+          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+        ).slice(0, 5) || [];
       case "Recreation":
         return recreationItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
-        ) || [];
+          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+        ).slice(0, 5) || [];
       case "Arts":
         return artsItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
-        ) || [];
+          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+        ).slice(0, 5) || [];
       default:
         return [];
     }
@@ -342,7 +342,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] p-4 gap-4">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader className="p-0">
           <div className="flex items-center gap-2">
             <DialogTitle className="text-lg">Plan a Hang</DialogTitle>
@@ -366,7 +366,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
             )}
           </div>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="flex flex-col gap-3 mt-4">
           {!selectedCategory ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -450,7 +450,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       onChange={(e) => setActivity(e.target.value)}
                       className="h-8"
                     />
-                    {activity && getFilteredSuggestions().length > 0 && (
+                    {activity && getFilteredSuggestions().length > 0 && !activity.includes(activity) && (
                       <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {getFilteredSuggestions().map((item) => (
                           <div
@@ -500,7 +500,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
               )}
             </div>
           )}
-
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Invite some people</label>
