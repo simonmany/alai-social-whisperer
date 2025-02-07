@@ -20,6 +20,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing environment variables:', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey });
       throw new Error('Missing environment variables');
     }
 
@@ -27,10 +28,14 @@ serve(async (req) => {
     
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
-    const { type, event_id, user_id, event_title } = await req.json();
+    const requestBody = await req.json();
+    console.log('Received request body:', requestBody);
+    
+    const { type, event_id, user_id, event_title } = requestBody;
     console.log('Check-in type:', type, 'User ID:', user_id);
 
     if (!user_id) {
+      console.error('Missing user_id in request');
       throw new Error('Missing user_id in request');
     }
 
@@ -47,6 +52,7 @@ serve(async (req) => {
 
     if (type === 'morning' || type === 'evening') {
       // Get user's profile
+      console.log('Fetching profile for user:', user_id);
       const { data: profile, error: profileError } = await supabaseClient
         .from('profiles')
         .select('id, display_name, city')
@@ -59,6 +65,7 @@ serve(async (req) => {
       }
 
       if (!profile) {
+        console.error('Profile not found for user:', user_id);
         throw new Error('Profile not found');
       }
 
@@ -81,11 +88,13 @@ serve(async (req) => {
       }
 
       if (type === 'morning') {
+        console.log('Processing morning check-in');
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
+        console.log('Fetching events between:', today.toISOString(), 'and', tomorrow.toISOString());
         const { data: events, error: eventsError } = await supabaseClient
           .from('calendar_events')
           .select('*')
@@ -159,6 +168,7 @@ serve(async (req) => {
           console.log('Successfully sent no events message');
         }
       } else if (type === 'evening') {
+        console.log('Processing evening check-in');
         const message = "Hey! Let's reflect on your day:\n\n" +
           "🌹 What was your rose (highlight) of the day?\n" +
           "🪴 What was your bud (something you're looking forward to)?\n" +

@@ -14,17 +14,19 @@ serve(async (req) => {
 
   try {
     console.log('Starting check-events function');
-    
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!supabaseUrl || !supabaseKey) {
+      console.error('Missing environment variables:', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey });
       throw new Error('Missing environment variables');
     }
 
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     // Get completed events in the last 15 minutes that haven't had feedback sent
+    console.log('Fetching completed events from the last 15 minutes');
     const { data: completedEvents, error: eventsError } = await supabaseClient
       .from('calendar_events')
       .select(`
@@ -52,6 +54,7 @@ serve(async (req) => {
         
         try {
           // Send feedback request for each completed event
+          console.log('Calling daily-checkin for post-event feedback');
           const response = await fetch(`${supabaseUrl}/functions/v1/daily-checkin`, {
             method: 'POST',
             headers: {
@@ -75,6 +78,7 @@ serve(async (req) => {
           console.log(`Successfully sent post-event check-in for event ${event.id}`);
 
           // Mark feedback as sent
+          console.log(`Marking feedback as sent for event ${event.id}`);
           const { error: upsertError } = await supabaseClient
             .from('event_feedback_status')
             .upsert({
