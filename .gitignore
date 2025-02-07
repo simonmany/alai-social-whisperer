@@ -6,6 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.env*
 
 node_modules
 dist
@@ -28,6 +29,5 @@ android
 # supabase
 supabase/.*
 supabase/*.sql
-.env*
 supabase/migrations
 

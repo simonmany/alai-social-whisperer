@@ -36,29 +36,60 @@ npm i
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Environment Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Frontend Environment
+Copy `.env.example` to `.env` and update the values:
+```sh
+cp .env.example .env
+```
 
-**Use GitHub Codespaces**
+### Edge Functions Environment
+For local development of Supabase Edge Functions:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Copy the Deno environment template:
+```sh
+cp .env.deno.example .env.deno
+```
+
+2. Update the values in `.env.deno` with your credentials:
+- SUPABASE_SERVICE_ROLE_KEY
+- GOOGLE_CLIENT_ID
+- GOOGLE_CLIENT_SECRET
+- Other function-specific variables
+
+3. Run edge functions locally:
+```sh
+./supabase/functions/start-local.sh <function-name>
+```
+Example:
+```sh
+./supabase/functions/start-local.sh email-calendar-auth
+```
 
 ## What technologies are used for this project?
 
-This project is built with .
+This project is built with:
 
 - Vite
 - TypeScript
 - React
 - shadcn-ui
 - Tailwind CSS
+- Supabase
+  - Edge Functions (Deno)
+  - Auth
+  - Database
+
+## Edge Functions
+
+The project uses Supabase Edge Functions for server-side operations:
+
+- `email-calendar-auth`: Handles OAuth flow for email users
+- `calendar`: Manages calendar operations
+- `store_auth`: Handles auth token storage
+
+Each function has its own configuration in `supabase/functions/config.toml`.
 
 ## How can I deploy this project?
 
