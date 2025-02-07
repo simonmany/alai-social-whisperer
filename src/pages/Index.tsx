@@ -8,7 +8,7 @@ import { MainNavigation } from "@/components/MainNavigation";
 import { ChatContainer } from "@/components/ChatContainer";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { Button } from "@/components/ui/button";
-import { Redo, Play } from "lucide-react";
+import { Redo, Play, RefreshCw } from "lucide-react";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
@@ -57,7 +57,6 @@ const Index = () => {
     if (!session?.user.id) return;
 
     try {
-      // If user is in onboarding, mark it as completed first
       if (showOnboarding) {
         await supabase
           .from('profiles')
@@ -70,9 +69,8 @@ const Index = () => {
 
         setShowOnboarding(false);
         setTutorialComplete(false);
-        setShowProfileButton(false); // Hide profile button during splash
+        setShowProfileButton(false);
       } else {
-        // Just restart the tutorial
         await supabase
           .from('profiles')
           .update({ 
@@ -82,7 +80,7 @@ const Index = () => {
           .eq('id', session.user.id);
 
         setTutorialComplete(false);
-        setShowProfileButton(false); // Hide profile button during splash
+        setShowProfileButton(false);
       }
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
@@ -127,6 +125,78 @@ const Index = () => {
       toast({
         title: "Error skipping onboarding",
         description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTestMorningCheckin = async () => {
+    if (!session?.user.id) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('schedule_timezone_aware_checkin', {
+        user_id: session.user.id,
+        target_hour: 7,
+        checkin_type: 'morning'
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Morning check-in triggered",
+        description: "The morning check-in function has been executed.",
+      });
+    } catch (error: any) {
+      console.error('Error triggering morning check-in:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to trigger morning check-in",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTestEveningCheckin = async () => {
+    if (!session?.user.id) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('schedule_timezone_aware_checkin', {
+        user_id: session.user.id,
+        target_hour: 22,
+        checkin_type: 'evening'
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Evening check-in triggered",
+        description: "The evening check-in function has been executed.",
+      });
+    } catch (error: any) {
+      console.error('Error triggering evening check-in:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to trigger evening check-in",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTestCompletedEvents = async () => {
+    try {
+      const { data, error } = await supabase.rpc('check_completed_events');
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Completed events check triggered",
+        description: "The completed events check has been executed.",
+      });
+    } catch (error: any) {
+      console.error('Error checking completed events:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to check completed events",
         variant: "destructive",
       });
     }
@@ -192,7 +262,6 @@ const Index = () => {
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
         
-        // Only show profile button if we're past the splash screen
         setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
       } catch (error) {
         console.error('Error checking tutorial status:', error);
@@ -265,7 +334,6 @@ const Index = () => {
   const handleSend = async (message: string) => {
     if (!message.trim()) return;
 
-    // Parse contact information if the message is from ContactsDialog
     const contactInfo = message.startsWith("I met ") ? parseContactInfo(message) : undefined;
 
     const newMessage: Message = {
@@ -383,7 +451,6 @@ const Index = () => {
       relationship: relationshipMatch?.[1],
     };
 
-    // Parse individual contact methods
     const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
     const instagram = contacts.match(/📸 @([^💼🐦\s]+)/)?.[1]?.trim();
     const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
@@ -418,7 +485,6 @@ const Index = () => {
       setTutorialComplete(false);
       setShowProfileButton(false);
       
-      // Force a refresh of the tutorial status
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
       toast({
@@ -498,6 +564,35 @@ const Index = () => {
         >
           <Redo className="h-4 w-4" />
           Restart Onboarding
+        </Button>
+        
+        <div className="h-px bg-border my-2" />
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleTestMorningCheckin}
+        >
+          <Play className="h-4 w-4" />
+          Test Morning Check-in
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleTestEveningCheckin}
+        >
+          <Play className="h-4 w-4" />
+          Test Evening Check-in
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleTestCompletedEvents}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Test Completed Events
         </Button>
       </div>
 
