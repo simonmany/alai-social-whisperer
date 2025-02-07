@@ -50,7 +50,7 @@ const Auth = () => {
       });
 
       if (error) {
-        const errorBody = error.message && JSON.parse(error.message);
+        const errorBody = error.message && error;
         const isUserExists = error.status === 422 || 
                            errorBody?.code === "user_already_exists" ||
                            error.message.includes("User already registered");

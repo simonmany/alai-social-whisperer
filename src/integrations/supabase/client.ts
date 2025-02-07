@@ -1,11 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_DB_URL;
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_DB_ANON_KEY;
+const SUPABASE_URL = import.meta.env.VITE_DB_URL ?? Deno.env.get('SUPABASE_URL');
+export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_DB_ANON_KEY ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 // Use the dedicated redirect URL from environment
 export const REDIRECT_URL = import.meta.env.VITE_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`;
+console.log(REDIRECT_URL)
 
 // Create Supabase client with environment-aware auth settings
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {

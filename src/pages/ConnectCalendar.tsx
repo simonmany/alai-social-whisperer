@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { getProfileWithAuth } from '@/utils/profile';
 import { useAuth } from '@/components/AuthProvider';
+import { APP_CONSTANTS } from '../utils/constants';
 
 export default function ConnectCalendar() {
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function ConnectCalendar() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${import.meta.env.VITE_PUBLIC_SITE_URL}/calendar/callback`,
+          redirectTo: `${APP_CONSTANTS.SITE_URL}/calendar/callback`,
           scopes: [
             'https://www.googleapis.com/auth/calendar.events',
             'https://www.googleapis.com/auth/userinfo.email',

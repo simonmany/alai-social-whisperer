@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { getProfileWithAuth } from '@/utils/profile';
 import { useAuth } from '@/components/AuthProvider';
 import { useQueryClient } from '@tanstack/react-query';
+import { APP_CONSTANTS } from '../utils/constants';
 
 export default function EmailCalendarConnect() {
   const [loading, setLoading] = useState(true);
@@ -74,7 +75,7 @@ export default function EmailCalendarConnect() {
       console.log('Starting email calendar connection:', {
         userId: session?.user.id,
         provider: session?.user?.app_metadata?.provider,
-        redirectUrl: `${import.meta.env.VITE_PUBLIC_SITE_URL}/email-calendar/callback`
+        redirectUrl: `${APP_CONSTANTS.SITE_URL}/email-calendar/callback`
       });
 
       if (!session?.user.id) {
@@ -95,7 +96,7 @@ export default function EmailCalendarConnect() {
       const { data, error } = await supabase.functions.invoke('email-calendar-auth', {
         body: {
           userId: session.user.id,
-          redirectUrl: `${import.meta.env.VITE_PUBLIC_SITE_URL}/email-calendar/callback`
+          redirectUrl: `${APP_CONSTANTS.SITE_URL}/email-calendar/callback`
         },
         headers: {
           Authorization: `Bearer ${currentSession.access_token}`
@@ -108,7 +109,7 @@ export default function EmailCalendarConnect() {
         error: error?.message,
         hasUrl: !!data?.url,
         userId: session.user.id,
-        redirectUrl: `${import.meta.env.VITE_PUBLIC_SITE_URL}/email-calendar/callback`,
+        redirectUrl: `${APP_CONSTANTS.SITE_URL}/email-calendar/callback`,
         fullError: error,
         accessToken: currentSession.access_token ? 'present' : 'missing'
       });

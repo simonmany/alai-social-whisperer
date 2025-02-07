@@ -9,6 +9,7 @@ import { Goal } from "@/types/goals";
 import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, Dispatch, SetStateAction } from "react";
+import { APP_CONSTANTS } from '../utils/constants';
 
 interface MainNavigationProps {
   isConnectingCalendar: boolean;
@@ -184,7 +185,7 @@ export const MainNavigation = ({
             prompt: 'consent',
             state: stateToken
           },
-          redirectTo: `${import.meta.env.VITE_PUBLIC_SITE_URL}/calendar/callback`,
+          redirectTo: `${APP_CONSTANTS.SITE_URL}/calendar/callback`,
           skipBrowserRedirect: false
         }
       });

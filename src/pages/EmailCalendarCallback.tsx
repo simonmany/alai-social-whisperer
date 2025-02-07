@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { APP_CONSTANTS } from '../utils/constants';
 
 export default function EmailCalendarCallback() {
   const navigate = useNavigate();
@@ -50,7 +51,7 @@ export default function EmailCalendarCallback() {
 
         console.log('Exchanging code for tokens:', {
           code: code ? 'present' : 'missing',
-          redirectUrl: `${import.meta.env.VITE_PUBLIC_SITE_URL}/email-calendar/callback`,
+          redirectUrl: `${APP_CONSTANTS.SITE_URL}/email-calendar/callback`,
           userId: session.user.id,
           hasAccessToken: !!currentSession.access_token
         });
@@ -59,7 +60,7 @@ export default function EmailCalendarCallback() {
         const { data, error } = await supabase.functions.invoke('email-calendar-auth', {
           body: { 
             code,
-            redirectUrl: `${import.meta.env.VITE_PUBLIC_SITE_URL}/email-calendar/callback`,
+            redirectUrl: `${APP_CONSTANTS.SITE_URL}/email-calendar/callback`,
             userId: session.user.id
           },
           headers: {

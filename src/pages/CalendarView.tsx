@@ -11,6 +11,8 @@ import { DayView } from "@/components/calendar/DayView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
 import type { Database } from "@/integrations/supabase/types";
+import { APP_CONSTANTS } from '../utils/constants';
+
 
 interface CalendarEvent {
   id: string;
@@ -87,37 +89,34 @@ const CalendarView = () => {
         });
 
         // Make the request
-        const response = await fetch(
-          `${import.meta.env.VITE_DB_URL}/functions/v1/calendar`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-              'apikey': import.meta.env.VITE_DB_ANON_KEY
-            },
-            body: JSON.stringify(requestBody)
-          }
-        );
+        const { data, error } = await supabase.functions.invoke<CalendarData>("calendar", {
+          body: requestBody,
+        });
 
-        if (!response.ok) {
-          const errorText = await response.text();
+        if (error) {
+          console.error('Calendar function error:', error);
+          throw error;
+        }
+
+        const response = data;
+
+        if (error) {
           console.error('Calendar function error:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorText
+            status: error.status,
+            statusText: error.statusText,
+            error: error.message
           });
 
           // Try to parse error response
           let errorData;
           try {
-            errorData = JSON.parse(errorText);
+            errorData = JSON.parse(error.message);
           } catch {
-            errorData = { message: errorText };
+            errorData = { message: error.message };
           }
 
           // If it's an auth error, redirect to connect calendar
-          if (response.status === 401) {
+          if (errorData?.error === "invalid_grant") {
             toast({
               title: "Calendar access expired",
               description: "Please reconnect your Google Calendar",
@@ -126,11 +125,10 @@ const CalendarView = () => {
             return { events: [], isConnected: false };
           }
 
-          throw new Error(errorText);
+          throw new Error(error);
         }
 
-        const syncResponse = await response.json();
-        console.log('Calendar sync response:', syncResponse);
+        console.log('Calendar sync response:', response);
 
         // Fetch events from local DB
         const { data: dbEvents, error: dbError } = await supabase
