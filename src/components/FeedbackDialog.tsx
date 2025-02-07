@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -125,11 +126,18 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             date: new Date(event.start_time),
             location: event.description || "No location specified",
             attendees: contacts || []
-          };
+          } as Event;
         })
       );
 
-      return eventsWithAttendees.filter((event): event is Event => event !== null);
+      return eventsWithAttendees.filter((event): event is Event => 
+        event !== null && 
+        'id' in event && 
+        'title' in event && 
+        'date' in event && 
+        'location' in event && 
+        'attendees' in event
+      );
     },
     enabled: !!session?.user?.id
   });
