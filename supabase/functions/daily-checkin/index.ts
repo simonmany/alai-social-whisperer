@@ -87,7 +87,29 @@ serve(async (req) => {
       }
 
       if (type === 'morning') {
-        message = 'What are your plans for today?';
+        // Get today's events
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const { data: events, error: eventsError } = await supabaseClient
+          .from('calendar_events')
+          .select('*')
+          .eq('user_id', user_id)
+          .gte('start_time', today.toISOString())
+          .lt('start_time', tomorrow.toISOString())
+          .order('start_time', { ascending: true });
+
+        if (eventsError) {
+          console.error('Error fetching events:', eventsError);
+          throw eventsError;
+        }
+
+        const eventsText = events && events.length > 0 
+          ? `You have ${events.length} event${events.length === 1 ? '' : 's'} today: ${events.map(e => e.title).join(', ')}. ` 
+          : 'You have no events scheduled for today. ';
+
+        message = `Good morning! ${eventsText}What are your plans for today?`;
       } else {
         message = 'How was your day? Let me know about any social interactions or activities you had.';
       }
