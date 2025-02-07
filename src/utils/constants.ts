@@ -5,7 +5,7 @@ export const APP_CONSTANTS = {
     APP_VERSION: '0.0.0',
 
     // API endpoints and base URLs (non-sensitive)
-    BACKEND_URL: import.meta.env.PROD ? 'https://ejqucnzpgebbujlnmdzx.supabase.co': 'http://127.0.0.1:54321',
+    BACKEND_URL: 'https://ejqucnzpgebbujlnmdzx.supabase.co',
     SITE_URL: import.meta.env.PROD ? 'https://preview--alai-social-whisperer.lovable.app' : 'http://localhost:8080',
 
     // Time constants
