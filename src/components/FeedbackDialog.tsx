@@ -23,7 +23,7 @@ interface Event {
   title: string;
   date: Date;
   location: string;
-  attendees: Contact[];
+  attendees: Omit<Contact, 'created_at' | 'user_id'>[];
 }
 
 const feedbackOptions = ["Entertaining", "Energizing", "Educational", "It Sucked!"];
@@ -74,7 +74,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
           const { data: contacts, error: contactsError } = await supabase
             .from('contacts')
-            .select('*')
+            .select('id, name, email, phone, instagram, linkedin, twitter, meeting_story, relationship, closeness')
             .in('id', attendeeLinks.map(link => link.contact_id));
 
           if (contactsError) {
