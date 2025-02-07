@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,7 +21,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { CalendarIcon, Check, ChevronsUpDown, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -251,6 +250,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setIsContactDrawerOpen(true);
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -312,50 +320,68 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Who was there?</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between"
-                      >
-                        {manualAttendees.length > 0
-                          ? `${manualAttendees.length} selected`
-                          : "Select contacts..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search contacts..." />
-                        <CommandEmpty>
-                          Contact not found - add a new friend!
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {contacts.map((contact) => (
-                            <CommandItem
+                  <div className="relative space-y-2">
+                    <Command className="border rounded-md">
+                      <CommandInput placeholder="Type to search contacts..." />
+                      <CommandEmpty>No contacts found</CommandEmpty>
+                      <CommandGroup>
+                        {contacts?.map((contact) => (
+                          <CommandItem
+                            key={contact.id}
+                            onSelect={() => {
+                              setManualAttendees(prev =>
+                                prev.includes(contact.id)
+                                  ? prev.filter(id => id !== contact.id)
+                                  : [...prev, contact.id]
+                              );
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-xs">
+                                {getInitials(contact.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{contact.name}</span>
+                            <Check
+                              className={cn(
+                                "ml-auto h-4 w-4",
+                                manualAttendees.includes(contact.id) ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+
+                    {manualAttendees.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {contacts
+                          ?.filter(contact => manualAttendees.includes(contact.id))
+                          .map((contact) => (
+                            <div
                               key={contact.id}
-                              onSelect={() => {
-                                setManualAttendees(prev =>
-                                  prev.includes(contact.id)
-                                    ? prev.filter(id => id !== contact.id)
-                                    : [...prev, contact.id]
-                                );
-                              }}
+                              className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  manualAttendees.includes(contact.id) ? "opacity-100" : "opacity-0"
+                              <Avatar className="h-4 w-4">
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{contact.name}</span>
+                              <button
+                                onClick={() => setManualAttendees(prev => 
+                                  prev.filter(id => id !== contact.id)
                                 )}
-                              />
-                              {contact.name}
-                            </CommandItem>
+                                className="hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
                           ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -479,4 +505,3 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     </>
   );
 }
-
