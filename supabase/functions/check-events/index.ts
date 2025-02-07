@@ -13,6 +13,8 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting check-events function');
+    
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -37,6 +39,7 @@ serve(async (req) => {
       .is('event_feedback_status.feedback_sent', null);
 
     if (eventsError) {
+      console.error('Error fetching completed events:', eventsError);
       throw eventsError;
     }
 
@@ -45,28 +48,46 @@ serve(async (req) => {
     // Only proceed if there are completed events
     if (completedEvents && completedEvents.length > 0) {
       for (const event of completedEvents) {
-        // Send feedback request for each completed event
-        await fetch(`${supabaseUrl}/functions/v1/daily-checkin`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'post-event',
-            event_id: event.id,
-            user_id: event.user_id,
-            event_title: event.title
-          })
-        });
-
-        // Mark feedback as sent
-        await supabaseClient
-          .from('event_feedback_status')
-          .upsert({
-            event_id: event.id,
-            feedback_sent: true
+        console.log(`Processing event: ${event.title} for user ${event.user_id}`);
+        
+        try {
+          // Send feedback request for each completed event
+          const response = await fetch(`${supabaseUrl}/functions/v1/daily-checkin`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              type: 'post-event',
+              event_id: event.id,
+              user_id: event.user_id,
+              event_title: event.title
+            })
           });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error calling daily-checkin for event ${event.id}:`, errorText);
+            continue;
+          }
+
+          console.log(`Successfully sent post-event check-in for event ${event.id}`);
+
+          // Mark feedback as sent
+          const { error: upsertError } = await supabaseClient
+            .from('event_feedback_status')
+            .upsert({
+              event_id: event.id,
+              feedback_sent: true
+            });
+
+          if (upsertError) {
+            console.error(`Error marking feedback as sent for event ${event.id}:`, upsertError);
+          }
+        } catch (error) {
+          console.error(`Error processing event ${event.id}:`, error);
+        }
       }
     }
 

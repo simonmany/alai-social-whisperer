@@ -99,6 +99,8 @@ serve(async (req) => {
           throw eventsError;
         }
 
+        console.log(`Found ${events?.length || 0} events for today`);
+
         if (events && events.length > 0) {
           // Find gaps in schedule (>2 hours)
           const gaps = [];
@@ -123,6 +125,8 @@ serve(async (req) => {
             `• ${gap.duration.toFixed(1)} hours between ${gap.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} and ${gap.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
           ).join('\n')}\n\nWould you like to plan any hangs during these times?` : ''}`;
 
+          console.log('Sending morning message:', message);
+
           const { error: insertError } = await supabaseClient
             .from('chat_history')
             .insert([
@@ -133,10 +137,14 @@ serve(async (req) => {
             console.error('Error inserting chat message:', insertError);
             throw insertError;
           }
+
+          console.log('Successfully sent morning message');
         } else {
           // No events today
           const message = "Good morning! You don't have any events scheduled for today. Would you like to plan something?";
           
+          console.log('Sending no events message:', message);
+
           const { error: insertError } = await supabaseClient
             .from('chat_history')
             .insert([
@@ -147,6 +155,8 @@ serve(async (req) => {
             console.error('Error inserting chat message:', insertError);
             throw insertError;
           }
+
+          console.log('Successfully sent no events message');
         }
       } else if (type === 'evening') {
         const message = "Hey! Let's reflect on your day:\n\n" +
@@ -154,6 +164,8 @@ serve(async (req) => {
           "🪴 What was your bud (something you're looking forward to)?\n" +
           "🌱 What was your thorn (something that could have gone better)?";
           
+        console.log('Sending evening message:', message);
+
         const { error: insertError } = await supabaseClient
           .from('chat_history')
           .insert([
@@ -164,6 +176,8 @@ serve(async (req) => {
           console.error('Error inserting chat message:', insertError);
           throw insertError;
         }
+
+        console.log('Successfully sent evening message');
       }
     } else if (type === 'post-event' && event_id && user_id) {
       // Send post-event check-in message
@@ -174,6 +188,8 @@ serve(async (req) => {
         "• Did you learn anything new?\n" +
         "• Would you like to do something similar again?";
         
+      console.log('Sending post-event message:', message);
+
       const { error: insertError } = await supabaseClient
         .from('chat_history')
         .insert([
@@ -184,6 +200,8 @@ serve(async (req) => {
         console.error('Error inserting chat message:', insertError);
         throw insertError;
       }
+
+      console.log('Successfully sent post-event message');
     }
 
     return new Response(JSON.stringify({ status: 'success' }), {
