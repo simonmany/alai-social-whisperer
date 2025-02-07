@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,18 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface EventAttendee {
-  id: string;
-  name: string;
-  email?: string | null;
-  phone?: string;
-  instagram?: string;
-  linkedin?: string;
-  twitter?: string;
-  meeting_story?: string;
-  relationship?: string;
-  closeness?: number;
-}
+type EventAttendee = Contact;
 
 interface Event {
   id: string;
@@ -123,7 +111,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
           const { data: contacts, error: contactsError } = await supabase
             .from('contacts')
-            .select('id, name, email, phone, instagram, linkedin, twitter, meeting_story, relationship, closeness')
+            .select('*')
             .in('id', (attendeeLinks || []).map(link => link.contact_id));
 
           if (contactsError) {
@@ -141,7 +129,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         })
       );
 
-      return eventsWithAttendees.filter((event): event is Event => event !== null && event.attendees !== undefined);
+      return eventsWithAttendees.filter((event): event is Event => event !== null);
     },
     enabled: !!session?.user?.id
   });
@@ -150,13 +138,13 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     .filter(contact => 
       contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
     )
-    .slice(0, 5); // Limit to 5 suggestions
+    .slice(0, 5);
 
   const filteredActivities = activities
     .filter(activity =>
       activity.name.toLowerCase().includes(manualActivity.toLowerCase())
     )
-    .slice(0, 5); // Limit to 5 suggestions
+    .slice(0, 5);
 
   const handleSubmit = async () => {
     if (isManualEntry) {
