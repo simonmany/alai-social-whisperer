@@ -123,7 +123,11 @@ serve(async (req) => {
             }
           }
         } else if (type === 'evening') {
-          const message = "Hey! How was your day? I'd love to hear about it.";
+          const message = "Hey! Let's reflect on your day:\n\n" +
+            "🌹 What was your rose (highlight) of the day?\n" +
+            "🪴 What was your bud (something you're looking forward to)?\n" +
+            "🌱 What was your thorn (something that could have gone better)?";
+            
           const { error: insertError } = await supabaseClient
             .from('chat_history')
             .insert([
@@ -139,7 +143,11 @@ serve(async (req) => {
       // Send post-event check-in message
       console.log(`Processing post-event check-in for event: ${event_title}`);
       
-      const message = `Hey! How was ${event_title}? I'd love to hear about it.`;
+      const message = `Hey! How was ${event_title}? I'd love to hear about it:\n\n` +
+        "• What did you enjoy most?\n" +
+        "• Did you learn anything new?\n" +
+        "• Would you like to do something similar again?";
+        
       const { error: insertError } = await supabaseClient
         .from('chat_history')
         .insert([
