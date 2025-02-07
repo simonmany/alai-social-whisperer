@@ -23,7 +23,18 @@ interface Event {
   title: string;
   date: Date;
   location: string;
-  attendees: Omit<Contact, 'created_at' | 'user_id'>[];
+  attendees: Array<{
+    id: string;
+    name: string;
+    email?: string | null;
+    phone?: string;
+    instagram?: string;
+    linkedin?: string;
+    twitter?: string;
+    meeting_story?: string;
+    relationship?: string;
+    closeness?: number;
+  }>;
 }
 
 const feedbackOptions = ["Entertaining", "Energizing", "Educational", "It Sucked!"];
