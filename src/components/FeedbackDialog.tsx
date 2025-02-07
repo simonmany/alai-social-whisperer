@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import {
   Tooltip,
   TooltipContent,
@@ -16,6 +17,19 @@ import { Contact } from "@/types/contacts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface EventAttendee {
   id: string;
@@ -39,6 +53,7 @@ interface Event {
 }
 
 const feedbackOptions = ["Entertaining", "Energizing", "Educational", "It Sucked!"];
+const timeOptions = ["morning", "afternoon", "evening"];
 
 interface FeedbackDialogProps {
   open: boolean;
@@ -53,6 +68,39 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [customFeedback, setCustomFeedback] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  
+  // Manual entry form state
+  const [manualAttendees, setManualAttendees] = useState<string[]>([]);
+  const [manualActivity, setManualActivity] = useState("");
+  const [manualLocation, setManualLocation] = useState("");
+  const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
+  const [manualTime, setManualTime] = useState<string>("afternoon");
+  const [manualNotes, setManualNotes] = useState("");
+
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', session.user.id);
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const { data: activities = [] } = useQuery({
+    queryKey: ['activities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*');
+      if (error) throw error;
+      return data;
+    }
+  });
 
   const { data: events = [] } = useQuery({
     queryKey: ['calendar-events-with-attendees'],
@@ -117,8 +165,54 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     return `${allButLast}, and ${attendees[attendees.length - 1].name}`;
   };
 
-  const handleSubmit = () => {
-    if (selectedEvent) {
+  const handleSubmit = async () => {
+    if (isManualEntry) {
+      if (!manualDate || !manualActivity || manualAttendees.length === 0) return;
+
+      // Create a new calendar event
+      const { data: newEvent, error: eventError } = await supabase
+        .from('calendar_events')
+        .insert({
+          title: manualActivity,
+          description: manualLocation,
+          start_time: new Date(manualDate.setHours(
+            manualTime === 'morning' ? 9 : manualTime === 'afternoon' ? 14 : 19,
+            0, 0, 0
+          )).toISOString(),
+          end_time: new Date(manualDate.setHours(
+            manualTime === 'morning' ? 10 : manualTime === 'afternoon' ? 15 : 20,
+            0, 0, 0
+          )).toISOString(),
+          user_id: session?.user?.id
+        })
+        .select()
+        .single();
+
+      if (eventError) {
+        console.error('Error creating event:', eventError);
+        return;
+      }
+
+      // Link attendees
+      const attendeePromises = manualAttendees.map(contactId =>
+        supabase
+          .from('event_attendees')
+          .insert({
+            event_id: newEvent.id,
+            contact_id: contactId
+          })
+      );
+
+      await Promise.all(attendeePromises);
+
+      const attendeeNames = contacts
+        .filter(contact => manualAttendees.includes(contact.id))
+        .map(contact => contact.name)
+        .join(', ');
+
+      const message = `I had a hang with ${attendeeNames} at ${manualLocation} on ${format(manualDate, 'EEEE, MMMM d')} in the ${manualTime}. We ${manualActivity.toLowerCase()}. ${manualNotes}`;
+      onSubmit(message);
+    } else if (selectedEvent) {
       const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
       const feedback = customFeedback.trim() || selectedFeedback;
       if (feedback) {
@@ -131,14 +225,24 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           minute: "2-digit",
         })}. We ${selectedEvent.title.toLowerCase()} and it was ${feedback.toLowerCase()}.`;
         onSubmit(message);
-        onOpenChange(false);
-        // Reset state
-        setSelectedEvent(null);
-        setSelectedFeedback(null);
-        setCustomFeedback("");
-        setSelectedContact(null);
       }
     }
+    onOpenChange(false);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setSelectedEvent(null);
+    setSelectedFeedback(null);
+    setCustomFeedback("");
+    setSelectedContact(null);
+    setIsManualEntry(false);
+    setManualAttendees([]);
+    setManualActivity("");
+    setManualLocation("");
+    setManualDate(new Date());
+    setManualTime("afternoon");
+    setManualNotes("");
   };
 
   const handleContactClick = (contact: Contact) => {
@@ -149,108 +253,211 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Which hang would you like to talk about?</DialogTitle>
+            <DialogTitle>Tell me about your hang</DialogTitle>
           </DialogHeader>
           
           <div className="space-y-6 py-4">
-            {/* Event Selection */}
-            <div className="space-y-2">
-              {events.map((event) => (
-                <div
-                  key={event.id}
-                  className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                    selectedEvent?.id === event.id
-                      ? "border-primary bg-primary/5"
-                      : "hover:bg-accent"
-                  }`}
-                  onClick={() => setSelectedEvent(event)}
-                >
-                  <div className="font-medium">{event.title}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {event.date.toLocaleDateString([], {
-                      weekday: "long",
-                      month: "long",
-                      day: "numeric",
-                    })}
-                    {" at "}
-                    {event.date.toLocaleTimeString([], {
-                      hour: "numeric",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{event.location}</div>
-                </div>
-              ))}
+            <div className="flex gap-2">
+              <Button
+                variant={!isManualEntry ? "default" : "outline"}
+                onClick={() => setIsManualEntry(false)}
+                className="flex-1"
+              >
+                Recent Calendar Events
+              </Button>
+              <Button
+                variant={isManualEntry ? "default" : "outline"}
+                onClick={() => setIsManualEntry(true)}
+                className="flex-1"
+              >
+                Manual Entry
+              </Button>
             </div>
 
-            {/* Attendees Section */}
-            {selectedEvent && (
+            {!isManualEntry ? (
+              // Calendar Events Section
               <div className="space-y-2">
-                <h3 className="font-medium">Attendees:</h3>
-                <div className="flex gap-2">
-                  <TooltipProvider>
-                    {selectedEvent.attendees.map((attendee) => (
-                      <Tooltip key={attendee.id}>
-                        <TooltipTrigger asChild>
-                          <button 
-                            className="hover:scale-110 transition-transform"
-                            onClick={() => handleContactClick(attendee)}
-                          >
-                            <Avatar>
-                              <AvatarFallback>{attendee.name[0]}</AvatarFallback>
-                            </Avatar>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{attendee.name}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
-                  </TooltipProvider>
-                </div>
+                {events.map((event) => (
+                  <div
+                    key={event.id}
+                    className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                      selectedEvent?.id === event.id
+                        ? "border-primary bg-primary/5"
+                        : "hover:bg-accent"
+                    }`}
+                    onClick={() => setSelectedEvent(event)}
+                  >
+                    <div className="font-medium">{event.title}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {event.date.toLocaleDateString([], {
+                        weekday: "long",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                      {" at "}
+                      {event.date.toLocaleTimeString([], {
+                        hour: "numeric",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                    <div className="text-sm text-muted-foreground">{event.location}</div>
+                  </div>
+                ))}
               </div>
-            )}
-
-            {/* Feedback Section */}
-            {selectedEvent && (
+            ) : (
+              // Manual Entry Section
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <h3 className="font-medium">How was your hang?</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {feedbackOptions.map((feedback) => (
-                      <Badge
-                        key={feedback}
-                        variant={selectedFeedback === feedback ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => {
-                          setSelectedFeedback(feedback);
-                          setCustomFeedback("");
-                        }}
+                  <label className="text-sm font-medium">Who was there?</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
                       >
-                        {feedback}
-                      </Badge>
-                    ))}
+                        {manualAttendees.length > 0
+                          ? `${manualAttendees.length} selected`
+                          : "Select contacts..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search contacts..." />
+                        <CommandEmpty>
+                          Contact not found - add a new friend!
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {contacts.map((contact) => (
+                            <CommandItem
+                              key={contact.id}
+                              onSelect={() => {
+                                setManualAttendees(prev =>
+                                  prev.includes(contact.id)
+                                    ? prev.filter(id => id !== contact.id)
+                                    : [...prev, contact.id]
+                                );
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  manualAttendees.includes(contact.id) ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {contact.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">What did you do?</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between"
+                      >
+                        {manualActivity || "Select activity..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search activities..." />
+                        <CommandEmpty>No activities found</CommandEmpty>
+                        <CommandGroup>
+                          {activities.map((activity) => (
+                            <CommandItem
+                              key={activity.id}
+                              onSelect={() => setManualActivity(activity.name)}
+                            >
+                              {activity.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Where did you go?</label>
+                  <Input
+                    value={manualLocation}
+                    onChange={(e) => setManualLocation(e.target.value)}
+                    placeholder="Enter location..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">When did you hang?</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !manualDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {manualDate ? format(manualDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={manualDate}
+                          onSelect={setManualDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Time of day</label>
+                    <Select value={manualTime} onValueChange={setManualTime}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select time..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeOptions.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time.charAt(0).toUpperCase() + time.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <h3 className="font-medium">Or describe it in your own words:</h3>
-                  <Input
-                    placeholder="Type your own description..."
-                    value={customFeedback}
-                    onChange={(e) => {
-                      setCustomFeedback(e.target.value);
-                      setSelectedFeedback(null);
-                    }}
+                  <label className="text-sm font-medium">How'd it go?</label>
+                  <Textarea
+                    value={manualNotes}
+                    onChange={(e) => setManualNotes(e.target.value)}
+                    placeholder="• What did you talk about?
+• How did you meet?
+• How'd you feel about the person / activity?"
+                    className="min-h-[100px]"
                   />
                 </div>
               </div>
             )}
 
             {/* Submit Button */}
-            {selectedEvent && (selectedFeedback || customFeedback.trim()) && (
+            {(selectedEvent || (isManualEntry && manualAttendees.length > 0 && manualActivity)) && (
               <Button className="w-full" onClick={handleSubmit}>
                 Submit Feedback
               </Button>
