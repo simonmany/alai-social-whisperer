@@ -1,15 +1,12 @@
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
-import { Phone, Instagram, Linkedin, Twitter } from "lucide-react";
 
-interface ContactCardProps {
-  name: string;
-  phone?: string;
-  instagram?: string;
-  linkedin?: string;
-  twitter?: string;
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Phone, Instagram, Linkedin, Twitter } from "lucide-react";
+import { Contact } from "@/types/contacts";
+
+interface ContactCardProps extends Partial<Contact> {
   meetingStory?: string;
-  relationship?: string;
 }
 
 export const ContactCard = ({
@@ -20,50 +17,81 @@ export const ContactCard = ({
   twitter,
   meetingStory,
   relationship,
+  email,
+  closeness,
 }: ContactCardProps) => {
+  const getClosenessLabel = (value: number | undefined | null) => {
+    if (value === undefined || value === null) return null;
+    if (value < 0.3) return "Acquaintance";
+    if (value < 0.6) return "Friend";
+    return "Close Friend";
+  };
+
+  const closenessLabel = getClosenessLabel(closeness);
+
   return (
-    <Card className="w-full max-w-sm bg-white shadow-lg">
-      <CardContent className="p-4">
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-12 w-12">
-            <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <h3 className="font-semibold text-lg">{name}</h3>
-            {relationship && (
-              <p className="text-sm text-gray-500">{relationship}</p>
-            )}
+    <Card className="w-full max-w-sm bg-card shadow-lg">
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center space-x-4">
+            <Avatar className="h-16 w-16">
+              <AvatarFallback className="text-lg bg-primary/10">
+                {name?.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h3 className="font-semibold text-xl text-foreground">{name}</h3>
+              {relationship && (
+                <p className="text-sm text-muted-foreground mt-1">{relationship}</p>
+              )}
+              {closenessLabel && (
+                <Badge variant="secondary" className="mt-2">
+                  {closenessLabel}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
         
         {meetingStory && (
-          <p className="mt-2 text-sm text-gray-600">
-            Met: {meetingStory}
-          </p>
+          <div className="mt-6">
+            <h4 className="text-sm font-medium text-foreground mb-2">How we met</h4>
+            <p className="text-sm text-muted-foreground">
+              {meetingStory}
+            </p>
+          </div>
         )}
 
-        <div className="mt-4 space-y-2">
+        <div className="mt-6 space-y-3">
+          {email && (
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm">{email}</span>
+            </div>
+          )}
           {phone && (
-            <div className="flex items-center space-x-2">
-              <Phone className="h-4 w-4 text-gray-500" />
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Phone className="h-4 w-4" />
               <span className="text-sm">{phone}</span>
             </div>
           )}
           {instagram && (
-            <div className="flex items-center space-x-2">
-              <Instagram className="h-4 w-4 text-gray-500" />
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Instagram className="h-4 w-4" />
               <span className="text-sm">@{instagram}</span>
             </div>
           )}
           {linkedin && (
-            <div className="flex items-center space-x-2">
-              <Linkedin className="h-4 w-4 text-gray-500" />
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Linkedin className="h-4 w-4" />
               <span className="text-sm">{linkedin}</span>
             </div>
           )}
           {twitter && (
-            <div className="flex items-center space-x-2">
-              <Twitter className="h-4 w-4 text-gray-500" />
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Twitter className="h-4 w-4" />
               <span className="text-sm">@{twitter}</span>
             </div>
           )}

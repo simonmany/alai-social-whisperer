@@ -1,10 +1,13 @@
+import { useState, useEffect } from "react";
 import { Contact } from "@/types/contacts";
-import { ContactCard } from "./ContactCard";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import ContactGroupsManager from "./ContactGroupsManager";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 interface DeepSpaceViewProps {
   contacts: Contact[];
@@ -19,7 +22,42 @@ const getInitials = (name: string): string => {
     .slice(0, 2);
 };
 
+const getContactGradient = (contactId: string) => {
+  const gradients = [
+    'linear-gradient(225deg, #FFE29F 0%, #FFA99F 48%, #FF719A 100%)',
+    'linear-gradient(90deg, hsla(221, 45%, 73%, 1) 0%, hsla(220, 78%, 29%, 1) 100%)',
+    'linear-gradient(90deg, hsla(24, 100%, 83%, 1) 0%, hsla(341, 91%, 68%, 1) 100%)',
+    'linear-gradient(90deg, hsla(29, 92%, 70%, 1) 0%, hsla(0, 87%, 73%, 1) 100%)',
+    'linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%)',
+  ];
+  const index = parseInt(contactId.slice(-3), 16) % gradients.length;
+  return gradients[index];
+};
+
 export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
+  const [ungroupedContacts, setUngroupedContacts] = useState<Contact[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const fetchUngroupedContacts = async () => {
+      const { data: memberships } = await supabase
+        .from('contact_group_memberships')
+        .select('contact_id');
+
+      const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
+      const filteredContacts = contacts.filter(contact => !groupedContactIds.has(contact.id));
+      setUngroupedContacts(filteredContacts);
+    };
+
+    fetchUngroupedContacts();
+  }, [contacts]);
+
+  const filteredContacts = searchQuery
+    ? ungroupedContacts.filter(contact =>
+        contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : ungroupedContacts;
+
   const renderContactDrawerContent = (contact: Contact) => (
     <DrawerContent className="bg-black/90 border-purple-500/50 h-[100vh] overflow-y-auto">
       <div className="p-6 space-y-8 relative z-10">
@@ -103,19 +141,35 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
 
   return (
     <div className="absolute inset-0 overflow-y-auto bg-black/90 p-4 pb-40">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {contacts.map((contact) => (
+      <div className="relative mb-8">
+        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search contacts..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 bg-black/50 border-purple-500/50 text-white"
+        />
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+        {filteredContacts.map((contact) => (
           <Drawer key={contact.id}>
             <DrawerTrigger className="w-full">
-              <ContactCard
-                name={contact.name}
-                phone={contact.phone}
-                instagram={contact.instagram}
-                linkedin={contact.linkedin}
-                twitter={contact.twitter}
-                meetingStory={contact.meeting_story}
-                relationship={contact.relationship}
-              />
+              <div className="group relative flex flex-col items-center">
+                <div 
+                  className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                  style={{
+                    background: getContactGradient(contact.id),
+                  }}
+                >
+                  <div className="absolute inset-0 bg-black/10"></div>
+                  <span className="relative text-white font-semibold text-lg z-10">
+                    {getInitials(contact.name)}
+                  </span>
+                </div>
+                <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+                  {contact.name}
+                </span>
+              </div>
             </DrawerTrigger>
             {renderContactDrawerContent(contact)}
           </Drawer>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { LogOut, MessageCircle, Settings, Share2, Target, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
-import { InterestsCard } from "@/components/profile/InterestsCard";
+import { SkillsRadar } from "@/components/profile/SkillsRadar";
 
 interface ProfileProps {
   open: boolean;
@@ -133,13 +133,9 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const handleDeleteGoal = async (goalIndex: number) => {
     if (!userData?.id || !profileData) return;
 
-    // Create a copy of the current goals array
     const currentGoals = Array.isArray(profileData.goals) ? [...profileData.goals] : [];
-    
-    // Remove the goal at the specified index
     currentGoals.splice(goalIndex, 1);
 
-    // For legacy string goals, convert them to the new format
     const formattedGoals = currentGoals.map(goal => {
       if (typeof goal === 'string') {
         return {
@@ -163,7 +159,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         title: "Goal deleted",
         description: "Your goal has been removed successfully",
       });
-      // Invalidate the profile query to trigger a refetch
       queryClient.invalidateQueries({ queryKey: ['profile', userData.id] });
     } else {
       toast({
@@ -179,9 +174,96 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     setIsGoalsDialogOpen(true);
   };
 
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account",
+      });
+    } catch (error: any) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error signing out",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleGoogleCalendarConnect = async () => {
+    try {
+      setIsConnectingCalendar(true);
+      console.log("[Calendar] Starting Google Calendar connection flow...");
+      
+      const { data: session } = await supabase.auth.getSession();
+      console.log("[Calendar] Current session status:", session ? "Has session" : "No session");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          skipBrowserRedirect: true
+        }
+      });
+
+      if (error) {
+        console.error("[Calendar] Google auth error:", error);
+        toast({
+          title: "Error connecting to Google Calendar",
+          description: "Please try again or contact support if the issue persists.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (data?.url) {
+        const width = 600;
+        const height = 800;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        
+        const newWindow = window.open(
+          data.url,
+          'googleAuthWindow',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+        
+        if (!newWindow) {
+          console.error("[Calendar] Popup blocked by browser");
+          toast({
+            title: "Popup Blocked",
+            description: "Please allow popups for this site to connect your Google Calendar.",
+            variant: "destructive",
+          });
+        }
+      }
+      
+    } catch (error: any) {
+      console.error("[Calendar] Calendar connection error:", error);
+      toast({
+        title: "Error connecting to Google Calendar",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsConnectingCalendar(false);
+    }
+  };
+
   const renderTimeframeSection = (timeframe: string, title: string) => {
     const timeframeGoals = goals.filter((goal: Goal) => goal.timeframe === timeframe);
     const hasGoals = timeframeGoals.length > 0;
+
+    const alertText = {
+      today: "Set Daily Goal",
+      week: "Set Weekly Goal",
+      month: "Set Monthly Goal"
+    }[timeframe];
 
     return (
       <div>
@@ -189,11 +271,11 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         {!hasGoals ? (
           <Alert 
             variant="destructive" 
-            className="mb-2 cursor-pointer hover:bg-destructive/90 transition-colors"
+            className="mb-2 cursor-pointer hover:bg-destructive/90 transition-colors py-2"
             onClick={handleNewGoal}
           >
             <AlertDescription className="text-sm">
-              Goal Missing! Set now?
+              {alertText}
             </AlertDescription>
           </Alert>
         ) : (
@@ -227,112 +309,10 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     );
   };
 
-  const handleGoogleCalendarConnect = async () => {
-    try {
-      setIsConnectingCalendar(true);
-      console.log("[Calendar] Starting Google Calendar connection flow...");
-      
-      const { data: session } = await supabase.auth.getSession();
-      console.log("[Calendar] Current session status:", session ? "Has session" : "No session");
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          skipBrowserRedirect: true
-        }
-      });
-
-      if (error) {
-        console.error("[Calendar] Google auth error:", error);
-        toast({
-          title: "Error connecting to Google Calendar",
-          description: "Please try again or contact support if the issue persists.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      console.log("[Calendar] Auth URL generated:", data?.url ? "Yes" : "No");
-
-      if (data?.url) {
-        const width = 600;
-        const height = 800;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        console.log("[Calendar] Opening auth popup...");
-        const newWindow = window.open(
-          data.url,
-          'googleAuthWindow',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-        
-        if (!newWindow) {
-          console.error("[Calendar] Popup blocked by browser");
-          toast({
-            title: "Popup Blocked",
-            description: "Please allow popups for this site to connect your Google Calendar.",
-            variant: "destructive",
-          });
-        } else {
-          console.log("[Calendar] Auth popup opened successfully");
-        }
-      }
-      
-    } catch (error: any) {
-      console.error("[Calendar] Calendar connection error:", error);
-      toast({
-        title: "Error connecting to Google Calendar",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsConnectingCalendar(false);
-    }
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account",
-      });
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      toast({
-        title: "Error signing out",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="overflow-y-auto">
-          <SheetHeader className="mb-2">
-            <SheetTitle>
-              {showIntegrations ? (
-                <Button 
-                  variant="ghost" 
-                  className="p-0 font-normal flex items-center gap-2"
-                  onClick={() => setShowIntegrations(false)}
-                >
-                  <X className="h-4 w-4" /> Back to Profile
-                </Button>
-              ) : (
-                "Profile"
-              )}
-            </SheetTitle>
-          </SheetHeader>
-
           {showIntegrations ? (
             <IntegrationsMenu
               onGoogleSignIn={handleGoogleCalendarConnect}
@@ -361,39 +341,23 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                   ) : (
                     <>
                       <h2 className="text-lg font-semibold">{displayName}</h2>
-                      <div className="flex gap-2 text-xs text-muted-foreground">
-                        <span>@{username}</span>
-                        <span>•</span>
-                        <span>{profileData?.city || 'Location not set'}</span>
+                      <div className="text-xs text-muted-foreground">
+                        @{username} • {profileData?.city || 'Location not set'}
                       </div>
                     </>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">Instagram</Button>
-                  <Button variant="outline" size="sm">Twitter</Button>
-                </div>
               </div>
-
-              {/* Goals Alert */}
-              {missingTimeframes.length > 0 && (
-                <Alert variant="destructive" className="mb-4">
-                  <AlertDescription>
-                    You haven't set any goals for {missingTimeframes.join(', ')}. 
-                    Set some goals to track your social progress!
-                  </AlertDescription>
-                </Alert>
-              )}
 
               {/* Goals Section */}
               <Card>
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-1 pt-4">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <Target className="h-5 w-5" />
                     Goals
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-3 pt-0">
                   {renderTimeframeSection('today', 'Today')}
                   {renderTimeframeSection('week', 'This Week')}
                   {renderTimeframeSection('month', 'This Month')}
@@ -409,14 +373,15 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 Set a new goal
               </Button>
 
-              {/* Interests Section - Moved below Goals */}
-              <InterestsCard
-                currentInterests={profileData?.current_interests as string[]}
-                desiredInterests={profileData?.desired_interests as string[]}
-                foodPreferences={profileData?.food_preferences as string[]}
-                desiredFoodPreferences={profileData?.desired_food_preferences as string[]}
-                musicPreferences={profileData?.music_preferences as string[]}
-                desiredMusicPreferences={profileData?.desired_music_preferences as string[]}
+              {/* Skills Radar */}
+              <SkillsRadar
+                skills={{
+                  gourmand: profileData?.skill_gourmand || 0,
+                  aesthete: profileData?.skill_aesthete || 0,
+                  traveler: profileData?.skill_traveler || 0,
+                  athlete: profileData?.skill_athlete || 0,
+                  reveler: profileData?.skill_reveler || 0,
+                }}
               />
 
               {/* Stats Section */}

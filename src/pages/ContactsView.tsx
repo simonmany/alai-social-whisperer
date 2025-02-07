@@ -14,16 +14,7 @@ import GroupManagementDialog from "@/components/GroupManagementDialog";
 import ContactGroupsManager from "@/components/ContactGroupsManager";
 import { useAuth } from "@/components/AuthProvider";
 import { DeepSpaceView } from "@/components/DeepSpaceView";
-
-interface Contact {
-  id: string;
-  name: string;
-  email: string | null;
-  closeness: number;
-  phone?: string;
-  meeting_story?: string;
-  relationship?: string;
-}
+import { Contact } from "@/types/contacts";
 
 interface Group {
   id: string;
@@ -49,6 +40,18 @@ interface ContactDrawerContent {
   }>;
   description?: string;
 }
+
+const getContactGradient = (contactId: string) => {
+  const gradients = [
+    'linear-gradient(225deg, #FFE29F 0%, #FFA99F 48%, #FF719A 100%)',
+    'linear-gradient(90deg, hsla(221, 45%, 73%, 1) 0%, hsla(220, 78%, 29%, 1) 100%)',
+    'linear-gradient(90deg, hsla(24, 100%, 83%, 1) 0%, hsla(341, 91%, 68%, 1) 100%)',
+    'linear-gradient(90deg, hsla(29, 92%, 70%, 1) 0%, hsla(0, 87%, 73%, 1) 100%)',
+    'linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%)',
+  ];
+  const index = parseInt(contactId.slice(-3), 16) % gradients.length;
+  return gradients[index];
+};
 
 const getInitials = (name: string): string => {
   return name
@@ -149,8 +152,7 @@ const ContactsView = () => {
         .from('contacts')
         .select('*', { count: 'exact' })
         .eq('user_id', session.user.id)
-        .order('closeness', { ascending: false })
-        .limit(100); // Adding limit temporarily to test
+        .order('closeness', { ascending: false });
 
       if (error) {
         console.error('Error fetching contacts:', error);
@@ -232,28 +234,29 @@ const ContactsView = () => {
     console.log('Getting contacts for group:', groupName);
     console.log('Available groups:', groups);
     
+    let groupContacts: Contact[] = [];
+    
     if (groupName === "Inner Orbit") {
-      return getInnerOrbitContacts();
+      groupContacts = getInnerOrbitContacts();
+    } else if (groupName === "Home") {
+      groupContacts = contacts;
+    } else {
+      const selectedGroupData = groups.find(g => g.name === groupName);
+      console.log('Selected group data:', selectedGroupData);
+      
+      if (!selectedGroupData) return [];
+      
+      groupContacts = contacts.filter(contact => 
+        groupMemberships.some(m => 
+          m.contact_id === contact.id && m.group_id === selectedGroupData.id
+        )
+      );
     }
-    if (groupName === "Home") {
-      return filteredContacts;
-    }
     
-    const selectedGroupData = groups.find(g => g.name === groupName);
-    console.log('Selected group data:', selectedGroupData);
-    
-    if (!selectedGroupData) return [];
-    
-    const groupContacts = filteredContacts.filter(contact => 
-      groupMemberships.some(m => 
-        m.contact_id === contact.id && m.group_id === selectedGroupData.id
-      )
+    // Apply search filter to the group contacts
+    return groupContacts.filter(contact =>
+      contact.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    
-    console.log('Group memberships:', groupMemberships);
-    console.log('Filtered contacts for group:', groupContacts);
-    
-    return groupContacts;
   };
 
   const renderContactDrawerContent = (contact: Contact) => (
@@ -337,104 +340,144 @@ const ContactsView = () => {
     </DrawerContent>
   );
 
-  const renderContactAvatar = (contact: Contact, x: number, y: number, isAnimating: boolean = false) => (
-    <Drawer key={contact.id}>
-      <DrawerTrigger asChild>
-        <button
-          className={`absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-500 ${
-            isAnimating ? 'animate-fade-in' : ''
-          }`}
-          style={{
-            left: `calc(50% + ${x}px)`,
-            top: `calc(50% + ${y}px)`,
-          }}
-        >
-          <div className="relative">
-            <Avatar className="h-16 w-16 bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400">
-              <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
-            </Avatar>
-            {getContactEmoji(contact.id) && (
-              <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg">
-                {getContactEmoji(contact.id)}
-              </div>
-            )}
-          </div>
-          <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2">
-            {contact.name}
-          </div>
-        </button>
-      </DrawerTrigger>
-      {renderContactDrawerContent(contact)}
-    </Drawer>
-  );
-
   const renderHomeView = () => {
+    // If there's a search query, show filtered results in grid view
+    if (searchQuery) {
+      return (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {filteredContacts.map((contact) => (
+            <Drawer key={contact.id}>
+              <DrawerTrigger asChild>
+                <button className="w-full">
+                  <div className="group relative flex flex-col items-center">
+                    <div 
+                      className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                      style={{
+                        background: getContactGradient(contact.id),
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-black/10"></div>
+                      <span className="relative text-white font-semibold text-sm z-10">
+                        {getInitials(contact.name)}
+                      </span>
+                    </div>
+                    {getContactEmoji(contact.id) && (
+                      <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
+                        {getContactEmoji(contact.id)}
+                      </div>
+                    )}
+                    <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {contact.name}
+                    </div>
+                  </div>
+                </button>
+              </DrawerTrigger>
+              {renderContactDrawerContent(contact)}
+            </Drawer>
+          ))}
+        </div>
+      );
+    }
+
+    // Original orbital view for no search query
     const innerOrbitContacts = getInnerOrbitContacts();
     const userGroups = getUserCreatedGroups();
-
+    
     return (
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative">
-          <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
-          <AvatarUpload
-            url={profileData?.avatar_url ?? undefined}
-            onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
-            fallback={getInitials(profileData?.display_name || 'U')}
-            size="lg"
-          />
+        {/* Central user avatar */}
+        <div className="relative z-10">
+          <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse"></div>
+          <div className="relative">
+            <div className="absolute -inset-4 bg-orange-500/20 rounded-full animate-pulse"></div>
+            <div className="absolute -inset-2 bg-orange-400/30 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+            <AvatarUpload
+              url={profileData?.avatar_url ?? undefined}
+              onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
+              fallback={getInitials(profileData?.display_name || 'U')}
+              size="lg"
+              className="relative z-10 border-2 border-orange-400/50 shadow-lg shadow-orange-500/30"
+            />
+          </div>
         </div>
 
+        {/* Inner orbit contacts */}
         {innerOrbitContacts.map((contact, index) => {
           const angle = (index * 2 * Math.PI) / innerOrbitContacts.length;
-          const radius = 120;
+          const radius = 120; // Smaller radius for inner orbit
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
-          return renderContactAvatar(contact, x, y);
-        })}
-
-        {userGroups.map((group, groupIndex) => {
-          const groupContacts = getContactsForGroup(group.name);
-          const groupAngle = (groupIndex * 2 * Math.PI) / userGroups.length;
-          const groupRadius = 280;
-          const groupX = Math.cos(groupAngle) * groupRadius;
-          const groupY = Math.sin(groupAngle) * groupRadius;
 
           return (
-            <div
-              key={group.id}
-              className="absolute transform -translate-x-1/2 -translate-y-1/2"
-              style={{
-                left: `calc(50% + ${groupX}px)`,
-                top: `calc(50% + ${groupY}px)`,
-              }}
-            >
-              <div className="relative">
-                <Badge
-                  variant="outline"
-                  className="absolute -top-8 left-1/2 transform -translate-x-1/2 cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100"
-                  onClick={() => setSelectedGroup(group.name)}
+            <Drawer key={contact.id}>
+              <DrawerTrigger asChild>
+                <button
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-300"
+                  style={{
+                    left: `calc(50% + ${x}px)`,
+                    top: `calc(50% + ${y}px)`,
+                  }}
                 >
-                  {group.emoji} {group.name}
-                </Badge>
-                <div className="relative grid grid-cols-2 gap-2">
-                  {groupContacts.slice(0, 4).map((contact, contactIndex) => {
-                    const size = contactIndex === 0 ? 'h-12 w-12' : 'h-8 w-8';
-                    return (
-                      <Drawer key={contact.id}>
-                        <DrawerTrigger asChild>
-                          <button className="transform hover:scale-110 transition-transform">
-                            <Avatar className={`${size} bg-purple-900/50 border-2 border-purple-500/50 hover:border-purple-400`}>
-                              <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
-                            </Avatar>
-                          </button>
-                        </DrawerTrigger>
-                        {renderContactDrawerContent(contact)}
-                      </Drawer>
-                    );
-                  })}
+                  <div className="relative group">
+                    <div 
+                      className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                      style={{
+                        background: getContactGradient(contact.id),
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-black/10"></div>
+                      <span className="relative text-white font-semibold text-sm z-10">
+                        {getInitials(contact.name)}
+                      </span>
+                    </div>
+                    {getContactEmoji(contact.id) && (
+                      <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
+                        {getContactEmoji(contact.id)}
+                      </div>
+                    )}
+                    <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {contact.name}
+                    </div>
+                  </div>
+                </button>
+              </DrawerTrigger>
+              {renderContactDrawerContent(contact)}
+            </Drawer>
+          );
+        })}
+
+        {/* Outer orbit groups */}
+        {userGroups.map((group, index) => {
+          const angle = (index * 2 * Math.PI) / userGroups.length;
+          const radius = 280; // Larger radius for groups orbit
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+
+          // Get contacts for this group
+          const groupContacts = getContactsForGroup(group.name);
+
+          return (
+            <button
+              key={group.id}
+              className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-300"
+              style={{
+                left: `calc(50% + ${x}px)`,
+                top: `calc(50% + ${y}px)`,
+              }}
+              onClick={() => setSelectedGroup(group.name)}
+            >
+              <div className="relative group">
+                <div className="h-24 w-24 rounded-full bg-purple-900/50 border border-purple-500/50 flex items-center justify-center relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-purple-900/50 rounded-full"></div>
+                  <span className="text-white font-semibold relative z-10">
+                    {group.emoji} {group.name}
+                  </span>
+                </div>
+                <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  {groupContacts.length} contacts
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -446,23 +489,65 @@ const ContactsView = () => {
     
     return (
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative">
-          <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse" />
-          <AvatarUpload
-            url={profileData?.avatar_url ?? undefined}
-            onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
-            fallback={getInitials(profileData?.display_name || 'U')}
-            size="lg"
-          />
+        {/* Central user avatar */}
+        <div className="relative z-10">
+          <div className="absolute inset-0 bg-yellow-500/20 rounded-full animate-pulse"></div>
+          <div className="relative">
+            <div className="absolute -inset-4 bg-orange-500/20 rounded-full animate-pulse"></div>
+            <div className="absolute -inset-2 bg-orange-400/30 rounded-full animate-pulse" style={{ animationDelay: '150ms' }}></div>
+            <AvatarUpload
+              url={profileData?.avatar_url ?? undefined}
+              onUploadComplete={(url) => queryClient.invalidateQueries({ queryKey: ['profile'] })}
+              fallback={getInitials(profileData?.display_name || 'U')}
+              size="lg"
+              className="relative z-10 border-2 border-orange-400/50 shadow-lg shadow-orange-500/30"
+            />
+          </div>
         </div>
 
+        {/* Group contacts in orbit */}
         {groupContacts.map((contact, index) => {
           const angle = (index * 2 * Math.PI) / groupContacts.length;
-          const radius = 140;
+          const radius = 180; // Slightly larger than inner orbit but smaller than group orbit
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
 
-          return renderContactAvatar(contact, x, y, true);
+          return (
+            <Drawer key={contact.id}>
+              <DrawerTrigger asChild>
+                <button
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 hover:scale-110 transition-all duration-300"
+                  style={{
+                    left: `calc(50% + ${x}px)`,
+                    top: `calc(50% + ${y}px)`,
+                  }}
+                >
+                  <div className="relative group">
+                    <div 
+                      className="h-16 w-16 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                      style={{
+                        background: getContactGradient(contact.id),
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-black/10"></div>
+                      <span className="relative text-white font-semibold text-sm z-10">
+                        {getInitials(contact.name)}
+                      </span>
+                    </div>
+                    {getContactEmoji(contact.id) && (
+                      <div className="absolute -top-2 -right-2 h-8 w-8 rounded-full bg-purple-900/80 border border-purple-500/50 flex items-center justify-center text-lg backdrop-blur-sm">
+                        {getContactEmoji(contact.id)}
+                      </div>
+                    )}
+                    <div className="absolute top-full mt-2 text-xs text-white whitespace-nowrap left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      {contact.name}
+                    </div>
+                  </div>
+                </button>
+              </DrawerTrigger>
+              {renderContactDrawerContent(contact)}
+            </Drawer>
+          );
         })}
       </div>
     );
@@ -663,3 +748,4 @@ const ContactsView = () => {
 };
 
 export default ContactsView;
+

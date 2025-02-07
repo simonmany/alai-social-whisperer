@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { startOfWeek } from "date-fns";
 
@@ -8,7 +8,6 @@ interface Stats {
   totalConnections: number;
   innerCircle: number;
   hangsThisWeek: number;
-  friendsSeenThisWeek: number;
 }
 
 export const StatsCard = () => {
@@ -27,7 +26,7 @@ export const StatsCard = () => {
       // Get calendar events for this week
       const { data: events, error: eventsError } = await supabase
         .from('calendar_events')
-        .select('title, description')
+        .select('*')
         .gte('start_time', weekStart.toISOString());
 
       if (eventsError) throw eventsError;
@@ -36,24 +35,11 @@ export const StatsCard = () => {
       const totalConnections = contacts?.length || 0;
       const innerCircle = contacts?.filter(c => c.closeness >= 0.8).length || 0;
       const hangsThisWeek = events?.length || 0;
-      
-      // Estimate unique friends seen from event titles/descriptions
-      // This is a simple estimation - could be improved with better event tracking
-      const uniqueFriends = new Set(
-        events?.map(e => 
-          [e.title, e.description]
-            .join(' ')
-            .toLowerCase()
-            .match(/[a-z]+/g)
-        ).flat()
-      );
-      const friendsSeenThisWeek = Math.min(uniqueFriends.size, totalConnections);
 
       return {
         totalConnections,
         innerCircle,
         hangsThisWeek,
-        friendsSeenThisWeek
       };
     }
   });
@@ -61,17 +47,19 @@ export const StatsCard = () => {
   if (isLoading) {
     return (
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Stats
-          </CardTitle>
+        <CardHeader className="pb-0 pt-3">
+          <CardTitle className="text-lg">Gravity</CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-2">
-          <div className="animate-pulse bg-muted h-16 rounded" />
-          <div className="animate-pulse bg-muted h-16 rounded" />
-          <div className="animate-pulse bg-muted h-16 rounded" />
-          <div className="animate-pulse bg-muted h-16 rounded" />
+        <CardContent className="space-y-3 pt-0">
+          <div className="animate-pulse space-y-3">
+            <div className="bg-muted h-32 rounded-lg" />
+            <div className="bg-muted h-4 rounded w-3/4" />
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-muted h-16 rounded" />
+              <div className="bg-muted h-16 rounded" />
+              <div className="bg-muted h-16 rounded" />
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
@@ -79,28 +67,39 @@ export const StatsCard = () => {
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          Stats
-        </CardTitle>
+      <CardHeader className="pb-0 pt-3">
+        <CardTitle className="text-lg">Gravity</CardTitle>
       </CardHeader>
-      <CardContent className="grid grid-cols-2 gap-2">
-        <div>
-          <div className="text-sm font-medium">Total Connections</div>
-          <div className="text-lg font-semibold">{stats?.totalConnections || 0}</div>
+      <CardContent className="space-y-2 pt-0">
+        {/* Meteorite Image */}
+        <div className="relative w-full aspect-square max-w-[180px] mx-auto">
+          <img
+            src="https://banner2.cleanpng.com/20180610/aow/aa8rs3y75.webp"
+            alt="Meteorite Level"
+            className="w-full h-full object-contain rounded-lg"
+          />
         </div>
-        <div>
-          <div className="text-sm font-medium">Inner Circle</div>
-          <div className="text-lg font-semibold">{stats?.innerCircle || 0}</div>
+
+        {/* XP Progress */}
+        <div className="space-y-1">
+          <div className="text-sm text-center font-medium">Current Level: Meteorite</div>
+          <Progress value={50} className="h-2" />
         </div>
-        <div>
-          <div className="text-sm font-medium">Hangs This Week</div>
-          <div className="text-lg font-semibold">{stats?.hangsThisWeek || 0}</div>
-        </div>
-        <div>
-          <div className="text-sm font-medium">Friends Seen</div>
-          <div className="text-lg font-semibold">{stats?.friendsSeenThisWeek || 0}</div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div>
+            <div className="text-2xl font-bold">{stats?.totalConnections || 0}</div>
+            <div className="text-xs text-muted-foreground">Connections</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold">{stats?.hangsThisWeek || 0}</div>
+            <div className="text-xs text-muted-foreground">Hangs</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold">{stats?.innerCircle || 0}</div>
+            <div className="text-xs text-muted-foreground">Inner Circle</div>
+          </div>
         </div>
       </CardContent>
     </Card>
