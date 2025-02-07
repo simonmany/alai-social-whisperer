@@ -1,4 +1,4 @@
-package com.alaisocial;
+package com.alai;
 
 import com.getcapacitor.BridgeActivity;
 

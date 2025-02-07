@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { Separator } from "@/components/ui/separator";
+import { Browser } from '@capacitor/browser';
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -71,65 +72,47 @@ const Auth = () => {
             access_type: 'offline',
             prompt: 'consent select_account',
           },
-          redirectTo: `${window.location.origin}/auth/callback`,
-          skipBrowserRedirect: true
+          redirectTo: `${window.location.origin}/#/auth/callback`,
         }
       });
 
       if (error) throw error;
       
       if (data?.url) {
-        const width = 600;
-        const height = 800;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
+        // Open the URL using Capacitor's Browser plugin
+        await Browser.open({ url: data.url });
         
-        const popup = window.open(
-          data.url,
-          'Google Sign In',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-
-        if (!popup) {
-          throw new Error("Popup blocked. Please enable popups for this site.");
-        }
-
-        // Poll for changes in auth state
-        const checkAuth = setInterval(async () => {
+        // Set up an event listener for when the browser is closed
+        Browser.addListener('browserFinished', async () => {
           try {
-            if (popup.closed) {
-              clearInterval(checkAuth);
-              const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-              
-              if (sessionError) {
-                console.error("Session error:", sessionError);
-                throw sessionError;
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            
+            if (sessionError) {
+              console.error("Session error:", sessionError);
+              throw sessionError;
+            }
+            
+            if (session) {
+              console.log("Session detected after browser closed");
+              const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+              if (refreshError) {
+                console.error("Refresh error:", refreshError);
+                throw refreshError;
               }
               
-              if (session) {
-                console.log("Session detected after popup closed");
-                // Force a session refresh to ensure we have the latest tokens
-                const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-                if (refreshError) {
-                  console.error("Refresh error:", refreshError);
-                  throw refreshError;
-                }
-                
-                if (refreshData.session) {
-                  navigate("/");
-                }
+              if (refreshData.session) {
+                navigate("/");
               }
             }
           } catch (checkError) {
             console.error("Error checking auth state:", checkError);
-            clearInterval(checkAuth);
             toast({
               title: "Authentication Error",
               description: "Please try signing in again",
               variant: "destructive",
             });
           }
-        }, 500);
+        });
       }
 
       console.log("Google auth initiated");
