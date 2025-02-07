@@ -461,6 +461,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_timezone_for_city: {
+        Args: {
+          city_name: string
+        }
+        Returns: string
+      }
       schedule_all_user_checkins: {
         Args: Record<PropertyKey, never>
         Returns: undefined
