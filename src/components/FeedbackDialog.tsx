@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -386,34 +385,24 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">What did you do?</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between"
-                      >
-                        {manualActivity || "Select activity..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search activities..." />
-                        <CommandEmpty>No activities found</CommandEmpty>
-                        <CommandGroup>
-                          {activities.map((activity) => (
-                            <CommandItem
-                              key={activity.id}
-                              onSelect={() => setManualActivity(activity.name)}
-                            >
-                              {activity.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <Command className="border rounded-md">
+                    <CommandInput
+                      placeholder="Type to search activities..."
+                      value={manualActivity}
+                      onValueChange={setManualActivity}
+                    />
+                    <CommandEmpty>No activities found</CommandEmpty>
+                    <CommandGroup>
+                      {(activities || []).map((activity) => (
+                        <CommandItem
+                          key={activity.id}
+                          onSelect={() => setManualActivity(activity.name)}
+                        >
+                          {activity.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </Command>
                 </div>
 
                 <div className="space-y-2">
