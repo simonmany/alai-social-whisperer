@@ -1,9 +1,9 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import {
   Tooltip,
@@ -87,7 +87,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .select('*')
         .eq('user_id', session.user.id);
       if (error) throw error;
-      return data;
+      return data || [];  // Ensure we return an empty array if data is null
     }
   });
 
@@ -98,7 +98,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .from('activities')
         .select('*');
       if (error) throw error;
-      return data;
+      return data || [];  // Ensure we return an empty array if data is null
     }
   });
 
@@ -121,7 +121,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       }
 
       const eventsWithAttendees = await Promise.all(
-        calendarEvents.map(async (event) => {
+        (calendarEvents || []).map(async (event) => {  // Add null check here
           const { data: attendeeLinks, error: attendeesError } = await supabase
             .from('event_attendees')
             .select('contact_id')
@@ -135,7 +135,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           const { data: contacts, error: contactsError } = await supabase
             .from('contacts')
             .select('id, name, email, phone, instagram, linkedin, twitter, meeting_story, relationship, closeness')
-            .in('id', attendeeLinks.map(link => link.contact_id));
+            .in('id', (attendeeLinks || []).map(link => link.contact_id));  // Add null check here
 
           if (contactsError) {
             console.error('Error fetching contacts:', contactsError);
@@ -147,7 +147,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             title: event.title,
             date: new Date(event.start_time),
             location: event.description || "No location specified",
-            attendees: contacts as EventAttendee[]
+            attendees: contacts as EventAttendee[] || []  // Ensure we have an empty array if contacts is null
           };
         })
       );
@@ -325,7 +325,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       <CommandInput placeholder="Type to search contacts..." />
                       <CommandEmpty>No contacts found</CommandEmpty>
                       <CommandGroup>
-                        {contacts?.map((contact) => (
+                        {(contacts || []).map((contact) => (
                           <CommandItem
                             key={contact.id}
                             onSelect={() => {
@@ -356,7 +356,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
                     {manualAttendees.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {contacts
+                        {(contacts || [])
                           ?.filter(contact => manualAttendees.includes(contact.id))
                           .map((contact) => (
                             <div
