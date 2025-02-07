@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -272,7 +273,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                 onClick={() => setIsManualEntry(true)}
                 className="flex-1"
               >
-                Manual Entry
+                Something off the books
               </Button>
             </div>
 
@@ -478,3 +479,4 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     </>
   );
 }
+
