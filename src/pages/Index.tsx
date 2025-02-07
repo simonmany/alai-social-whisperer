@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -207,6 +208,8 @@ const Index = () => {
       if (!session?.user.id) return;
 
       try {
+        console.log('Loading chat history for user:', session.user.id);
+        
         const { data, error } = await supabase
           .from('chat_history')
           .select('*')
@@ -218,13 +221,17 @@ const Index = () => {
           throw error;
         }
 
+        console.log('Received chat history:', data);
+
         if (data && data.length > 0) {
           const historyMessages = data.map(msg => ({
             content: msg.message,
             isAl: msg.is_ai
           }));
+          console.log('Setting messages:', historyMessages);
           setMessages(historyMessages);
         } else {
+          console.log('No chat history found, setting welcome message');
           setMessages([{ content: WELCOME_MESSAGE, isAl: true }]);
         }
       } catch (error: any) {
@@ -237,7 +244,45 @@ const Index = () => {
       }
     };
 
+    // Set up real-time subscription for new messages
+    const setupMessagesSubscription = () => {
+      if (!session?.user.id) return;
+
+      console.log('Setting up real-time messages subscription');
+      
+      const channel = supabase
+        .channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_history',
+            filter: `user_id=eq.${session.user.id}`
+          },
+          (payload) => {
+            console.log('New message received:', payload);
+            const newMessage = {
+              content: payload.new.message,
+              isAl: payload.new.is_ai
+            };
+            setMessages(prev => [...prev, newMessage]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        console.log('Cleaning up messages subscription');
+        supabase.removeChannel(channel);
+      };
+    };
+
     loadChatHistory();
+    const cleanup = setupMessagesSubscription();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [session?.user.id, toast]);
 
   useEffect(() => {
