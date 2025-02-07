@@ -26,7 +26,14 @@ serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     // Get completed events in the last 15 minutes that haven't had feedback sent
-    console.log('Fetching completed events from the last 15 minutes');
+    const now = new Date();
+    const fifteenMinutesAgo = new Date(now.getTime() - 15 * 60 * 1000);
+    
+    console.log('Checking for events completed between:', {
+      start: fifteenMinutesAgo.toISOString(),
+      end: now.toISOString()
+    });
+
     const { data: completedEvents, error: eventsError } = await supabaseClient
       .from('calendar_events')
       .select(`
@@ -36,8 +43,8 @@ serve(async (req) => {
         end_time,
         event_feedback_status!left(feedback_sent)
       `)
-      .lt('end_time', 'now()')
-      .gt('end_time', "now() - interval '15 minutes'")
+      .lt('end_time', now.toISOString())
+      .gt('end_time', fifteenMinutesAgo.toISOString())
       .is('event_feedback_status.feedback_sent', null);
 
     if (eventsError) {
@@ -93,9 +100,18 @@ serve(async (req) => {
           console.error(`Error processing event ${event.id}:`, error);
         }
       }
+    } else {
+      console.log('No events requiring feedback found in the specified time window');
     }
 
-    return new Response(JSON.stringify({ status: 'success', events_processed: completedEvents?.length || 0 }), {
+    return new Response(JSON.stringify({ 
+      status: 'success', 
+      events_processed: completedEvents?.length || 0,
+      time_window: {
+        start: fifteenMinutesAgo.toISOString(),
+        end: now.toISOString()
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
