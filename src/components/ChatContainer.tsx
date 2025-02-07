@@ -54,7 +54,7 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
-  // Filter out system messages (personality quiz, morning/evening check-ins)
+  // Filter out system messages (personality quiz prompts and morning/evening check-in prompts)
   const filteredMessages = messages.filter((message, index) => {
     // Check if current message is a personality quiz prompt
     const isPersonalityPrompt = message.content.includes("Hey, I'm learning about") && 
@@ -69,18 +69,12 @@ export const ChatContainer = ({
                                  message.isAl;
 
     // Check if message is a morning or evening check-in system prompt
-    const isCheckInPrompt = message.content.includes("You're doing the") && 
+    const isCheckInPrompt = !message.isAl && 
+                           message.content.includes("You're doing the") && 
                            (message.content.includes("morning check-in") || 
                             message.content.includes("evening recap"));
 
-    // Check if message is a response to a check-in prompt
-    const isCheckInResponse = index > 0 &&
-                            messages[index - 1].content.includes("You're doing the") &&
-                            (messages[index - 1].content.includes("morning check-in") || 
-                             messages[index - 1].content.includes("evening recap")) &&
-                            message.isAl;
-
-    return !isPersonalityPrompt && !isPersonalityResponse && !isCheckInPrompt && !isCheckInResponse;
+    return !isPersonalityPrompt && !isPersonalityResponse && !isCheckInPrompt;
   });
 
   useEffect(() => {
@@ -155,3 +149,4 @@ export const ChatContainer = ({
     </div>
   );
 };
+
