@@ -71,9 +71,19 @@ serve(async (req) => {
 
       console.log(`Processing ${type} check-in for user ${profile.display_name || user_id}`);
 
-      // We'll use the user's city to determine their timezone
-      const userCity = profile.city || 'UTC';
-      const userTime = new Date(new Date().toLocaleString('en-US', { timeZone: userCity }));
+      // Get the timezone for the user's city
+      const { data: timezoneData, error: timezoneError } = await supabaseClient
+        .rpc('get_timezone_for_city', { city_name: profile.city || 'UTC' });
+
+      if (timezoneError) {
+        console.error('Error getting timezone:', timezoneError);
+        throw timezoneError;
+      }
+
+      const userTimezone = timezoneData || 'UTC';
+      console.log('User timezone:', userTimezone);
+      
+      const userTime = new Date(new Date().toLocaleString('en-US', { timeZone: userTimezone }));
       
       // Check if it's the right time in the user's timezone
       const isRightTime = type === 'morning' 
@@ -81,7 +91,7 @@ serve(async (req) => {
         : isWithinHourRange(22, userTime); // 10 PM
 
       if (!isRightTime) {
-        console.log(`Skipping ${type} message - not the right time in ${userCity}`);
+        console.log(`Skipping ${type} message - not the right time in ${userTimezone}`);
         return new Response(JSON.stringify({ status: 'skipped', reason: 'not the right time' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
