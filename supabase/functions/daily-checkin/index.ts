@@ -95,15 +95,31 @@ serve(async (req) => {
       message = `How was ${event_title}? I'd love to hear about it!`;
     }
 
-    // Route through the chat function instead of direct insert
+    // Route through the chat function
     console.log('Routing through chat function with message:', message);
-    const { error: chatError } = await supabaseClient.functions.invoke('chat', {
+    const { data: chatResponse, error: chatError } = await supabaseClient.functions.invoke('chat', {
       body: { message, userId: user_id }
     });
 
     if (chatError) {
       console.error('Error calling chat function:', chatError);
       throw chatError;
+    }
+
+    console.log('Chat function response:', chatResponse);
+
+    // Verify the message was stored
+    const { data: chatHistory, error: historyError } = await supabaseClient
+      .from('chat_history')
+      .select('*')
+      .eq('user_id', user_id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (historyError) {
+      console.error('Error verifying chat history:', historyError);
+    } else {
+      console.log('Latest chat history entry:', chatHistory);
     }
 
     console.log('Successfully processed check-in');
