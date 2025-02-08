@@ -30,7 +30,6 @@ const supabase = createClient(
   supabaseServiceKey ?? ''
 );
 
-<<<<<<< HEAD
 const functions = [
   {
     "type": "function",
@@ -61,8 +60,6 @@ const functions = [
 ];
 
 
-=======
->>>>>>> main
 async function callLLM(apiKey: string, messages: any[], tools?: any[]) {
   const requestBody: any = {
     model: 'gpt-4o-mini',
