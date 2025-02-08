@@ -1,16 +1,22 @@
-
-import { createContext, useContext, useEffect, useState } from "react";
-import { Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   session: Session | null;
   loading: boolean;
+  handleGoogleLogin: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType>({ session: null, loading: true });
+const AuthContext = createContext<AuthContextType>({
+  session: null,
+  loading: true,
+  handleGoogleLogin: async () => {
+    throw new Error('handleGoogleLogin not implemented');
+  }
+});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -26,142 +32,80 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  const updateProfileWithGoogleData = async (user: any) => {
-    if (user?.app_metadata?.provider !== 'google') return;
-
-    console.log("Updating profile with Google data...");
-    const { user_metadata, app_metadata } = user;
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        avatar_url: user_metadata.avatar_url,
-        display_name: user_metadata.full_name,
-        google_access_token: app_metadata.provider_token,
-        google_refresh_token: app_metadata.provider_refresh_token,
-        google_token_expires_at: new Date(Date.now() + 3600 * 1000).toISOString(),
-      })
-      .eq('id', user.id);
-
-    if (error) {
-      console.error("Error updating profile with Google data:", error);
-    }
-  };
-
-  const handleSessionError = async (error: any) => {
-    console.error("Session error:", error);
-    
-    // Check if it's a session-related error or HTTP client error
-    const isSessionError = 
-      error.message?.includes('session_not_found') ||
-      error.message?.includes('Session from session_id') ||
-      error.message?.includes('refresh_token_not_found') || 
-      error.message?.includes('Invalid Refresh Token') ||
-      error.message?.includes('failed to call url') ||
-      error.error_type === 'http_client_error' ||
-      error.code === 'refresh_token_not_found';
-
-    if (isSessionError) {
-      console.log("Session error detected, signing out...");
-      await supabase.auth.signOut();
-      setSession(null);
-      navigate("/auth");
-      toast({
-        title: "Session Expired",
-        description: "Please sign in again",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Authentication Error",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
-    
-    setLoading(false);
-  };
-
   useEffect(() => {
-    console.log("Setting up auth subscriptions");
-
-    const initializeAuth = async () => {
+    // Initialize session
+    const initSession = async () => {
       try {
-        const { data: { session: currentSession }, error: sessionError } = 
-          await supabase.auth.getSession();
-
-        if (sessionError) {
-          await handleSessionError(sessionError);
-          return;
-        }
-
-        if (currentSession?.user) {
-          setSession(currentSession);
-          await updateProfileWithGoogleData(currentSession.user);
-        } else {
-          navigate("/auth");
-        }
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        setSession(session);
       } catch (error) {
-        await handleSessionError(error);
+        console.error('Error getting session:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    initializeAuth();
+    initSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log("Auth state change:", event);
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event, {
+        hasSession: !!session,
+        userId: session?.user?.id,
+        provider: session?.user?.app_metadata?.provider,
+        hasProviderToken: !!session?.provider_token,
+        hasProviderRefreshToken: !!session?.provider_refresh_token,
+        metadata: session?.user?.app_metadata
+      });
       
-      switch (event) {
-        case 'SIGNED_IN':
-          if (currentSession?.user) {
-            await updateProfileWithGoogleData(currentSession.user);
-            setSession(currentSession);
-            toast({
-              title: "Signed in successfully",
-              description: "Welcome back!",
-            });
-            navigate("/");
-          }
-          break;
+      setSession(session);
 
-        case 'SIGNED_OUT':
-          setSession(null);
-          navigate("/auth");
-          toast({
-            title: "Signed out",
-            description: "You have been signed out successfully.",
-          });
-          break;
-
-        case 'TOKEN_REFRESHED':
-          if (currentSession) {
-            setSession(currentSession);
-          }
-          break;
-
-        case 'USER_UPDATED':
-          if (currentSession?.user) {
-            await updateProfileWithGoogleData(currentSession.user);
-            setSession(currentSession);
-          }
-          break;
+      if (event === 'SIGNED_IN') {
+        // Check if we're in the OAuth callback
+        const isCallback = window.location.pathname.includes('/auth/callback');
+        if (!isCallback) {
+          navigate('/', { replace: true });
+        }
+      } else if (event === 'SIGNED_OUT') {
+        navigate('/auth', { replace: true });
       }
-
-      setLoading(false);
     });
 
-    return () => {
-      console.log("Cleaning up auth subscriptions");
-      subscription.unsubscribe();
-    };
-  }, [toast, navigate]);
+    return () => subscription.unsubscribe();
+  }, [navigate, toast]);
+
+  const handleGoogleLogin = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+          scopes: [
+            'https://www.googleapis.com/auth/calendar.events',
+            'https://www.googleapis.com/auth/userinfo.email',
+            'https://www.googleapis.com/auth/userinfo.profile'
+          ].join(' '),
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
+        }
+      });
+
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to sign in with Google',
+        variant: 'destructive'
+      });
+    }
+  };
 
   return (
-    <AuthContext.Provider value={{ session, loading }}>
+    <AuthContext.Provider value={{ session, loading, handleGoogleLogin }}>
       {children}
     </AuthContext.Provider>
   );

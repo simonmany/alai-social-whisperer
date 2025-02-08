@@ -17,6 +17,12 @@ import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { REDIRECT_URL } from "@/integrations/supabase/client";
+import { Separator } from "@/components/ui/separator";
 import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 
 interface Message {
@@ -45,6 +51,12 @@ const Index = () => {
   const [isContactsOpen, setIsContactsOpen] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
   const isMobile = useIsMobile();
@@ -348,33 +360,210 @@ const Index = () => {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    const handleMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      // Verify the message is from our popup
+      if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
+        console.log("Received success message from popup");
+        try {
+          // Force a session refresh
+          const { data: { session }, error } = await supabase.auth.refreshSession();
+          if (error) throw error;
+          
+          if (session) {
+            console.log("Session refreshed successfully, navigating to home");
+            navigate("/");
+          } else {
+            throw new Error("No session after refresh");
+          }
+        } catch (error: any) {
+          console.error("Error refreshing session:", error);
+          toast({
+            title: "Error signing in",
+            description: error.message,
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [navigate, toast]);
+
+  const validatePassword = (password: string) => {
+    if (password.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      return false;
+    }
+    setPasswordError("");
+    return true;
+  };
+  
   const handleGoogleSignIn = async () => {
     try {
-      setIsConnectingCalendar(true);
+      setIsLoading(true);
       console.log("Starting Google Calendar connection...");
-      
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
+          scopes: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: `${window.location.origin}/calendar`
+          redirectTo: REDIRECT_URL
         }
       });
-
+      
       if (error) throw error;
       
+      supabase.functions.invoke('store_auth', {
+        body: { name: data }
+      });
+
     } catch (error: any) {
-      console.error("Calendar connection error:", error);
+      console.error("Google auth error:", error);
       toast({
-        title: "Error connecting to Google Calendar",
-        description: error.message || "An unexpected error occurred",
+        title: "Error signing in with Google",
+        description: error.message,
         variant: "destructive",
       });
-      setIsConnectingCalendar(false);
+      setIsLoading(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validatePassword(password)) {
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            username,
+            avatar_url: null, // Initialize avatar_url as null
+          },
+        },
+      });
+
+      if (error) {
+        // Parse the error message from the response body if it exists
+        let errorBody: any = {};
+        try {
+          errorBody = error.message ? JSON.parse(error.message) : {};
+        } catch (parseError) {
+          console.error("Error parsing error message:", parseError);
+        }
+
+        const isUserExists = error.status === 422 || 
+                              errorBody?.code === "user_already_exists" ||
+                              error.message.includes("User already registered");
+
+        if (isUserExists) {
+          console.log("User already exists, attempting sign in");
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (signInError) {
+            throw signInError;
+          }
+
+          // After successful sign in, update the profile with Google data if available
+          if (signInData.user?.app_metadata?.provider === 'google') {
+            const { user_metadata } = signInData.user;
+            await supabase
+              .from('profiles')
+              .update({
+                avatar_url: user_metadata.avatar_url,
+                display_name: user_metadata.full_name,
+              })
+              .eq('id', signInData.user.id);
+          }
+
+          toast({
+            title: "Welcome back!",
+            description: "You've been signed in with your existing account.",
+          });
+          navigate("/");
+          return;
+        }
+        throw error;
+      }
+
+      setShowEmailConfirmation(true);
+      toast({
+        title: "Success!",
+        description: "Please check your email to confirm your account.",
+      });
+      
+      // Auto-navigate if email confirmation is disabled in Supabase
+      if (data.user && !data.user.confirmed_at) {
+        navigate("/");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        if (error.message.includes("Email not confirmed")) {
+          setShowEmailConfirmation(true);
+          throw new Error("Please confirm your email before signing in. Check your inbox for the confirmation link.");
+        }
+        throw error;
+      }
+
+      // After successful sign in, update the profile with Google data if available
+      if (data.user?.app_metadata?.provider === 'google') {
+        const { user_metadata } = data.user;
+        await supabase
+          .from('profiles')
+          .update({
+            avatar_url: user_metadata.avatar_url,
+            display_name: user_metadata.full_name,
+          })
+          .eq('id', data.user.id);
+      }
+      
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -554,6 +743,7 @@ const Index = () => {
         <div className="container max-w-2xl py-4">
           <MainNavigation
             isConnectingCalendar={isConnectingCalendar}
+            setIsConnectingCalendar={setIsConnectingCalendar}
             onProfileOpen={() => setIsProfileOpen(true)}
             onGoogleSignIn={handleGoogleSignIn}
           />

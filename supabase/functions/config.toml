@@ -1,5 +1,75 @@
 project_id = "ejqucnzpgebbujlnmdzx"
 
+[global]
+
+[auth]
+flow_type = "pkce"
+auth.flow_type = "pkce"
+google_client_id = "env(GOOGLE_CLIENT_ID)"
+google_client_secret = "env(GOOGLE_CLIENT_SECRET)"
+redirect_urls = [
+  "http://localhost:8080/auth/callback",
+  "http://localhost:8080/email-calendar/callback",
+  "https://alai-social-whisperer.com/auth/callback",
+  "https://alai-social-whisperer.com/email-calendar/callback",
+  "https://preview--alai-social-whisperer.lovable.app/auth/callback",
+  "https://preview--alai-social-whisperer.lovable.app/email-calendar/callback"
+]
+
 [[functions]]
 name = "calendar"
-verify_jwt = false
+verify_jwt = true
+cors_origins = [
+  "http://localhost:*",
+  "https://alai-social-whisperer.com",
+  "https://preview--alai-social-whisperer.lovable.app"
+]
+cors_headers = [
+  "Authorization",
+  "apikey",
+  "Content-Type",
+  "X-Client-Info",
+  "X-Google-Token",
+  "x-google-token"
+]
+DB_URL = "env(DB_URL)"
+DB_SERVICE_ROLE_KEY = "env(DB_SERVICE_ROLE_KEY)"
+DB_ANON_KEY = "env(DB_ANON_KEY)"
+GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"
+GOOGLE_CLIENT_SECRET = "env(GOOGLE_CLIENT_SECRET)"
+
+[[functions]]
+name = "store_auth"
+verify_jwt = true
+cors_origins = [
+  "http://localhost:*",
+  "https://alai-social-whisperer.com",
+  "https://preview--alai-social-whisperer.lovable.app"
+]
+cors_headers = [
+  "Authorization",
+  "Apikey",
+  "Content-Type",
+  "X-Client-Info"
+]
+DB_URL = "env(DB_URL)"
+DB_SERVICE_ROLE_KEY = "env(DB_SERVICE_ROLE_KEY)"
+DB_ANON_KEY = "env(DB_ANON_KEY)"
+
+[[functions]]
+name = "email-calendar-auth"
+verify_jwt = true
+cors_origins = [
+  "http://localhost:*",
+  "https://alai-social-whisperer.com",
+  "https://preview--alai-social-whisperer.lovable.app"
+]
+cors_headers = [
+  "Authorization",
+  "apikey",
+  "Content-Type",
+  "X-Client-Info"
+]
+GOOGLE_CLIENT_ID = "env(GOOGLE_CLIENT_ID)"
+GOOGLE_CLIENT_SECRET = "env(GOOGLE_CLIENT_SECRET)"
+SUPABASE_SERVICE_ROLE_KEY = "env(SUPABASE_SERVICE_ROLE_KEY)"

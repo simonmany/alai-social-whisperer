@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,40 +16,8 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [passwordError, setPasswordError] = useState("");
-  const navigate = useNavigate();
+  const { handleGoogleLogin } = useAuth();
   const { toast } = useToast();
-
-  // Listen for messages from the popup
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      // Verify the message is from our popup
-      if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
-        console.log("Received success message from popup");
-        try {
-          // Force a session refresh
-          const { data: { session }, error } = await supabase.auth.refreshSession();
-          if (error) throw error;
-          
-          if (session) {
-            console.log("Session refreshed successfully, navigating to home");
-            navigate("/");
-          } else {
-            throw new Error("No session after refresh");
-          }
-        } catch (error: any) {
-          console.error("Error refreshing session:", error);
-          toast({
-            title: "Error signing in",
-            description: error.message,
-            variant: "destructive",
-          });
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [navigate, toast]);
 
   const validatePassword = (password: string) => {
     if (password.length < 6) {
@@ -58,91 +26,6 @@ const Auth = () => {
     }
     setPasswordError("");
     return true;
-  };
-
-  const handleSignInWithGoogle = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent select_account',
-          },
-          redirectTo: `${window.location.origin}/auth/callback`,
-          skipBrowserRedirect: true
-        }
-      });
-
-      if (error) throw error;
-      
-      if (data?.url) {
-        const width = 600;
-        const height = 800;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-        
-        const popup = window.open(
-          data.url,
-          'Google Sign In',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-
-        if (!popup) {
-          throw new Error("Popup blocked. Please enable popups for this site.");
-        }
-
-        // Poll for changes in auth state
-        const checkAuth = setInterval(async () => {
-          try {
-            if (popup.closed) {
-              clearInterval(checkAuth);
-              const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-              
-              if (sessionError) {
-                console.error("Session error:", sessionError);
-                throw sessionError;
-              }
-              
-              if (session) {
-                console.log("Session detected after popup closed");
-                // Force a session refresh to ensure we have the latest tokens
-                const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-                if (refreshError) {
-                  console.error("Refresh error:", refreshError);
-                  throw refreshError;
-                }
-                
-                if (refreshData.session) {
-                  navigate("/");
-                }
-              }
-            }
-          } catch (checkError) {
-            console.error("Error checking auth state:", checkError);
-            clearInterval(checkAuth);
-            toast({
-              title: "Authentication Error",
-              description: "Please try signing in again",
-              variant: "destructive",
-            });
-          }
-        }, 500);
-      }
-
-      console.log("Google auth initiated");
-    } catch (error: any) {
-      console.error("Google auth error:", error);
-      toast({
-        title: "Error signing in with Google",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -161,46 +44,30 @@ const Auth = () => {
         options: {
           data: {
             username,
-            avatar_url: null, // Initialize avatar_url as null
+            avatar_url: null,
           },
         },
       });
 
       if (error) {
-        // Parse the error message from the response body if it exists
-        const errorBody = error.message && JSON.parse(error.message);
+        const errorBody = error.message && error;
         const isUserExists = error.status === 422 || 
                            errorBody?.code === "user_already_exists" ||
                            error.message.includes("User already registered");
 
         if (isUserExists) {
           console.log("User already exists, attempting sign in");
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          const { error: signInError } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
 
-          if (signInError) {
-            throw signInError;
-          }
-
-          // After successful sign in, update the profile with Google data if available
-          if (signInData.user?.app_metadata?.provider === 'google') {
-            const { user_metadata } = signInData.user;
-            await supabase
-              .from('profiles')
-              .update({
-                avatar_url: user_metadata.avatar_url,
-                display_name: user_metadata.full_name,
-              })
-              .eq('id', signInData.user.id);
-          }
+          if (signInError) throw signInError;
 
           toast({
             title: "Welcome back!",
             description: "You've been signed in with your existing account.",
           });
-          navigate("/");
           return;
         }
         throw error;
@@ -212,9 +79,8 @@ const Auth = () => {
         description: "Please check your email to confirm your account.",
       });
       
-      // Auto-navigate if email confirmation is disabled in Supabase
       if (data.user && !data.user.confirmed_at) {
-        navigate("/");
+        setShowEmailConfirmation(true);
       }
     } catch (error: any) {
       toast({
@@ -232,7 +98,7 @@ const Auth = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -244,20 +110,6 @@ const Auth = () => {
         }
         throw error;
       }
-
-      // After successful sign in, update the profile with Google data if available
-      if (data.user?.app_metadata?.provider === 'google') {
-        const { user_metadata } = data.user;
-        await supabase
-          .from('profiles')
-          .update({
-            avatar_url: user_metadata.avatar_url,
-            display_name: user_metadata.full_name,
-          })
-          .eq('id', data.user.id);
-      }
-      
-      navigate("/");
     } catch (error: any) {
       toast({
         title: "Error",
@@ -280,7 +132,7 @@ const Auth = () => {
           <Button 
             variant="outline" 
             className="w-full flex items-center justify-center gap-2"
-            onClick={handleSignInWithGoogle}
+            onClick={handleGoogleLogin}
             disabled={loading}
           >
             <img 
@@ -384,7 +236,6 @@ const Auth = () => {
       </Card>
     </div>
   );
-
 };
 
 export default Auth;
