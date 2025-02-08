@@ -461,6 +461,16 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      get_timezone_for_city: {
+        Args: {
+          city_name: string
+        }
+        Returns: string
+      }
+      schedule_all_user_checkins: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       schedule_evening_checkin: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -468,6 +478,14 @@ export type Database = {
       schedule_morning_checkin: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      schedule_timezone_aware_checkin: {
+        Args: {
+          user_id: string
+          target_hour: number
+          checkin_type: string
+        }
+        Returns: undefined
       }
     }
     Enums: {

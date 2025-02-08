@@ -76,9 +76,16 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       }
       
       console.log("Profile data fetched:", profile);
+      console.log("Skills data:", {
+        gourmand: profile?.skill_gourmand,
+        aesthete: profile?.skill_aesthete,
+        traveler: profile?.skill_traveler,
+        athlete: profile?.skill_athlete,
+        reveler: profile?.skill_reveler,
+      });
       return profile;
     },
-    enabled: !!userData?.id && open, // Only run when we have a user ID and profile is open
+    enabled: !!userData?.id && open,
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 2
   });
@@ -320,7 +327,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
             />
           ) : (
             <div className="space-y-3">
-              {/* Profile Info */}
               <div className="flex flex-col items-center space-y-2">
                 {isLoading ? (
                   <Skeleton className="h-24 w-24 rounded-full" />
@@ -349,7 +355,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 </div>
               </div>
 
-              {/* Goals Section */}
               <Card>
                 <CardHeader className="pb-1 pt-4">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -373,7 +378,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 Set a new goal
               </Button>
 
-              {/* Skills Radar */}
               <SkillsRadar
                 skills={{
                   gourmand: profileData?.skill_gourmand || 0,
@@ -384,10 +388,8 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 }}
               />
 
-              {/* Stats Section */}
               <StatsCard />
 
-              {/* Actions */}
               <div className="flex flex-col gap-2">
                 <Button variant="outline" className="w-full justify-start gap-2">
                   <Settings className="h-4 w-4" />

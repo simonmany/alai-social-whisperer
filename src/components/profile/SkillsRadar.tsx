@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Utensils, Palette, Map, Activity, Music } from "lucide-react";
 import {
@@ -20,6 +21,9 @@ interface SkillsRadarProps {
 }
 
 export const SkillsRadar = ({ skills }: SkillsRadarProps) => {
+  // Add console log to debug incoming values
+  console.log("SkillsRadar received skills:", skills);
+
   const data = [
     {
       subject: "Gourmand",
@@ -47,6 +51,9 @@ export const SkillsRadar = ({ skills }: SkillsRadarProps) => {
       icon: <Music className="h-4 w-4" />,
     },
   ];
+
+  // Add console log to debug transformed data
+  console.log("SkillsRadar chart data:", data);
 
   return (
     <Card>

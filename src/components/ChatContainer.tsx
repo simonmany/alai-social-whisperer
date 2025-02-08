@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -53,7 +54,7 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
-  // Filter out personality quiz prompts and responses
+  // Filter out system messages (personality quiz prompts and morning/evening check-in prompts)
   const filteredMessages = messages.filter((message, index) => {
     // Check if current message is a personality quiz prompt
     const isPersonalityPrompt = message.content.includes("Hey, I'm learning about") && 
@@ -67,7 +68,13 @@ export const ChatContainer = ({
                                  messages[index - 1].content.includes("Give a very brief") &&
                                  message.isAl;
 
-    return !isPersonalityPrompt && !isPersonalityResponse;
+    // Check if message is a morning or evening check-in system prompt
+    const isCheckInPrompt = !message.isAl && 
+                           message.content.includes("You're doing the") && 
+                           (message.content.includes("morning check-in") || 
+                            message.content.includes("evening recap"));
+
+    return !isPersonalityPrompt && !isPersonalityResponse && !isCheckInPrompt;
   });
 
   useEffect(() => {
@@ -142,3 +149,4 @@ export const ChatContainer = ({
     </div>
   );
 };
+

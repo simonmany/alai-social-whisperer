@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +9,7 @@ import { MainNavigation } from "@/components/MainNavigation";
 import { ChatContainer } from "@/components/ChatContainer";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { Button } from "@/components/ui/button";
-import { Redo, Play } from "lucide-react";
+import { Redo, Play, RefreshCw } from "lucide-react";
 import Profile from "./Profile";
 import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
@@ -69,7 +70,6 @@ const Index = () => {
     if (!session?.user.id) return;
 
     try {
-      // If user is in onboarding, mark it as completed first
       if (showOnboarding) {
         await supabase
           .from('profiles')
@@ -82,9 +82,8 @@ const Index = () => {
 
         setShowOnboarding(false);
         setTutorialComplete(false);
-        setShowProfileButton(false); // Hide profile button during splash
+        setShowProfileButton(false);
       } else {
-        // Just restart the tutorial
         await supabase
           .from('profiles')
           .update({ 
@@ -94,7 +93,7 @@ const Index = () => {
           .eq('id', session.user.id);
 
         setTutorialComplete(false);
-        setShowProfileButton(false); // Hide profile button during splash
+        setShowProfileButton(false);
       }
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
@@ -144,11 +143,87 @@ const Index = () => {
     }
   };
 
+  const handleTestMorningCheckin = async () => {
+    if (!session?.user.id) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('schedule_timezone_aware_checkin', {
+        user_id: session.user.id,
+        target_hour: 7,
+        checkin_type: 'morning'
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Morning check-in triggered",
+        description: "The morning check-in function has been executed.",
+      });
+    } catch (error: any) {
+      console.error('Error triggering morning check-in:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to trigger morning check-in",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTestEveningCheckin = async () => {
+    if (!session?.user.id) return;
+    
+    try {
+      const { data, error } = await supabase.rpc('schedule_timezone_aware_checkin', {
+        user_id: session.user.id,
+        target_hour: 22,
+        checkin_type: 'evening'
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Evening check-in triggered",
+        description: "The evening check-in function has been executed.",
+      });
+    } catch (error: any) {
+      console.error('Error triggering evening check-in:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to trigger evening check-in",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleTestCompletedEvents = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('check-events');
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Completed events check triggered",
+        description: data?.events_processed 
+          ? `Processed ${data.events_processed} events between ${new Date(data.time_window.start).toLocaleString()} and ${new Date(data.time_window.end).toLocaleString()}`
+          : "No events found in the specified time window",
+      });
+    } catch (error: any) {
+      console.error('Error checking completed events:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to check completed events",
+        variant: "destructive",
+      });
+    }
+  };
+
   useEffect(() => {
     const loadChatHistory = async () => {
       if (!session?.user.id) return;
 
       try {
+        console.log('Loading chat history for user:', session.user.id);
+        
         const { data, error } = await supabase
           .from('chat_history')
           .select('*')
@@ -160,13 +235,17 @@ const Index = () => {
           throw error;
         }
 
+        console.log('Received chat history:', data);
+
         if (data && data.length > 0) {
           const historyMessages = data.map(msg => ({
             content: msg.message,
             isAl: msg.is_ai
           }));
+          console.log('Setting messages:', historyMessages);
           setMessages(historyMessages);
         } else {
+          console.log('No chat history found, setting welcome message');
           setMessages([{ content: WELCOME_MESSAGE, isAl: true }]);
         }
       } catch (error: any) {
@@ -179,7 +258,45 @@ const Index = () => {
       }
     };
 
+    // Set up real-time subscription for new messages
+    const setupMessagesSubscription = () => {
+      if (!session?.user.id) return;
+
+      console.log('Setting up real-time messages subscription');
+      
+      const channel = supabase
+        .channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_history',
+            filter: `user_id=eq.${session.user.id}`
+          },
+          (payload) => {
+            console.log('New message received:', payload);
+            const newMessage = {
+              content: payload.new.message,
+              isAl: payload.new.is_ai
+            };
+            setMessages(prev => [...prev, newMessage]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        console.log('Cleaning up messages subscription');
+        supabase.removeChannel(channel);
+      };
+    };
+
     loadChatHistory();
+    const cleanup = setupMessagesSubscription();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
   }, [session?.user.id, toast]);
 
   useEffect(() => {
@@ -204,7 +321,6 @@ const Index = () => {
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
         
-        // Only show profile button if we're past the splash screen
         setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
       } catch (error) {
         console.error('Error checking tutorial status:', error);
@@ -454,7 +570,6 @@ const Index = () => {
   const handleSend = async (message: string) => {
     if (!message.trim()) return;
 
-    // Parse contact information if the message is from ContactsDialog
     const contactInfo = message.startsWith("I met ") ? parseContactInfo(message) : undefined;
 
     const newMessage: Message = {
@@ -572,7 +687,6 @@ const Index = () => {
       relationship: relationshipMatch?.[1],
     };
 
-    // Parse individual contact methods
     const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
     const instagram = contacts.match(/📸 @([^💼🐦\s]+)/)?.[1]?.trim();
     const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
@@ -607,7 +721,6 @@ const Index = () => {
       setTutorialComplete(false);
       setShowProfileButton(false);
       
-      // Force a refresh of the tutorial status
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
       toast({
@@ -688,6 +801,35 @@ const Index = () => {
         >
           <Redo className="h-4 w-4" />
           Restart Onboarding
+        </Button>
+        
+        <div className="h-px bg-border my-2" />
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleTestMorningCheckin}
+        >
+          <Play className="h-4 w-4" />
+          Test Morning Check-in
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleTestEveningCheckin}
+        >
+          <Play className="h-4 w-4" />
+          Test Evening Check-in
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={handleTestCompletedEvents}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Test Completed Events
         </Button>
       </div>
 
