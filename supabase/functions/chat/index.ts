@@ -20,8 +20,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const supabaseUrl = Deno.env.get('DB_URL');
-const supabaseServiceKey = Deno.env.get('DB_SERVICE_ROLE_KEY');
+const supabaseUrl = Deno.env.get('SUPABASE_URL');
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing environment variables');
 }
@@ -408,17 +408,17 @@ serve(async (req) => {
       await createContact(userId, contactInfo);
     }
 
-    // // Store user message
-    // const { error: userMessageError } = await supabase
-    // .from('chat_history')
-    // .insert([
-    //   { user_id: userId, message, is_ai: false }
-    // ]);
+    // Store user message
+    const { error: userMessageError } = await supabase
+    .from('chat_history')
+    .insert([
+      { user_id: userId, message, is_ai: false }
+    ]);
 
-    // if (userMessageError) {
-    //   console.error('Error storing user message:', userMessageError);
-    //   throw userMessageError;
-    // }
+    if (userMessageError) {
+      console.error('Error storing user message:', userMessageError);
+      throw userMessageError;
+    }
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -560,10 +560,7 @@ serve(async (req) => {
       // After processing all tool calls, get the final response
       const finalResponse = await callLLM(openAIApiKey, [{ role: 'system', content: systemPrompt }, ...messages]);
       const finalData = await finalResponse.json();
-      parsedResponse = {
-        text: finalData.choices[0].message.content,
-        contacts: [],
-      };
+      parsedResponse = JSON.parse(finalData.choices[0].message.content);
     } else {
       try {
         parsedResponse = JSON.parse(aiResponse);
@@ -606,16 +603,16 @@ serve(async (req) => {
       }
     }
 
-    // const { error: aiMessageError } = await supabase
-    //   .from('chat_history')
-    //   .insert([
-    //     { user_id: userId, message: parsedResponse.text, is_ai: true }
-    //   ]);
+    const { error: aiMessageError } = await supabase
+      .from('chat_history')
+      .insert([
+        { user_id: userId, message: parsedResponse.text, is_ai: true }
+      ]);
 
-    // if (aiMessageError) {
-    //   console.error('Error storing AI message:', aiMessageError);
-    //   throw aiMessageError;
-    // }
+    if (aiMessageError) {
+      console.error('Error storing AI message:', aiMessageError);
+      throw aiMessageError;
+    }
 
     return new Response(JSON.stringify({ 
       response: parsedResponse.text,
