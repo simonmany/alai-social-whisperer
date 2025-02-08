@@ -30,38 +30,6 @@ const supabase = createClient(
   supabaseServiceKey ?? ''
 );
 
-// function constructSystemPrompt(profileData: any, events: any[], contacts: any[]) {
-//   let prompt = `You are Al, a friendly and helpful AI assistant focused on helping users with their social life. Your goal is to help them maintain and improve their relationships, try new activities, and achieve their social goals.`;
-
-//   if (profileData) {
-//     prompt += `\n\nUser Profile:`;
-//     if (profileData.username) prompt += `\nUsername: ${profileData.username}`;
-//     if (profileData.goals?.length) prompt += `\nGoals: ${profileData.goals.join(', ')}`;
-//     if (profileData.current_interests?.length) prompt += `\nInterests: ${profileData.current_interests.join(', ')}`;
-//     if (profileData.desired_interests?.length) prompt += `\nDesired Interests: ${profileData.desired_interests.join(', ')}`;
-//     if (profileData.city) prompt += `\nLocation: ${profileData.city}`;
-//   }
-
-//   if (events?.length) {
-//     prompt += `\n\nUpcoming Events (next 30 days):`;
-//     events.forEach(event => {
-//       prompt += `\n- ${event.title} (${event.start_time})`;
-//     });
-//   }
-
-//   if (contacts?.length) {
-//     prompt += `\n\nClose Contacts:`;
-//     contacts.slice(0, 5).forEach(contact => {
-//       prompt += `\n- ${contact.name}`;
-//       if (contact.relationship) prompt += ` (${contact.relationship})`;
-//     });
-//   }
-
-//   prompt += `\n\nPlease be conversational and friendly in your responses. Keep responses concise and focused on helping the user with their social life.`;
-
-//   return prompt;
-// }
-
 async function callLLM(apiKey: string, messages: any[], tools?: any[]) {
   const requestBody: any = {
     model: 'gpt-4o-mini',

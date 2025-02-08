@@ -1,27 +1,18 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { ContactCard } from "@/components/ContactCard";
 import { Contact } from "@/types/contacts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
+import { CalendarIcon, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -31,18 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface EventAttendee {
-  id: string;
-  name: string;
-  email?: string | null;
-  phone?: string;
-  instagram?: string;
-  linkedin?: string;
-  twitter?: string;
-  meeting_story?: string;
-  relationship?: string;
-  closeness?: number;
-}
+type EventAttendee = Contact;
 
 interface Event {
   id: string;
@@ -52,7 +32,6 @@ interface Event {
   attendees: EventAttendee[];
 }
 
-const feedbackOptions = ["Entertaining", "Energizing", "Educational", "It Sucked!"];
 const timeOptions = ["morning", "afternoon", "evening"];
 
 interface FeedbackDialogProps {
@@ -64,11 +43,9 @@ interface FeedbackDialogProps {
 export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
   const { session } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [selectedFeedback, setSelectedFeedback] = useState<string | null>(null);
-  const [customFeedback, setCustomFeedback] = useState("");
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
   // Manual entry form state
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
@@ -77,6 +54,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
+  const [contactSearchInput, setContactSearchInput] = useState("");
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts'],
@@ -87,7 +65,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .select('*')
         .eq('user_id', session.user.id);
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
@@ -98,7 +76,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .from('activities')
         .select('*');
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
@@ -121,7 +99,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       }
 
       const eventsWithAttendees = await Promise.all(
-        calendarEvents.map(async (event) => {
+        (calendarEvents || []).map(async (event) => {
           const { data: attendeeLinks, error: attendeesError } = await supabase
             .from('event_attendees')
             .select('contact_id')
@@ -134,8 +112,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
           const { data: contacts, error: contactsError } = await supabase
             .from('contacts')
-            .select('id, name, email, phone, instagram, linkedin, twitter, meeting_story, relationship, closeness')
-            .in('id', attendeeLinks.map(link => link.contact_id));
+            .select('*')
+            .in('id', (attendeeLinks || []).map(link => link.contact_id));
 
           if (contactsError) {
             console.error('Error fetching contacts:', contactsError);
@@ -147,29 +125,39 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             title: event.title,
             date: new Date(event.start_time),
             location: event.description || "No location specified",
-            attendees: contacts as EventAttendee[]
-          };
+            attendees: contacts || []
+          } as Event;
         })
       );
 
-      return eventsWithAttendees.filter((event): event is Event => event !== null);
+      return eventsWithAttendees.filter((event): event is Event => 
+        event !== null && 
+        'id' in event && 
+        'title' in event && 
+        'date' in event && 
+        'location' in event && 
+        'attendees' in event
+      );
     },
     enabled: !!session?.user?.id
   });
 
-  const formatAttendeeNames = (attendees: Contact[]) => {
-    if (attendees.length === 0) return "";
-    if (attendees.length === 1) return attendees[0].name;
-    if (attendees.length === 2) return `${attendees[0].name} and ${attendees[1].name}`;
-    const allButLast = attendees.slice(0, -1).map(a => a.name).join(", ");
-    return `${allButLast}, and ${attendees[attendees.length - 1].name}`;
-  };
+  const filteredContacts = contacts
+    .filter(contact => 
+      contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
+    )
+    .slice(0, 5);
+
+  const filteredActivities = activities
+    .filter(activity =>
+      activity.name.toLowerCase().includes(manualActivity.toLowerCase())
+    )
+    .slice(0, 5);
 
   const handleSubmit = async () => {
     if (isManualEntry) {
       if (!manualDate || !manualActivity || manualAttendees.length === 0) return;
 
-      // Create a new calendar event
       const { data: newEvent, error: eventError } = await supabase
         .from('calendar_events')
         .insert({
@@ -193,7 +181,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         return;
       }
 
-      // Link attendees
       const attendeePromises = manualAttendees.map(contactId =>
         supabase
           .from('event_attendees')
@@ -214,18 +201,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       onSubmit(message);
     } else if (selectedEvent) {
       const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
-      const feedback = customFeedback.trim() || selectedFeedback;
-      if (feedback) {
-        const message = `I had a hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-        })} at ${selectedEvent.date.toLocaleTimeString([], {
-          hour: "numeric",
-          minute: "2-digit",
-        })}. We ${selectedEvent.title.toLowerCase()} and it was ${feedback.toLowerCase()}.`;
-        onSubmit(message);
-      }
+      const message = `I had a hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      })} at ${selectedEvent.date.toLocaleTimeString([], {
+        hour: "numeric",
+        minute: "2-digit",
+      })}. We ${selectedEvent.title.toLowerCase()}.`;
+      onSubmit(message);
     }
     onOpenChange(false);
     resetForm();
@@ -233,8 +217,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
   const resetForm = () => {
     setSelectedEvent(null);
-    setSelectedFeedback(null);
-    setCustomFeedback("");
     setSelectedContact(null);
     setIsManualEntry(false);
     setManualAttendees([]);
@@ -243,11 +225,24 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setManualDate(new Date());
     setManualTime("afternoon");
     setManualNotes("");
+    setContactSearchInput("");
   };
 
-  const handleContactClick = (contact: Contact) => {
-    setSelectedContact(contact);
-    setIsContactDrawerOpen(true);
+  const formatAttendeeNames = (attendees: EventAttendee[]) => {
+    if (attendees.length === 0) return "";
+    if (attendees.length === 1) return attendees[0].name;
+    if (attendees.length === 2) return `${attendees[0].name} and ${attendees[1].name}`;
+    const allButLast = attendees.slice(0, -1).map(a => a.name).join(", ");
+    return `${allButLast}, and ${attendees[attendees.length - 1].name}`;
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   return (
@@ -272,12 +267,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                 onClick={() => setIsManualEntry(true)}
                 className="flex-1"
               >
-                Manual Entry
+                Something off the books
               </Button>
             </div>
 
             {!isManualEntry ? (
-              // Calendar Events Section
               <div className="space-y-2">
                 {events.map((event) => (
                   <div
@@ -307,86 +301,95 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                 ))}
               </div>
             ) : (
-              // Manual Entry Section
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Who was there?</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between"
-                      >
-                        {manualAttendees.length > 0
-                          ? `${manualAttendees.length} selected`
-                          : "Select contacts..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search contacts..." />
-                        <CommandEmpty>
-                          Contact not found - add a new friend!
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {contacts.map((contact) => (
-                            <CommandItem
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Search contacts..."
+                      value={contactSearchInput}
+                      onChange={(e) => setContactSearchInput(e.target.value)}
+                      className="h-8"
+                    />
+                    
+                    {contactSearchInput && filteredContacts.length > 0 && (
+                      <div className="border rounded-md overflow-hidden">
+                        {filteredContacts.map((contact) => (
+                          <div
+                            key={contact.id}
+                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                            onClick={() => {
+                              if (!manualAttendees.includes(contact.id)) {
+                                setManualAttendees([...manualAttendees, contact.id]);
+                              }
+                              setContactSearchInput("");
+                            }}
+                          >
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-xs">
+                                {getInitials(contact.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">{contact.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {manualAttendees.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {contacts
+                          .filter(contact => manualAttendees.includes(contact.id))
+                          .map((contact) => (
+                            <div
                               key={contact.id}
-                              onSelect={() => {
-                                setManualAttendees(prev =>
-                                  prev.includes(contact.id)
-                                    ? prev.filter(id => id !== contact.id)
-                                    : [...prev, contact.id]
-                                );
-                              }}
+                              className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
                             >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  manualAttendees.includes(contact.id) ? "opacity-100" : "opacity-0"
+                              <Avatar className="h-4 w-4">
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{contact.name}</span>
+                              <button
+                                onClick={() => setManualAttendees(prev => 
+                                  prev.filter(id => id !== contact.id)
                                 )}
-                              />
-                              {contact.name}
-                            </CommandItem>
+                                className="hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
                           ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <label className="text-sm font-medium">What did you do?</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between"
-                      >
-                        {manualActivity || "Select activity..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput placeholder="Search activities..." />
-                        <CommandEmpty>No activities found</CommandEmpty>
-                        <CommandGroup>
-                          {activities.map((activity) => (
-                            <CommandItem
-                              key={activity.id}
-                              onSelect={() => setManualActivity(activity.name)}
-                            >
-                              {activity.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <div className="space-y-2">
+                    <Input
+                      placeholder="Type an activity..."
+                      value={manualActivity}
+                      onChange={(e) => setManualActivity(e.target.value)}
+                      className="h-8"
+                    />
+                    
+                    {manualActivity && filteredActivities.length > 0 && (
+                      <div className="border rounded-md overflow-hidden">
+                        {filteredActivities.map((activity) => (
+                          <div
+                            key={activity.id}
+                            className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                            onClick={() => setManualActivity(activity.name)}
+                          >
+                            <span className="text-sm">{activity.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -395,40 +398,31 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     value={manualLocation}
                     onChange={(e) => setManualLocation(e.target.value)}
                     placeholder="Enter location..."
+                    className="h-8"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">When did you hang?</label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full justify-start text-left font-normal",
-                            !manualDate && "text-muted-foreground"
-                          )}
-                        >
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {manualDate ? format(manualDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={manualDate}
-                          onSelect={setManualDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-8"
+                      onClick={() => {
+                        // The calendar will be implemented in a future iteration
+                        // For now, we'll just use the current date
+                        setManualDate(new Date());
+                      }}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {manualDate ? format(manualDate, "PPP") : "Pick a date"}
+                    </Button>
                   </div>
 
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Time of day</label>
                     <Select value={manualTime} onValueChange={setManualTime}>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-8">
                         <SelectValue placeholder="Select time..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -456,7 +450,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               </div>
             )}
 
-            {/* Submit Button */}
             {(selectedEvent || (isManualEntry && manualAttendees.length > 0 && manualActivity)) && (
               <Button className="w-full" onClick={handleSubmit}>
                 Submit Feedback
