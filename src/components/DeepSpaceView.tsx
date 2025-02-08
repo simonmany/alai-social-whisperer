@@ -8,6 +8,7 @@ import ContactGroupsManager from "./ContactGroupsManager";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface DeepSpaceViewProps {
   contacts: Contact[];
@@ -141,14 +142,22 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
 
   return (
     <div className="absolute inset-0 overflow-y-auto bg-black/90 p-4 pb-40">
-      <div className="relative mb-8">
-        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search contacts..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 bg-black/50 border-purple-500/50 text-white"
-        />
+      <div className="flex justify-between items-center mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search contacts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-black/50 border-purple-500/50 text-white"
+          />
+        </div>
+        <Badge 
+          variant="outline" 
+          className="ml-4 bg-purple-900/50 border-purple-500/50 text-purple-100"
+        >
+          {filteredContacts.length} in Deep Space
+        </Badge>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
         {filteredContacts.map((contact) => (
