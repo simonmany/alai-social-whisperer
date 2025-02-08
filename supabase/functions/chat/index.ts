@@ -20,8 +20,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const supabaseUrl = Deno.env.get('DB_URL');
+const supabaseServiceKey = Deno.env.get('DB_SERVICE_ROLE_KEY');
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing environment variables');
 }
@@ -30,37 +30,35 @@ const supabase = createClient(
   supabaseServiceKey ?? ''
 );
 
-// function constructSystemPrompt(profileData: any, events: any[], contacts: any[]) {
-//   let prompt = `You are Al, a friendly and helpful AI assistant focused on helping users with their social life. Your goal is to help them maintain and improve their relationships, try new activities, and achieve their social goals.`;
+const functions = [
+  {
+    "type": "function",
+    "function": {
+      "name": "searchGooglePlaces",
+      "description": "Searches for places using Google Places API based on a search string and optional location.",
+      "strict": true,
+      "parameters": {
+          "type": "object",
+          "required": [
+              "searchString",
+              "location"
+          ],
+          "properties": {
+              "searchString": {
+                  "type": "string",
+                  "description": "The search query for the places, such as a name or keyword."
+              },
+              "location": {
+                  "type": "string",
+                  "description": "An optional parameter to specify a location context for the search."
+              }
+          },
+          "additionalProperties": false
+      }
+    }
+  }
+];
 
-//   if (profileData) {
-//     prompt += `\n\nUser Profile:`;
-//     if (profileData.username) prompt += `\nUsername: ${profileData.username}`;
-//     if (profileData.goals?.length) prompt += `\nGoals: ${profileData.goals.join(', ')}`;
-//     if (profileData.current_interests?.length) prompt += `\nInterests: ${profileData.current_interests.join(', ')}`;
-//     if (profileData.desired_interests?.length) prompt += `\nDesired Interests: ${profileData.desired_interests.join(', ')}`;
-//     if (profileData.city) prompt += `\nLocation: ${profileData.city}`;
-//   }
-
-//   if (events?.length) {
-//     prompt += `\n\nUpcoming Events (next 30 days):`;
-//     events.forEach(event => {
-//       prompt += `\n- ${event.title} (${event.start_time})`;
-//     });
-//   }
-
-//   if (contacts?.length) {
-//     prompt += `\n\nClose Contacts:`;
-//     contacts.slice(0, 5).forEach(contact => {
-//       prompt += `\n- ${contact.name}`;
-//       if (contact.relationship) prompt += ` (${contact.relationship})`;
-//     });
-//   }
-
-//   prompt += `\n\nPlease be conversational and friendly in your responses. Keep responses concise and focused on helping the user with their social life.`;
-
-//   return prompt;
-// }
 
 async function callLLM(apiKey: string, messages: any[], tools?: any[]) {
   const requestBody: any = {
@@ -79,7 +77,6 @@ async function callLLM(apiKey: string, messages: any[], tools?: any[]) {
     messageCount: messages.length,
     lastMessage: messages[messages.length - 1]
   });
-  console.log(messages[0])
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -166,6 +163,44 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
       }
       
       Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
+}
+
+async function searchGooglePlaces(searchString: string, location?: string): Promise<any> {
+  const apiKey = Deno.env.get('VITE_PUBLIC_GOOGLE_MAPS_API_KEY');
+  if (!apiKey) {
+    throw new Error('Google Places API key not configured');
+  }
+  if (location) {
+    searchString += ` in ${location}`;
+  }
+
+  const url = `https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input=${encodeURIComponent(searchString)}&inputtype=textquery&key=${apiKey}`;
+  // TODO (ari) maybe include editorial_summary
+
+  const response = await fetch(url, {
+    method: 'GET',
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google Places API error: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  console.log("data", data);
+  const placeId = data.candidates[0].place_id;
+
+  const placeUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&fields=name%2Curl%2Cformatted_address&key=${apiKey}`;
+  const placeResponse = await fetch(placeUrl, {
+    method: 'GET',
+  });
+
+  if (!placeResponse.ok) {
+    throw new Error(`Google Places API error: ${placeResponse.statusText}`);
+  }
+
+  const placeData = await placeResponse.json();
+  console.log("placeData", placeData);
+  return placeData.result;
 }
 
 async function extractNamesFromText(text: string): Promise<string[]> {
@@ -373,17 +408,17 @@ serve(async (req) => {
       await createContact(userId, contactInfo);
     }
 
-    // Store user message
-    const { error: userMessageError } = await supabase
-    .from('chat_history')
-    .insert([
-      { user_id: userId, message, is_ai: false }
-    ]);
+    // // Store user message
+    // const { error: userMessageError } = await supabase
+    // .from('chat_history')
+    // .insert([
+    //   { user_id: userId, message, is_ai: false }
+    // ]);
 
-    if (userMessageError) {
-      console.error('Error storing user message:', userMessageError);
-      throw userMessageError;
-    }
+    // if (userMessageError) {
+    //   console.error('Error storing user message:', userMessageError);
+    //   throw userMessageError;
+    // }
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -490,19 +525,55 @@ serve(async (req) => {
       content: systemPrompt
     });
 
-    let response = await callLLM(openAIApiKey, messages);
+    let response = await callLLM(openAIApiKey, messages, functions);
     let responseData = await response.json();
     let aiResponse = responseData.choices[0].message.content;
 
     let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(aiResponse);
-    } catch (e) {
-      console.error('Error parsing AI response:', e);
+    if (responseData.choices[0].message.tool_calls) {
+      for (const toolCall of responseData.choices[0].message.tool_calls) {
+        console.log(toolCall);
+        
+        if (toolCall.function.name === 'searchGooglePlaces') {
+          const args = JSON.parse(toolCall.function.arguments);
+          try {
+            if (!args.location) {
+              args.location = profile.city;
+            }
+            const placeResult = await searchGooglePlaces(args.searchString, args.location);
+            
+            // Send the place result back to GPT for a natural response
+            messages.push(responseData.choices[0].message);
+            messages.push(
+              { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(placeResult) }
+            );
+          } catch (error) {
+            console.error('Error calling Google Places API:', error);
+            messages.push(
+              { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify({ error: 'Failed to search places' }) }
+            );
+          }
+        }
+        // Add more tool calls here as needed
+      }
+      
+      // After processing all tool calls, get the final response
+      const finalResponse = await callLLM(openAIApiKey, [{ role: 'system', content: systemPrompt }, ...messages]);
+      const finalData = await finalResponse.json();
       parsedResponse = {
-        text: aiResponse,
-        contacts: []
+        text: finalData.choices[0].message.content,
+        contacts: [],
       };
+    } else {
+      try {
+        parsedResponse = JSON.parse(aiResponse);
+      } catch (error) {
+        console.error('Error parsing AI response:', error);
+        parsedResponse = {
+          text: "I'm sorry, I had an internal error. Can you file a bug report?",
+          contacts: [],
+        };
+      }
     }
     console.log('parsed response', parsedResponse)
 
@@ -535,16 +606,16 @@ serve(async (req) => {
       }
     }
 
-    const { error: aiMessageError } = await supabase
-      .from('chat_history')
-      .insert([
-        { user_id: userId, message: parsedResponse.text, is_ai: true }
-      ]);
+    // const { error: aiMessageError } = await supabase
+    //   .from('chat_history')
+    //   .insert([
+    //     { user_id: userId, message: parsedResponse.text, is_ai: true }
+    //   ]);
 
-    if (aiMessageError) {
-      console.error('Error storing AI message:', aiMessageError);
-      throw aiMessageError;
-    }
+    // if (aiMessageError) {
+    //   console.error('Error storing AI message:', aiMessageError);
+    //   throw aiMessageError;
+    // }
 
     return new Response(JSON.stringify({ 
       response: parsedResponse.text,
