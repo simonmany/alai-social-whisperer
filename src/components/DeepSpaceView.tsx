@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Contact } from "@/types/contacts";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
@@ -9,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 interface DeepSpaceViewProps {
   contacts: Contact[];
@@ -38,20 +40,51 @@ const getContactGradient = (contactId: string) => {
 export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   const [ungroupedContacts, setUngroupedContacts] = useState<Contact[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUngroupedContacts = async () => {
-      const { data: memberships } = await supabase
-        .from('contact_group_memberships')
-        .select('contact_id');
+      try {
+        setIsLoading(true);
+        
+        // Get all group memberships
+        const { data: memberships, error: membershipError } = await supabase
+          .from('contact_group_memberships')
+          .select('contact_id');
 
-      const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
-      const filteredContacts = contacts.filter(contact => !groupedContactIds.has(contact.id));
-      setUngroupedContacts(filteredContacts);
+        if (membershipError) {
+          console.error('Error fetching memberships:', membershipError);
+          toast({
+            title: "Error fetching group memberships",
+            description: membershipError.message,
+            variant: "destructive"
+          });
+          return;
+        }
+
+        // Create a Set of grouped contact IDs for efficient lookup
+        const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
+        
+        // Filter contacts that aren't in any groups
+        const filteredContacts = contacts.filter(contact => !groupedContactIds.has(contact.id));
+        console.log(`Found ${filteredContacts.length} ungrouped contacts out of ${contacts.length} total contacts`);
+        
+        setUngroupedContacts(filteredContacts);
+      } catch (error: any) {
+        console.error('Error in fetchUngroupedContacts:', error);
+        toast({
+          title: "Error loading contacts",
+          description: error.message,
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchUngroupedContacts();
-  }, [contacts]);
+  }, [contacts, toast]);
 
   const filteredContacts = searchQuery
     ? ungroupedContacts.filter(contact =>
@@ -156,34 +189,42 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
           variant="outline" 
           className="ml-4 bg-purple-900/50 border-purple-500/50 text-purple-100"
         >
-          {filteredContacts.length} in Deep Space
+          {isLoading ? "Loading..." : `${filteredContacts.length} in Deep Space`}
         </Badge>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-        {filteredContacts.map((contact) => (
-          <Drawer key={contact.id}>
-            <DrawerTrigger className="w-full">
-              <div className="group relative flex flex-col items-center">
-                <div 
-                  className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
-                  style={{
-                    background: getContactGradient(contact.id),
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/10"></div>
-                  <span className="relative text-white font-semibold text-lg z-10">
-                    {getInitials(contact.name)}
+
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <p className="text-white">Loading contacts...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+          {filteredContacts.map((contact) => (
+            <Drawer key={contact.id}>
+              <DrawerTrigger className="w-full">
+                <div className="group relative flex flex-col items-center">
+                  <div 
+                    className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                    style={{
+                      background: getContactGradient(contact.id),
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-black/10"></div>
+                    <span className="relative text-white font-semibold text-lg z-10">
+                      {getInitials(contact.name)}
+                    </span>
+                  </div>
+                  <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+                    {contact.name}
                   </span>
                 </div>
-                <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-                  {contact.name}
-                </span>
-              </div>
-            </DrawerTrigger>
-            {renderContactDrawerContent(contact)}
-          </Drawer>
-        ))}
-      </div>
+              </DrawerTrigger>
+              {renderContactDrawerContent(contact)}
+            </Drawer>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
+
