@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +41,6 @@ interface Message {
 const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
 
 const Index = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
@@ -56,6 +54,7 @@ const Index = () => {
   const [username, setUsername] = useState("");
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
 
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
@@ -240,7 +239,7 @@ const Index = () => {
         if (data && data.length > 0) {
           const historyMessages = data.map(msg => ({
             content: msg.message,
-            isAl: msg.is_ai
+            isAl: msg.is_ai,
           }));
           console.log('Setting messages:', historyMessages);
           setMessages(historyMessages);
@@ -278,7 +277,8 @@ const Index = () => {
             console.log('New message received:', payload);
             const newMessage = {
               content: payload.new.message,
-              isAl: payload.new.is_ai
+              isAl: payload.new.is_ai,
+              contacts: payload.new.contact_info
             };
             setMessages(prev => [...prev, newMessage]);
           }
@@ -572,22 +572,10 @@ const Index = () => {
 
     const contactInfo = message.startsWith("I met ") ? parseContactInfo(message) : undefined;
 
-    const newMessage: Message = {
-      content: message,
-      isAl: false,
-      contacts: contactInfo ? [contactInfo] : undefined
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
     setIsLoading(true);
 
     try {
       const response = await generateChatResponse(message, contactInfo);
-      setMessages((prev) => [...prev, { 
-        content: response.response, 
-        isAl: true,
-        contacts: response.contacts
-      }]);
     } catch (error: any) {
       console.error('Error generating response:', error);
       toast({
