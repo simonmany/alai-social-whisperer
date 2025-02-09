@@ -152,7 +152,8 @@ const ContactsView = () => {
         .from('contacts')
         .select('*', { count: 'exact' })
         .eq('user_id', session.user.id)
-        .order('closeness', { ascending: false });
+        .order('closeness', { ascending: false })
+        .limit(10000); // Added explicit high limit to get all contacts
 
       if (error) {
         console.error('Error fetching contacts:', error);
@@ -748,4 +749,3 @@ const ContactsView = () => {
 };
 
 export default ContactsView;
-
