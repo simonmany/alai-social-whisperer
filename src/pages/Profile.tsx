@@ -98,7 +98,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         athlete: profile?.skill_athlete,
         reveler: profile?.skill_reveler,
       });
-
       return profile;
     },
     enabled: !!userData?.id && open,

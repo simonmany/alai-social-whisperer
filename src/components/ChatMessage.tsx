@@ -1,6 +1,7 @@
 
 import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
+import ReactMarkdown from "react-markdown";
 
 interface Contact {
   name: string;
@@ -30,7 +31,9 @@ export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMes
     >
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
-          <div className="whitespace-pre-line">{content}</div>
+          <div className="whitespace-pre-line prose prose-sm max-w-none prose-gray">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
           {contacts && contacts.length > 0 && (
             <div className="mt-4 space-y-4">
               {contacts.map((contact, index) => (
@@ -41,7 +44,9 @@ export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMes
         </div>
       ) : (
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm">
-          <div className="whitespace-pre-line">{content}</div>
+          <div className="whitespace-pre-line prose prose-sm max-w-none prose-invert">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
           {contacts && contacts.length > 0 && (
             <div className="mt-4 space-y-4">
               {contacts.map((contact, index) => (
