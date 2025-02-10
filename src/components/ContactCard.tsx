@@ -1,9 +1,13 @@
 
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Instagram, Linkedin, Twitter, Archive } from "lucide-react";
-import { Contact } from "@/types/contacts";
+import { Phone, Instagram, Linkedin, Twitter, Archive, Calendar } from "lucide-react";
+import { Contact, ContactEvent } from "@/types/contacts";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface ContactCardProps extends Partial<Contact> {
   meetingStory?: string;
@@ -11,6 +15,7 @@ interface ContactCardProps extends Partial<Contact> {
 }
 
 export const ContactCard = ({
+  id,
   name,
   phone,
   instagram,
@@ -30,6 +35,48 @@ export const ContactCard = ({
   };
 
   const closenessLabel = getClosenessLabel(closeness);
+
+  // Fetch past and upcoming events for this contact
+  const { data: events = [] } = useQuery({
+    queryKey: ['contact-events', id],
+    queryFn: async () => {
+      if (!id) return [];
+
+      // Get all events where this contact is an attendee
+      const { data: eventIds, error: attendeeError } = await supabase
+        .from('event_attendees')
+        .select('event_id')
+        .eq('contact_id', id);
+
+      if (attendeeError) {
+        console.error('Error fetching event attendees:', attendeeError);
+        return [];
+      }
+
+      if (!eventIds?.length) return [];
+
+      // Get the actual events
+      const { data: events, error: eventsError } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .in('id', eventIds.map(e => e.event_id))
+        .order('start_time', { ascending: false });
+
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError);
+        return [];
+      }
+
+      return events as ContactEvent[];
+    },
+    enabled: !!id
+  });
+
+  // Split events into past and upcoming
+  const now = new Date();
+  const pastEvents = events.filter(event => new Date(event.end_time) < now);
+  const upcomingEvents = events.filter(event => new Date(event.start_time) >= now);
+  const lastHangout = pastEvents[0];
 
   return (
     <Card className="w-full max-w-sm bg-card shadow-lg relative">
@@ -68,6 +115,44 @@ export const ContactCard = ({
           </div>
         </div>
         
+        {/* Last Hangout Section */}
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-foreground mb-2">Last Hangout</h4>
+          {lastHangout ? (
+            <div className="text-sm text-muted-foreground space-y-1">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                <span>{format(new Date(lastHangout.start_time), 'PPP')}</span>
+              </div>
+              <p>{lastHangout.title}</p>
+              {lastHangout.description && (
+                <p className="text-xs">{lastHangout.description}</p>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">No hangouts recorded yet</p>
+          )}
+        </div>
+
+        {/* Upcoming Hangs */}
+        {upcomingEvents.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-sm font-medium text-foreground mb-2">Upcoming Hangs</h4>
+            <div className="space-y-3">
+              {upcomingEvents.map(event => (
+                <div key={event.id} className="text-sm text-muted-foreground space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{format(new Date(event.start_time), 'PPP')}</span>
+                  </div>
+                  <p>{event.title}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* How We Met Section */}
         {meetingStory && (
           <div className="mt-6">
             <h4 className="text-sm font-medium text-foreground mb-2">How we met</h4>
@@ -77,6 +162,28 @@ export const ContactCard = ({
           </div>
         )}
 
+        {/* Hangout History */}
+        {pastEvents.length > 1 && (
+          <div className="mt-6">
+            <h4 className="text-sm font-medium text-foreground mb-2">Friendship History</h4>
+            <div className="space-y-3">
+              {pastEvents.slice(1).map(event => (
+                <div key={event.id} className="text-sm text-muted-foreground space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    <span>{format(new Date(event.start_time), 'PPP')}</span>
+                  </div>
+                  <p>{event.title}</p>
+                  {event.description && (
+                    <p className="text-xs">{event.description}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Contact Information */}
         <div className="mt-6 space-y-3">
           {email && (
             <div className="flex items-center space-x-2 text-muted-foreground">
