@@ -367,16 +367,18 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         if (!user) throw new Error('No authenticated user');
 
         // Create the calendar event
-        const { error: eventError } = await supabase
+        const { data: eventData, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
             user_id: user.id,
             title: activity,
             start_time: startDate.toISOString(),
             end_time: endDate.toISOString(),
-          });
+          })
+          .select()
+          .single();
 
-        if (eventError) {
+        if (eventError || !eventData) {
           console.error('Error creating calendar event:', eventError);
           toast({
             title: "Error creating event",
@@ -392,13 +394,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
             .from('event_attendees')
             .insert(
               selectedContacts.map(contact => ({
-                event_id: (await supabase
-                  .from('calendar_events')
-                  .select('id')
-                  .eq('user_id', user.id)
-                  .eq('title', activity)
-                  .eq('start_time', startDate.toISOString())
-                  .single()).data?.id,
+                event_id: eventData.id,
                 contact_id: contact.id
               }))
             );
