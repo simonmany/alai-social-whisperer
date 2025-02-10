@@ -53,6 +53,8 @@ const CalendarView = () => {
         }
 
         const now = new Date();
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
@@ -60,7 +62,7 @@ const CalendarView = () => {
           .from("calendar_events")
           .select("*")
           .eq("user_id", session.user.id)
-          .gte("start_time", now.toISOString())
+          .gte("start_time", thirtyDaysAgo.toISOString())
           .lte("start_time", thirtyDaysFromNow.toISOString())
           .order("start_time", { ascending: true })
           .returns<CalendarEventRow[]>();
