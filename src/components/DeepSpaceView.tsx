@@ -224,6 +224,11 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
     </DrawerContent>
   );
 
+  const handleContactSorted = () => {
+    setSortedCount(prev => prev + 1);
+    loadContacts(0); // Reload contacts after sorting
+  };
+
   return (
     <div className="absolute inset-0 overflow-y-auto bg-black/90 p-4 pb-40">
       <div className="flex justify-between items-center mb-8">
@@ -309,10 +314,7 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
       <ContactSorter
         isOpen={isSorterOpen}
         onClose={() => setIsSorterOpen(false)}
-        onContactSorted={() => {
-          setSortedCount(prev => prev + 1);
-          loadContacts(0);
-        }}
+        onContactSorted={handleContactSorted}
       />
     </div>
   );
