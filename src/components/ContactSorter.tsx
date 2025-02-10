@@ -151,9 +151,18 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
     if (!newGroupName.trim() || !currentContact) return;
 
     try {
+      // Get the current user's ID
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error('No authenticated user found');
+      }
+
       const { data: newGroup, error: groupError } = await supabase
         .from('contact_groups')
-        .insert([{ name: newGroupName }])
+        .insert([{ 
+          name: newGroupName,
+          user_id: session.user.id 
+        }])
         .select()
         .single();
 
