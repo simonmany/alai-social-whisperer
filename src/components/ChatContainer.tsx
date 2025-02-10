@@ -11,6 +11,7 @@ interface Message {
   content: string;
   isAl: boolean;
   contactInfo?: {
+    id: string; // Added required id field
     name: string;
     phone?: string;
     instagram?: string;
