@@ -55,6 +55,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     queryKey: ['profile', userData?.id],
     queryFn: async () => {
       console.log("Fetching profile data...");
+      console.log("Current conditions:", { 
+        hasUserId: !!userData?.id, 
+        userId: userData?.id,
+        isOpen: open 
+      });
+
       if (!userData?.id) {
         console.error("No user ID available");
         throw new Error('No user ID available');
