@@ -1,16 +1,21 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { APP_CONSTANTS } from '../../utils/constants';
 
-const SUPABASE_URL = APP_CONSTANTS.BACKEND_URL
-export const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_DB_ANON_KEY
+const SUPABASE_URL = APP_CONSTANTS.BACKEND_URL;
+const SUPABASE_KEY = APP_CONSTANTS.ANON_KEY;
 
 // Use the dedicated redirect URL from environment
 export const REDIRECT_URL = import.meta.env.VITE_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/callback`;
-console.log(REDIRECT_URL)
+console.log(REDIRECT_URL);
+
+if (!SUPABASE_KEY) {
+  console.error('Missing Supabase key. Make sure APP_CONSTANTS.ANON_KEY is set.');
+}
 
 // Create Supabase client with environment-aware auth settings
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
@@ -41,7 +46,7 @@ if (import.meta.env.DEV) {
     mode: import.meta.env.MODE,
     dev: import.meta.env.DEV,
     url: SUPABASE_URL,
-    hasKey: !!SUPABASE_PUBLISHABLE_KEY,
+    hasKey: !!SUPABASE_KEY,
     flowType: 'implicit'
   });
 }

@@ -148,20 +148,38 @@ const ContactsView = () => {
       if (!session?.user?.id) return [];
       
       console.log('Fetching contacts for user:', session.user.id);
-      const { data, error, count } = await supabase
-        .from('contacts')
-        .select('*', { count: 'exact' })
-        .eq('user_id', session.user.id)
-        .order('closeness', { ascending: false });
+      
+      let allContacts: any[] = [];
+      let hasMore = true;
+      let page = 0;
+      const pageSize = 1000; // Supabase's maximum page size
+      
+      while (hasMore) {
+        const { data, error, count } = await supabase
+          .from('contacts')
+          .select('*', { count: 'exact' })
+          .eq('user_id', session.user.id)
+          .order('closeness', { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
 
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        throw error;
+        if (error) {
+          console.error('Error fetching contacts:', error);
+          throw error;
+        }
+
+        if (!data || data.length === 0) {
+          hasMore = false;
+        } else {
+          allContacts = [...allContacts, ...data];
+          if (count && allContacts.length >= count) {
+            hasMore = false;
+          }
+          page++;
+        }
       }
       
-      console.log('Total contacts count:', count);
-      console.log('Fetched contacts sample:', data?.slice(0, 5));
-      return data as Contact[];
+      console.log('Total contacts fetched:', allContacts.length);
+      return allContacts as Contact[];
     },
     enabled: !!session?.user?.id,
   });
@@ -748,4 +766,3 @@ const ContactsView = () => {
 };
 
 export default ContactsView;
-

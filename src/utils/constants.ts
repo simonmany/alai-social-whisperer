@@ -1,3 +1,4 @@
+
 // Application-wide constants that are not sensitive
 export const APP_CONSTANTS = {
     // Add application name and version
@@ -6,6 +7,7 @@ export const APP_CONSTANTS = {
 
     // API endpoints and base URLs (non-sensitive)
     BACKEND_URL: 'https://ejqucnzpgebbujlnmdzx.supabase.co',
+    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVqcXVjbnpwZ2ViYnVqbG5tZHp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzc1MDA3NjgsImV4cCI6MjA1MzA3Njc2OH0.wXBUTxCLlq4vtGnF8ScvGFzZQeJfdYhgzvW6CF3eViI',
     SITE_URL: import.meta.env.PROD ? 'https://preview--alai-social-whisperer.lovable.app' : 'http://localhost:8080',
 
     // Time constants

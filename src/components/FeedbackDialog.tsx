@@ -158,47 +158,55 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     if (isManualEntry) {
       if (!manualDate || !manualActivity || manualAttendees.length === 0) return;
 
-      const { data: newEvent, error: eventError } = await supabase
-        .from('calendar_events')
-        .insert({
-          title: manualActivity,
-          description: manualLocation,
-          start_time: new Date(manualDate.setHours(
-            manualTime === 'morning' ? 9 : manualTime === 'afternoon' ? 14 : 19,
-            0, 0, 0
-          )).toISOString(),
-          end_time: new Date(manualDate.setHours(
-            manualTime === 'morning' ? 10 : manualTime === 'afternoon' ? 15 : 20,
-            0, 0, 0
-          )).toISOString(),
-          user_id: session?.user?.id
-        })
-        .select()
-        .single();
+      // Create the event time based on the selected time of day
+      const eventDate = new Date(manualDate);
+      const startHour = manualTime === 'morning' ? 9 : manualTime === 'afternoon' ? 14 : 19;
+      const endHour = startHour + 1; // Default to 1-hour events
 
-      if (eventError) {
-        console.error('Error creating event:', eventError);
-        return;
-      }
+      const startTime = new Date(eventDate.setHours(startHour, 0, 0, 0));
+      const endTime = new Date(eventDate.setHours(endHour, 0, 0, 0));
 
-      const attendeePromises = manualAttendees.map(contactId =>
-        supabase
-          .from('event_attendees')
+      try {
+        // Insert the calendar event
+        const { data: newEvent, error: eventError } = await supabase
+          .from('calendar_events')
           .insert({
-            event_id: newEvent.id,
-            contact_id: contactId
+            title: manualActivity,
+            description: manualLocation,
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
+            user_id: session?.user?.id
           })
-      );
+          .select()
+          .single();
 
-      await Promise.all(attendeePromises);
+        if (eventError) {
+          console.error('Error creating event:', eventError);
+          return;
+        }
 
-      const attendeeNames = contacts
-        .filter(contact => manualAttendees.includes(contact.id))
-        .map(contact => contact.name)
-        .join(', ');
+        // Insert event attendees
+        const attendeePromises = manualAttendees.map(contactId =>
+          supabase
+            .from('event_attendees')
+            .insert({
+              event_id: newEvent.id,
+              contact_id: contactId
+            })
+        );
 
-      const message = `I had a hang with ${attendeeNames} at ${manualLocation} on ${format(manualDate, 'EEEE, MMMM d')} in the ${manualTime}. We ${manualActivity.toLowerCase()}. ${manualNotes}`;
-      onSubmit(message);
+        await Promise.all(attendeePromises);
+
+        const attendeeNames = contacts
+          .filter(contact => manualAttendees.includes(contact.id))
+          .map(contact => contact.name)
+          .join(', ');
+
+        const message = `I had a hang with ${attendeeNames} at ${manualLocation} on ${format(manualDate, 'EEEE, MMMM d')} in the ${manualTime}. We ${manualActivity.toLowerCase()}. ${manualNotes}`;
+        onSubmit(message);
+      } catch (error) {
+        console.error('Error saving event:', error);
+      }
     } else if (selectedEvent) {
       const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
       const message = `I had a hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
