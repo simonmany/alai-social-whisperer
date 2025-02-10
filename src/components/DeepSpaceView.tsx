@@ -75,9 +75,14 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
       // Create a Set of grouped contact IDs for efficient lookup
       const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
       
-      // Filter contacts that aren't in any groups
-      const filteredContacts = contacts.filter(contact => !groupedContactIds.has(contact.id));
-      console.log(`Found ${filteredContacts.length} ungrouped contacts out of ${contacts.length} total contacts`);
+      // Get the subset of contacts for the current page
+      const startIndex = currentPage * PAGE_SIZE;
+      const endIndex = startIndex + PAGE_SIZE;
+      const pageContacts = contacts.slice(startIndex, endIndex);
+      
+      // Filter contacts that aren't in any groups from the current page
+      const filteredContacts = pageContacts.filter(contact => !groupedContactIds.has(contact.id));
+      console.log(`Found ${filteredContacts.length} ungrouped contacts for page ${currentPage}`);
       
       // If we're loading more, append to existing contacts
       if (isLoadingMore) {
@@ -86,8 +91,8 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
         setUngroupedContacts(filteredContacts);
       }
 
-      // Update hasMore based on whether we got a full page of results
-      setHasMore(filteredContacts.length >= PAGE_SIZE);
+      // Update hasMore based on whether there are more contacts to load
+      setHasMore(endIndex < contacts.length);
       
     } catch (error: any) {
       console.error('Error in loadContacts:', error);
@@ -112,8 +117,8 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   // Search across all contacts, not just currently loaded ones
   const filteredContacts = searchQuery
     ? contacts.filter(contact =>
-        !contact.id || // Filter out contacts without IDs
-        contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+        contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+        !contact.id // Only include contacts without IDs in search results
       )
     : ungroupedContacts;
 
