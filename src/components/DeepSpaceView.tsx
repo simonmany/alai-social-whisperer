@@ -75,24 +75,34 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
       // Create a Set of grouped contact IDs for efficient lookup
       const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
       
-      // Get the subset of contacts for the current page
-      const startIndex = currentPage * PAGE_SIZE;
-      const endIndex = startIndex + PAGE_SIZE;
-      const pageContacts = contacts.slice(startIndex, endIndex);
-      
-      // Filter contacts that aren't in any groups from the current page
-      const filteredContacts = pageContacts.filter(contact => !groupedContactIds.has(contact.id));
-      console.log(`Found ${filteredContacts.length} ungrouped contacts for page ${currentPage}`);
-      
-      // If we're loading more, append to existing contacts
-      if (isLoadingMore) {
-        setUngroupedContacts(prev => [...prev, ...filteredContacts]);
+      if (searchQuery) {
+        // If searching, filter across all contacts
+        const searchResults = contacts.filter(contact => 
+          contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !groupedContactIds.has(contact.id)
+        );
+        setUngroupedContacts(searchResults);
+        setHasMore(false); // Disable pagination during search
       } else {
-        setUngroupedContacts(filteredContacts);
-      }
+        // Normal pagination when not searching
+        const startIndex = currentPage * PAGE_SIZE;
+        const endIndex = startIndex + PAGE_SIZE;
+        const pageContacts = contacts.slice(startIndex, endIndex);
+        
+        // Filter contacts that aren't in any groups from the current page
+        const filteredContacts = pageContacts.filter(contact => !groupedContactIds.has(contact.id));
+        console.log(`Found ${filteredContacts.length} ungrouped contacts for page ${currentPage}`);
+        
+        // If we're loading more, append to existing contacts
+        if (isLoadingMore) {
+          setUngroupedContacts(prev => [...prev, ...filteredContacts]);
+        } else {
+          setUngroupedContacts(filteredContacts);
+        }
 
-      // Update hasMore based on whether there are more contacts to load
-      setHasMore(endIndex < contacts.length);
+        // Update hasMore based on whether there are more contacts to load
+        setHasMore(endIndex < contacts.length);
+      }
       
     } catch (error: any) {
       console.error('Error in loadContacts:', error);
@@ -111,16 +121,12 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   };
 
   useEffect(() => {
+    setPage(0); // Reset page when search query changes
     loadContacts(0);
-  }, [contacts]);
+  }, [contacts, searchQuery]); // Added searchQuery as dependency
 
-  // Search across all contacts, not just currently loaded ones
-  const filteredContacts = searchQuery
-    ? contacts.filter(contact =>
-        contact.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        !contact.id // Only include contacts without IDs in search results
-      )
-    : ungroupedContacts;
+  // Use ungroupedContacts directly since filtering is now handled in loadContacts
+  const filteredContacts = ungroupedContacts;
 
   const loadMore = () => {
     if (!isLoadingMore && hasMore) {
