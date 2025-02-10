@@ -174,6 +174,12 @@ export const ContactCard = ({
           )}
         </div>
 
+        {/* Groups Section */}
+        <div className="mt-6">
+          <h4 className="text-sm font-medium text-foreground mb-2">Groups</h4>
+          {/* Group content will be handled by ContactGroupsManager */}
+        </div>
+
         {/* Interests Section */}
         <div className="mt-6 space-y-4">
           <h3 className="text-sm font-bold text-primary">Interests</h3>
@@ -253,3 +259,4 @@ export const ContactCard = ({
     </Card>
   );
 };
+
