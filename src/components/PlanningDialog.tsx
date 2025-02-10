@@ -320,37 +320,32 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     if (!user) return;
 
     let description = "";
-    let type = "";
     let title = "";
 
-    if (selectedCategory === "try something new") {
-      description = activityInput || "a new activity";
-      type = "Activity";
-      title = `Try ${description}`;
-    } else if (selectedCategory === "Meet new people") {
-      const count = parseInt(peopleCount) || 1;
-      description = `meet ${count} new ${count === 1 ? 'person' : 'people'}`;
-      type = "Social";
-      title = `Meet new people`;
-    } else if (selectedCategory === "Catch up with old friends") {
-      description = friendInput || "catch up with a friend";
-      type = "Social";
-      title = `Catch up with ${friendInput || 'friends'}`;
-    } else if (selectedCategory === "Food / Drinks") {
-      title = activity;
-      description = `Get ${activity}`;
-    } else if (selectedCategory === "Recreation") {
-      title = activity;
-      description = activity;
-    } else if (selectedCategory === "Arts") {
-      title = activity;
-      description = `Go to ${activity}`;
-    } else if (selectedCategory === "A Party!") {
-      title = "Party";
-      description = `Party at ${activity}`;
-    } else if (selectedCategory === "A Trip") {
-      title = `Trip to ${activity}`;
-      description = `Travel to ${activity}`;
+    switch (selectedCategory) {
+      case "Food / Drinks":
+        title = activity;
+        description = `Get ${activity}`;
+        break;
+      case "Recreation":
+        title = activity;
+        description = activity;
+        break;
+      case "Arts":
+        title = activity;
+        description = `Go to ${activity}`;
+        break;
+      case "A Party!":
+        title = "Party";
+        description = `Party at ${activity}`;
+        break;
+      case "A Trip":
+        title = `Trip to ${activity}`;
+        description = `Travel to ${activity}`;
+        break;
+      default:
+        title = activity;
+        description = activity;
     }
 
     if (selectedDate && selectedTime) {
@@ -434,11 +429,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedDate(undefined);
     setSelectedTime(undefined);
     onOpenChange(false);
-  };
-
-  const handleBackFromCustomSpot = () => {
-    setShowCustomSpot(false);
-    setActivity("");
   };
 
   return (
