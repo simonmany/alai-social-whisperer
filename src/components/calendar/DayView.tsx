@@ -1,3 +1,4 @@
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EventCard } from "./EventCard";
 import { CalendarPrompts } from "@/components/CalendarPrompts";
@@ -30,8 +31,8 @@ const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
 export const DayView = ({ events, onPrompt }: DayViewProps) => {
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1">
-        <div className="space-y-4 p-4">
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-4 py-4">
           {Object.entries(groupEventsByTimeOfDay(events)).map(([timeOfDay, timeEvents]) => (
             <div key={timeOfDay}>
               <h3 className="font-semibold capitalize text-muted-foreground mb-3">{timeOfDay}</h3>
@@ -48,7 +49,9 @@ export const DayView = ({ events, onPrompt }: DayViewProps) => {
           ))}
         </div>
       </ScrollArea>
-      <CalendarPrompts onPrompt={onPrompt} type="day" />
+      <div className="px-4 py-3 border-t bg-background">
+        <CalendarPrompts onPrompt={onPrompt} type="day" />
+      </div>
     </div>
   );
 };

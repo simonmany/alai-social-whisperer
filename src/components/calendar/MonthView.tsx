@@ -1,3 +1,4 @@
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { EventCard } from "./EventCard";
@@ -20,7 +21,7 @@ interface MonthViewProps {
 export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4">
+      <div className="px-4 pt-4">
         <Calendar
           mode="single"
           selected={new Date()}
@@ -46,8 +47,8 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
           }}
         />
       </div>
-      <ScrollArea className="flex-1">
-        <div className="space-y-3 p-4">
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-3 py-4">
           <h3 className="font-semibold text-muted-foreground">Upcoming Events</h3>
           {events.length === 0 ? (
             <p className="text-sm text-muted-foreground">No upcoming events</p>
@@ -58,7 +59,9 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
           )}
         </div>
       </ScrollArea>
-      <CalendarPrompts onPrompt={onPrompt} type="month" />
+      <div className="px-4 py-3 border-t bg-background">
+        <CalendarPrompts onPrompt={onPrompt} type="month" />
+      </div>
     </div>
   );
 };

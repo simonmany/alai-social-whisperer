@@ -1,3 +1,4 @@
+
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EventCard } from "./EventCard";
 import { CalendarPrompts } from "@/components/CalendarPrompts";
@@ -27,8 +28,8 @@ const groupEventsByDayOfWeek = (events: CalendarEvent[]) => {
 export const WeekView = ({ events, onPrompt }: WeekViewProps) => {
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1">
-        <div className="space-y-4 p-4">
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-4 py-4">
           {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents }) => (
             <div key={day}>
               <h3 className="font-semibold text-muted-foreground mb-3">{day}</h3>
@@ -45,7 +46,9 @@ export const WeekView = ({ events, onPrompt }: WeekViewProps) => {
           ))}
         </div>
       </ScrollArea>
-      <CalendarPrompts onPrompt={onPrompt} type="week" />
+      <div className="px-4 py-3 border-t bg-background">
+        <CalendarPrompts onPrompt={onPrompt} type="week" />
+      </div>
     </div>
   );
 };

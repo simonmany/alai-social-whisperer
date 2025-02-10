@@ -1,4 +1,3 @@
-
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +11,6 @@ import { DayView } from "@/components/calendar/DayView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
 import type { Database } from "@/integrations/supabase/types";
-import { APP_CONSTANTS } from '../utils/constants';
 
 interface CalendarEvent {
   id: string;
@@ -43,7 +41,6 @@ const CalendarView = () => {
       if (!session?.user?.id) return { events: [], isConnected: false };
 
       try {
-        // Get Google token from profile
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired')
@@ -55,12 +52,10 @@ const CalendarView = () => {
           return { events: [], isConnected: false };
         }
 
-        // Initialize time range
         const now = new Date();
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-        // Fetch events from calendar_events table
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select("*")
@@ -80,7 +75,6 @@ const CalendarView = () => {
           return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
 
-        // Map database events to CalendarEvent interface
         const events: CalendarEvent[] = (dbEvents || []).map(event => ({
           id: event.id,
           title: event.title,
@@ -112,14 +106,12 @@ const CalendarView = () => {
   });
 
   const handleConnectCalendar = async () => {
-    // Get current user's provider
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError) {
       console.error('Error getting user:', userError);
       return;
     }
 
-    // Route based on provider
     if (user?.app_metadata?.provider === 'email') {
       navigate('/email-calendar/connect');
     } else {
@@ -151,106 +143,102 @@ const CalendarView = () => {
           <SheetTitle>Calendar</SheetTitle>
         </div>
 
-        {!calendarData.isConnected && !isLoading && (
-          <div className="p-4 border-b bg-muted/30">
-            <div className="flex flex-col items-center justify-center space-y-4">
-              <p className="text-center text-muted-foreground">
-                Connect your Google Calendar to sync and manage your events
-              </p>
-              <Button onClick={handleConnectCalendar}>
-                Connect Google Calendar
-              </Button>
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {!calendarData.isConnected && !isLoading && (
+            <div className="p-4 border-b bg-muted/30">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <p className="text-center text-muted-foreground">
+                  Connect your Google Calendar to sync and manage your events
+                </p>
+                <Button onClick={handleConnectCalendar}>
+                  Connect Google Calendar
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <Tabs defaultValue="day" className="flex-1 flex flex-col">
-          <div className="px-4 pt-2">
-            <TabsList className="w-full">
-              <TabsTrigger value="day" className="flex-1">
-                Day
-              </TabsTrigger>
-              <TabsTrigger value="week" className="flex-1">
-                Week
-              </TabsTrigger>
-              <TabsTrigger value="month" className="flex-1">
-                Month
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
-              <p className="text-center text-muted-foreground">
-                Loading events...
-              </p>
+          <Tabs defaultValue="day" className="flex-1 flex flex-col min-h-0">
+            <div className="px-4 pt-2">
+              <TabsList className="w-full">
+                <TabsTrigger value="day" className="flex-1">
+                  Day
+                </TabsTrigger>
+                <TabsTrigger value="week" className="flex-1">
+                  Week
+                </TabsTrigger>
+                <TabsTrigger value="month" className="flex-1">
+                  Month
+                </TabsTrigger>
+              </TabsList>
             </div>
-          ) : (
-            <div className="h-full flex flex-col">
-              <div className="flex-1">
-                <TabsContent value="day" className="absolute inset-0">
+
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center flex-1 p-4">
+                <p className="text-center text-muted-foreground">
+                  Loading events...
+                </p>
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0">
+                <TabsContent value="day" className="h-full m-0 p-0">
                   <DayView events={calendarData.events} onPrompt={handlePrompt} />
                 </TabsContent>
-
-                <TabsContent value="week" className="absolute inset-0">
+                <TabsContent value="week" className="h-full m-0 p-0">
                   <WeekView events={calendarData.events} onPrompt={handlePrompt} />
                 </TabsContent>
-
-                <TabsContent value="month" className="absolute inset-0">
+                <TabsContent value="month" className="h-full m-0 p-0">
                   <MonthView events={calendarData.events} onPrompt={handlePrompt} />
                 </TabsContent>
               </div>
-              {calendarData.isConnected && (
-                <div className="p-4 border-t">
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={async () => {
-                      try {
-                        if (!session?.user?.id) return;
+            )}
+          </Tabs>
 
-                        // Clear Google tokens from profile
-                        const { error: updateError } = await supabase
-                          .from('profiles')
-                          .update({
-                            google_access_token: null,
-                            google_refresh_token: null,
-                            google_token_expires_at: null,
-                            has_google_calendar: false,
-                            google_token_expired: false,
-                            updated_at: new Date().toISOString()
-                          } satisfies Partial<ProfileUpdate>)
-                          .eq('id', session.user.id);
+          {calendarData.isConnected && (
+            <div className="p-4 border-t mt-auto">
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={async () => {
+                  try {
+                    if (!session?.user?.id) return;
 
-                        if (updateError) throw updateError;
+                    const { error: updateError } = await supabase
+                      .from('profiles')
+                      .update({
+                        google_access_token: null,
+                        google_refresh_token: null,
+                        google_token_expires_at: null,
+                        has_google_calendar: false,
+                        google_token_expired: false,
+                        updated_at: new Date().toISOString()
+                      } satisfies Partial<ProfileUpdate>)
+                      .eq('id', session.user.id);
 
-                        // Clear calendar events
-                        const { error: deleteError } = await supabase
-                          .from('calendar_events')
-                          .delete()
-                          .eq('user_id', session.user.id);
+                    if (updateError) throw updateError;
 
-                        if (deleteError) throw deleteError;
+                    const { error: deleteError } = await supabase
+                      .from('calendar_events')
+                      .delete()
+                      .eq('user_id', session.user.id);
 
-                        // Force refetch to update UI
-                        window.location.reload();
-                      } catch (error) {
-                        console.error("Error disconnecting calendar:", error);
-                        toast({
-                          title: "Error",
-                          description: "Failed to disconnect calendar. Please try again.",
-                          variant: "destructive"
-                        });
-                      }
-                    }}
-                  >
-                    Disconnect Calendar
-                  </Button>
-                </div>
-              )}
+                    if (deleteError) throw deleteError;
+
+                    window.location.reload();
+                  } catch (error) {
+                    console.error("Error disconnecting calendar:", error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to disconnect calendar. Please try again.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+              >
+                Disconnect Calendar
+              </Button>
             </div>
           )}
-        </Tabs>
+        </div>
       </SheetContent>
     </Sheet>
   );
