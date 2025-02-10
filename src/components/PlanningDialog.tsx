@@ -78,9 +78,12 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .eq('is_archived', false)
+        .order('name');
       
       if (error) throw error;
+      console.log('Total contacts fetched in planning dialog:', data?.length);
       return data || [];
     }
   });
@@ -214,10 +217,12 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedTime(randomTime);
   };
 
-  const filteredContacts = (contacts || []).filter(contact => 
-    !selectedContacts.some(selected => selected.id === contact.id) &&
-    contact.name.toLowerCase().includes(contactInput.toLowerCase())
-  ).slice(0, 5);
+  const filteredContacts = contacts
+    ? contacts.filter(contact => 
+        contact.name.toLowerCase().includes(contactInput.toLowerCase()) &&
+        !selectedContacts.some(selected => selected.id === contact.id)
+      )
+    : [];
 
   const getInitials = (name: string) => {
     return name
