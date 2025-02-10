@@ -2,7 +2,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EventCard } from "./EventCard";
 import { CalendarPrompts } from "@/components/CalendarPrompts";
-import { isToday } from "date-fns";
+import { isToday, startOfWeek, addDays, format, isSameDay } from "date-fns";
 
 interface CalendarEvent {
   id: string;
@@ -19,22 +19,23 @@ interface WeekViewProps {
 }
 
 const groupEventsByDayOfWeek = (events: CalendarEvent[]) => {
-  // Start with Monday (1) through Sunday (0)
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  return days.map(day => {
-    const dayEvents = events.filter(e => {
-      const eventDate = new Date(e.start_time);
-      const dayIndex = eventDate.getDay();
-      // Convert Sunday (0) to 6 for proper indexing when starting with Monday
-      const adjustedDayIndex = dayIndex === 0 ? 6 : dayIndex - 1;
-      return days[adjustedDayIndex] === day;
-    });
+  // Get the start of the current week (Monday)
+  const startDate = startOfWeek(new Date(), { weekStartsOn: 1 });
+  
+  // Generate array of dates for the current week
+  const weekDays = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(startDate, i);
     return {
-      day,
-      events: dayEvents,
-      isToday: isToday(new Date()), // This will be used to highlight the current day
+      date,
+      dayName: format(date, 'EEEE'), // Full day name
+      events: events.filter(event => 
+        isSameDay(new Date(event.start_time), date)
+      ),
+      isToday: isToday(date)
     };
   });
+
+  return weekDays;
 };
 
 export const WeekView = ({ events, onPrompt }: WeekViewProps) => {
@@ -42,10 +43,10 @@ export const WeekView = ({ events, onPrompt }: WeekViewProps) => {
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-4 py-4">
-          {groupEventsByDayOfWeek(events).map(({ day, events: dayEvents, isToday }) => (
-            <div key={day} className={`p-3 rounded-lg ${isToday ? 'bg-muted/30' : ''}`}>
+          {groupEventsByDayOfWeek(events).map(({ date, dayName, events: dayEvents, isToday }) => (
+            <div key={dayName} className={`p-3 rounded-lg ${isToday ? 'bg-muted/30' : ''}`}>
               <h3 className="font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-                {day}
+                {dayName} ({format(date, 'M/d')})
                 {isToday && (
                   <span className="inline-block w-2 h-2 bg-primary rounded-full" />
                 )}
