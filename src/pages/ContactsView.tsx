@@ -724,7 +724,7 @@ const ContactsView = () => {
                   className={`cursor-pointer hover:bg-purple-800/50 ${
                     selectedGroup === group.name
                       ? "bg-purple-600"
-                      : "bg-purple-900/50 border-purple-500/50 text-purple-100"
+                      : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
                   }`}
                   onClick={() => setSelectedGroup(group.name)}
                 >
@@ -733,7 +733,7 @@ const ContactsView = () => {
               ))}
               <Badge
                 variant="outline"
-                className="cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-500/50 text-purple-100"
+                className="cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
                 onClick={() => setShowDeepSpace(true)}
               >
                 🌌 Deep Space
