@@ -42,6 +42,7 @@ const getContactGradient = (contactId: string) => {
 
 export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   const [ungroupedContacts, setUngroupedContacts] = useState<Contact[]>([]);
+  const [totalUngroupedCount, setTotalUngroupedCount] = useState<number>(0);
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
@@ -82,8 +83,13 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
           !groupedContactIds.has(contact.id)
         );
         setUngroupedContacts(searchResults);
+        setTotalUngroupedCount(searchResults.length);
         setHasMore(false); // Disable pagination during search
       } else {
+        // Calculate total ungrouped contacts first
+        const totalUngrouped = contacts.filter(contact => !groupedContactIds.has(contact.id)).length;
+        setTotalUngroupedCount(totalUngrouped);
+        
         // Normal pagination when not searching
         const startIndex = currentPage * PAGE_SIZE;
         const endIndex = startIndex + PAGE_SIZE;
@@ -232,7 +238,7 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
           variant="outline" 
           className="ml-4 bg-purple-900/50 border-purple-500/50 text-purple-100"
         >
-          {isLoading ? "Loading..." : `${filteredContacts.length} in Deep Space`}
+          {isLoading ? "Loading..." : `${totalUngroupedCount} in Deep Space`}
         </Badge>
       </div>
 
