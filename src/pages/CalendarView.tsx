@@ -19,6 +19,11 @@ interface CalendarEvent {
   start_time: string;
   end_time: string;
   google_event_id?: string;
+  location?: string;
+  attendees?: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 interface CalendarData {
@@ -60,12 +65,19 @@ const CalendarView = () => {
 
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
-          .select("*")
+          .select(`
+            *,
+            calendar_event_attendees!inner (
+              contacts (
+                id,
+                name
+              )
+            )
+          `)
           .eq("user_id", session.user.id)
           .gte("start_time", thirtyDaysAgo.toISOString())
           .lte("start_time", thirtyDaysFromNow.toISOString())
-          .order("start_time", { ascending: true })
-          .returns<CalendarEventRow[]>();
+          .order("start_time", { ascending: true });
 
         if (dbError) {
           console.error("Error fetching calendar events:", dbError);
@@ -83,7 +95,12 @@ const CalendarView = () => {
           description: event.description || undefined,
           start_time: event.start_time,
           end_time: event.end_time,
-          google_event_id: event.google_event_id || undefined
+          location: event.location || undefined,
+          google_event_id: event.google_event_id || undefined,
+          attendees: event.calendar_event_attendees?.map(attendee => ({
+            id: attendee.contacts.id,
+            name: attendee.contacts.name
+          })) || []
         }));
 
         return { 
