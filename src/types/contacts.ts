@@ -28,4 +28,3 @@ export interface CalendarEvent {
 export interface ContactEvent extends CalendarEvent {
   attendees?: Contact[];
 }
-
