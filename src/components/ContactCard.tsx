@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { Contact, ContactEvent } from "@/types/contacts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import ContactGroupsManager from "@/components/ContactGroupsManager";
 
 interface ContactCardProps extends Contact {
   meetingStory?: string;
@@ -186,11 +188,10 @@ export const ContactCard = ({
 
         {/* Groups Section */}
         <div className="mt-8">
-          <h4 className="text-sm font-medium text-white/90 mb-2">Groups</h4>
-          {/* Group content will be handled by ContactGroupsManager */}
+          {id && <ContactGroupsManager contactId={id} className="text-white/90" />}
         </div>
 
-        {/* Interests Section - Always rendered */}
+        {/* Interests Section */}
         <div className="mt-8 space-y-4">
           <h3 className="text-sm font-bold text-purple-200">Interests</h3>
           {renderInterestSection("Food & Drinks", food_interests)}
@@ -269,3 +270,4 @@ export const ContactCard = ({
     </Card>
   );
 };
+
