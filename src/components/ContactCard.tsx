@@ -2,7 +2,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Instagram, Linkedin, Twitter } from "lucide-react";
+import { Phone, Instagram, Linkedin, Twitter, Archive } from "lucide-react";
 import { Contact } from "@/types/contacts";
 
 interface ContactCardProps extends Partial<Contact> {
@@ -19,6 +19,7 @@ export const ContactCard = ({
   relationship,
   email,
   closeness,
+  is_archived,
 }: ContactCardProps) => {
   const getClosenessLabel = (value: number | undefined | null) => {
     if (value === undefined || value === null) return null;
@@ -44,11 +45,19 @@ export const ContactCard = ({
               {relationship && (
                 <p className="text-sm text-muted-foreground mt-1">{relationship}</p>
               )}
-              {closenessLabel && (
-                <Badge variant="secondary" className="mt-2">
-                  {closenessLabel}
-                </Badge>
-              )}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {closenessLabel && (
+                  <Badge variant="secondary">
+                    {closenessLabel}
+                  </Badge>
+                )}
+                {is_archived && (
+                  <Badge variant="destructive" className="flex items-center gap-1">
+                    <Archive className="h-3 w-3" />
+                    Archived
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
         </div>
