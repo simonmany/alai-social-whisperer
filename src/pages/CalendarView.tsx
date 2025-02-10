@@ -67,7 +67,8 @@ const CalendarView = () => {
           .from("calendar_events")
           .select(`
             *,
-            calendar_event_attendees!inner (
+            event_attendees (
+              contact_id,
               contacts (
                 id,
                 name
@@ -97,7 +98,7 @@ const CalendarView = () => {
           end_time: event.end_time,
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
-          attendees: event.calendar_event_attendees?.map(attendee => ({
+          attendees: event.event_attendees?.map(attendee => ({
             id: attendee.contacts.id,
             name: attendee.contacts.name
           })) || []
