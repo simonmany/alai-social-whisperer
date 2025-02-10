@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,9 +18,15 @@ export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
   const { data: contacts } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
       const { data, error } = await supabase
         .from('contacts')
-        .select('*');
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_archived', false)
+        .order('name');
       
       if (error) throw error;
       return data as Contact[];
