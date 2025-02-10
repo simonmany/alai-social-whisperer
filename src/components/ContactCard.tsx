@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,7 +29,12 @@ export const ContactCard = ({
   recreation_interests = [],
   arts_interests = [],
 }: ContactCardProps) => {
-  console.log('Contact interests:', { food_interests, recreation_interests, arts_interests });
+  console.log('Contact Card rendered with:', {
+    name,
+    food_interests,
+    recreation_interests,
+    arts_interests
+  });
 
   const getClosenessLabel = (value: number | undefined | null) => {
     if (value === undefined || value === null) return null;
