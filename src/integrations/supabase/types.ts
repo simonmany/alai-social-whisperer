@@ -152,9 +152,11 @@ export type Database = {
       }
       contacts: {
         Row: {
+          arts_interests: Json | null
           closeness: number | null
           created_at: string
           email: string | null
+          food_interests: Json | null
           id: string
           instagram: string | null
           is_archived: boolean | null
@@ -162,14 +164,17 @@ export type Database = {
           meeting_story: string | null
           name: string
           phone: string | null
+          recreation_interests: Json | null
           relationship: string | null
           twitter: string | null
           user_id: string
         }
         Insert: {
+          arts_interests?: Json | null
           closeness?: number | null
           created_at?: string
           email?: string | null
+          food_interests?: Json | null
           id?: string
           instagram?: string | null
           is_archived?: boolean | null
@@ -177,14 +182,17 @@ export type Database = {
           meeting_story?: string | null
           name: string
           phone?: string | null
+          recreation_interests?: Json | null
           relationship?: string | null
           twitter?: string | null
           user_id: string
         }
         Update: {
+          arts_interests?: Json | null
           closeness?: number | null
           created_at?: string
           email?: string | null
+          food_interests?: Json | null
           id?: string
           instagram?: string | null
           is_archived?: boolean | null
@@ -192,6 +200,7 @@ export type Database = {
           meeting_story?: string | null
           name?: string
           phone?: string | null
+          recreation_interests?: Json | null
           relationship?: string | null
           twitter?: string | null
           user_id?: string

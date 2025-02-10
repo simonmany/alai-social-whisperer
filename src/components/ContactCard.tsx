@@ -26,6 +26,9 @@ export const ContactCard = ({
   email,
   closeness,
   is_archived,
+  food_interests = [],
+  recreation_interests = [],
+  arts_interests = [],
 }: ContactCardProps) => {
   const getClosenessLabel = (value: number | undefined | null) => {
     if (value === undefined || value === null) return null;
@@ -35,6 +38,26 @@ export const ContactCard = ({
   };
 
   const closenessLabel = getClosenessLabel(closeness);
+
+  const renderInterestSection = (title: string, interests: string[]) => {
+    if (!interests.length) return null;
+    return (
+      <div className="mt-2">
+        <h4 className="text-sm font-medium text-foreground mb-2">{title}</h4>
+        <div className="flex flex-wrap gap-2">
+          {interests.map((interest, index) => (
+            <Badge 
+              key={index} 
+              variant="secondary"
+              className="bg-primary/10 text-primary hover:bg-primary/20"
+            >
+              {interest}
+            </Badge>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   // Fetch past and upcoming events for this contact
   const { data: events = [] } = useQuery({
@@ -113,6 +136,14 @@ export const ContactCard = ({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Interests Section */}
+        <div className="mt-6 space-y-4">
+          <h3 className="text-sm font-bold text-primary">Interests</h3>
+          {renderInterestSection("Food & Drinks", food_interests)}
+          {renderInterestSection("Recreation", recreation_interests)}
+          {renderInterestSection("Arts", arts_interests)}
         </div>
         
         {/* Last Hangout Section */}
@@ -222,3 +253,4 @@ export const ContactCard = ({
     </Card>
   );
 };
+

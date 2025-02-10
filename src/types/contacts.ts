@@ -10,6 +10,9 @@ export interface Contact {
   meeting_story?: string;
   relationship?: string;
   closeness?: number;
+  food_interests?: string[];
+  recreation_interests?: string[];
+  arts_interests?: string[];
 }
 
 export interface CalendarEvent {
@@ -25,3 +28,4 @@ export interface CalendarEvent {
 export interface ContactEvent extends CalendarEvent {
   attendees?: Contact[];
 }
+
