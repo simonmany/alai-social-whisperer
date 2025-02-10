@@ -11,10 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 interface DeepSpaceViewProps {
   contacts: Contact[];
 }
+
+const PAGE_SIZE = 1000;
 
 const getInitials = (name: string): string => {
   return name
@@ -42,55 +45,84 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
 
-  useEffect(() => {
-    const fetchUngroupedContacts = async () => {
-      try {
+  const loadContacts = async (currentPage: number, isLoadingMore = false) => {
+    try {
+      if (isLoadingMore) {
+        setIsLoadingMore(true);
+      } else {
         setIsLoading(true);
-        
-        // Get all group memberships
-        const { data: memberships, error: membershipError } = await supabase
-          .from('contact_group_memberships')
-          .select('contact_id');
+      }
+      
+      // Get all group memberships
+      const { data: memberships, error: membershipError } = await supabase
+        .from('contact_group_memberships')
+        .select('contact_id');
 
-        if (membershipError) {
-          console.error('Error fetching memberships:', membershipError);
-          toast({
-            title: "Error fetching group memberships",
-            description: membershipError.message,
-            variant: "destructive"
-          });
-          return;
-        }
-
-        // Create a Set of grouped contact IDs for efficient lookup
-        const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
-        
-        // Filter contacts that aren't in any groups
-        const filteredContacts = contacts.filter(contact => !groupedContactIds.has(contact.id));
-        console.log(`Found ${filteredContacts.length} ungrouped contacts out of ${contacts.length} total contacts`);
-        
-        setUngroupedContacts(filteredContacts);
-      } catch (error: any) {
-        console.error('Error in fetchUngroupedContacts:', error);
+      if (membershipError) {
+        console.error('Error fetching memberships:', membershipError);
         toast({
-          title: "Error loading contacts",
-          description: error.message,
+          title: "Error fetching group memberships",
+          description: membershipError.message,
           variant: "destructive"
         });
-      } finally {
+        return;
+      }
+
+      // Create a Set of grouped contact IDs for efficient lookup
+      const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
+      
+      // Filter contacts that aren't in any groups
+      const filteredContacts = contacts.filter(contact => !groupedContactIds.has(contact.id));
+      console.log(`Found ${filteredContacts.length} ungrouped contacts out of ${contacts.length} total contacts`);
+      
+      // If we're loading more, append to existing contacts
+      if (isLoadingMore) {
+        setUngroupedContacts(prev => [...prev, ...filteredContacts]);
+      } else {
+        setUngroupedContacts(filteredContacts);
+      }
+
+      // Update hasMore based on whether we got a full page of results
+      setHasMore(filteredContacts.length >= PAGE_SIZE);
+      
+    } catch (error: any) {
+      console.error('Error in loadContacts:', error);
+      toast({
+        title: "Error loading contacts",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      if (isLoadingMore) {
+        setIsLoadingMore(false);
+      } else {
         setIsLoading(false);
       }
-    };
+    }
+  };
 
-    fetchUngroupedContacts();
-  }, [contacts, toast]);
+  useEffect(() => {
+    loadContacts(0);
+  }, [contacts]);
 
+  // Search across all contacts, not just currently loaded ones
   const filteredContacts = searchQuery
-    ? ungroupedContacts.filter(contact =>
+    ? contacts.filter(contact =>
+        !contact.id || // Filter out contacts without IDs
         contact.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : ungroupedContacts;
+
+  const loadMore = () => {
+    if (!isLoadingMore && hasMore) {
+      setPage(prev => prev + 1);
+      loadContacts(page + 1, true);
+    }
+  };
 
   const renderContactDrawerContent = (contact: Contact) => (
     <DrawerContent className="bg-black/90 border-purple-500/50 h-[100vh] overflow-y-auto">
@@ -195,36 +227,57 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
 
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
-          <p className="text-white">Loading contacts...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {filteredContacts.map((contact) => (
-            <Drawer key={contact.id}>
-              <DrawerTrigger className="w-full">
-                <div className="group relative flex flex-col items-center">
-                  <div 
-                    className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
-                    style={{
-                      background: getContactGradient(contact.id),
-                    }}
-                  >
-                    <div className="absolute inset-0 bg-black/10"></div>
-                    <span className="relative text-white font-semibold text-lg z-10">
-                      {getInitials(contact.name)}
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {filteredContacts.map((contact) => (
+              <Drawer key={contact.id}>
+                <DrawerTrigger className="w-full">
+                  <div className="group relative flex flex-col items-center">
+                    <div 
+                      className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                      style={{
+                        background: getContactGradient(contact.id),
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-black/10"></div>
+                      <span className="relative text-white font-semibold text-lg z-10">
+                        {getInitials(contact.name)}
+                      </span>
+                    </div>
+                    <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+                      {contact.name}
                     </span>
                   </div>
-                  <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-                    {contact.name}
-                  </span>
-                </div>
-              </DrawerTrigger>
-              {renderContactDrawerContent(contact)}
-            </Drawer>
-          ))}
-        </div>
+                </DrawerTrigger>
+                {renderContactDrawerContent(contact)}
+              </Drawer>
+            ))}
+          </div>
+
+          {!searchQuery && hasMore && (
+            <div className="flex justify-center mt-8">
+              <Button
+                variant="outline"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+                className="bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Contacts'
+                )}
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 };
-
