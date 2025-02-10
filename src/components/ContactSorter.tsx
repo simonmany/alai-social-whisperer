@@ -1,14 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { Contact } from '@/types/contacts';
-import { Drawer, DrawerContent } from '@/components/ui/drawer';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { X, Archive, Undo, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { X, Archive, Undo, Plus } from 'lucide-react';
 
 interface ContactSorterProps {
   isOpen: boolean;
@@ -232,134 +231,139 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
   };
 
   return (
-    <>
-      <Drawer open={isOpen} onOpenChange={onClose}>
-        <DrawerContent className="h-[85vh] bg-black/90 border-purple-500/50">
-          <div className="p-6 space-y-8">
-            <div className="flex justify-between items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleUndo}
-                disabled={history.length === 0}
-                className="text-white hover:bg-purple-900/50"
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-black/90 border-purple-500/50 max-w-4xl h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-white text-2xl">Sort Your Contacts</DialogTitle>
+          <DialogDescription className="text-gray-400">
+            Organize your contacts into groups or archive them
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="p-6 space-y-8">
+          <div className="flex justify-between items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleUndo}
+              disabled={history.length === 0}
+              className="text-white hover:bg-purple-900/50"
+            >
+              <Undo className="h-6 w-6" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-white hover:bg-purple-900/50"
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
+
+          {currentContact ? (
+            <div className="flex flex-col items-center space-y-4">
+              <div 
+                className="h-32 w-32 rounded-full shadow-lg flex items-center justify-center relative overflow-hidden"
+                style={{
+                  background: getContactGradient(currentContact.id),
+                }}
               >
-                <Undo className="h-6 w-6" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="text-white hover:bg-purple-900/50"
-              >
-                <X className="h-6 w-6" />
-              </Button>
-            </div>
-
-            {currentContact ? (
-              <div className="flex flex-col items-center space-y-4">
-                <div 
-                  className="h-32 w-32 rounded-full shadow-lg flex items-center justify-center relative overflow-hidden"
-                  style={{
-                    background: getContactGradient(currentContact.id),
-                  }}
-                >
-                  <div className="absolute inset-0 bg-black/10"></div>
-                  <span className="relative text-white font-semibold text-3xl z-10">
-                    {getInitials(currentContact.name)}
-                  </span>
-                </div>
-                <h2 className="text-2xl font-bold text-white">{currentContact.name}</h2>
-
-                <div className="flex justify-between w-full max-w-md mt-8">
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleArchive(currentContact)}
-                    className="flex-1 mr-2 bg-red-900/50 text-white hover:bg-red-800/50"
-                  >
-                    <Archive className="h-5 w-5 mr-2" />
-                    Archive
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4 mt-8 w-full max-w-2xl">
-                  {groups.map((group) => (
-                    <button
-                      key={group.id}
-                      onClick={() => handleAddToGroup(currentContact, group.id)}
-                      className="group relative flex flex-col items-center"
-                    >
-                      <div className="h-20 w-20 rounded-full bg-purple-900/50 border border-purple-500/50 flex items-center justify-center relative">
-                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-purple-900/50 rounded-full"></div>
-                        <span className="text-white font-semibold relative z-10">
-                          {group.emoji || "👥"} {group.name}
-                        </span>
-                      </div>
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => setIsNewGroupDialogOpen(true)}
-                    className="group relative flex flex-col items-center"
-                  >
-                    <div className="h-20 w-20 rounded-full bg-purple-900/50 border-2 border-dashed border-purple-500/50 flex items-center justify-center relative">
-                      <Plus className="h-8 w-8 text-purple-300" />
-                    </div>
-                    <span className="mt-2 text-sm text-white opacity-80">
-                      Create New Group
-                    </span>
-                  </button>
-                </div>
+                <div className="absolute inset-0 bg-black/10"></div>
+                <span className="relative text-white font-semibold text-3xl z-10">
+                  {getInitials(currentContact.name)}
+                </span>
               </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-64">
-                <p className="text-xl text-white">No more contacts to sort!</p>
+              <h2 className="text-2xl font-bold text-white">{currentContact.name}</h2>
+
+              <div className="flex justify-between w-full max-w-md mt-8">
                 <Button
                   variant="ghost"
-                  onClick={onClose}
-                  className="mt-4 text-white hover:bg-purple-900/50"
+                  onClick={() => handleArchive(currentContact)}
+                  className="flex-1 mr-2 bg-red-900/50 text-white hover:bg-red-800/50"
                 >
-                  Close
+                  <Archive className="h-5 w-5 mr-2" />
+                  Archive
                 </Button>
               </div>
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
 
-      <Dialog open={isNewGroupDialogOpen} onOpenChange={setIsNewGroupDialogOpen}>
-        <DialogContent className="bg-black/90 border-purple-500/50">
-          <DialogHeader>
-            <DialogTitle className="text-white">Create New Group</DialogTitle>
-            <DialogDescription className="text-gray-400">
-              Enter a name for your new group
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <Input
-              placeholder="Group name"
-              value={newGroupName}
-              onChange={(e) => setNewGroupName(e.target.value)}
-              className="bg-purple-900/20 border-purple-500/50 text-white"
-            />
-            <div className="flex justify-end space-x-2">
+              <div className="grid grid-cols-3 gap-4 mt-8 w-full max-w-2xl">
+                {groups.map((group) => (
+                  <button
+                    key={group.id}
+                    onClick={() => handleAddToGroup(currentContact, group.id)}
+                    className="group relative flex flex-col items-center"
+                  >
+                    <div className="h-20 w-20 rounded-full bg-purple-900/50 border border-purple-500/50 flex items-center justify-center relative">
+                      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-purple-900/50 rounded-full"></div>
+                      <span className="text-white font-semibold relative z-10">
+                        {group.emoji || "👥"} {group.name}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setIsNewGroupDialogOpen(true)}
+                  className="group relative flex flex-col items-center"
+                >
+                  <div className="h-20 w-20 rounded-full bg-purple-900/50 border-2 border-dashed border-purple-500/50 flex items-center justify-center relative">
+                    <Plus className="h-8 w-8 text-purple-300" />
+                  </div>
+                  <span className="mt-2 text-sm text-white opacity-80">
+                    Create New Group
+                  </span>
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64">
+              <p className="text-xl text-white">No more contacts to sort!</p>
               <Button
                 variant="ghost"
-                onClick={() => setIsNewGroupDialogOpen(false)}
-                className="text-white hover:bg-purple-900/50"
+                onClick={onClose}
+                className="mt-4 text-white hover:bg-purple-900/50"
               >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleCreateGroup}
-                className="bg-purple-600 text-white hover:bg-purple-700"
-              >
-                Create Group
+                Close
               </Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          )}
+        </div>
+
+        <Dialog open={isNewGroupDialogOpen} onOpenChange={setIsNewGroupDialogOpen}>
+          <DialogContent className="bg-black/90 border-purple-500/50">
+            <DialogHeader>
+              <DialogTitle className="text-white">Create New Group</DialogTitle>
+              <DialogDescription className="text-gray-400">
+                Enter a name for your new group
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                placeholder="Group name"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+                className="bg-purple-900/20 border-purple-500/50 text-white"
+              />
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsNewGroupDialogOpen(false)}
+                  className="text-white hover:bg-purple-900/50"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateGroup}
+                  className="bg-purple-600 text-white hover:bg-purple-700"
+                >
+                  Create Group
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </DialogContent>
+    </Dialog>
   );
 };
 
