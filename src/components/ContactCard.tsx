@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,20 +49,20 @@ export const ContactCard = ({
     console.log(`Rendering ${title} interests:`, interests);
     return (
       <div className="mt-2">
-        <h4 className="text-sm font-medium text-foreground mb-2">{title}</h4>
+        <h4 className="text-sm font-medium text-white/90 mb-2">{title}</h4>
         <div className="flex flex-wrap gap-2">
           {interests && interests.length > 0 ? (
             interests.map((interest, index) => (
               <Badge 
                 key={index} 
                 variant="secondary"
-                className="bg-primary/10 text-primary hover:bg-primary/20"
+                className="bg-purple-500/20 text-purple-200 hover:bg-purple-500/30 border border-purple-500/30"
               >
                 {interest}
               </Badge>
             ))
           ) : (
-            <p className="text-sm text-muted-foreground">No {title.toLowerCase()} interests added yet</p>
+            <p className="text-sm text-white/60">No {title.toLowerCase()} interests added yet</p>
           )}
         </div>
       </div>
@@ -113,7 +112,7 @@ export const ContactCard = ({
   const lastHangout = pastEvents[0];
 
   return (
-    <Card className="w-full max-w-3xl mx-auto bg-card shadow-lg relative">
+    <Card className="w-full max-w-3xl mx-auto bg-black/60 shadow-xl relative border-purple-500/20 backdrop-blur-sm">
       {is_archived && (
         <div className="absolute -top-2 -right-2 z-50">
           <Badge 
@@ -128,19 +127,19 @@ export const ContactCard = ({
       <CardContent className="p-8">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
-              <AvatarFallback className="text-xl bg-primary/10">
+            <Avatar className="h-20 w-20 ring-2 ring-purple-500/30">
+              <AvatarFallback className="text-xl bg-purple-900/50 text-purple-100">
                 {name?.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold text-2xl text-foreground">{name}</h3>
+              <h3 className="font-semibold text-2xl text-white">{name}</h3>
               {relationship && (
-                <p className="text-sm text-muted-foreground mt-1">{relationship}</p>
+                <p className="text-sm text-white/60 mt-1">{relationship}</p>
               )}
               <div className="flex flex-wrap gap-2 mt-2">
                 {closenessLabel && (
-                  <Badge variant="secondary">
+                  <Badge variant="secondary" className="bg-purple-500/20 text-purple-200 border border-purple-500/30">
                     {closenessLabel}
                   </Badge>
                 )}
@@ -152,7 +151,7 @@ export const ContactCard = ({
         {/* Contact Information */}
         <div className="mt-8 space-y-3">
           {email && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
+            <div className="flex items-center space-x-2 text-white/60">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
@@ -160,25 +159,25 @@ export const ContactCard = ({
             </div>
           )}
           {phone && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
+            <div className="flex items-center space-x-2 text-white/60">
               <Phone className="h-4 w-4" />
               <span className="text-sm">{phone}</span>
             </div>
           )}
           {instagram && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
+            <div className="flex items-center space-x-2 text-white/60">
               <Instagram className="h-4 w-4" />
               <span className="text-sm">@{instagram}</span>
             </div>
           )}
           {linkedin && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
+            <div className="flex items-center space-x-2 text-white/60">
               <Linkedin className="h-4 w-4" />
               <span className="text-sm">{linkedin}</span>
             </div>
           )}
           {twitter && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
+            <div className="flex items-center space-x-2 text-white/60">
               <Twitter className="h-4 w-4" />
               <span className="text-sm">@{twitter}</span>
             </div>
@@ -187,13 +186,13 @@ export const ContactCard = ({
 
         {/* Groups Section */}
         <div className="mt-8">
-          <h4 className="text-sm font-medium text-foreground mb-2">Groups</h4>
+          <h4 className="text-sm font-medium text-white/90 mb-2">Groups</h4>
           {/* Group content will be handled by ContactGroupsManager */}
         </div>
 
         {/* Interests Section - Always rendered */}
         <div className="mt-8 space-y-4">
-          <h3 className="text-sm font-bold text-primary">Interests</h3>
+          <h3 className="text-sm font-bold text-purple-200">Interests</h3>
           {renderInterestSection("Food & Drinks", food_interests)}
           {renderInterestSection("Recreation", recreation_interests)}
           {renderInterestSection("Arts", arts_interests)}
@@ -201,9 +200,9 @@ export const ContactCard = ({
 
         {/* Last Hangout Section */}
         <div className="mt-8">
-          <h4 className="text-sm font-medium text-foreground mb-2">Last Hangout</h4>
+          <h4 className="text-sm font-medium text-white/90 mb-2">Last Hangout</h4>
           {lastHangout ? (
-            <div className="text-sm text-muted-foreground space-y-1">
+            <div className="text-sm text-white/60 space-y-1">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 <span>{format(new Date(lastHangout.start_time), 'PPP')}</span>
@@ -214,17 +213,17 @@ export const ContactCard = ({
               )}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No hangouts recorded yet</p>
+            <p className="text-sm text-white/60">No hangouts recorded yet</p>
           )}
         </div>
 
         {/* Upcoming Hangs */}
         {upcomingEvents.length > 0 && (
           <div className="mt-8">
-            <h4 className="text-sm font-medium text-foreground mb-2">Upcoming Hangs</h4>
+            <h4 className="text-sm font-medium text-white/90 mb-2">Upcoming Hangs</h4>
             <div className="space-y-3">
               {upcomingEvents.map(event => (
-                <div key={event.id} className="text-sm text-muted-foreground space-y-1">
+                <div key={event.id} className="text-sm text-white/60 space-y-1">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     <span>{format(new Date(event.start_time), 'PPP')}</span>
@@ -239,8 +238,8 @@ export const ContactCard = ({
         {/* How We Met Section */}
         {meetingStory && (
           <div className="mt-8">
-            <h4 className="text-sm font-medium text-foreground mb-2">How we met</h4>
-            <p className="text-sm text-muted-foreground">
+            <h4 className="text-sm font-medium text-white/90 mb-2">How we met</h4>
+            <p className="text-sm text-white/60">
               {meetingStory}
             </p>
           </div>
@@ -249,10 +248,10 @@ export const ContactCard = ({
         {/* Hangout History */}
         {pastEvents.length > 1 && (
           <div className="mt-8">
-            <h4 className="text-sm font-medium text-foreground mb-2">Friendship History</h4>
+            <h4 className="text-sm font-medium text-white/90 mb-2">Friendship History</h4>
             <div className="space-y-3">
               {pastEvents.slice(1).map(event => (
-                <div key={event.id} className="text-sm text-muted-foreground space-y-1">
+                <div key={event.id} className="text-sm text-white/60 space-y-1">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
                     <span>{format(new Date(event.start_time), 'PPP')}</span>
@@ -270,4 +269,3 @@ export const ContactCard = ({
     </Card>
   );
 };
-
