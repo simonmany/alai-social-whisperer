@@ -77,12 +77,16 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
       const { data, error } = await supabase
         .from('contacts')
-        .select('*')
+        .select('id, name, email')
         .eq('user_id', user.id)
         .eq('is_archived', false)
         .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        throw error;
+      }
+
       console.log('Total contacts fetched in planning dialog:', data?.length);
       return data || [];
     }
