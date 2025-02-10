@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -137,14 +138,6 @@ export const ContactCard = ({
           </div>
         </div>
 
-        {/* Interests Section */}
-        <div className="mt-6 space-y-4">
-          <h3 className="text-sm font-bold text-primary">Interests</h3>
-          {renderInterestSection("Food & Drinks", food_interests)}
-          {renderInterestSection("Recreation", recreation_interests)}
-          {renderInterestSection("Arts", arts_interests)}
-        </div>
-        
         {/* Contact Information */}
         <div className="mt-6 space-y-3">
           {email && (
@@ -179,6 +172,14 @@ export const ContactCard = ({
               <span className="text-sm">@{twitter}</span>
             </div>
           )}
+        </div>
+
+        {/* Interests Section */}
+        <div className="mt-6 space-y-4">
+          <h3 className="text-sm font-bold text-primary">Interests</h3>
+          {renderInterestSection("Food & Drinks", food_interests)}
+          {renderInterestSection("Recreation", recreation_interests)}
+          {renderInterestSection("Arts", arts_interests)}
         </div>
 
         {/* Last Hangout Section */}
