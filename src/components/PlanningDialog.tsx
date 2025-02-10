@@ -126,15 +126,15 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     switch (selectedCategory) {
       case "Food / Drinks":
         return foodItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+          item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       case "Recreation":
         return recreationItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+          item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       case "Arts":
         return artsItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+          item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       default:
         return [];
