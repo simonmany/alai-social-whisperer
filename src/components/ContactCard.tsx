@@ -34,8 +34,11 @@ export const ContactCard = ({
   return (
     <Card className="w-full max-w-sm bg-card shadow-lg relative">
       {is_archived && (
-        <div className="absolute -top-2 -right-2 z-10">
-          <Badge variant="destructive" className="flex items-center gap-1 shadow-lg">
+        <div className="absolute -top-2 -right-2 z-50">
+          <Badge 
+            variant="destructive" 
+            className="flex items-center gap-1 shadow-xl bg-red-500/90 backdrop-blur-sm border border-red-400/50 text-white font-medium"
+          >
             <Archive className="h-3 w-3" />
             Archived
           </Badge>
