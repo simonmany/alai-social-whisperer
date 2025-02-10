@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -125,7 +124,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   });
 
   const getFilteredSuggestions = () => {
-    if (!activity.trim()) return [];
+    if (!activity.trim() || selectedCategory === "A Trip" || selectedCategory === "A Party!") return [];
 
     switch (selectedCategory) {
       case "Food / Drinks":
@@ -444,13 +443,16 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       onChange={(e) => setActivity(e.target.value)}
                       className="h-8"
                     />
-                    {activity && getFilteredSuggestions().length > 0 && (
+                    {activity && !selectedCategory?.includes("A ") && getFilteredSuggestions().length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {getFilteredSuggestions().map((item) => (
                           <div
                             key={item.name}
                             className="px-2 py-1 hover:bg-accent cursor-pointer"
-                            onClick={() => setActivity(item.name)}
+                            onClick={() => {
+                              setActivity(item.name);
+                              setContactInput("");
+                            }}
                           >
                             <span className="text-sm">{item.name}</span>
                           </div>
@@ -627,4 +629,3 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
-
