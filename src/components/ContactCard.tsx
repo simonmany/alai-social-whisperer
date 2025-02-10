@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -146,6 +145,42 @@ export const ContactCard = ({
           {renderInterestSection("Arts", arts_interests)}
         </div>
         
+        {/* Contact Information */}
+        <div className="mt-6 space-y-3">
+          {email && (
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm">{email}</span>
+            </div>
+          )}
+          {phone && (
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Phone className="h-4 w-4" />
+              <span className="text-sm">{phone}</span>
+            </div>
+          )}
+          {instagram && (
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Instagram className="h-4 w-4" />
+              <span className="text-sm">@{instagram}</span>
+            </div>
+          )}
+          {linkedin && (
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Linkedin className="h-4 w-4" />
+              <span className="text-sm">{linkedin}</span>
+            </div>
+          )}
+          {twitter && (
+            <div className="flex items-center space-x-2 text-muted-foreground">
+              <Twitter className="h-4 w-4" />
+              <span className="text-sm">@{twitter}</span>
+            </div>
+          )}
+        </div>
+
         {/* Last Hangout Section */}
         <div className="mt-6">
           <h4 className="text-sm font-medium text-foreground mb-2">Last Hangout</h4>
@@ -213,44 +248,7 @@ export const ContactCard = ({
             </div>
           </div>
         )}
-
-        {/* Contact Information */}
-        <div className="mt-6 space-y-3">
-          {email && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              <span className="text-sm">{email}</span>
-            </div>
-          )}
-          {phone && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Phone className="h-4 w-4" />
-              <span className="text-sm">{phone}</span>
-            </div>
-          )}
-          {instagram && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Instagram className="h-4 w-4" />
-              <span className="text-sm">@{instagram}</span>
-            </div>
-          )}
-          {linkedin && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Linkedin className="h-4 w-4" />
-              <span className="text-sm">{linkedin}</span>
-            </div>
-          )}
-          {twitter && (
-            <div className="flex items-center space-x-2 text-muted-foreground">
-              <Twitter className="h-4 w-4" />
-              <span className="text-sm">@{twitter}</span>
-            </div>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
 };
-
