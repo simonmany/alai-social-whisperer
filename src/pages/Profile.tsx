@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { LogOut, MessageCircle, Settings, Share2, Target, X } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,7 @@ import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
 import { SkillsRadar } from "@/components/profile/SkillsRadar";
+import Autocomplete from 'react-google-autocomplete';
 
 interface ProfileProps {
   open: boolean;
@@ -27,6 +29,8 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
+  const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
+  const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -90,6 +94,29 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     retry: 2
   });
 
+  // Query to get Maps API key
+  useQuery({
+    queryKey: ['maps-key'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-maps-key');
+        if (error) throw error;
+        if (data?.apiKey) {
+          setMapsApiKey(data.apiKey);
+        }
+        return data;
+      } catch (error) {
+        console.error('Error fetching Maps API key:', error);
+        toast({
+          title: "Error loading location selector",
+          description: "Please try refreshing the page",
+          variant: "destructive",
+        });
+      }
+    },
+    enabled: open
+  });
+
   const handleGoalSubmit = async (message: string) => {
     if (onSend) {
       onSend(message);
@@ -108,6 +135,36 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       avatar_url: newUrl
     }));
     await queryClient.invalidateQueries({ queryKey: ['profile'] });
+  };
+
+  const handleLocationUpdate = async (place: any) => {
+    if (!userData?.id || !place) return;
+
+    const address = place.formatted_address || place.name || '';
+    if (!address) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ city: address })
+        .eq('id', userData.id);
+
+      if (error) throw error;
+
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      setIsLocationDialogOpen(false);
+      toast({
+        title: "Location updated",
+        description: "Your location has been updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Error updating location:', error);
+      toast({
+        title: "Error updating location",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   const goals = (profileData?.goals as unknown as Goal[]) || [];
@@ -348,7 +405,18 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                     <>
                       <h2 className="text-lg font-semibold">{displayName}</h2>
                       <div className="text-xs text-muted-foreground">
-                        @{username} • {profileData?.city || 'Location not set'}
+                        @{username} • {profileData?.city ? (
+                          profileData.city
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-xs"
+                            onClick={() => setIsLocationDialogOpen(true)}
+                          >
+                            Set location
+                          </Button>
+                        )}
                       </div>
                     </>
                   )}
@@ -422,6 +490,30 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         onOpenChange={setIsGoalsDialogOpen}
         onSubmit={handleGoalSubmit}
       />
+
+      <Dialog open={isLocationDialogOpen} onOpenChange={setIsLocationDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Your Location</DialogTitle>
+          </DialogHeader>
+          <div className="p-4">
+            {mapsApiKey ? (
+              <Autocomplete
+                apiKey={mapsApiKey}
+                onPlaceSelected={(place) => handleLocationUpdate(place)}
+                options={{
+                  types: ['(cities)'],
+                  fields: ['formatted_address']
+                }}
+                className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
+                placeholder="Enter your city..."
+              />
+            ) : (
+              <div className="text-sm text-gray-500">Loading location selector...</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
