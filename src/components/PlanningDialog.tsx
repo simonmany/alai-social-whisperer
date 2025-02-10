@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -337,8 +336,99 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     return `I want to ${formatActivity()} with ${contactNames} on ${formattedDate} at ${selectedTime}. Can you help make this happen?`;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const message = generateMessage();
+    
+    // Only create calendar event if we have all required fields
+    if (selectedDate && selectedTime && activity) {
+      try {
+        // Parse the time string to get hours and minutes
+        const [hour, period] = selectedTime.split(' ');
+        const [hourStr] = hour.split(':');
+        let hours = parseInt(hourStr);
+        
+        // Convert to 24-hour format
+        if (period === 'PM' && hours !== 12) {
+          hours += 12;
+        } else if (period === 'AM' && hours === 12) {
+          hours = 0;
+        }
+
+        // Create start date by combining selected date and time
+        const startDate = new Date(selectedDate);
+        startDate.setHours(hours, 0, 0, 0);
+
+        // End time is 1 hour after start time
+        const endDate = new Date(startDate);
+        endDate.setHours(endDate.getHours() + 1);
+
+        // Get the current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No authenticated user');
+
+        // Create the calendar event
+        const { error: eventError } = await supabase
+          .from('calendar_events')
+          .insert({
+            user_id: user.id,
+            title: activity,
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString(),
+          });
+
+        if (eventError) {
+          console.error('Error creating calendar event:', eventError);
+          toast({
+            title: "Error creating event",
+            description: "Failed to create calendar event. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // If there are selected contacts, create event attendees
+        if (selectedContacts.length > 0) {
+          const { error: attendeesError } = await supabase
+            .from('event_attendees')
+            .insert(
+              selectedContacts.map(contact => ({
+                event_id: (await supabase
+                  .from('calendar_events')
+                  .select('id')
+                  .eq('user_id', user.id)
+                  .eq('title', activity)
+                  .eq('start_time', startDate.toISOString())
+                  .single()).data?.id,
+                contact_id: contact.id
+              }))
+            );
+
+          if (attendeesError) {
+            console.error('Error creating event attendees:', attendeesError);
+            // Don't block the event creation if attendee association fails
+            toast({
+              title: "Warning",
+              description: "Event created but failed to associate some attendees.",
+              variant: "destructive",
+            });
+          }
+        }
+
+        toast({
+          title: "Success",
+          description: "Event created successfully!",
+        });
+      } catch (error) {
+        console.error('Error in handleSubmit:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create event. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     onSubmit(message);
     setActivity("");
     setSelectedCategory(null);
