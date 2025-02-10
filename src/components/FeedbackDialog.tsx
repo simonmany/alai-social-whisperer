@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { CalendarIcon, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -55,6 +55,18 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
   const [contactSearchInput, setContactSearchInput] = useState("");
+  const [hangDescription, setHangDescription] = useState("");
+  const [selectedMood, setSelectedMood] = useState<string>("");
+
+  const moodOptions = [
+    "fun",
+    "chill",
+    "deep",
+    "productive",
+    "nostalgic",
+    "exciting",
+    "meaningful"
+  ];
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts'],
@@ -209,7 +221,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       }
     } else if (selectedEvent) {
       const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
-      const message = `I had a hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
+      let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
         weekday: "long",
         month: "long",
         day: "numeric",
@@ -217,6 +229,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         hour: "numeric",
         minute: "2-digit",
       })}. We ${selectedEvent.title.toLowerCase()}.`;
+
+      if (hangDescription) {
+        message += ` ${hangDescription}`;
+      }
+      
       onSubmit(message);
     }
     onOpenChange(false);
@@ -234,6 +251,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setManualTime("afternoon");
     setManualNotes("");
     setContactSearchInput("");
+    setHangDescription("");
+    setSelectedMood("");
   };
 
   const formatAttendeeNames = (attendees: EventAttendee[]) => {
@@ -280,33 +299,90 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             </div>
 
             {!isManualEntry ? (
-              <div className="space-y-2">
-                {events.map((event) => (
-                  <div
-                    key={event.id}
-                    className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                      selectedEvent?.id === event.id
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-accent"
-                    }`}
-                    onClick={() => setSelectedEvent(event)}
-                  >
-                    <div className="font-medium">{event.title}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {event.date.toLocaleDateString([], {
-                        weekday: "long",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                      {" at "}
-                      {event.date.toLocaleTimeString([], {
-                        hour: "numeric",
-                        minute: "2-digit",
-                      })}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  {events.map((event) => (
+                    <div
+                      key={event.id}
+                      className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                        selectedEvent?.id === event.id
+                          ? "border-primary bg-primary/5"
+                          : "hover:bg-accent"
+                      }`}
+                      onClick={() => setSelectedEvent(event)}
+                    >
+                      <div className="font-medium">{event.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {event.date.toLocaleDateString([], {
+                          weekday: "long",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                        {" at "}
+                        {event.date.toLocaleTimeString([], {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                      <div className="text-sm text-muted-foreground">{event.location}</div>
                     </div>
-                    <div className="text-sm text-muted-foreground">{event.location}</div>
+                  ))}
+                </div>
+
+                {selectedEvent && (
+                  <div className="space-y-4 mt-4 p-4 border rounded-lg bg-accent/5">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Who was there:</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedEvent.attendees.map((attendee) => (
+                          <div
+                            key={attendee.id}
+                            className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                          >
+                            <Avatar className="h-4 w-4">
+                              <AvatarFallback className="text-[10px]">
+                                {getInitials(attendee.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{attendee.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">How was it?</h4>
+                      <div className="flex flex-wrap gap-2">
+                        {moodOptions.map((mood) => (
+                          <button
+                            key={mood}
+                            onClick={() => setSelectedMood(mood)}
+                            className={cn(
+                              "px-3 py-1 rounded-full text-xs border transition-colors",
+                              selectedMood === mood
+                                ? "bg-primary text-primary-foreground border-primary"
+                                : "hover:bg-accent"
+                            )}
+                          >
+                            {mood}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Add more details:</h4>
+                      <Textarea
+                        value={hangDescription}
+                        onChange={(e) => setHangDescription(e.target.value)}
+                        placeholder="• What did you talk about?
+• How'd you feel about the activity?
+• Any memorable moments?"
+                        className="min-h-[100px]"
+                      />
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             ) : (
               <div className="space-y-4">

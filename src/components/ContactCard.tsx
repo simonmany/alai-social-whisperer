@@ -7,6 +7,7 @@ import { Contact } from "@/types/contacts";
 
 interface ContactCardProps extends Partial<Contact> {
   meetingStory?: string;
+  is_archived?: boolean;
 }
 
 export const ContactCard = ({
@@ -31,7 +32,18 @@ export const ContactCard = ({
   const closenessLabel = getClosenessLabel(closeness);
 
   return (
-    <Card className="w-full max-w-sm bg-card shadow-lg">
+    <Card className="w-full max-w-sm bg-card shadow-lg relative">
+      {is_archived && (
+        <div className="absolute -top-2 -right-2 z-50">
+          <Badge 
+            variant="destructive" 
+            className="flex items-center gap-1 shadow-xl bg-red-500/90 backdrop-blur-sm border border-red-400/50 text-white font-medium"
+          >
+            <Archive className="h-3 w-3" />
+            Archived
+          </Badge>
+        </div>
+      )}
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
@@ -49,12 +61,6 @@ export const ContactCard = ({
                 {closenessLabel && (
                   <Badge variant="secondary">
                     {closenessLabel}
-                  </Badge>
-                )}
-                {is_archived && (
-                  <Badge variant="destructive" className="flex items-center gap-1">
-                    <Archive className="h-3 w-3" />
-                    Archived
                   </Badge>
                 )}
               </div>
