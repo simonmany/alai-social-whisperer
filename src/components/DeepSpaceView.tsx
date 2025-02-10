@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Contact } from "@/types/contacts";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
@@ -12,6 +11,7 @@ import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { ContactSorter } from './ContactSorter';
 
 interface DeepSpaceViewProps {
   contacts: Contact[];
@@ -49,6 +49,8 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
+  const [isSorterOpen, setIsSorterOpen] = useState(false);
+  const [sortedCount, setSortedCount] = useState(0);
 
   const loadContacts = async (currentPage: number, isLoadingMore = false) => {
     try {
@@ -242,6 +244,14 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
         </Badge>
       </div>
 
+      <Button
+        variant="outline"
+        onClick={() => setIsSorterOpen(true)}
+        className="w-full mb-8 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+      >
+        Start Exploring: {sortedCount} contacts sorted
+      </Button>
+
       {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
@@ -295,6 +305,15 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
           )}
         </>
       )}
+
+      <ContactSorter
+        isOpen={isSorterOpen}
+        onClose={() => setIsSorterOpen(false)}
+        onContactSorted={() => {
+          setSortedCount(prev => prev + 1);
+          loadContacts(0);
+        }}
+      />
     </div>
   );
 };

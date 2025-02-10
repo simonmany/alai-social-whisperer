@@ -154,6 +154,7 @@ export type Database = {
           email: string | null
           id: string
           instagram: string | null
+          is_archived: boolean | null
           linkedin: string | null
           meeting_story: string | null
           name: string
@@ -168,6 +169,7 @@ export type Database = {
           email?: string | null
           id?: string
           instagram?: string | null
+          is_archived?: boolean | null
           linkedin?: string | null
           meeting_story?: string | null
           name: string
@@ -182,6 +184,7 @@ export type Database = {
           email?: string | null
           id?: string
           instagram?: string | null
+          is_archived?: boolean | null
           linkedin?: string | null
           meeting_story?: string | null
           name?: string
