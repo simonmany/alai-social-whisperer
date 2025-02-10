@@ -126,22 +126,28 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const getFilteredSuggestions = () => {
     if (!activity.trim() || selectedCategory === "A Trip" || selectedCategory === "A Party!") return [];
 
+    let suggestions: { name: string }[] = [];
     switch (selectedCategory) {
       case "Food / Drinks":
-        return foodItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
+        suggestions = foodItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase()) &&
+          item.name.toLowerCase() !== activity.toLowerCase()
         ).slice(0, 5) || [];
+        break;
       case "Recreation":
-        return recreationItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
+        suggestions = recreationItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase()) &&
+          item.name.toLowerCase() !== activity.toLowerCase()
         ).slice(0, 5) || [];
+        break;
       case "Arts":
-        return artsItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
+        suggestions = artsItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase()) &&
+          item.name.toLowerCase() !== activity.toLowerCase()
         ).slice(0, 5) || [];
-      default:
-        return [];
+        break;
     }
+    return suggestions;
   };
 
   const handleAiPickActivity = () => {
