@@ -1,3 +1,4 @@
+
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,7 +13,6 @@ import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
 import type { Database } from "@/integrations/supabase/types";
 import { APP_CONSTANTS } from '../utils/constants';
-
 
 interface CalendarEvent {
   id: string;
@@ -55,82 +55,12 @@ const CalendarView = () => {
           return { events: [], isConnected: false };
         }
 
-        // Check if calendar is properly connected
-        if (!profile?.has_google_calendar || profile.google_token_expired) {
-          console.log('Calendar not properly connected:', {
-            hasAccessToken: !!profile?.google_access_token,
-            hasGoogleCalendar: !!profile?.has_google_calendar,
-            tokenExpired: !!profile?.google_token_expired
-          });
-          return { events: [], isConnected: false };
-        }
-
         // Initialize time range
         const now = new Date();
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-        // Make request to calendar function
-        const requestBody = {
-          action: "list",
-          timeMin: now.toISOString(),
-          timeMax: thirtyDaysFromNow.toISOString(),
-          google_token: profile.google_access_token
-        };
-
-        // Log request details
-        console.log('Calendar function request details:', {
-          endpoint: 'calendar',
-          method: 'POST',
-          payload: {
-            ...requestBody,
-            google_token: profile.google_access_token ? `${profile.google_access_token.substring(0, 10)}...` : null
-          }
-        });
-
-        // Make the request
-        const { data, error } = await supabase.functions.invoke<CalendarData>("calendar", {
-          body: requestBody,
-        });
-
-        if (error) {
-          console.error('Calendar function error:', error);
-          throw error;
-        }
-
-        const response = data;
-
-        if (error) {
-          console.error('Calendar function error:', {
-            status: error.status,
-            statusText: error.statusText,
-            error: error.message
-          });
-
-          // Try to parse error response
-          let errorData;
-          try {
-            errorData = JSON.parse(error.message);
-          } catch {
-            errorData = { message: error.message };
-          }
-
-          // If it's an auth error, redirect to connect calendar
-          if (errorData?.error === "invalid_grant") {
-            toast({
-              title: "Calendar access expired",
-              description: "Please reconnect your Google Calendar",
-              variant: "destructive",
-            });
-            return { events: [], isConnected: false };
-          }
-
-          throw new Error(error);
-        }
-
-        console.log('Calendar sync response:', response);
-
-        // Fetch events from local DB
+        // Fetch events from calendar_events table
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select("*")
@@ -147,7 +77,7 @@ const CalendarView = () => {
             description: "Failed to fetch calendar events.",
             variant: "destructive",
           });
-          return { events: [], isConnected: true };
+          return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
 
         // Map database events to CalendarEvent interface
@@ -160,7 +90,10 @@ const CalendarView = () => {
           google_event_id: event.google_event_id || undefined
         }));
 
-        return { events, isConnected: true };
+        return { 
+          events, 
+          isConnected: profile?.has_google_calendar && !profile?.google_token_expired 
+        };
       } catch (error) {
         console.error("Exception in fetchCalendarEvents:", error);
         
@@ -169,7 +102,7 @@ const CalendarView = () => {
           description: "Failed to fetch calendar events. Please try again.",
           variant: "destructive",
         });
-        return { events: [], isConnected: true };
+        return { events: [], isConnected: false };
       }
     },
     retry: 1,
@@ -218,11 +151,18 @@ const CalendarView = () => {
           <SheetTitle>Calendar</SheetTitle>
         </div>
 
-        {isLoading ? (
-          <div className="h-8 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+        {!calendarData.isConnected && !isLoading && (
+          <div className="p-4 border-b bg-muted/30">
+            <div className="flex flex-col items-center justify-center space-y-4">
+              <p className="text-center text-muted-foreground">
+                Connect your Google Calendar to sync and manage your events
+              </p>
+              <Button onClick={handleConnectCalendar}>
+                Connect Google Calendar
+              </Button>
+            </div>
           </div>
-        ) : null}
+        )}
 
         <Tabs defaultValue="day" className="flex-1 flex flex-col">
           <div className="px-4 pt-2">
@@ -239,37 +179,28 @@ const CalendarView = () => {
             </TabsList>
           </div>
 
-          <div className="flex-1 relative">
-            {isLoading ? (
-              <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
-                <p className="text-center text-muted-foreground">
-                  Verifying Google Calendar connection...
-                </p>
-              </div>
-            ) : !calendarData.isConnected ? (
-              <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
-                <p className="text-center text-muted-foreground">
-                  Connect your Google Calendar to see and manage your events
-                </p>
-                <Button onClick={handleConnectCalendar}>
-                  Connect Google Calendar
-                </Button>
-              </div>
-            ) : (
-              <div className="h-full flex flex-col">
-                <div className="flex-1">
-                  <TabsContent value="day" className="absolute inset-0">
-                    <DayView events={calendarData.events} onPrompt={handlePrompt} />
-                  </TabsContent>
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center h-full p-4 space-y-4">
+              <p className="text-center text-muted-foreground">
+                Loading events...
+              </p>
+            </div>
+          ) : (
+            <div className="h-full flex flex-col">
+              <div className="flex-1">
+                <TabsContent value="day" className="absolute inset-0">
+                  <DayView events={calendarData.events} onPrompt={handlePrompt} />
+                </TabsContent>
 
-                  <TabsContent value="week" className="absolute inset-0">
-                    <WeekView events={calendarData.events} onPrompt={handlePrompt} />
-                  </TabsContent>
+                <TabsContent value="week" className="absolute inset-0">
+                  <WeekView events={calendarData.events} onPrompt={handlePrompt} />
+                </TabsContent>
 
-                  <TabsContent value="month" className="absolute inset-0">
-                    <MonthView events={calendarData.events} onPrompt={handlePrompt} />
-                  </TabsContent>
-                </div>
+                <TabsContent value="month" className="absolute inset-0">
+                  <MonthView events={calendarData.events} onPrompt={handlePrompt} />
+                </TabsContent>
+              </div>
+              {calendarData.isConnected && (
                 <div className="p-4 border-t">
                   <Button
                     variant="destructive"
@@ -316,9 +247,9 @@ const CalendarView = () => {
                     Disconnect Calendar
                   </Button>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </Tabs>
       </SheetContent>
     </Sheet>
