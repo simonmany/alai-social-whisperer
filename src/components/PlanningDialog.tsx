@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -93,7 +94,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         .select('name');
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: selectedCategory === "Food / Drinks"
   });
 
   const { data: recreationItems } = useQuery({
@@ -105,7 +107,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         .eq('category', 'recreation');
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: selectedCategory === "Recreation"
   });
 
   const { data: artsItems } = useQuery({
@@ -117,7 +120,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         .eq('category', 'arts');
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: selectedCategory === "Arts"
   });
 
   const getFilteredSuggestions = () => {
@@ -126,15 +130,15 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     switch (selectedCategory) {
       case "Food / Drinks":
         return foodItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+          item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       case "Recreation":
         return recreationItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+          item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       case "Arts":
         return artsItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+          item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       default:
         return [];
@@ -230,9 +234,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   const handleCategorySelect = (category: ActivityCategory) => {
     setSelectedCategory(category);
-    if (category === "A Party!") {
-      setShowCustomSpot(true);
-    } else if (category === "A Trip") {
+    if (category === "A Party!" || category === "A Trip") {
       setShowCustomSpot(true);
     } else {
       setShowCustomSpot(false);
@@ -242,6 +244,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   const handleCategoryDeselect = () => {
     setSelectedCategory(null);
+    setShowCustomSpot(false);
+    setActivity("");
+  };
+
+  const handleBackFromCustomSpot = () => {
     setShowCustomSpot(false);
     setActivity("");
   };
@@ -325,11 +332,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedDate(undefined);
     setSelectedTime(undefined);
     onOpenChange(false);
-  };
-
-  const handleBackFromCustomSpot = () => {
-    setShowCustomSpot(false);
-    setActivity("");
   };
 
   return (
@@ -442,7 +444,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       onChange={(e) => setActivity(e.target.value)}
                       className="h-8"
                     />
-                    {activity && getFilteredSuggestions().length > 0 && !activity.includes(activity) && (
+                    {activity && getFilteredSuggestions().length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {getFilteredSuggestions().map((item) => (
                           <div
@@ -625,3 +627,4 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
+
