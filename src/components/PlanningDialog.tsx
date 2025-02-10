@@ -610,13 +610,21 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                     {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start" side="bottom">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
+                <PopoverContent 
+                  className="w-auto p-0" 
+                  align="start" 
+                  side="bottom"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="cursor-pointer hover:cursor-pointer">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </div>
                 </PopoverContent>
               </Popover>
 
