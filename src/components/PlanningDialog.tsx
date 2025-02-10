@@ -12,7 +12,7 @@ import Autocomplete from 'react-google-autocomplete';
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, addDays } from "date-fns";
+import { format, addDays, parseISO, set } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface PlanningDialogProps {
@@ -315,7 +315,119 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     return `I want to ${formatActivity()} with ${contactNames} on ${formattedDate} at ${selectedTime}. Can you help make this happen?`;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    let description = "";
+    let type = "";
+    let title = "";
+
+    if (selectedCategory === "try something new") {
+      description = activityInput || "a new activity";
+      type = "Activity";
+      title = `Try ${description}`;
+    } else if (selectedCategory === "Meet new people") {
+      const count = parseInt(peopleCount) || 1;
+      description = `meet ${count} new ${count === 1 ? 'person' : 'people'}`;
+      type = "Social";
+      title = `Meet new people`;
+    } else if (selectedCategory === "Catch up with old friends") {
+      description = friendInput || "catch up with a friend";
+      type = "Social";
+      title = `Catch up with ${friendInput || 'friends'}`;
+    } else if (selectedCategory === "Food / Drinks") {
+      title = activity;
+      description = `Get ${activity}`;
+    } else if (selectedCategory === "Recreation") {
+      title = activity;
+      description = activity;
+    } else if (selectedCategory === "Arts") {
+      title = activity;
+      description = `Go to ${activity}`;
+    } else if (selectedCategory === "A Party!") {
+      title = "Party";
+      description = `Party at ${activity}`;
+    } else if (selectedCategory === "A Trip") {
+      title = `Trip to ${activity}`;
+      description = `Travel to ${activity}`;
+    }
+
+    if (selectedDate && selectedTime) {
+      // Parse the time from the selected time slot
+      const [hour, minute, period] = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/)?.slice(1) || [];
+      let hours = parseInt(hour);
+      if (period === 'PM' && hours !== 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+
+      // Create start and end times
+      const startTime = set(selectedDate, {
+        hours,
+        minutes: 0,
+        seconds: 0,
+        milliseconds: 0
+      });
+
+      const endTime = set(selectedDate, {
+        hours: hours + 1,
+        minutes: 0,
+        seconds: 0,
+        milliseconds: 0
+      });
+
+      // Create the calendar event
+      const { error: eventError } = await supabase
+        .from('calendar_events')
+        .insert({
+          user_id: user.id,
+          title,
+          description,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+        });
+
+      if (eventError) {
+        console.error('Error creating calendar event:', eventError);
+        toast({
+          title: "Error creating event",
+          description: "There was a problem saving your event",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // If we have contacts selected, create event attendees
+      if (selectedContacts.length > 0) {
+        const attendees = selectedContacts.map(contact => ({
+          contact_id: contact.id,
+          event_id: (await supabase
+            .from('calendar_events')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('start_time', startTime.toISOString())
+            .single()).data?.id
+        }));
+
+        const { error: attendeesError } = await supabase
+          .from('event_attendees')
+          .insert(attendees);
+
+        if (attendeesError) {
+          console.error('Error adding event attendees:', attendeesError);
+          toast({
+            title: "Error adding attendees",
+            description: "Event was created but there was a problem adding attendees",
+            variant: "destructive",
+          });
+        }
+      }
+
+      toast({
+        title: "Event created",
+        description: "Your event has been added to the calendar",
+      });
+    }
+
     const message = generateMessage();
     onSubmit(message);
     setActivity("");
@@ -405,7 +517,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("A Party!")}
-                    className="flex flex-col gap-1 h-auto py-2"
+                    className="flex flex-col gap-1 h-auto py-2 px-2"
                   >
                     <PartyPopper className="h-4 w-4" />
                     <span className="text-xs">A Party!</span>
@@ -413,7 +525,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("A Trip")}
-                    className="flex flex-col gap-1 h-auto py-2"
+                    className="flex flex-col gap-1 h-auto py-2 px-2"
                   >
                     <Plane className="h-4 w-4" />
                     <span className="text-xs">A Trip</span>
