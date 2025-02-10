@@ -69,7 +69,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
           food_preferences,
           desired_food_preferences,
           music_preferences,
-          desired_music_preferences
+          desired_music_preferences,
+          skill_gourmand,
+          skill_aesthete,
+          skill_traveler,
+          skill_athlete,
+          skill_reveler
         `)
         .eq('id', userData.id)
         .single();
@@ -80,13 +85,14 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       }
       
       console.log("Profile data fetched:", profile);
-      console.log("Skills data:", {
+      console.log("Skills data from database:", {
         gourmand: profile?.skill_gourmand,
         aesthete: profile?.skill_aesthete,
         traveler: profile?.skill_traveler,
         athlete: profile?.skill_athlete,
         reveler: profile?.skill_reveler,
       });
+
       return profile;
     },
     enabled: !!userData?.id && open,
@@ -448,11 +454,11 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
               <SkillsRadar
                 skills={{
-                  gourmand: profileData?.skill_gourmand || 0,
-                  aesthete: profileData?.skill_aesthete || 0,
-                  traveler: profileData?.skill_traveler || 0,
-                  athlete: profileData?.skill_athlete || 0,
-                  reveler: profileData?.skill_reveler || 0,
+                  gourmand: Number(profileData?.skill_gourmand) || 0,
+                  aesthete: Number(profileData?.skill_aesthete) || 0,
+                  traveler: Number(profileData?.skill_traveler) || 0,
+                  athlete: Number(profileData?.skill_athlete) || 0,
+                  reveler: Number(profileData?.skill_reveler) || 0,
                 }}
               />
 
