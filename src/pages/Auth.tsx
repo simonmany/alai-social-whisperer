@@ -16,6 +16,8 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [passwordError, setPasswordError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [emailError, setEmailError] = useState("");
   const { handleGoogleLogin } = useAuth();
   const { toast } = useToast();
 
@@ -38,6 +40,19 @@ const Auth = () => {
     setLoading(true);
     
     try {
+      // First check if username is already taken
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('username', username)
+        .single();
+
+      if (existingUser) {
+        setUsernameError("This username is already taken. Please choose a different one.");
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -50,24 +65,10 @@ const Auth = () => {
       });
 
       if (error) {
-        const errorBody = error.message && error;
-        const isUserExists = error.status === 422 || 
-                           errorBody?.code === "user_already_exists" ||
-                           error.message.includes("User already registered");
-
-        if (isUserExists) {
-          console.log("User already exists, attempting sign in");
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (signInError) throw signInError;
-
-          toast({
-            title: "Welcome back!",
-            description: "You've been signed in with your existing account.",
-          });
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes("email already registered") || 
+            errorMessage.includes("user already registered")) {
+          setEmailError("An account with this email already exists. Please try signing in instead.");
           return;
         }
         throw error;
@@ -104,6 +105,14 @@ const Auth = () => {
       });
 
       if (error) {
+        if (error.message.toLowerCase().includes("invalid login credentials")) {
+          toast({
+            title: "Login Failed",
+            description: "Invalid email or password. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
         if (error.message.includes("Email not confirmed")) {
           setShowEmailConfirmation(true);
           throw new Error("Please confirm your email before signing in. Check your inbox for the confirmation link.");
@@ -200,16 +209,28 @@ const Auth = () => {
                     type="text"
                     placeholder="Username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      setUsernameError("");
+                    }}
                     required
                   />
+                  {usernameError && (
+                    <p className="text-sm text-red-500">{usernameError}</p>
+                  )}
                   <Input
                     type="email"
                     placeholder="Email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setEmailError("");
+                    }}
                     required
                   />
+                  {emailError && (
+                    <p className="text-sm text-red-500">{emailError}</p>
+                  )}
                   <div className="space-y-1">
                     <Input
                       type="password"
@@ -226,7 +247,7 @@ const Auth = () => {
                     )}
                   </div>
                 </div>
-                <Button type="submit" className="w-full" disabled={loading || !!passwordError}>
+                <Button type="submit" className="w-full" disabled={loading || !!passwordError || !!usernameError}>
                   {loading ? "Signing up..." : "Sign Up"}
                 </Button>
               </form>
