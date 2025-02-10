@@ -7,6 +7,7 @@ import { Contact } from "@/types/contacts";
 
 interface ContactCardProps extends Partial<Contact> {
   meetingStory?: string;
+  is_archived?: boolean;
 }
 
 export const ContactCard = ({
@@ -109,3 +110,4 @@ export const ContactCard = ({
     </Card>
   );
 };
+
