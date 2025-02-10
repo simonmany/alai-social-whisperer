@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot } from "lucide-react";
+import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Autocomplete from 'react-google-autocomplete';
@@ -34,7 +34,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Generate time slots from 7 AM to 11 PM
   const timeSlots = Array.from({ length: 17 }, (_, i) => {
     const hour = i + 7;
     const period = hour >= 12 ? 'PM' : 'AM';
@@ -193,12 +192,10 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   };
 
   const handleAiPickDateTime = () => {
-    // Generate a random date between today and 30 days from now
     const today = new Date();
     const randomDays = Math.floor(Math.random() * 30);
     const randomDate = addDays(today, randomDays);
     
-    // Generate a random time between 7 AM and 11 PM
     const randomHour = Math.floor(Math.random() * 17) + 7; // 7 AM to 11 PM
     const period = randomHour >= 12 ? 'PM' : 'AM';
     const displayHour = randomHour > 12 ? randomHour - 12 : randomHour;
@@ -254,7 +251,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     const hasContacts = selectedContacts.length > 0;
     const hasDateTime = selectedDate && selectedTime;
 
-    // Helper to format contact names naturally
     const formatContacts = (contacts: Contact[]) => {
       if (contacts.length === 0) return "";
       if (contacts.length === 1) return contacts[0].name;
@@ -263,7 +259,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       return `${allButLast}, and ${contacts[contacts.length - 1].name}`;
     };
 
-    // Helper to format activity based on category
     const formatActivity = () => {
       switch (selectedCategory) {
         case "Food / Drinks":
@@ -281,48 +276,40 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       }
     };
 
-    // All fields blank
     if (!hasActivity && !hasContacts && !hasDateTime) {
       return "Help me plan something fun!";
     }
 
-    // Only activity
     if (hasActivity && !hasContacts && !hasDateTime) {
       return `I want to ${formatActivity()}. Can you help me find some people and a good time?`;
     }
 
-    // Only contacts
     if (!hasActivity && hasContacts && !hasDateTime) {
       const contactNames = formatContacts(selectedContacts);
       return `I'd like to plan something with ${contactNames}. What should we do?`;
     }
 
-    // Only date/time
     if (!hasActivity && !hasContacts && hasDateTime) {
       const formattedDate = format(selectedDate, 'MMMM do');
       return `I'm free on ${formattedDate} at ${selectedTime}. What should I do?`;
     }
 
-    // Activity and contacts
     if (hasActivity && hasContacts && !hasDateTime) {
       const contactNames = formatContacts(selectedContacts);
       return `I want to ${formatActivity()} with ${contactNames}. When would be a good time?`;
     }
 
-    // Activity and date/time
     if (hasActivity && !hasContacts && hasDateTime) {
       const formattedDate = format(selectedDate, 'MMMM do');
       return `I want to ${formatActivity()} on ${formattedDate} at ${selectedTime}. Who should I invite?`;
     }
 
-    // Contacts and date/time
     if (!hasActivity && hasContacts && hasDateTime) {
       const contactNames = formatContacts(selectedContacts);
       const formattedDate = format(selectedDate, 'MMMM do');
       return `I'm meeting with ${contactNames} on ${formattedDate} at ${selectedTime}. What should we do?`;
     }
 
-    // All fields filled
     const contactNames = formatContacts(selectedContacts);
     const formattedDate = format(selectedDate, 'MMMM do');
     return `I want to ${formatActivity()} with ${contactNames} on ${formattedDate} at ${selectedTime}. Can you help make this happen?`;
@@ -338,6 +325,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedDate(undefined);
     setSelectedTime(undefined);
     onOpenChange(false);
+  };
+
+  const handleBackFromCustomSpot = () => {
+    setShowCustomSpot(false);
+    setActivity("");
   };
 
   return (
@@ -473,30 +465,40 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   </Button>
                 </>
               ) : (
-                <>
-                  {selectedCategory === "A Trip" && mapsApiKey ? (
-                    <Autocomplete
-                      apiKey={mapsApiKey}
-                      onPlaceSelected={(place: any) => {
-                        if (place && typeof place === 'object') {
-                          const address = place.formatted_address || place.name || '';
-                          if (address) {
-                            setActivity(address);
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleBackFromCustomSpot}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    {selectedCategory === "A Trip" && mapsApiKey ? (
+                      <Autocomplete
+                        apiKey={mapsApiKey}
+                        onPlaceSelected={(place: any) => {
+                          if (place && typeof place === 'object') {
+                            const address = place.formatted_address || place.name || '';
+                            if (address) {
+                              setActivity(address);
+                            }
                           }
-                        }
-                      }}
-                      className="w-full px-3 h-8 bg-background border border-input rounded-md text-sm"
-                      placeholder="Enter your destination..."
-                    />
-                  ) : (
-                    <Input
-                      placeholder={selectedCategory === "A Trip" ? "Loading location selector..." : "Enter your spot!"}
-                      value={activity}
-                      onChange={(e) => setActivity(e.target.value)}
-                      className="h-8"
-                    />
-                  )}
-                </>
+                        }}
+                        className="w-full px-3 h-8 bg-background border border-input rounded-md text-sm"
+                        placeholder="Enter your destination..."
+                      />
+                    ) : (
+                      <Input
+                        placeholder={selectedCategory === "A Trip" ? "Loading location selector..." : "Enter your spot!"}
+                        value={activity}
+                        onChange={(e) => setActivity(e.target.value)}
+                        className="h-8"
+                      />
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}
