@@ -376,7 +376,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       });
 
       // Create the calendar event
-      const { error: eventError } = await supabase
+      const { data: eventData, error: eventError } = await supabase
         .from('calendar_events')
         .insert({
           user_id: user.id,
@@ -384,7 +384,9 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           description,
           start_time: startTime.toISOString(),
           end_time: endTime.toISOString(),
-        });
+        })
+        .select('id')
+        .single();
 
       if (eventError) {
         console.error('Error creating calendar event:', eventError);
@@ -397,15 +399,10 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       }
 
       // If we have contacts selected, create event attendees
-      if (selectedContacts.length > 0) {
+      if (selectedContacts.length > 0 && eventData?.id) {
         const attendees = selectedContacts.map(contact => ({
           contact_id: contact.id,
-          event_id: (await supabase
-            .from('calendar_events')
-            .select('id')
-            .eq('user_id', user.id)
-            .eq('start_time', startTime.toISOString())
-            .single()).data?.id
+          event_id: eventData.id
         }));
 
         const { error: attendeesError } = await supabase
