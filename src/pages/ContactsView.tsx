@@ -285,6 +285,7 @@ const ContactsView = () => {
             variant="ghost" 
             size="icon"
             className="absolute top-4 left-4 text-white hover:bg-purple-900/50"
+            aria-label="Close drawer"
           >
             <ArrowLeft className="h-6 w-6" />
           </Button>
@@ -295,14 +296,14 @@ const ContactsView = () => {
             <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
           </Avatar>
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-white">{contact.name}</h2>
+            <h2 className="text-3xl font-bold text-white" id="drawer-title">{contact.name}</h2>
             {contact.phone && (
               <p className="text-white">{contact.phone}</p>
             )}
             {contact.email && (
               <p className="text-white">{contact.email}</p>
             )}
-            <p className="text-sm text-white">
+            <p className="text-sm text-white" id="drawer-description">
               Orbit Distance: {((1 - (contact.closeness || 0)) * 100).toFixed(0)}%
             </p>
           </div>
