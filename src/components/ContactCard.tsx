@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -112,7 +113,7 @@ export const ContactCard = ({
   const lastHangout = pastEvents[0];
 
   return (
-    <Card className="w-full max-w-sm bg-card shadow-lg relative">
+    <Card className="w-full max-w-3xl mx-auto bg-card shadow-lg relative">
       {is_archived && (
         <div className="absolute -top-2 -right-2 z-50">
           <Badge 
@@ -124,16 +125,16 @@ export const ContactCard = ({
           </Badge>
         </div>
       )}
-      <CardContent className="p-6">
+      <CardContent className="p-8">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
-              <AvatarFallback className="text-lg bg-primary/10">
+            <Avatar className="h-20 w-20">
+              <AvatarFallback className="text-xl bg-primary/10">
                 {name?.slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-semibold text-xl text-foreground">{name}</h3>
+              <h3 className="font-semibold text-2xl text-foreground">{name}</h3>
               {relationship && (
                 <p className="text-sm text-muted-foreground mt-1">{relationship}</p>
               )}
@@ -149,7 +150,7 @@ export const ContactCard = ({
         </div>
 
         {/* Contact Information */}
-        <div className="mt-6 space-y-3">
+        <div className="mt-8 space-y-3">
           {email && (
             <div className="flex items-center space-x-2 text-muted-foreground">
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -185,13 +186,13 @@ export const ContactCard = ({
         </div>
 
         {/* Groups Section */}
-        <div className="mt-6">
+        <div className="mt-8">
           <h4 className="text-sm font-medium text-foreground mb-2">Groups</h4>
           {/* Group content will be handled by ContactGroupsManager */}
         </div>
 
         {/* Interests Section - Always rendered */}
-        <div className="mt-6 space-y-4">
+        <div className="mt-8 space-y-4">
           <h3 className="text-sm font-bold text-primary">Interests</h3>
           {renderInterestSection("Food & Drinks", food_interests)}
           {renderInterestSection("Recreation", recreation_interests)}
@@ -199,7 +200,7 @@ export const ContactCard = ({
         </div>
 
         {/* Last Hangout Section */}
-        <div className="mt-6">
+        <div className="mt-8">
           <h4 className="text-sm font-medium text-foreground mb-2">Last Hangout</h4>
           {lastHangout ? (
             <div className="text-sm text-muted-foreground space-y-1">
@@ -219,7 +220,7 @@ export const ContactCard = ({
 
         {/* Upcoming Hangs */}
         {upcomingEvents.length > 0 && (
-          <div className="mt-6">
+          <div className="mt-8">
             <h4 className="text-sm font-medium text-foreground mb-2">Upcoming Hangs</h4>
             <div className="space-y-3">
               {upcomingEvents.map(event => (
@@ -237,7 +238,7 @@ export const ContactCard = ({
 
         {/* How We Met Section */}
         {meetingStory && (
-          <div className="mt-6">
+          <div className="mt-8">
             <h4 className="text-sm font-medium text-foreground mb-2">How we met</h4>
             <p className="text-sm text-muted-foreground">
               {meetingStory}
@@ -247,7 +248,7 @@ export const ContactCard = ({
 
         {/* Hangout History */}
         {pastEvents.length > 1 && (
-          <div className="mt-6">
+          <div className="mt-8">
             <h4 className="text-sm font-medium text-foreground mb-2">Friendship History</h4>
             <div className="space-y-3">
               {pastEvents.slice(1).map(event => (
@@ -269,3 +270,4 @@ export const ContactCard = ({
     </Card>
   );
 };
+
