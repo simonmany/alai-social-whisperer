@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import Autocomplete from 'react-google-autocomplete';
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format, addDays, parseISO, set } from "date-fns";
+import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface PlanningDialogProps {
@@ -127,15 +126,15 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     switch (selectedCategory) {
       case "Food / Drinks":
         return foodItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
+          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       case "Recreation":
         return recreationItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
+          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       case "Arts":
         return artsItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase())
+          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
         ).slice(0, 5) || [];
       default:
         return [];
@@ -316,111 +315,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     return `I want to ${formatActivity()} with ${contactNames} on ${formattedDate} at ${selectedTime}. Can you help make this happen?`;
   };
 
-  const handleSubmit = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    let description = "";
-    let title = "";
-
-    switch (selectedCategory) {
-      case "Food / Drinks":
-        title = activity;
-        description = `Get ${activity}`;
-        break;
-      case "Recreation":
-        title = activity;
-        description = activity;
-        break;
-      case "Arts":
-        title = activity;
-        description = `Go to ${activity}`;
-        break;
-      case "A Party!":
-        title = "Party";
-        description = `Party at ${activity}`;
-        break;
-      case "A Trip":
-        title = `Trip to ${activity}`;
-        description = `Travel to ${activity}`;
-        break;
-      default:
-        title = activity;
-        description = activity;
-    }
-
-    if (selectedDate && selectedTime) {
-      // Parse the time from the selected time slot
-      const [hour, minute, period] = selectedTime.match(/(\d+):(\d+)\s*(AM|PM)/)?.slice(1) || [];
-      let hours = parseInt(hour);
-      if (period === 'PM' && hours !== 12) hours += 12;
-      if (period === 'AM' && hours === 12) hours = 0;
-
-      // Create start and end times
-      const startTime = set(selectedDate, {
-        hours,
-        minutes: 0,
-        seconds: 0,
-        milliseconds: 0
-      });
-
-      const endTime = set(selectedDate, {
-        hours: hours + 1,
-        minutes: 0,
-        seconds: 0,
-        milliseconds: 0
-      });
-
-      // Create the calendar event
-      const { data: eventData, error: eventError } = await supabase
-        .from('calendar_events')
-        .insert({
-          user_id: user.id,
-          title,
-          description,
-          start_time: startTime.toISOString(),
-          end_time: endTime.toISOString(),
-        })
-        .select('id')
-        .single();
-
-      if (eventError) {
-        console.error('Error creating calendar event:', eventError);
-        toast({
-          title: "Error creating event",
-          description: "There was a problem saving your event",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // If we have contacts selected, create event attendees
-      if (selectedContacts.length > 0 && eventData?.id) {
-        const attendees = selectedContacts.map(contact => ({
-          contact_id: contact.id,
-          event_id: eventData.id
-        }));
-
-        const { error: attendeesError } = await supabase
-          .from('event_attendees')
-          .insert(attendees);
-
-        if (attendeesError) {
-          console.error('Error adding event attendees:', attendeesError);
-          toast({
-            title: "Error adding attendees",
-            description: "Event was created but there was a problem adding attendees",
-            variant: "destructive",
-          });
-        }
-      }
-
-      toast({
-        title: "Event created",
-        description: "Your event has been added to the calendar",
-      });
-    }
-
+  const handleSubmit = () => {
     const message = generateMessage();
     onSubmit(message);
     setActivity("");
@@ -510,7 +405,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("A Party!")}
-                    className="flex flex-col gap-1 h-auto py-2 px-2"
+                    className="flex flex-col gap-1 h-auto py-2"
                   >
                     <PartyPopper className="h-4 w-4" />
                     <span className="text-xs">A Party!</span>
@@ -518,7 +413,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   <Button 
                     variant="outline" 
                     onClick={() => handleCategorySelect("A Trip")}
-                    className="flex flex-col gap-1 h-auto py-2 px-2"
+                    className="flex flex-col gap-1 h-auto py-2"
                   >
                     <Plane className="h-4 w-4" />
                     <span className="text-xs">A Trip</span>
@@ -730,4 +625,3 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
-
