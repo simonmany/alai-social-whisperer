@@ -11,6 +11,11 @@ interface CalendarEvent {
   start_time: string;
   end_time: string;
   google_event_id?: string;
+  location?: string;
+  attendees?: Array<{
+    id: string;
+    name: string;
+  }>;
 }
 
 interface DayViewProps {

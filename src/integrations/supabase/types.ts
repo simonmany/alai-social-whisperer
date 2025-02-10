@@ -37,6 +37,7 @@ export type Database = {
           end_time: string
           google_event_id: string | null
           id: string
+          location: string | null
           start_time: string
           title: string
           updated_at: string | null
@@ -48,6 +49,7 @@ export type Database = {
           end_time: string
           google_event_id?: string | null
           id?: string
+          location?: string | null
           start_time: string
           title: string
           updated_at?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           end_time?: string
           google_event_id?: string | null
           id?: string
+          location?: string | null
           start_time?: string
           title?: string
           updated_at?: string | null

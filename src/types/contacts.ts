@@ -19,6 +19,7 @@ export interface CalendarEvent {
   start_time: string;
   end_time: string;
   google_event_id?: string | null;
+  location?: string | null;
 }
 
 export interface ContactEvent extends CalendarEvent {
