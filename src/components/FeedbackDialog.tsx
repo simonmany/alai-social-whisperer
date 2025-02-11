@@ -623,8 +623,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                                 <Archive className="h-3 w-3 text-muted-foreground" />
                               )}
                               <button
-                                onClick={() => removeContact(contact.id)}
-                                className="hover:text-destructive"
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  removeContact(contact.id);
+                                }}
+                                className="hover:text-destructive ml-1"
                               >
                                 <X className="h-3 w-3" />
                               </button>
