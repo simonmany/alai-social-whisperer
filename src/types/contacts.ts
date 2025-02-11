@@ -13,6 +13,7 @@ export interface Contact {
   food_interests?: string[];
   recreation_interests?: string[];
   arts_interests?: string[];
+  is_archived?: boolean;
 }
 
 export interface CalendarEvent {

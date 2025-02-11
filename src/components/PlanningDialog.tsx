@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,14 +48,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     const fetchMapsKey = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('get-maps-key');
-        if (error) {
-          console.error('Supabase function error:', error);
-          throw error;
-        }
-        if (!data?.apiKey) {
-          console.error('No API key returned:', data);
-          throw new Error('No API key returned from function');
-        }
+        if (error) throw error;
+        if (!data?.apiKey) throw new Error('No API key returned');
         setMapsApiKey(data.apiKey);
       } catch (error: any) {
         console.error('Error fetching Maps API key:', error);
@@ -84,7 +79,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
       if (error) throw error;
       
-      // Transform JSON fields to ensure they're arrays
       return (data || []).map(contact => ({
         ...contact,
         food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
@@ -232,34 +226,27 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const handleSubmit = async () => {
     const message = generateMessage();
     
-    // Only create calendar event if we have all required fields
     if (selectedDate && selectedTime && activity) {
       try {
-        // Parse the time string to get hours and minutes
         const [hour, period] = selectedTime.split(' ');
         const [hourStr] = hour.split(':');
         let hours = parseInt(hourStr);
         
-        // Convert to 24-hour format
         if (period === 'PM' && hours !== 12) {
           hours += 12;
         } else if (period === 'AM' && hours === 12) {
           hours = 0;
         }
 
-        // Create start date by combining selected date and time
         const startDate = new Date(selectedDate);
         startDate.setHours(hours, 0, 0, 0);
 
-        // End time is 1 hour after start time
         const endDate = new Date(startDate);
         endDate.setHours(endDate.getHours() + 1);
 
-        // Get the current user
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('No authenticated user');
 
-        // Create the calendar event
         const { data: eventData, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
@@ -281,7 +268,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
           return;
         }
 
-        // If there are selected contacts, create event attendees
         if (selectedContacts.length > 0) {
           const { error: attendeesError } = await supabase
             .from('event_attendees')
@@ -294,7 +280,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
           if (attendeesError) {
             console.error('Error creating event attendees:', attendeesError);
-            // Don't block the event creation if attendee association fails
             toast({
               title: "Warning",
               description: "Event created but failed to associate some attendees.",
@@ -332,78 +317,216 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Who's your new friend?</DialogTitle>
+          <DialogTitle>Plan a Hang</DialogTitle>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Invite some people</label>
-              <Button 
-                variant="ghost"
-                size="sm"
-                className="h-7 text-xs gap-1.5"
-                onClick={handleAiPickContact}
-              >
-                <Bot className="h-3.5 w-3.5" />
-                Have Al pick
-              </Button>
-            </div>
-            <div className="relative">
-              <Input
-                placeholder="Type to search contacts..."
-                value={contactInput}
-                onChange={(e) => setContactInput(e.target.value)}
-                className="h-8"
-              />
-              {contactInput && filteredContacts.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
-                  {filteredContacts.map((contact) => (
-                    <div
-                      key={contact.id}
-                      className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
-                      onClick={() => addContact(contact)}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{contact.name}</span>
-                      </div>
-                      {contact.is_archived && (
-                        <Archive className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {selectedContacts.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-1">
-                {selectedContacts.map((contact) => (
-                  <div
-                    key={contact.id}
-                    className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+          {!selectedCategory ? (
+            <div className="space-y-4">
+              <div>
+                <h4 className="text-sm font-medium mb-3">Little Plans</h4>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => handleCategorySelect("Food / Drinks")}
                   >
-                    <Avatar className="h-4 w-4">
-                      <AvatarFallback className="text-[10px]">{getInitials(contact.name)}</AvatarFallback>
-                    </Avatar>
-                    <span>{contact.name}</span>
-                    {contact.is_archived && (
-                      <Archive className="h-3 w-3 text-muted-foreground" />
-                    )}
-                    <button
-                      onClick={() => removeContact(contact)}
-                      className="hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ))}
+                    <Utensils className="h-6 w-6" />
+                    <span className="text-xs">Food / Drinks</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => handleCategorySelect("Recreation")}
+                  >
+                    <MapPin className="h-6 w-6" />
+                    <span className="text-xs">Recreation</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => handleCategorySelect("Arts")}
+                  >
+                    <Palette className="h-6 w-6" />
+                    <span className="text-xs">Arts</span>
+                  </Button>
+                </div>
               </div>
-            )}
-          </div>
+
+              <div>
+                <h4 className="text-sm font-medium mb-3">Big Plans</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => handleCategorySelect("A Party!")}
+                  >
+                    <PartyPopper className="h-6 w-6" />
+                    <span className="text-xs">A Party!</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-20 flex-col gap-2"
+                    onClick={() => handleCategorySelect("A Trip")}
+                  >
+                    <Plane className="h-6 w-6" />
+                    <span className="text-xs">A Trip</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-2"
+                  onClick={handleCategoryDeselect}
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  {selectedCategory === "Food / Drinks" && "What would you like to eat/drink?"}
+                  {selectedCategory === "Recreation" && "What activity would you like to do?"}
+                  {selectedCategory === "Arts" && "What would you like to see?"}
+                  {selectedCategory === "A Party!" && "Where's the party?"}
+                  {selectedCategory === "A Trip" && "Where would you like to go?"}
+                </label>
+                {selectedCategory === "A Trip" && mapsApiKey ? (
+                  <Autocomplete
+                    apiKey={mapsApiKey}
+                    onPlaceSelected={(place) => setActivity(place.formatted_address)}
+                    className="flex h-8 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                ) : (
+                  <Input
+                    value={activity}
+                    onChange={(e) => setActivity(e.target.value)}
+                    className="h-8"
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">Invite some people</label>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs gap-1.5"
+                    onClick={handleAiPickContact}
+                  >
+                    <Bot className="h-3.5 w-3.5" />
+                    Have Al pick
+                  </Button>
+                </div>
+                <div className="relative">
+                  <Input
+                    placeholder="Type to search contacts..."
+                    value={contactInput}
+                    onChange={(e) => setContactInput(e.target.value)}
+                    className="h-8"
+                  />
+                  {contactInput && filteredContacts.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                      {filteredContacts.map((contact) => (
+                        <div
+                          key={contact.id}
+                          className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
+                          onClick={() => addContact(contact)}
+                        >
+                          <div className="flex items-center gap-2">
+                            <Avatar className="h-6 w-6">
+                              <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">{contact.name}</span>
+                          </div>
+                          {contact.is_archived && (
+                            <Archive className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {selectedContacts.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedContacts.map((contact) => (
+                      <div
+                        key={contact.id}
+                        className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                      >
+                        <Avatar className="h-4 w-4">
+                          <AvatarFallback className="text-[10px]">{getInitials(contact.name)}</AvatarFallback>
+                        </Avatar>
+                        <span>{contact.name}</span>
+                        {contact.is_archived && (
+                          <Archive className="h-3 w-3 text-muted-foreground" />
+                        )}
+                        <button
+                          onClick={() => removeContact(contact)}
+                          className="hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">When would you like to meet?</label>
+                <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "w-[240px] h-8 text-left font-normal",
+                          !selectedDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        disabled={(date) => date < addDays(new Date(), -1)}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <Select
+                    value={selectedTime}
+                    onValueChange={setSelectedTime}
+                  >
+                    <SelectTrigger className="w-[140px] h-8">
+                      <SelectValue placeholder="Pick a time" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {timeSlots.map((time) => (
+                        <SelectItem key={time} value={time}>
+                          {time}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
 
           <Button onClick={handleSubmit} className="w-full h-8">
             Submit
