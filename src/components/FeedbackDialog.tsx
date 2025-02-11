@@ -71,14 +71,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   ];
 
   const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts', contactInput],
+    queryKey: ['contacts', contactSearchInput],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
         .eq('user_id', session.user.id)
-        .ilike('name', `%${contactInput}%`)
+        .ilike('name', `%${contactSearchInput}%`)
         .order('name');
 
       if (error) throw error;
@@ -90,57 +90,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
       })) as Contact[];
     },
-    enabled: !!session?.user?.id && contactInput.length > 0
+    enabled: !!session?.user?.id && contactSearchInput.length > 0
   });
-
-  const handleAiPickContact = () => {
-    if (!contacts || contacts.length === 0) {
-      toast({
-        title: "No contacts available",
-        description: "Add some contacts first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const availableContacts = contacts.filter(
-      contact => !manualAttendees.includes(contact.id)
-    );
-
-    if (availableContacts.length === 0) {
-      toast({
-        title: "All contacts already selected",
-        description: "Try removing some contacts first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
-    setManualAttendees(prev => [...prev, randomContact.id]);
-  };
-
-  const filteredContacts = contacts.filter(contact => 
-    !manualAttendees.includes(contact.id)
-  );
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const addContact = (contact: Contact) => {
-    setManualAttendees(prev => [...prev, contact.id]);
-    setContactInput("");
-  };
-
-  const removeContact = (contactId: string) => {
-    setManualAttendees(prev => prev.filter(id => id !== contactId));
-  };
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
@@ -312,6 +263,17 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     enabled: !!session?.user?.id
   });
 
+  const filteredContacts = contacts.filter(contact => 
+    !manualAttendees.includes(contact.id)
+  );
+
+  const filteredActivities = activities
+    ?.filter(activity =>
+      activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
+      activity.name.toLowerCase() !== manualActivity.toLowerCase()
+    )
+    .slice(0, 5) || [];
+
   const handleSubmit = async () => {
     console.log('handleSubmit called - starting submission process');
 
@@ -448,6 +410,51 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     return `${allButLast}, and ${attendees[attendees.length - 1].name}`;
   };
 
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const addContact = (contact: Contact) => {
+    setManualAttendees(prev => [...prev, contact.id]);
+    setContactInput("");
+  };
+
+  const removeContact = (contactId: string) => {
+    setManualAttendees(prev => prev.filter(id => id !== contactId));
+  };
+
+  const handleAiPickContact = () => {
+    if (!contacts || contacts.length === 0) {
+      toast({
+        title: "No contacts available",
+        description: "Add some contacts first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const availableContacts = contacts.filter(
+      contact => !manualAttendees.includes(contact.id)
+    );
+
+    if (availableContacts.length === 0) {
+      toast({
+        title: "All contacts already selected",
+        description: "Try removing some contacts first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
+    setManualAttendees([...manualAttendees, randomContact.id]);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -563,27 +570,16 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium">Who was there?</label>
-                    <Button 
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs gap-1.5"
-                      onClick={handleAiPickContact}
-                    >
-                      <Bot className="h-3.5 w-3.5" />
-                      Have Al pick
-                    </Button>
-                  </div>
-                  <div className="relative">
+                  <label className="text-sm font-medium">Who was there?</label>
+                  <div className="space-y-2 relative">
                     <Input
                       placeholder="Search contacts..."
-                      value={contactInput}
-                      onChange={(e) => setContactInput(e.target.value)}
+                      value={contactSearchInput}
+                      onChange={(e) => setContactSearchInput(e.target.value)}
                       className="h-8"
                     />
                     
-                    {contactInput && filteredContacts.length > 0 && (
+                    {contactSearchInput && filteredContacts.length > 0 && (
                       <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {filteredContacts.map((contact) => (
                           <div
@@ -593,7 +589,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                           >
                             <div className="flex items-center gap-2">
                               <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                                <AvatarFallback className="text-xs">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
                               </Avatar>
                               <span className="text-sm text-popover-foreground">{contact.name}</span>
                             </div>
@@ -604,40 +602,38 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                         ))}
                       </div>
                     )}
-                  </div>
 
-                  {manualAttendees.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {manualAttendees.map((attendeeId) => {
-                        const contact = contacts.find(c => c.id === attendeeId);
-                        if (!contact) return null;
-                        return (
-                          <div
-                            key={contact.id}
-                            className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                          >
-                            <Avatar className="h-4 w-4">
-                              <AvatarFallback className="text-[10px]">{getInitials(contact.name)}</AvatarFallback>
-                            </Avatar>
-                            <span>{contact.name}</span>
-                            {contact.is_archived && (
-                              <Archive className="h-3 w-3 text-muted-foreground" />
-                            )}
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                removeContact(contact.id);
-                              }}
-                              className="hover:text-destructive ml-1"
+                    {manualAttendees.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {manualAttendees.map((attendeeId) => {
+                          const contact = contacts.find(c => c.id === attendeeId);
+                          if (!contact) return null;
+                          return (
+                            <div
+                              key={contact.id}
+                              className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
                             >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                              <Avatar className="h-4 w-4">
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{contact.name}</span>
+                              {contact.is_archived && (
+                                <Archive className="h-3 w-3 text-muted-foreground" />
+                              )}
+                              <button
+                                onClick={() => removeContact(contact.id)}
+                                className="hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -652,7 +648,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       className="h-8"
                     />
                     
-                    
+                    {manualActivity && filteredActivities.length > 0 && (
+                      <div className="border rounded-md overflow-hidden">
+                        {filteredActivities.map((activity) => (
+                          <div
+                            key={activity.id}
+                            className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                            onClick={() => {
+                              setManualActivity(activity.name);
+                            }}
+                          >
+                            <span className="text-sm">{activity.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
