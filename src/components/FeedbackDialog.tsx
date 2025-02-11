@@ -48,6 +48,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
+  // Manual entry form state
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
@@ -81,6 +82,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
       if (error) throw error;
       
+      // Transform JSON fields to ensure they're arrays
       return (data || []).map(contact => ({
         ...contact,
         food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
@@ -433,7 +435,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Who was there?</label>
-                  <div className="space-y-2 relative">
+                  <div className="space-y-2">
                     <Input
                       placeholder="Search contacts..."
                       value={contactSearchInput}
@@ -442,14 +444,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     />
                     
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                      <div className="border rounded-md overflow-hidden">
                         {filteredContacts.map((contact) => (
                           <div
                             key={contact.id}
-                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
+                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between"
                             onClick={() => {
                               if (!manualAttendees.includes(contact.id)) {
-                                setManualAttendees(prev => [...prev, contact.id]);
+                                setManualAttendees([...manualAttendees, contact.id]);
                               }
                               setContactSearchInput("");
                             }}
@@ -460,7 +462,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                                   {getInitials(contact.name)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="text-sm text-popover-foreground">{contact.name}</span>
+                              <span className="text-sm">{contact.name}</span>
                             </div>
                             {contact.is_archived && (
                               <Archive className="h-4 w-4 text-muted-foreground" />
