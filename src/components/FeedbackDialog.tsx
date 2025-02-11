@@ -82,7 +82,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
       if (error) throw error;
       
-      // Transform JSON fields to ensure they're arrays
       return (data || []).map(contact => ({
         ...contact,
         food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
