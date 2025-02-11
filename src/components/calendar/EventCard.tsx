@@ -25,6 +25,11 @@ interface CalendarEvent {
 export const EventCard = ({ event }: { event: CalendarEvent }) => {
   const [showFeedback, setShowFeedback] = useState(false);
 
+  const handleSubmit = (message: string) => {
+    // Handle the feedback submission
+    console.log("Feedback submitted:", message);
+  };
+
   return (
     <>
       <div 
@@ -74,13 +79,7 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
       <FeedbackDialog
         open={showFeedback}
         onOpenChange={setShowFeedback}
-        event={{
-          id: event.id,
-          title: event.title,
-          mood: event.mood,
-          notes: event.feedback_notes,
-          attendees: event.attendees || []
-        }}
+        onSubmit={handleSubmit}
       />
     </>
   );
