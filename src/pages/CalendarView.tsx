@@ -22,6 +22,8 @@ interface CalendarEvent {
   google_event_id?: string;
   location?: string;
   feedback_sent?: boolean;
+  mood?: string;
+  feedback_notes?: string;
   attendees?: Array<{
     id: string;
     name: string;
@@ -76,6 +78,8 @@ const CalendarView = () => {
             location,
             google_event_id,
             feedback_sent,
+            mood,
+            feedback_notes,
             event_attendees!inner (
               contacts!contact_id (
                 id,
@@ -107,6 +111,8 @@ const CalendarView = () => {
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
           feedback_sent: event.feedback_sent,
+          mood: event.mood || undefined,
+          feedback_notes: event.feedback_notes || undefined,
           attendees: event.event_attendees?.map(attendee => ({
             id: attendee.contacts.id,
             name: attendee.contacts.name
@@ -133,20 +139,6 @@ const CalendarView = () => {
     refetchOnWindowFocus: true,
     gcTime: 0
   });
-
-  const handleConnectCalendar = async () => {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      console.error('Error getting user:', userError);
-      return;
-    }
-
-    if (user?.app_metadata?.provider === 'email') {
-      navigate('/email-calendar/connect');
-    } else {
-      navigate('/connect-calendar');
-    }
-  };
 
   const handlePrompt = (message: string) => {
     navigate("/", { state: { prompt: message } });
