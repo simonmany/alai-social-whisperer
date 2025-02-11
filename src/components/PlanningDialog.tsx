@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot, ArrowLeft } from "lucide-react";
+import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot, ArrowLeft, Archive } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Autocomplete from 'react-google-autocomplete';
@@ -79,7 +79,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         .from('contacts')
         .select('*')
         .eq('user_id', session.user.id)
-        .eq('is_archived', false)
         .ilike('name', `%${contactInput}%`)
         .order('name');
 
@@ -634,13 +633,18 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   {filteredContacts.map((contact) => (
                     <div
                       key={contact.id}
-                      className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2"
+                      className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
                       onClick={() => addContact(contact)}
                     >
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{contact.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{contact.name}</span>
+                      </div>
+                      {contact.is_archived && (
+                        <Archive className="h-4 w-4 text-muted-foreground" />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -658,6 +662,9 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       <AvatarFallback className="text-[10px]">{getInitials(contact.name)}</AvatarFallback>
                     </Avatar>
                     <span>{contact.name}</span>
+                    {contact.is_archived && (
+                      <Archive className="h-3 w-3 text-muted-foreground" />
+                    )}
                     <button
                       onClick={() => removeContact(contact)}
                       className="hover:text-destructive"
