@@ -313,7 +313,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           return;
         }
 
-        // Insert the calendar event
+        // Insert the calendar event with feedback_sent set to true
         const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
@@ -321,7 +321,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             description: manualLocation,
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
-            user_id: session.user.id
+            user_id: session.user.id,
+            feedback_sent: true  // Set this to true since we're submitting feedback right away
           })
           .select()
           .single();
