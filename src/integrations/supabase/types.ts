@@ -72,26 +72,32 @@ export type Database = {
       chat_history: {
         Row: {
           created_at: string
+          evening_checkin: boolean | null
           id: string
           is_ai: boolean
           is_onboarding_message: boolean | null
           message: string
+          morning_checkin: boolean | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          evening_checkin?: boolean | null
           id?: string
           is_ai?: boolean
           is_onboarding_message?: boolean | null
           message: string
+          morning_checkin?: boolean | null
           user_id: string
         }
         Update: {
           created_at?: string
+          evening_checkin?: boolean | null
           id?: string
           is_ai?: boolean
           is_onboarding_message?: boolean | null
           message?: string
+          morning_checkin?: boolean | null
           user_id?: string
         }
         Relationships: []

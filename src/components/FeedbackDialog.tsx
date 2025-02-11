@@ -171,8 +171,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     .slice(0, 5);
 
   const handleSubmit = async () => {
+    console.log('handleSubmit called - starting submission process');
+
     if (isManualEntry) {
-      if (!manualDate || !manualActivity || manualAttendees.length === 0) return;
+      console.log('Manual entry mode detected');
+      
+      if (!manualDate || !manualActivity || manualAttendees.length === 0) {
+        console.log('Validation failed:', { manualDate, manualActivity, attendeesCount: manualAttendees.length });
+        return;
+      }
 
       // Create the event time based on the selected time of day
       const eventDate = new Date(manualDate);
@@ -185,12 +192,18 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       console.log('Submitting manual event:', {
         activity: manualActivity,
         location: manualLocation,
-        startTime,
-        endTime,
-        attendees: manualAttendees
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        attendees: manualAttendees,
+        userId: session?.user?.id
       });
 
       try {
+        if (!session?.user?.id) {
+          console.error('No user session found');
+          return;
+        }
+
         // Insert the calendar event
         const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
@@ -199,7 +212,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             description: manualLocation,
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
-            user_id: session?.user?.id
+            user_id: session.user.id
           })
           .select()
           .single();
@@ -212,14 +225,20 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         console.log('Successfully created event:', newEvent);
 
         // Insert event attendees
-        const attendeePromises = manualAttendees.map(contactId =>
-          supabase
+        const attendeePromises = manualAttendees.map(async contactId => {
+          const { data, error } = await supabase
             .from('event_attendees')
             .insert({
               event_id: newEvent.id,
               contact_id: contactId
             })
-        );
+            .select();
+          
+          if (error) {
+            console.error(`Error inserting attendee ${contactId}:`, error);
+          }
+          return { contactId, data, error };
+        });
 
         const attendeeResults = await Promise.all(attendeePromises);
         console.log('Attendee insertion results:', attendeeResults);
@@ -236,17 +255,31 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           console.log('Event attendees:', attendeeContacts);
         }
 
+        // Verify trigger execution by fetching updated contacts
+        const { data: updatedContacts, error: updateCheckError } = await supabase
+          .from('contacts')
+          .select('id, name, food_interests, recreation_interests, arts_interests')
+          .in('id', manualAttendees);
+
+        if (updateCheckError) {
+          console.error('Error checking updated contacts:', updateCheckError);
+        } else {
+          console.log('Updated contacts interests:', updatedContacts);
+        }
+
         const attendeeNames = contacts
           .filter(contact => manualAttendees.includes(contact.id))
           .map(contact => contact.name)
           .join(', ');
 
         const message = `I had a hang with ${attendeeNames} at ${manualLocation} on ${format(manualDate, 'EEEE, MMMM d')} in the ${manualTime}. We ${manualActivity.toLowerCase()}. ${manualNotes}`;
+        console.log('Submitting message:', message);
         onSubmit(message);
       } catch (error) {
-        console.error('Error saving event:', error);
+        console.error('Error in event submission process:', error);
       }
     } else if (selectedEvent) {
+      console.log('Selected existing event:', selectedEvent);
       const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
       let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
         weekday: "long",
@@ -261,6 +294,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         message += ` ${hangDescription}`;
       }
       
+      console.log('Submitting existing event message:', message);
       onSubmit(message);
     }
     onOpenChange(false);
