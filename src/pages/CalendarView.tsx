@@ -67,10 +67,15 @@ const CalendarView = () => {
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
-            *,
+            id,
+            title,
+            description,
+            start_time,
+            end_time,
+            location,
+            google_event_id,
             event_attendees!inner (
-              contact_id,
-              contacts (
+              contacts!inner (
                 id,
                 name
               )
