@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Phone, Instagram, Linkedin, Twitter } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ContactsDialogProps {
   open: boolean;
@@ -56,9 +57,9 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
         linkedin,
         twitter,
         photo,
-        meeting_story,
+        meeting_story: meetingStory,  // Fixed: using the state variable meetingStory
         relationship,
-        is_archived: false  // Explicitly set is_archived to false when creating new contacts
+        is_archived: false
       }]);
 
     if (contactError) {
