@@ -112,7 +112,7 @@ const CalendarView = () => {
         console.log("Raw events from database:", dbEvents);
 
         const events: CalendarEvent[] = (dbEvents || []).map(event => {
-          console.log("Processing event:", event);  // Add this line to debug each event
+          console.log("Processing event:", event);
           return {
             id: event.id,
             title: event.title,
@@ -121,7 +121,7 @@ const CalendarView = () => {
             end_time: event.end_time,
             location: event.location || undefined,
             google_event_id: event.google_event_id || undefined,
-            feedback_sent: event.feedback_sent,  // Remove the || false to preserve actual value
+            feedback_sent: event.feedback_sent,
             mood: event.mood || undefined,
             feedback_notes: event.feedback_notes || undefined,
             attendees: event.event_attendees?.map(attendee => ({
