@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Contact } from '@/types/contacts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -46,7 +45,6 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
   const { toast } = useToast();
   const [sortedCount, setSortedCount] = useState(0);
 
-  // Fetch unsorted and unarchived contacts
   const fetchContacts = async () => {
     try {
       const { data: memberships } = await supabase
@@ -61,9 +59,15 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
         .eq('is_archived', false);
 
       if (allContacts) {
-        const unsortedContacts = allContacts.filter(
-          contact => !groupedContactIds.has(contact.id)
-        );
+        const unsortedContacts = allContacts
+          .filter(contact => !groupedContactIds.has(contact.id))
+          .map(contact => ({
+            ...contact,
+            food_interests: (contact.food_interests as string[]) || [],
+            recreation_interests: (contact.recreation_interests as string[]) || [],
+            arts_interests: (contact.arts_interests as string[]) || []
+          }));
+        
         setContacts(unsortedContacts);
         if (unsortedContacts.length > 0 && !currentContact) {
           setCurrentContact(unsortedContacts[0]);
@@ -74,7 +78,6 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
     }
   };
 
-  // Fetch groups
   const fetchGroups = async () => {
     try {
       const { data } = await supabase
@@ -150,7 +153,6 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
     if (!newGroupName.trim() || !currentContact) return;
 
     try {
-      // Get the current user's ID
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
         throw new Error('No authenticated user found');
@@ -366,4 +368,3 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
     </Dialog>
   );
 };
-

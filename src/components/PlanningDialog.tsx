@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot } from "lucide-react";
+import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot, ArrowLeft } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Autocomplete from 'react-google-autocomplete';
@@ -34,7 +35,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Generate time slots from 7 AM to 11 PM
   const timeSlots = Array.from({ length: 17 }, (_, i) => {
     const hour = i + 7;
     const period = hour >= 12 ? 'PM' : 'AM';
@@ -78,10 +78,17 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
       const { data, error } = await supabase
         .from('contacts')
-        .select('*')
-        .eq('user_id', user.id);
+        .select('id, name, email')
+        .eq('user_id', user.id)
+        .eq('is_archived', false)
+        .order('name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        throw error;
+      }
+
+      console.log('Total contacts fetched in planning dialog:', data?.length);
       return data || [];
     }
   });
@@ -94,7 +101,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         .select('name');
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: selectedCategory === "Food / Drinks"
   });
 
   const { data: recreationItems } = useQuery({
@@ -103,10 +111,11 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       const { data, error } = await supabase
         .from('activities')
         .select('name')
-        .eq('category', 'recreation');
+        .eq('category', 'Recreation');
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: selectedCategory === "Recreation"
   });
 
   const { data: artsItems } = useQuery({
@@ -115,31 +124,38 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       const { data, error } = await supabase
         .from('activities')
         .select('name')
-        .eq('category', 'arts');
+        .eq('category', 'Arts');
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: selectedCategory === "Arts"
   });
 
   const getFilteredSuggestions = () => {
-    if (!activity.trim()) return [];
+    if (!activity.trim() || selectedCategory === "A Trip" || selectedCategory === "A Party!") return [];
 
+    let suggestions: { name: string }[] = [];
     switch (selectedCategory) {
       case "Food / Drinks":
-        return foodItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+        suggestions = foodItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase()) &&
+          item.name.toLowerCase() !== activity.toLowerCase()
         ).slice(0, 5) || [];
+        break;
       case "Recreation":
-        return recreationItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+        suggestions = recreationItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase()) &&
+          item.name.toLowerCase() !== activity.toLowerCase()
         ).slice(0, 5) || [];
+        break;
       case "Arts":
-        return artsItems?.filter(item => 
-          !activity || item.name.toLowerCase().includes(activity.toLowerCase())
+        suggestions = artsItems?.filter(item => 
+          item.name.toLowerCase().includes(activity.toLowerCase()) &&
+          item.name.toLowerCase() !== activity.toLowerCase()
         ).slice(0, 5) || [];
-      default:
-        return [];
+        break;
     }
+    return suggestions;
   };
 
   const handleAiPickActivity = () => {
@@ -193,12 +209,10 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   };
 
   const handleAiPickDateTime = () => {
-    // Generate a random date between today and 30 days from now
     const today = new Date();
     const randomDays = Math.floor(Math.random() * 30);
     const randomDate = addDays(today, randomDays);
     
-    // Generate a random time between 7 AM and 11 PM
     const randomHour = Math.floor(Math.random() * 17) + 7; // 7 AM to 11 PM
     const period = randomHour >= 12 ? 'PM' : 'AM';
     const displayHour = randomHour > 12 ? randomHour - 12 : randomHour;
@@ -208,10 +222,12 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedTime(randomTime);
   };
 
-  const filteredContacts = (contacts || []).filter(contact => 
-    !selectedContacts.some(selected => selected.id === contact.id) &&
-    contact.name.toLowerCase().includes(contactInput.toLowerCase())
-  ).slice(0, 5);
+  const filteredContacts = contacts
+    ? contacts.filter(contact => 
+        contact.name.toLowerCase().includes(contactInput.toLowerCase()) &&
+        !selectedContacts.some(selected => selected.id === contact.id)
+      )
+    : [];
 
   const getInitials = (name: string) => {
     return name
@@ -233,9 +249,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   const handleCategorySelect = (category: ActivityCategory) => {
     setSelectedCategory(category);
-    if (category === "A Party!") {
-      setShowCustomSpot(true);
-    } else if (category === "A Trip") {
+    if (category === "A Party!" || category === "A Trip") {
       setShowCustomSpot(true);
     } else {
       setShowCustomSpot(false);
@@ -249,12 +263,16 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setActivity("");
   };
 
+  const handleBackFromCustomSpot = () => {
+    setShowCustomSpot(false);
+    setActivity("");
+  };
+
   const generateMessage = () => {
     const hasActivity = activity.trim() !== "";
     const hasContacts = selectedContacts.length > 0;
     const hasDateTime = selectedDate && selectedTime;
 
-    // Helper to format contact names naturally
     const formatContacts = (contacts: Contact[]) => {
       if (contacts.length === 0) return "";
       if (contacts.length === 1) return contacts[0].name;
@@ -263,7 +281,6 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       return `${allButLast}, and ${contacts[contacts.length - 1].name}`;
     };
 
-    // Helper to format activity based on category
     const formatActivity = () => {
       switch (selectedCategory) {
         case "Food / Drinks":
@@ -281,55 +298,134 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       }
     };
 
-    // All fields blank
     if (!hasActivity && !hasContacts && !hasDateTime) {
       return "Help me plan something fun!";
     }
 
-    // Only activity
     if (hasActivity && !hasContacts && !hasDateTime) {
       return `I want to ${formatActivity()}. Can you help me find some people and a good time?`;
     }
 
-    // Only contacts
     if (!hasActivity && hasContacts && !hasDateTime) {
       const contactNames = formatContacts(selectedContacts);
       return `I'd like to plan something with ${contactNames}. What should we do?`;
     }
 
-    // Only date/time
     if (!hasActivity && !hasContacts && hasDateTime) {
       const formattedDate = format(selectedDate, 'MMMM do');
       return `I'm free on ${formattedDate} at ${selectedTime}. What should I do?`;
     }
 
-    // Activity and contacts
     if (hasActivity && hasContacts && !hasDateTime) {
       const contactNames = formatContacts(selectedContacts);
       return `I want to ${formatActivity()} with ${contactNames}. When would be a good time?`;
     }
 
-    // Activity and date/time
     if (hasActivity && !hasContacts && hasDateTime) {
       const formattedDate = format(selectedDate, 'MMMM do');
       return `I want to ${formatActivity()} on ${formattedDate} at ${selectedTime}. Who should I invite?`;
     }
 
-    // Contacts and date/time
     if (!hasActivity && hasContacts && hasDateTime) {
       const contactNames = formatContacts(selectedContacts);
       const formattedDate = format(selectedDate, 'MMMM do');
       return `I'm meeting with ${contactNames} on ${formattedDate} at ${selectedTime}. What should we do?`;
     }
 
-    // All fields filled
     const contactNames = formatContacts(selectedContacts);
     const formattedDate = format(selectedDate, 'MMMM do');
     return `I want to ${formatActivity()} with ${contactNames} on ${formattedDate} at ${selectedTime}. Can you help make this happen?`;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const message = generateMessage();
+    
+    // Only create calendar event if we have all required fields
+    if (selectedDate && selectedTime && activity) {
+      try {
+        // Parse the time string to get hours and minutes
+        const [hour, period] = selectedTime.split(' ');
+        const [hourStr] = hour.split(':');
+        let hours = parseInt(hourStr);
+        
+        // Convert to 24-hour format
+        if (period === 'PM' && hours !== 12) {
+          hours += 12;
+        } else if (period === 'AM' && hours === 12) {
+          hours = 0;
+        }
+
+        // Create start date by combining selected date and time
+        const startDate = new Date(selectedDate);
+        startDate.setHours(hours, 0, 0, 0);
+
+        // End time is 1 hour after start time
+        const endDate = new Date(startDate);
+        endDate.setHours(endDate.getHours() + 1);
+
+        // Get the current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('No authenticated user');
+
+        // Create the calendar event
+        const { data: eventData, error: eventError } = await supabase
+          .from('calendar_events')
+          .insert({
+            user_id: user.id,
+            title: activity,
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString(),
+          })
+          .select()
+          .single();
+
+        if (eventError || !eventData) {
+          console.error('Error creating calendar event:', eventError);
+          toast({
+            title: "Error creating event",
+            description: "Failed to create calendar event. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // If there are selected contacts, create event attendees
+        if (selectedContacts.length > 0) {
+          const { error: attendeesError } = await supabase
+            .from('event_attendees')
+            .insert(
+              selectedContacts.map(contact => ({
+                event_id: eventData.id,
+                contact_id: contact.id
+              }))
+            );
+
+          if (attendeesError) {
+            console.error('Error creating event attendees:', attendeesError);
+            // Don't block the event creation if attendee association fails
+            toast({
+              title: "Warning",
+              description: "Event created but failed to associate some attendees.",
+              variant: "destructive",
+            });
+          }
+        }
+
+        toast({
+          title: "Success",
+          description: "Event created successfully!",
+        });
+      } catch (error) {
+        console.error('Error in handleSubmit:', error);
+        toast({
+          title: "Error",
+          description: "Failed to create event. Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     onSubmit(message);
     setActivity("");
     setSelectedCategory(null);
@@ -342,7 +438,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] overflow-visible">
         <DialogHeader className="p-0">
           <div className="flex items-center gap-2">
             <DialogTitle className="text-lg">Plan a Hang</DialogTitle>
@@ -450,13 +546,16 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       onChange={(e) => setActivity(e.target.value)}
                       className="h-8"
                     />
-                    {activity && getFilteredSuggestions().length > 0 && !activity.includes(activity) && (
+                    {activity && !selectedCategory?.includes("A ") && getFilteredSuggestions().length > 0 && (
                       <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {getFilteredSuggestions().map((item) => (
                           <div
                             key={item.name}
                             className="px-2 py-1 hover:bg-accent cursor-pointer"
-                            onClick={() => setActivity(item.name)}
+                            onClick={() => {
+                              setActivity(item.name);
+                              setContactInput("");
+                            }}
                           >
                             <span className="text-sm">{item.name}</span>
                           </div>
@@ -473,30 +572,40 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   </Button>
                 </>
               ) : (
-                <>
-                  {selectedCategory === "A Trip" && mapsApiKey ? (
-                    <Autocomplete
-                      apiKey={mapsApiKey}
-                      onPlaceSelected={(place: any) => {
-                        if (place && typeof place === 'object') {
-                          const address = place.formatted_address || place.name || '';
-                          if (address) {
-                            setActivity(address);
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={handleBackFromCustomSpot}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    {selectedCategory === "A Trip" && mapsApiKey ? (
+                      <Autocomplete
+                        apiKey={mapsApiKey}
+                        onPlaceSelected={(place: any) => {
+                          if (place && typeof place === 'object') {
+                            const address = place.formatted_address || place.name || '';
+                            if (address) {
+                              setActivity(address);
+                            }
                           }
-                        }
-                      }}
-                      className="w-full px-3 h-8 bg-background border border-input rounded-md text-sm"
-                      placeholder="Enter your destination..."
-                    />
-                  ) : (
-                    <Input
-                      placeholder={selectedCategory === "A Trip" ? "Loading location selector..." : "Enter your spot!"}
-                      value={activity}
-                      onChange={(e) => setActivity(e.target.value)}
-                      className="h-8"
-                    />
-                  )}
-                </>
+                        }}
+                        className="w-full px-3 h-8 bg-background border border-input rounded-md text-sm"
+                        placeholder="Enter your destination..."
+                      />
+                    ) : (
+                      <Input
+                        placeholder={selectedCategory === "A Trip" ? "Loading location selector..." : "Enter your spot!"}
+                        value={activity}
+                        onChange={(e) => setActivity(e.target.value)}
+                        className="h-8"
+                      />
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -588,13 +697,21 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                     {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={setSelectedDate}
-                    initialFocus
-                  />
+                <PopoverContent 
+                  className="w-auto p-0" 
+                  align="start" 
+                  side="bottom"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="cursor-pointer hover:cursor-pointer">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </div>
                 </PopoverContent>
               </Popover>
 
@@ -623,3 +740,4 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
+

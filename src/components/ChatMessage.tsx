@@ -4,6 +4,7 @@ import { ContactCard } from "@/components/ContactCard";
 import ReactMarkdown from "react-markdown";
 
 interface Contact {
+  id: string; // Added id as required property
   name: string;
   phone?: string;
   instagram?: string;

@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type EventAttendee = Contact;
 
@@ -86,10 +87,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     queryFn: async () => {
       const { data, error } = await supabase
         .from('activities')
-        .select('*');
+        .select('*')
+        .order('name');
       if (error) throw error;
       return data || [];
-    }
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const { data: events = [] } = useQuery({
@@ -162,13 +165,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
   const filteredActivities = activities
     .filter(activity =>
-      activity.name.toLowerCase().includes(manualActivity.toLowerCase())
+      activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
+      activity.name.toLowerCase() !== manualActivity.toLowerCase()
     )
     .slice(0, 5);
 
   const handleSubmit = async () => {
+    console.log('handleSubmit called - starting submission process');
+
     if (isManualEntry) {
-      if (!manualDate || !manualActivity || manualAttendees.length === 0) return;
+      console.log('Manual entry mode detected');
+      
+      if (!manualDate || !manualActivity || manualAttendees.length === 0) {
+        console.log('Validation failed:', { manualDate, manualActivity, attendeesCount: manualAttendees.length });
+        return;
+      }
 
       // Create the event time based on the selected time of day
       const eventDate = new Date(manualDate);
@@ -178,7 +189,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       const startTime = new Date(eventDate.setHours(startHour, 0, 0, 0));
       const endTime = new Date(eventDate.setHours(endHour, 0, 0, 0));
 
+      console.log('Submitting manual event:', {
+        activity: manualActivity,
+        location: manualLocation,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+        attendees: manualAttendees,
+        userId: session?.user?.id
+      });
+
       try {
+        if (!session?.user?.id) {
+          console.error('No user session found');
+          return;
+        }
+
         // Insert the calendar event
         const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
@@ -187,7 +212,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             description: manualLocation,
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
-            user_id: session?.user?.id
+            user_id: session.user.id
           })
           .select()
           .single();
@@ -197,29 +222,41 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           return;
         }
 
-        // Insert event attendees
-        const attendeePromises = manualAttendees.map(contactId =>
-          supabase
+        console.log('Successfully created event:', newEvent);
+
+        // Insert event attendees using the existing contact IDs
+        const attendeePromises = manualAttendees.map(async contactId => {
+          const { data, error } = await supabase
             .from('event_attendees')
             .insert({
               event_id: newEvent.id,
               contact_id: contactId
             })
-        );
+            .select();
+          
+          if (error) {
+            console.error(`Error inserting attendee ${contactId}:`, error);
+          }
+          return { contactId, data, error };
+        });
 
-        await Promise.all(attendeePromises);
+        const attendeeResults = await Promise.all(attendeePromises);
+        console.log('Attendee insertion results:', attendeeResults);
 
+        // Get the contact names for the message
         const attendeeNames = contacts
           .filter(contact => manualAttendees.includes(contact.id))
           .map(contact => contact.name)
           .join(', ');
 
         const message = `I had a hang with ${attendeeNames} at ${manualLocation} on ${format(manualDate, 'EEEE, MMMM d')} in the ${manualTime}. We ${manualActivity.toLowerCase()}. ${manualNotes}`;
+        console.log('Submitting message:', message);
         onSubmit(message);
       } catch (error) {
-        console.error('Error saving event:', error);
+        console.error('Error in event submission process:', error);
       }
     } else if (selectedEvent) {
+      console.log('Selected existing event:', selectedEvent);
       const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
       let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
         weekday: "long",
@@ -234,6 +271,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         message += ` ${hangDescription}`;
       }
       
+      console.log('Submitting existing event message:', message);
       onSubmit(message);
     }
     onOpenChange(false);
@@ -271,6 +309,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
 
   return (
     <>
@@ -456,17 +496,23 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     <Input
                       placeholder="Type an activity..."
                       value={manualActivity}
-                      onChange={(e) => setManualActivity(e.target.value)}
+                      onChange={(e) => {
+                        setManualActivity(e.target.value);
+                        setShowActivitySuggestions(true);
+                      }}
                       className="h-8"
                     />
                     
-                    {manualActivity && filteredActivities.length > 0 && (
+                    {manualActivity && showActivitySuggestions && filteredActivities.length > 0 && (
                       <div className="border rounded-md overflow-hidden">
                         {filteredActivities.map((activity) => (
                           <div
                             key={activity.id}
                             className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
-                            onClick={() => setManualActivity(activity.name)}
+                            onClick={() => {
+                              setManualActivity(activity.name);
+                              setShowActivitySuggestions(false);
+                            }}
                           >
                             <span className="text-sm">{activity.name}</span>
                           </div>
@@ -489,18 +535,36 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">When did you hang?</label>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal h-8"
-                      onClick={() => {
-                        // The calendar will be implemented in a future iteration
-                        // For now, we'll just use the current date
-                        setManualDate(new Date());
-                      }}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {manualDate ? format(manualDate, "PPP") : "Pick a date"}
-                    </Button>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal h-8",
+                            !manualDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {manualDate ? format(manualDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent 
+                        className="w-auto p-0" 
+                        align="start" 
+                        side="bottom"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="cursor-pointer hover:cursor-pointer">
+                          <Calendar
+                            mode="single"
+                            selected={manualDate}
+                            onSelect={setManualDate}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-2">

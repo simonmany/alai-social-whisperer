@@ -37,6 +37,7 @@ export type Database = {
           end_time: string
           google_event_id: string | null
           id: string
+          location: string | null
           start_time: string
           title: string
           updated_at: string | null
@@ -48,6 +49,7 @@ export type Database = {
           end_time: string
           google_event_id?: string | null
           id?: string
+          location?: string | null
           start_time: string
           title: string
           updated_at?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           end_time?: string
           google_event_id?: string | null
           id?: string
+          location?: string | null
           start_time?: string
           title?: string
           updated_at?: string | null
@@ -69,26 +72,32 @@ export type Database = {
       chat_history: {
         Row: {
           created_at: string
+          evening_checkin: boolean | null
           id: string
           is_ai: boolean
           is_onboarding_message: boolean | null
           message: string
+          morning_checkin: boolean | null
           user_id: string
         }
         Insert: {
           created_at?: string
+          evening_checkin?: boolean | null
           id?: string
           is_ai?: boolean
           is_onboarding_message?: boolean | null
           message: string
+          morning_checkin?: boolean | null
           user_id: string
         }
         Update: {
           created_at?: string
+          evening_checkin?: boolean | null
           id?: string
           is_ai?: boolean
           is_onboarding_message?: boolean | null
           message?: string
+          morning_checkin?: boolean | null
           user_id?: string
         }
         Relationships: []
@@ -149,9 +158,11 @@ export type Database = {
       }
       contacts: {
         Row: {
+          arts_interests: Json | null
           closeness: number | null
           created_at: string
           email: string | null
+          food_interests: Json | null
           id: string
           instagram: string | null
           is_archived: boolean | null
@@ -159,14 +170,17 @@ export type Database = {
           meeting_story: string | null
           name: string
           phone: string | null
+          recreation_interests: Json | null
           relationship: string | null
           twitter: string | null
           user_id: string
         }
         Insert: {
+          arts_interests?: Json | null
           closeness?: number | null
           created_at?: string
           email?: string | null
+          food_interests?: Json | null
           id?: string
           instagram?: string | null
           is_archived?: boolean | null
@@ -174,14 +188,17 @@ export type Database = {
           meeting_story?: string | null
           name: string
           phone?: string | null
+          recreation_interests?: Json | null
           relationship?: string | null
           twitter?: string | null
           user_id: string
         }
         Update: {
+          arts_interests?: Json | null
           closeness?: number | null
           created_at?: string
           email?: string | null
+          food_interests?: Json | null
           id?: string
           instagram?: string | null
           is_archived?: boolean | null
@@ -189,6 +206,7 @@ export type Database = {
           meeting_story?: string | null
           name?: string
           phone?: string | null
+          recreation_interests?: Json | null
           relationship?: string | null
           twitter?: string | null
           user_id?: string
@@ -221,6 +239,20 @@ export type Database = {
           },
           {
             foreignKeyName: "event_attendees_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_event_attendees_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_event_attendees_event"
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "calendar_events"
@@ -380,6 +412,7 @@ export type Database = {
           skill_traveler: number | null
           updated_at: string | null
           username: string | null
+          utc_offset_minutes: number | null
         }
         Insert: {
           age?: number | null
@@ -416,6 +449,7 @@ export type Database = {
           skill_traveler?: number | null
           updated_at?: string | null
           username?: string | null
+          utc_offset_minutes?: number | null
         }
         Update: {
           age?: number | null
@@ -452,23 +486,56 @@ export type Database = {
           skill_traveler?: number | null
           updated_at?: string | null
           username?: string | null
+          utc_offset_minutes?: number | null
         }
         Relationships: []
       }
     }
     Views: {
-      [_ in never]: never
+      duplicate_contacts: {
+        Row: {
+          contact_ids: string[] | null
+          count: number | null
+          name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_completed_events: {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      extract_activity: {
+        Args: {
+          title: string
+        }
+        Returns: string
+      }
+      extract_food_item: {
+        Args: {
+          title: string
+        }
+        Returns: string
+      }
       get_timezone_for_city: {
         Args: {
           city_name: string
         }
         Returns: string
+      }
+      matches_activity: {
+        Args: {
+          title: string
+        }
+        Returns: boolean
+      }
+      matches_food_item: {
+        Args: {
+          title: string
+        }
+        Returns: boolean
       }
       schedule_all_user_checkins: {
         Args: Record<PropertyKey, never>
