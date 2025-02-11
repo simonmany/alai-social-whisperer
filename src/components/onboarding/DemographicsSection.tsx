@@ -18,6 +18,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const [age, setAge] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
+  const [utcOffset, setUtcOffset] = useState("");
   const [occupation, setOccupation] = useState("");
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const [hasPlayedDetails, setHasPlayedDetails] = useState(false);
@@ -104,7 +105,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     try {
       await supabase
         .from('profiles')
-        .update({ city: selectedCity })
+        .update({ city: selectedCity, utc_offset_minutes: utcOffset })
         .eq('id', session?.user.id);
 
       setStep('languages');
@@ -272,15 +273,17 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
                     console.log('Selected place:', place);
                     if (place && typeof place === 'object') {
                       const address = place.formatted_address || place.name || '';
+                      const utcOffset = place.utc_offset_minutes || '';
                       console.log('Using address:', address);
                       if (address) {
                         setSelectedCity(address);
+                        setUtcOffset(utcOffset);
                       }
                     }
                   }}
                   options={{
                     types: ['(cities)'],
-                    fields: ['formatted_address']
+                    fields: ['formatted_address', 'utc_offset_minutes']
                   }}
                   className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
                   placeholder="Enter your city..."
