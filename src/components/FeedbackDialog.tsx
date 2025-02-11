@@ -1,18 +1,18 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { ContactCard } from "@/components/ContactCard";
-import { Contact } from "@/types/contacts";
+import { Contact, CalendarEvent } from "@/types/contacts";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, X, Bot } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { CalendarIcon, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -23,41 +23,31 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-interface EventAttendee extends Contact {}
-
 interface FeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
 }
 
+interface EventWithAttendees extends CalendarEvent {
+  attendees?: Contact[];
+}
+
 export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
   const { session } = useAuth();
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<EventWithAttendees | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  
-  // Manual entry form state
+  const [contactInput, setContactInput] = useState("");
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
   const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
-  const [contactSearchInput, setContactSearchInput] = useState("");
   const [hangDescription, setHangDescription] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("");
-
-  const moodOptions = [
-    "fun",
-    "chill",
-    "deep",
-    "productive",
-    "nostalgic",
-    "exciting",
-    "meaningful"
-  ];
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts'],
@@ -69,14 +59,25 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .eq('user_id', session.user.id)
         .eq('is_archived', false)
         .order('name');
-      if (error) throw error;
-      return data || [];
+      
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        throw error;
+      }
+      
+      // Transform the JSON fields to ensure they're arrays
+      return (data || []).map(contact => ({
+        ...contact,
+        food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
+        recreation_interests: Array.isArray(contact.recreation_interests) ? contact.recreation_interests : [],
+        arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
+      })) as Contact[];
     }
   });
 
   const filteredContacts = contacts
     .filter(contact => 
-      contact.name.toLowerCase().includes(contactSearchInput.toLowerCase()) &&
+      contact.name.toLowerCase().includes(contactInput.toLowerCase()) &&
       !manualAttendees.includes(contact.id)
     )
     .slice(0, 5);
@@ -93,7 +94,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const addContact = (contact: Contact) => {
     console.log('Adding existing contact:', contact);
     setManualAttendees([...manualAttendees, contact.id]);
-    setContactSearchInput("");
+    setContactInput("");
   };
 
   const removeContact = (contactId: string) => {
@@ -188,15 +189,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       }
     } else if (selectedEvent) {
       console.log('Selected existing event:', selectedEvent);
-      const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
-      let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })} at ${selectedEvent.date.toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit",
-      })}. We ${selectedEvent.title.toLowerCase()}.`;
+      const attendeeNames = selectedEvent.attendees ? 
+        selectedEvent.attendees.map(a => a.name).join(', ') : '';
+      
+      let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang with ${attendeeNames} at ${
+        selectedEvent.location || 'an unknown location'} on ${format(new Date(selectedEvent.start_time), 'EEEE, MMMM d')} at ${
+        format(new Date(selectedEvent.start_time), 'h:mm a')}. We ${selectedEvent.title.toLowerCase()}.`;
 
       if (hangDescription) {
         message += ` ${hangDescription}`;
@@ -219,17 +217,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setManualDate(new Date());
     setManualTime("afternoon");
     setManualNotes("");
-    setContactSearchInput("");
+    setContactInput("");
     setHangDescription("");
     setSelectedMood("");
-  };
-
-  const formatAttendeeNames = (attendees: EventAttendee[]) => {
-    if (attendees.length === 0) return "";
-    if (attendees.length === 1) return attendees[0].name;
-    if (attendees.length === 2) return `${attendees[0].name} and ${attendees[1].name}`;
-    const allButLast = attendees.slice(0, -1).map(a => a.name).join(", ");
-    return `${allButLast}, and ${attendees[attendees.length - 1].name}`;
   };
 
   return (
@@ -266,26 +256,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
             {/* Contact Selection */}
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Who was there?</label>
-                <Button 
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1.5"
-                  onClick={handleAiPickContact}
-                >
-                  <Bot className="h-3.5 w-3.5" />
-                  Have Al pick
-                </Button>
-              </div>
+              <label className="text-sm font-medium">Who was there?</label>
               <div className="relative">
                 <Input
                   placeholder="Search your contacts..."
-                  value={contactSearchInput}
-                  onChange={(e) => setContactSearchInput(e.target.value)}
+                  value={contactInput}
+                  onChange={(e) => setContactInput(e.target.value)}
                   className="h-8"
                 />
-                {contactSearchInput && filteredContacts.length > 0 && (
+                {contactInput && filteredContacts.length > 0 && (
                   <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
                     {filteredContacts.map((contact) => (
                       <div
@@ -339,29 +318,46 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
-                    className="w-full justify-start text-left font-normal h-8"
+                    className={cn(
+                      "w-full justify-start text-left font-normal h-8",
+                      !manualDate && "text-muted-foreground"
+                    )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {manualDate ? format(manualDate, "PPP") : "Pick a date"}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent 
-                  className="w-auto p-0" 
-                  align="start" 
-                  side="bottom"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <div className="cursor-pointer hover:cursor-pointer">
-                    <Calendar
-                      mode="single"
-                      selected={manualDate}
-                      onSelect={setManualDate}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </div>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={manualDate}
+                    onSelect={setManualDate}
+                    initialFocus
+                  />
                 </PopoverContent>
               </Popover>
+
+              <Select value={manualTime} onValueChange={setManualTime}>
+                <SelectTrigger className="h-8">
+                  <SelectValue placeholder="Select time of day" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="morning">Morning</SelectItem>
+                  <SelectItem value="afternoon">Afternoon</SelectItem>
+                  <SelectItem value="evening">Evening</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Location */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Where did you hang?</label>
+              <Input
+                placeholder="Enter location..."
+                value={manualLocation}
+                onChange={(e) => setManualLocation(e.target.value)}
+                className="h-8"
+              />
             </div>
 
             {/* Submit Button */}
