@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -199,8 +198,13 @@ export const ContactCard = ({
           {renderInterestSection("Arts", arts_interests)}
         </div>
 
+        {/* History Section Header */}
+        <div className="mt-8 space-y-4">
+          <h3 className="text-sm font-bold text-purple-200">You and {name}</h3>
+        </div>
+
         {/* Last Hangout Section */}
-        <div className="mt-8">
+        <div className="mt-4">
           <h4 className="text-sm font-medium text-white/90 mb-2">Last Hangout</h4>
           {lastHangout ? (
             <div className="text-sm text-white/60 space-y-1">
@@ -270,4 +274,3 @@ export const ContactCard = ({
     </Card>
   );
 };
-
