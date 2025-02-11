@@ -74,8 +74,8 @@ const CalendarView = () => {
             end_time,
             location,
             google_event_id,
-            event_attendees (
-              contact:contact_id (
+            event_attendees!inner (
+              contact!inner:contacts!inner (
                 id,
                 name
               )
