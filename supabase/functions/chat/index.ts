@@ -283,29 +283,6 @@ async function upsertContacts(userId: string, contacts: Contact[]) {
   return data;
 }
 
-async function createContact(userId: string, contact: Contact) {
-  const { data, error } = await supabase
-  .from('contacts')
-  .insert([{
-    user_id: userId,
-    name: contact.name,
-    phone: contact.phone,
-    instagram: contact.instagram,
-    linkedin: contact.linkedin,
-    twitter: contact.twitter,
-    meeting_story: contact.meeting_story,
-    relationship: contact.relationship,
-    created_at: new Date().toISOString()
-  }]);
-
-  if (error) {
-    console.error('Error inserting contact:', error);
-    throw new Error(`Error inserting contact: ${error.message}`);
-  }
-
-  return data;
-}
-
 async function upsertContactGroup(userId: string, group: { 
   id?: string;
   name: string;
@@ -402,12 +379,6 @@ serve(async (req) => {
 
     console.log('Processing chat request:', { userId, contactInfo });
 
-    // Save contact info if provided
-    if (contactInfo && contactInfo.name) {
-      console.log('Creating contact:', contactInfo);
-      await createContact(userId, contactInfo);
-    }
-
     // Store user message
     const { error: userMessageError } = await supabase
     .from('chat_history')
@@ -464,41 +435,25 @@ serve(async (req) => {
       .limit(10);
 
     // Extract names from the message and get their contact info
-    let mentionedContacts = [];
-    const names = await extractNamesFromText(message);
-    if (names.length > 0) { 
-      mentionedContacts = await searchContactsByNames(userId, names);
-      if (mentionedContacts.length === 0) {
-        await upsertContacts(userId, names.map(name => ({name})));
-        console.log('Upserting new contacts ', names);
+    let mentionedContacts = [contactInfo];
+    if (!contactInfo) {
+      const names = await extractNamesFromText(message);
+      if (names.length > 0) { 
         mentionedContacts = await searchContactsByNames(userId, names);
+        if (mentionedContacts.length === 0) {
+          await upsertContacts(userId, names.map(name => ({name})));
+          console.log('Upserting new contacts ', names);
+          mentionedContacts = await searchContactsByNames(userId, names);
+        }
+        else if (names.some(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()))) {
+          const newNames = names.filter(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()));
+          console.log('Creating new contacts for:', newNames);
+          await upsertContacts(userId, newNames.map(name => ({ name })));
+          mentionedContacts = await searchContactsByNames(userId, names);
+        }
       }
-      else if (names.some(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()))) {
-        const newNames = names.filter(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()));
-        console.log('Creating new contacts for:', newNames);
-        await upsertContacts(userId, newNames.map(name => ({ name })));
-        mentionedContacts = await searchContactsByNames(userId, names);
-      }
+      console.log("mentioned contacts",mentionedContacts)
     }
-    console.log("mentioned contacts",mentionedContacts)
-
-    // // Get closest contacts
-    // const { data: closestContacts } = await supabase
-    //   .from('contacts')
-    //   .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship, closeness')
-    //   .eq('user_id', userId)
-    //   .order('closeness', { ascending: false })
-    //   .limit(15);
-
-    // // Combine mentioned contacts with closest contacts, removing duplicates
-    // const allContacts = [...mentionedContacts];
-    // if (closestContacts) {
-    //   for (const contact of closestContacts) {
-    //     if (!allContacts.some(c => c.name === contact.name)) {
-    //       allContacts.push(contact);
-    //     }
-    //   }
-    // }
 
     const messages = chatHistory?.map(msg => ({
       role: msg.is_ai ? 'assistant' : 'user',

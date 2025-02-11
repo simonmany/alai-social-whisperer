@@ -4,14 +4,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Phone, Instagram, Linkedin, Twitter } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+export interface Contact {
+  id?: string;
+  user_id: string;
+  name: string;
+  phone: string;
+  instagram: string;
+  linkedin: string;
+  twitter: string;
+  meeting_story: string;
+  relationship: string;
+  created_at: string;
+}
 
 interface ContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string, contact: Contact) => void;
+  userId: string;
 }
 
-const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) => {
+const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialogProps) => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [instagram, setInstagram] = useState("");
@@ -33,31 +48,62 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
     "a date"
   ];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name) return;
 
-    let contactsString = "";
-    if (phone) contactsString += `📱 ${phone} `;
-    if (instagram) contactsString += `📸 @${instagram} `;
-    if (linkedin) contactsString += `💼 ${linkedin} `;
-    if (twitter) contactsString += `🐦 @${twitter}`;
+    try {
+      const newContact: Contact = {
+        user_id: userId,
+        name: name,
+        phone: phone,
+        instagram: instagram,
+        linkedin: linkedin,
+        twitter: twitter,
+        meeting_story: meetingStory,
+        relationship: relationship,
+        created_at: new Date().toISOString()
+      };
 
-    const message = `I met ${name} ${meetingStory ? `at ${meetingStory}` : ""}. ${
-      contactsString ? `Their contacts are ${contactsString.trim()}.` : ""
-    } They are... ${relationship}`;
+      // Insert contact into database
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert([newContact])
+        .select()
+        .single();
 
-    onSubmit(message);
-    onOpenChange(false);
-    
-    // Reset form
-    setName("");
-    setPhone("");
-    setInstagram("");
-    setLinkedin("");
-    setTwitter("");
-    setPhoto("");
-    setMeetingStory("");
-    setRelationship("");
+
+      if (error) {
+        console.error('Error inserting contact:', error);
+        throw new Error(`Error inserting contact: ${error.message}`);
+      }
+
+      // Generate message for chat
+      let contactsString = "";
+      if (phone) contactsString += `📱 ${phone} `;
+      if (instagram) contactsString += `📸 @${instagram} `;
+      if (linkedin) contactsString += `💼 ${linkedin} `;
+      if (twitter) contactsString += `🐦 @${twitter}`;
+
+      const message = `I met ${name} ${meetingStory ? `at ${meetingStory}` : ""}. ${
+        contactsString ? `Their contacts are ${contactsString.trim()}.` : ""
+      } They are... ${relationship}`;
+
+      onSubmit(message, data);
+      onOpenChange(false);
+      
+      // Reset form
+      setName("");
+      setPhone("");
+      setInstagram("");
+      setLinkedin("");
+      setTwitter("");
+      setPhoto("");
+      setMeetingStory("");
+      setRelationship("");
+    } catch (error) {
+      console.error('Error in handleSubmit:', error);
+      // You might want to show an error message to the user here
+    }
   };
 
   return (
