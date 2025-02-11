@@ -83,8 +83,8 @@ const CalendarView = () => {
             feedback_sent,
             mood,
             feedback_notes,
-            event_attendees!left (
-              contacts!contact_id (
+            event_attendees:event_attendees (
+              contacts:contacts (
                 id,
                 name
               )
@@ -117,9 +117,9 @@ const CalendarView = () => {
           mood: event.mood || undefined,
           feedback_notes: event.feedback_notes || undefined,
           attendees: event.event_attendees?.map(attendee => ({
-            id: attendee.contacts.id,
-            name: attendee.contacts.name
-          })) || []
+            id: attendee.contacts?.id,
+            name: attendee.contacts?.name
+          })).filter(Boolean) || []
         }));
 
         return { 
