@@ -18,7 +18,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const [age, setAge] = useState("");
   const [selectedCity, setSelectedCity] = useState("");
-  const [utcOffset, setUtcOffset] = useState("");
+  const [utcOffset, setUtcOffset] = useState<number | null>(null);
   const [occupation, setOccupation] = useState("");
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const [hasPlayedDetails, setHasPlayedDetails] = useState(false);
@@ -105,7 +105,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     try {
       await supabase
         .from('profiles')
-        .update({ city: selectedCity, utc_offset_minutes: utcOffset })
+        .update({ city: selectedCity, utc_offset_minutes: utcOffset || 0 })
         .eq('id', session?.user.id);
 
       setStep('languages');
@@ -273,7 +273,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
                     console.log('Selected place:', place);
                     if (place && typeof place === 'object') {
                       const address = place.formatted_address || place.name || '';
-                      const utcOffset = place.utc_offset_minutes || '';
+                      const utcOffset = place.utc_offset_minutes || 0;
                       console.log('Using address:', address);
                       if (address) {
                         setSelectedCity(address);

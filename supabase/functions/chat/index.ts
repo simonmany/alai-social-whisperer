@@ -435,7 +435,7 @@ serve(async (req) => {
       .limit(10);
 
     // Extract names from the message and get their contact info
-    let mentionedContacts = [contactInfo];
+    let mentionedContacts = contactInfo ? [contactInfo] : [];
     if (!contactInfo) {
       const names = await extractNamesFromText(message);
       if (names.length > 0) { 
