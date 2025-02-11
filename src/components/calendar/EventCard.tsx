@@ -26,7 +26,6 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
   const [showFeedback, setShowFeedback] = useState(false);
 
   const handleSubmit = (message: string) => {
-    // Handle the feedback submission
     console.log("Feedback submitted:", message);
   };
 
