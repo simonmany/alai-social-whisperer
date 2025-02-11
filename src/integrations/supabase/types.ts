@@ -244,6 +244,20 @@ export type Database = {
             referencedRelation: "calendar_events"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_event_attendees_contact"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_event_attendees_event"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "calendar_events"
+            referencedColumns: ["id"]
+          },
         ]
       }
       event_feedback_status: {
@@ -475,7 +489,15 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      duplicate_contacts: {
+        Row: {
+          contact_ids: string[] | null
+          count: number | null
+          name: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       check_completed_events: {
