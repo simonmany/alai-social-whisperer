@@ -243,18 +243,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         const attendeeResults = await Promise.all(attendeePromises);
         console.log('Attendee insertion results:', attendeeResults);
 
-        // Log the contact details for verification
-        const { data: attendeeContacts, error: contactsError } = await supabase
-          .from('contacts')
-          .select('*')
-          .in('id', manualAttendees);
-
-        if (contactsError) {
-          console.error('Error fetching attendee contacts:', contactsError);
-        } else {
-          console.log('Event attendees:', attendeeContacts);
-        }
-
+        // Get the contact names for the message
         const attendeeNames = contacts
           .filter(contact => manualAttendees.includes(contact.id))
           .map(contact => contact.name)
