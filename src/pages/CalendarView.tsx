@@ -21,6 +21,7 @@ interface CalendarEvent {
   end_time: string;
   google_event_id?: string;
   location?: string;
+  feedback_sent?: boolean;
   attendees?: Array<{
     id: string;
     name: string;
@@ -74,6 +75,7 @@ const CalendarView = () => {
             end_time,
             location,
             google_event_id,
+            feedback_sent,
             event_attendees!inner (
               contacts!contact_id (
                 id,
@@ -104,6 +106,7 @@ const CalendarView = () => {
           end_time: event.end_time,
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
+          feedback_sent: event.feedback_sent,
           attendees: event.event_attendees?.map(attendee => ({
             id: attendee.contacts.id,
             name: attendee.contacts.name
