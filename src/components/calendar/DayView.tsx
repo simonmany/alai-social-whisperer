@@ -13,6 +13,8 @@ interface CalendarEvent {
   google_event_id?: string;
   location?: string;
   feedback_sent?: boolean;
+  mood?: string;
+  feedback_notes?: string;
   attendees?: Array<{
     id: string;
     name: string;
@@ -29,24 +31,21 @@ const filterEventsForToday = (events: CalendarEvent[]) => {
   const dayStart = startOfDay(today);
   const dayEnd = endOfDay(today);
 
-  // Remove any feedback filtering, only filter by date
   return events.filter(event => {
     const eventDate = new Date(event.start_time);
     return isWithinInterval(eventDate, { start: dayStart, end: dayEnd });
   });
 };
 
-const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
-  console.log("Fetching events with feedback filter...", events.length);  // Found the culprit log!
-  return {
-    morning: events.filter(e => new Date(e.start_time).getHours() < 12),
-    afternoon: events.filter(e => {
-      const hour = new Date(e.start_time).getHours();
-      return hour >= 12 && hour < 17;
-    }),
-    night: events.filter(e => new Date(e.start_time).getHours() >= 17),
-  };
-};
+// Removed the console.log that was causing the issue
+const groupEventsByTimeOfDay = (events: CalendarEvent[]) => ({
+  morning: events.filter(e => new Date(e.start_time).getHours() < 12),
+  afternoon: events.filter(e => {
+    const hour = new Date(e.start_time).getHours();
+    return hour >= 12 && hour < 17;
+  }),
+  night: events.filter(e => new Date(e.start_time).getHours() >= 17)
+});
 
 export const DayView = ({ events, onPrompt }: DayViewProps) => {
   const todayEvents = filterEventsForToday(events);
