@@ -87,10 +87,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     queryFn: async () => {
       const { data, error } = await supabase
         .from('activities')
-        .select('*');
+        .select('*')
+        .order('name');
       if (error) throw error;
       return data || [];
-    }
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
   const { data: events = [] } = useQuery({
@@ -460,7 +462,10 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     <Input
                       placeholder="Type an activity..."
                       value={manualActivity}
-                      onChange={(e) => setManualActivity(e.target.value)}
+                      onChange={(e) => {
+                        setManualActivity(e.target.value);
+                        setShowActivitySuggestions(true);
+                      }}
                       className="h-8"
                     />
                     
