@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -33,17 +32,18 @@ interface Event {
   date: Date;
   location: string;
   attendees: EventAttendee[];
+  mood?: string;
+  notes?: string;
 }
-
-const timeOptions = ["morning", "afternoon", "evening"];
 
 interface FeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
+  initialEvent?: Event;
 }
 
-export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
+export default function FeedbackDialog({ open, onOpenChange, onSubmit, initialEvent }: FeedbackDialogProps) {
   const { session } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
@@ -58,6 +58,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [contactSearchInput, setContactSearchInput] = useState("");
   const [hangDescription, setHangDescription] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("");
+
+  useEffect(() => {
+    if (initialEvent) {
+      setSelectedEvent(initialEvent);
+      setSelectedMood(initialEvent.mood || "");
+      setHangDescription(initialEvent.notes || "");
+      setIsManualEntry(false);
+    }
+  }, [initialEvent]);
 
   const moodOptions = [
     "fun",
