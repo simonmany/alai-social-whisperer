@@ -412,6 +412,7 @@ export type Database = {
           skill_traveler: number | null
           updated_at: string | null
           username: string | null
+          utc_offset_minutes: number | null
         }
         Insert: {
           age?: number | null
@@ -448,6 +449,7 @@ export type Database = {
           skill_traveler?: number | null
           updated_at?: string | null
           username?: string | null
+          utc_offset_minutes?: number | null
         }
         Update: {
           age?: number | null
@@ -484,6 +486,7 @@ export type Database = {
           skill_traveler?: number | null
           updated_at?: string | null
           username?: string | null
+          utc_offset_minutes?: number | null
         }
         Relationships: []
       }
