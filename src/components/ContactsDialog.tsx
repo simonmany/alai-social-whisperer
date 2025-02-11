@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Phone, Instagram, Linkedin, Twitter } from "lucide-react";
+import { User, Phone, Instagram, Linkedin, Twitter, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ContactsDialogProps {
@@ -237,3 +237,4 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
 };
 
 export default ContactsDialog;
+
