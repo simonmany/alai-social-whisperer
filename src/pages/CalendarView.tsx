@@ -112,7 +112,8 @@ const CalendarView = () => {
         console.log("Raw events from database:", dbEvents);
 
         const events: CalendarEvent[] = (dbEvents || []).map(event => {
-          const mappedEvent = {
+          console.log("Processing event:", event);  // Add this line to debug each event
+          return {
             id: event.id,
             title: event.title,
             description: event.description || undefined,
@@ -120,7 +121,7 @@ const CalendarView = () => {
             end_time: event.end_time,
             location: event.location || undefined,
             google_event_id: event.google_event_id || undefined,
-            feedback_sent: event.feedback_sent || false,
+            feedback_sent: event.feedback_sent,  // Remove the || false to preserve actual value
             mood: event.mood || undefined,
             feedback_notes: event.feedback_notes || undefined,
             attendees: event.event_attendees?.map(attendee => ({
@@ -128,10 +129,9 @@ const CalendarView = () => {
               name: attendee.contacts.name
             })) || []
           };
-          return mappedEvent;
         });
 
-        console.log("Mapped events:", events);
+        console.log("Final mapped events:", events);
 
         return { 
           events, 
