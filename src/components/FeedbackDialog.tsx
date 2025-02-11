@@ -128,7 +128,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-        // Fetch events with feedback status directly from calendar_events
+        console.log('Fetching events with feedback filter...');
+        
+        // Add logging to check the query results
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
@@ -148,7 +150,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             )
           `)
           .eq("user_id", session.user.id)
-          .eq("feedback_sent", false)
+          .is("feedback_sent", false)  // Changed from .eq to .is to handle null values
           .gte("start_time", thirtyDaysAgo.toISOString())
           .lte("start_time", thirtyDaysFromNow.toISOString())
           .order("start_time", { ascending: false });
@@ -163,13 +165,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
 
+        // Log the events to check feedback_sent status
+        console.log('Retrieved events:', dbEvents?.map(e => ({
+          id: e.id,
+          title: e.title,
+          feedback_sent: e.feedback_sent
+        })));
+
         const events = (dbEvents || []).map(event => ({
           id: event.id,
           title: event.title,
+          date: new Date(event.start_time),
           description: event.description || undefined,
           start_time: event.start_time,
           end_time: event.end_time,
-          location: event.location || undefined,
+          location: event.location || "No location specified",
           google_event_id: event.google_event_id || undefined,
           attendees: event.event_attendees?.map(attendee => ({
             id: attendee.contacts.id,
