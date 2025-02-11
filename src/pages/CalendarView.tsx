@@ -1,3 +1,4 @@
+
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -67,7 +68,7 @@ const CalendarView = () => {
           .from("calendar_events")
           .select(`
             *,
-            event_attendees (
+            event_attendees!inner (
               contact_id,
               contacts (
                 id,
