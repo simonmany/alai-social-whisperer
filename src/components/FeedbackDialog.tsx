@@ -444,11 +444,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     />
                     
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="absolute z-50 left-0 right-0 mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto backdrop-blur-none">
                         {filteredContacts.map((contact) => (
                           <div
                             key={contact.id}
-                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between"
+                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
                             onClick={() => {
                               if (!manualAttendees.includes(contact.id)) {
                                 setManualAttendees([...manualAttendees, contact.id]);
@@ -462,7 +462,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                                   {getInitials(contact.name)}
                                 </AvatarFallback>
                               </Avatar>
-                              <span className="text-sm">{contact.name}</span>
+                              <span className="text-sm text-popover-foreground">{contact.name}</span>
                             </div>
                             {contact.is_archived && (
                               <Archive className="h-4 w-4 text-muted-foreground" />
