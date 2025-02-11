@@ -182,6 +182,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       const startTime = new Date(eventDate.setHours(startHour, 0, 0, 0));
       const endTime = new Date(eventDate.setHours(endHour, 0, 0, 0));
 
+      console.log('Submitting manual event:', {
+        activity: manualActivity,
+        location: manualLocation,
+        startTime,
+        endTime,
+        attendees: manualAttendees
+      });
+
       try {
         // Insert the calendar event
         const { data: newEvent, error: eventError } = await supabase
@@ -201,6 +209,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           return;
         }
 
+        console.log('Successfully created event:', newEvent);
+
         // Insert event attendees
         const attendeePromises = manualAttendees.map(contactId =>
           supabase
@@ -211,7 +221,20 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             })
         );
 
-        await Promise.all(attendeePromises);
+        const attendeeResults = await Promise.all(attendeePromises);
+        console.log('Attendee insertion results:', attendeeResults);
+
+        // Log the contact details for verification
+        const { data: attendeeContacts, error: contactsError } = await supabase
+          .from('contacts')
+          .select('*')
+          .in('id', manualAttendees);
+
+        if (contactsError) {
+          console.error('Error fetching attendee contacts:', contactsError);
+        } else {
+          console.log('Event attendees:', attendeeContacts);
+        }
 
         const attendeeNames = contacts
           .filter(contact => manualAttendees.includes(contact.id))
