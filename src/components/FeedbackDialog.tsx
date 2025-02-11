@@ -73,14 +73,22 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     queryKey: ['contacts', contactSearchInput],
     queryFn: async () => {
       if (!session?.user?.id) return [];
+      console.log('Fetching contacts with search:', contactSearchInput);
+      
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
         .eq('user_id', session.user.id)
+        .eq('is_archived', false) // Only get non-archived contacts
         .ilike('name', `%${contactSearchInput}%`)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        throw error;
+      }
+      
+      console.log('Retrieved contacts:', data);
       
       return (data || []).map(contact => ({
         ...contact,
@@ -91,6 +99,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     },
     enabled: !!session?.user?.id
   });
+
+  const filteredContacts = contacts.filter(contact => 
+    !manualAttendees.includes(contact.id) && // Only show contacts not already selected
+    contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
+  );
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
@@ -270,8 +283,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     enabled: !!session?.user?.id
   });
 
-  const filteredContacts = contacts;
-
   const filteredActivities = activities
     ?.filter(activity =>
       activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
@@ -432,7 +443,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
 
   const handleContactSelect = (contact: Contact) => {
+    console.log('Attempting to select contact:', contact);
     if (!manualAttendees.includes(contact.id)) {
+      console.log('Adding contact to attendees:', contact.name);
       setManualAttendees(prev => [...prev, contact.id]);
     }
     setContactSearchInput("");
@@ -568,11 +581,13 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                           <div
                             key={contact.id}
                             className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
-                            onClick={() => {
-                              if (!manualAttendees.includes(contact.id)) {
-                                setManualAttendees(prev => [...prev, contact.id]);
+                            onClick={() => handleContactSelect(contact)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                handleContactSelect(contact);
                               }
-                              setContactSearchInput("");
                             }}
                           >
                             <div className="flex items-center gap-2">
