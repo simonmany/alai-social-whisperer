@@ -1,3 +1,4 @@
+
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,8 +22,6 @@ interface CalendarEvent {
   google_event_id?: string;
   location?: string;
   feedback_sent?: boolean;
-  mood?: string;
-  feedback_notes?: string;
   attendees?: Array<{
     id: string;
     name: string;
@@ -42,10 +41,6 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
-
-  const handleConnectCalendar = () => {
-    navigate('/connect-calendar');
-  };
 
   const { data: calendarData = { events: [], isConnected: false }, isLoading } = useQuery<CalendarData, Error>({
     queryKey: ["calendar-events"],
@@ -81,10 +76,8 @@ const CalendarView = () => {
             location,
             google_event_id,
             feedback_sent,
-            mood,
-            feedback_notes,
-            event_attendees:event_attendees (
-              contacts:contacts (
+            event_attendees!inner (
+              contacts!contact_id (
                 id,
                 name
               )
@@ -113,13 +106,11 @@ const CalendarView = () => {
           end_time: event.end_time,
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
-          feedback_sent: event.feedback_sent ?? false,
-          mood: event.mood || undefined,
-          feedback_notes: event.feedback_notes || undefined,
+          feedback_sent: event.feedback_sent,
           attendees: event.event_attendees?.map(attendee => ({
-            id: attendee.contacts?.id,
-            name: attendee.contacts?.name
-          })).filter(Boolean) || []
+            id: attendee.contacts.id,
+            name: attendee.contacts.name
+          })) || []
         }));
 
         return { 
@@ -142,6 +133,20 @@ const CalendarView = () => {
     refetchOnWindowFocus: true,
     gcTime: 0
   });
+
+  const handleConnectCalendar = async () => {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('Error getting user:', userError);
+      return;
+    }
+
+    if (user?.app_metadata?.provider === 'email') {
+      navigate('/email-calendar/connect');
+    } else {
+      navigate('/connect-calendar');
+    }
+  };
 
   const handlePrompt = (message: string) => {
     navigate("/", { state: { prompt: message } });
