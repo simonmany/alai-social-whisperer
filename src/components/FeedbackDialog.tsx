@@ -88,7 +88,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
       })) as Contact[];
     },
-    enabled: !!session?.user?.id && contactSearchInput.length > 0
+    enabled: !!session?.user?.id
   });
 
   const { data: activities = [] } = useQuery({
@@ -316,6 +316,13 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   };
 
   const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
+
+  const handleContactSelect = (contact: Contact) => {
+    if (!manualAttendees.includes(contact.id)) {
+      setManualAttendees(prev => [...prev, contact.id]);
+    }
+    setContactSearchInput("");
+  };
 
   return (
     <>
