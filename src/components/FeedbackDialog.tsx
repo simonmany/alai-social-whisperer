@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -42,6 +43,8 @@ interface FeedbackDialogProps {
   onSubmit: (message: string) => void;
   initialEvent?: Event;
 }
+
+const timeOptions = ["morning", "afternoon", "evening"] as const;
 
 export default function FeedbackDialog({ open, onOpenChange, onSubmit, initialEvent }: FeedbackDialogProps) {
   const { session } = useAuth();
