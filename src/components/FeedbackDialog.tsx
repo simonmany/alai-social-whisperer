@@ -163,7 +163,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
   const filteredActivities = activities
     .filter(activity =>
-      activity.name.toLowerCase().includes(manualActivity.toLowerCase())
+      activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
+      activity.name.toLowerCase() !== manualActivity.toLowerCase()
     )
     .slice(0, 5);
 
@@ -272,6 +273,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       .toUpperCase()
       .slice(0, 2);
   };
+
+  const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
 
   return (
     <>
@@ -461,13 +464,16 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       className="h-8"
                     />
                     
-                    {manualActivity && filteredActivities.length > 0 && (
+                    {manualActivity && showActivitySuggestions && filteredActivities.length > 0 && (
                       <div className="border rounded-md overflow-hidden">
                         {filteredActivities.map((activity) => (
                           <div
                             key={activity.id}
                             className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
-                            onClick={() => setManualActivity(activity.name)}
+                            onClick={() => {
+                              setManualActivity(activity.name);
+                              setShowActivitySuggestions(false);
+                            }}
                           >
                             <span className="text-sm">{activity.name}</span>
                           </div>
