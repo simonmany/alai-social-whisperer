@@ -47,6 +47,21 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No authenticated user');
 
+    // First, try to fetch all contacts with similar names to avoid duplicates
+    const { data: existingContacts } = await supabase
+      .from('contacts')
+      .select('name')
+      .ilike('name', `%${name}%`)
+      .eq('user_id', user.id);
+
+    // Check if we might be creating a duplicate
+    if (existingContacts && existingContacts.some(contact => 
+      contact.name.toLowerCase() === name.toLowerCase()
+    )) {
+      console.log('Found potential duplicate contact:', name);
+      // You might want to show a warning to the user here
+    }
+
     const { error: contactError } = await supabase
       .from('contacts')
       .insert([{
@@ -57,7 +72,7 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
         linkedin,
         twitter,
         photo,
-        meeting_story: meetingStory,  // using the state variable meetingStory
+        meeting_story: meetingStory,
         relationship,
         is_archived: false
       }]);
