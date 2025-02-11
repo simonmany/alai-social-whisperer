@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [contactInput, setContactInput] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const { toast } = useToast();
+  const session = supabase.auth.session();
 
   const timeSlots = Array.from({ length: 17 }, (_, i) => {
     const hour = i + 7;
@@ -70,27 +70,22 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     }
   }, [selectedCategory, toast]);
 
-  const { data: contacts, isLoading } = useQuery({
-    queryKey: ['contacts'],
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts', contactInput],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
+      if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from('contacts')
-        .select('id, name, email')
-        .eq('user_id', user.id)
+        .select('*')
+        .eq('user_id', session.user.id)
         .eq('is_archived', false)
+        .ilike('name', `%${contactInput}%`)
         .order('name');
-      
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        throw error;
-      }
 
-      console.log('Total contacts fetched in planning dialog:', data?.length);
+      if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: !!session?.user?.id && contactInput.length > 0
   });
 
   const { data: foodItems } = useQuery({
@@ -222,12 +217,9 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedTime(randomTime);
   };
 
-  const filteredContacts = contacts
-    ? contacts.filter(contact => 
-        contact.name.toLowerCase().includes(contactInput.toLowerCase()) &&
-        !selectedContacts.some(selected => selected.id === contact.id)
-      )
-    : [];
+  const filteredContacts = contacts.filter(contact => 
+    !selectedContacts.some(selected => selected.id === contact.id)
+  );
 
   const getInitials = (name: string) => {
     return name
@@ -740,4 +732,3 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
-

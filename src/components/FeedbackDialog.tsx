@@ -70,16 +70,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   ];
 
   const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts'],
+    queryKey: ['contacts', contactSearchInput],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .eq('is_archived', false)
+        .ilike('name', `%${contactSearchInput}%`)
+        .order('name');
+
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: !!session?.user?.id && contactSearchInput.length > 0
   });
 
   const { data: activities = [] } = useQuery({
@@ -157,18 +162,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     enabled: !!session?.user?.id
   });
 
-  const filteredContacts = contacts
-    .filter(contact => 
-      contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
-    )
-    .slice(0, 5);
-
-  const filteredActivities = activities
-    .filter(activity =>
-      activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
-      activity.name.toLowerCase() !== manualActivity.toLowerCase()
-    )
-    .slice(0, 5);
+  const filteredContacts = contacts;
 
   const handleSubmit = async () => {
     console.log('handleSubmit called - starting submission process');

@@ -244,20 +244,6 @@ export type Database = {
             referencedRelation: "calendar_events"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "fk_event_attendees_contact"
-            columns: ["contact_id"]
-            isOneToOne: false
-            referencedRelation: "contacts"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "fk_event_attendees_event"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "calendar_events"
-            referencedColumns: ["id"]
-          },
         ]
       }
       event_feedback_status: {
