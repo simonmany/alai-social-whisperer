@@ -74,6 +74,7 @@ const CalendarView = () => {
           end: thirtyDaysFromNow.toISOString()
         });
 
+        // Remove the .eq("feedback_sent", false) filter that was here
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
