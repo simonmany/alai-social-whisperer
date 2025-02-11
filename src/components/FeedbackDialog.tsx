@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -22,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface FeedbackDialogProps {
   open: boolean;
@@ -37,7 +37,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const { session } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<EventWithAttendees | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
-  const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [contactInput, setContactInput] = useState("");
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
@@ -48,6 +47,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [manualNotes, setManualNotes] = useState("");
   const [hangDescription, setHangDescription] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("");
+  const [activeTab, setActiveTab] = useState("calendar");
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts'],
@@ -105,7 +105,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const handleSubmit = async () => {
     console.log('handleSubmit called - starting submission process');
 
-    if (isManualEntry) {
+    if (activeTab === "manual") {
       console.log('Manual entry mode detected');
       
       if (!manualDate || !manualActivity || manualAttendees.length === 0) {
@@ -210,7 +210,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const resetForm = () => {
     setSelectedEvent(null);
     setSelectedContact(null);
-    setIsManualEntry(false);
     setManualAttendees([]);
     setManualActivity("");
     setManualLocation("");
@@ -220,6 +219,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setContactInput("");
     setHangDescription("");
     setSelectedMood("");
+    setActiveTab("calendar");
   };
 
   return (
@@ -242,133 +242,189 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             </div>
           </DialogHeader>
 
-          <div className="space-y-4 mt-4">
-            {/* Activity Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">What did you do?</label>
-              <Input
-                placeholder="Type an activity..."
-                value={manualActivity}
-                onChange={(e) => setManualActivity(e.target.value)}
-                className="h-8"
-              />
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="calendar">From Calendar</TabsTrigger>
+              <TabsTrigger value="manual">Something Off the Books</TabsTrigger>
+            </TabsList>
 
-            {/* Contact Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Who was there?</label>
-              <div className="relative">
+            <TabsContent value="calendar" className="space-y-4">
+              {selectedEvent ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">How was it?</label>
+                    <Select value={selectedMood} onValueChange={setSelectedMood}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select mood" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="great">Great</SelectItem>
+                        <SelectItem value="good">Good</SelectItem>
+                        <SelectItem value="okay">Okay</SelectItem>
+                        <SelectItem value="meh">Meh</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Any thoughts?</label>
+                    <Input
+                      placeholder="Add some details..."
+                      value={hangDescription}
+                      onChange={(e) => setHangDescription(e.target.value)}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  Select an event from your calendar
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="manual" className="space-y-4">
+              {/* Activity Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">What did you do?</label>
                 <Input
-                  placeholder="Search your contacts..."
-                  value={contactInput}
-                  onChange={(e) => setContactInput(e.target.value)}
+                  placeholder="Type an activity..."
+                  value={manualActivity}
+                  onChange={(e) => setManualActivity(e.target.value)}
                   className="h-8"
                 />
-                {contactInput && filteredContacts.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
-                    {filteredContacts.map((contact) => (
-                      <div
-                        key={contact.id}
-                        className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer"
-                        onClick={() => addContact(contact)}
-                      >
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">
-                            {getInitials(contact.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="text-sm">{contact.name}</span>
-                      </div>
-                    ))}
+              </div>
+
+              {/* Contact Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Who was there?</label>
+                <div className="relative">
+                  <Input
+                    placeholder="Search your contacts..."
+                    value={contactInput}
+                    onChange={(e) => setContactInput(e.target.value)}
+                    className="h-8"
+                  />
+                  {contactInput && filteredContacts.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
+                      {filteredContacts.map((contact) => (
+                        <div
+                          key={contact.id}
+                          className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer"
+                          onClick={() => addContact(contact)}
+                        >
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className="text-xs">
+                              {getInitials(contact.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm">{contact.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {manualAttendees.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {contacts
+                      .filter(contact => manualAttendees.includes(contact.id))
+                      .map((contact) => (
+                        <div
+                          key={contact.id}
+                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                        >
+                          <Avatar className="h-4 w-4">
+                            <AvatarFallback className="text-[10px]">
+                              {getInitials(contact.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{contact.name}</span>
+                          <button
+                            onClick={() => removeContact(contact.id)}
+                            className="hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
                   </div>
                 )}
               </div>
 
-              {manualAttendees.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {contacts
-                    .filter(contact => manualAttendees.includes(contact.id))
-                    .map((contact) => (
-                      <div
-                        key={contact.id}
-                        className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                      >
-                        <Avatar className="h-4 w-4">
-                          <AvatarFallback className="text-[10px]">
-                            {getInitials(contact.name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span>{contact.name}</span>
-                        <button
-                          onClick={() => removeContact(contact.id)}
-                          className="hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </div>
+              {/* Date and Time Selection */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">When did you hang?</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal h-8",
+                        !manualDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {manualDate ? format(manualDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={manualDate}
+                      onSelect={setManualDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
 
-            {/* Date and Time Selection */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">When did you hang?</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start text-left font-normal h-8",
-                      !manualDate && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {manualDate ? format(manualDate, "PPP") : "Pick a date"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={manualDate}
-                    onSelect={setManualDate}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+                <Select value={manualTime} onValueChange={setManualTime}>
+                  <SelectTrigger className="h-8">
+                    <SelectValue placeholder="Select time of day" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="morning">Morning</SelectItem>
+                    <SelectItem value="afternoon">Afternoon</SelectItem>
+                    <SelectItem value="evening">Evening</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-              <Select value={manualTime} onValueChange={setManualTime}>
-                <SelectTrigger className="h-8">
-                  <SelectValue placeholder="Select time of day" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="morning">Morning</SelectItem>
-                  <SelectItem value="afternoon">Afternoon</SelectItem>
-                  <SelectItem value="evening">Evening</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              {/* Location */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Where did you hang?</label>
+                <Input
+                  placeholder="Enter location..."
+                  value={manualLocation}
+                  onChange={(e) => setManualLocation(e.target.value)}
+                  className="h-8"
+                />
+              </div>
 
-            {/* Location */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Where did you hang?</label>
-              <Input
-                placeholder="Enter location..."
-                value={manualLocation}
-                onChange={(e) => setManualLocation(e.target.value)}
-                className="h-8"
-              />
-            </div>
+              {/* Notes */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Any notes?</label>
+                <Input
+                  placeholder="Add some details..."
+                  value={manualNotes}
+                  onChange={(e) => setManualNotes(e.target.value)}
+                  className="h-8"
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
 
-            {/* Submit Button */}
-            <Button 
-              onClick={handleSubmit}
-              disabled={isManualEntry ? (!manualDate || !manualActivity || manualAttendees.length === 0) : !selectedEvent}
-              className="w-full"
-            >
-              Submit
-            </Button>
-          </div>
+          {/* Submit Button */}
+          <Button 
+            onClick={handleSubmit}
+            disabled={
+              activeTab === "manual" 
+                ? (!manualDate || !manualActivity || manualAttendees.length === 0)
+                : !selectedEvent
+            }
+            className="w-full mt-4"
+          >
+            Submit
+          </Button>
         </DialogContent>
       </Dialog>
 
