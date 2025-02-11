@@ -83,7 +83,7 @@ const CalendarView = () => {
             feedback_sent,
             mood,
             feedback_notes,
-            event_attendees!inner (
+            event_attendees!left (
               contacts!contact_id (
                 id,
                 name
@@ -113,7 +113,7 @@ const CalendarView = () => {
           end_time: event.end_time,
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
-          feedback_sent: event.feedback_sent,
+          feedback_sent: event.feedback_sent ?? false,
           mood: event.mood || undefined,
           feedback_notes: event.feedback_notes || undefined,
           attendees: event.event_attendees?.map(attendee => ({

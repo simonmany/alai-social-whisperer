@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import { MapPin, Users, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import FeedbackDialog from "@/components/FeedbackDialog"; // Changed from named to default import
+import FeedbackDialog from "@/components/FeedbackDialog";
 import { useState } from "react";
 
 interface CalendarEvent {
@@ -36,14 +36,12 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
         className="p-4 rounded-lg border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors"
         onClick={() => setShowFeedback(true)}
       >
-        {event.feedback_sent !== undefined && (
-          <div className="absolute top-2 right-2">
-            <Badge variant={event.feedback_sent ? "default" : "outline"} className="flex items-center gap-1">
-              <Check className={`h-3 w-3 ${event.feedback_sent ? "" : "opacity-50"}`} />
-              <span className="text-xs">Feedback</span>
-            </Badge>
-          </div>
-        )}
+        <div className="absolute top-2 right-2">
+          <Badge variant={event.feedback_sent ? "default" : "outline"} className="flex items-center gap-1">
+            <Check className={`h-3 w-3 ${event.feedback_sent ? "" : "opacity-50"}`} />
+            <span className="text-xs">Feedback</span>
+          </Badge>
+        </div>
         
         <div className="space-y-2">
           <h3 className="font-medium">{event.title}</h3>
