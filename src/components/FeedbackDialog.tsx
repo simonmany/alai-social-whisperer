@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, Archive } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
@@ -48,7 +48,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
-  // Manual entry form state
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
@@ -77,13 +76,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .from('contacts')
         .select('*')
         .eq('user_id', session.user.id)
-        .eq('is_archived', false)
         .ilike('name', `%${contactSearchInput}%`)
         .order('name');
 
       if (error) throw error;
       
-      // Transform JSON fields to ensure they're arrays
       return (data || []).map(contact => ({
         ...contact,
         food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
@@ -436,7 +433,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Who was there?</label>
-                  <div className="space-y-2">
+                  <div className="space-y-2 relative">
                     <Input
                       placeholder="Search contacts..."
                       value={contactSearchInput}
@@ -445,24 +442,29 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     />
                     
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="border rounded-md overflow-hidden">
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {filteredContacts.map((contact) => (
                           <div
                             key={contact.id}
-                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
                             onClick={() => {
                               if (!manualAttendees.includes(contact.id)) {
-                                setManualAttendees([...manualAttendees, contact.id]);
+                                setManualAttendees(prev => [...prev, contact.id]);
                               }
                               setContactSearchInput("");
                             }}
                           >
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-xs">
-                                {getInitials(contact.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">{contact.name}</span>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-xs">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm text-popover-foreground">{contact.name}</span>
+                            </div>
+                            {contact.is_archived && (
+                              <Archive className="h-4 w-4 text-muted-foreground" />
+                            )}
                           </div>
                         ))}
                       </div>
@@ -483,6 +485,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                                 </AvatarFallback>
                               </Avatar>
                               <span>{contact.name}</span>
+                              {contact.is_archived && (
+                                <Archive className="h-3 w-3 text-muted-foreground" />
+                              )}
                               <button
                                 onClick={() => setManualAttendees(prev => 
                                   prev.filter(id => id !== contact.id)
