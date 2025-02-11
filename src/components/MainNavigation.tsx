@@ -113,12 +113,6 @@ export const MainNavigation = ({
 
     if (isConnected !== isCalendarConnected) {
       setIsCalendarConnected(isConnected);
-      if (isConnected) {
-        toast({
-          title: "Calendar Connected",
-          description: "Your Google Calendar has been successfully connected",
-        });
-      }
     }
   }, [profile, isCalendarConnected, toast]);
 
