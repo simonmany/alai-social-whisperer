@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, X, Archive } from "lucide-react";
+import { CalendarIcon, X, Archive, Bot } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast, toast } from "@/hooks/use-toast";
@@ -49,7 +49,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
-  const [manualAttendees, setManualAttendees] = useState<string[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
+  const [contactInput, setContactInput] = useState("");
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
   const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
@@ -89,7 +90,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
       })) as Contact[];
     },
-    enabled: !!session?.user?.id
+    enabled: !!session?.user?.id && contactSearchInput.length > 0
   });
 
   const { data: activities = [] } = useQuery({
@@ -130,7 +131,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
         console.log('Fetching events with feedback filter...');
         
-        // Add logging to check the query results
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
@@ -150,7 +150,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             )
           `)
           .eq("user_id", session.user.id)
-          .is("feedback_sent", false)  // Changed from .eq to .is to handle null values
+          .is("feedback_sent", false)
           .gte("start_time", thirtyDaysAgo.toISOString())
           .lte("start_time", thirtyDaysFromNow.toISOString())
           .order("start_time", { ascending: false });
@@ -164,13 +164,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           });
           return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
-
-        // Log the events to check feedback_sent status
-        console.log('Retrieved events:', dbEvents?.map(e => ({
-          id: e.id,
-          title: e.title,
-          feedback_sent: e.feedback_sent
-        })));
 
         const events = (dbEvents || []).map(event => ({
           id: event.id,
@@ -216,7 +209,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .from('calendar_events')
         .select('*')
         .eq('user_id', session.user.id)
-        .is('feedback_sent', false)  // Add this filter to match the other query
+        .is('feedback_sent', false)
         .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .lte('start_time', new Date().toISOString())
         .order('start_time', { ascending: false });
@@ -285,15 +278,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     if (isManualEntry) {
       console.log('Manual entry mode detected');
       
-      if (!manualDate || !manualActivity || manualAttendees.length === 0) {
-        console.log('Validation failed:', { manualDate, manualActivity, attendeesCount: manualAttendees.length });
+      if (!manualDate || !manualActivity || selectedContacts.length === 0) {
+        console.log('Validation failed:', { manualDate, manualActivity, attendeesCount: selectedContacts.length });
         return;
       }
 
-      // Create the event time based on the selected time of day
       const eventDate = new Date(manualDate);
       const startHour = manualTime === 'morning' ? 9 : manualTime === 'afternoon' ? 14 : 19;
-      const endHour = startHour + 1; // Default to 1-hour events
+      const endHour = startHour + 1;
 
       const startTime = new Date(eventDate.setHours(startHour, 0, 0, 0));
       const endTime = new Date(eventDate.setHours(endHour, 0, 0, 0));
@@ -303,7 +295,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         location: manualLocation,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        attendees: manualAttendees,
+        attendees: selectedContacts.map(contact => contact.id),
         userId: session?.user?.id
       });
 
@@ -313,7 +305,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           return;
         }
 
-        // Insert the calendar event with feedback_sent set to true
         const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
@@ -322,7 +313,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
             user_id: session.user.id,
-            feedback_sent: true  // Set this to true since we're submitting feedback right away
+            feedback_sent: true
           })
           .select()
           .single();
@@ -334,28 +325,25 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
         console.log('Successfully created event:', newEvent);
 
-        // Insert event attendees using the existing contact IDs
-        const attendeePromises = manualAttendees.map(async contactId => {
+        const attendeePromises = selectedContacts.map(async contact => {
           const { data, error } = await supabase
             .from('event_attendees')
             .insert({
               event_id: newEvent.id,
-              contact_id: contactId
+              contact_id: contact.id
             })
             .select();
           
           if (error) {
-            console.error(`Error inserting attendee ${contactId}:`, error);
+            console.error(`Error inserting attendee ${contact.id}:`, error);
           }
-          return { contactId, data, error };
+          return { contact, data, error };
         });
 
         const attendeeResults = await Promise.all(attendeePromises);
         console.log('Attendee insertion results:', attendeeResults);
 
-        // Get the contact names for the message
-        const attendeeNames = contacts
-          .filter(contact => manualAttendees.includes(contact.id))
+        const attendeeNames = selectedContacts
           .map(contact => contact.name)
           .join(', ');
 
@@ -374,7 +362,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         message += ` ${hangDescription}`;
       }
 
-      // Update feedback status directly in calendar_events
       const { error: updateError } = await supabase
         .from('calendar_events')
         .update({ feedback_sent: true })
@@ -401,7 +388,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setSelectedEvent(null);
     setSelectedContact(null);
     setIsManualEntry(false);
-    setManualAttendees([]);
+    setSelectedContacts([]);
     setManualActivity("");
     setManualLocation("");
     setManualDate(new Date());
@@ -429,13 +416,31 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       .slice(0, 2);
   };
 
-  const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
-
-  const handleContactSelect = (contact: Contact) => {
-    if (!manualAttendees.includes(contact.id)) {
-      setManualAttendees(prev => [...prev, contact.id]);
+  const handleAiPickContact = () => {
+    if (!contacts || contacts.length === 0) {
+      toast({
+        title: "No contacts available",
+        description: "Add some contacts first",
+        variant: "destructive",
+      });
+      return;
     }
-    setContactSearchInput("");
+
+    const availableContacts = contacts.filter(
+      contact => !selectedContacts.some(selected => selected.id === contact.id)
+    );
+
+    if (availableContacts.length === 0) {
+      toast({
+        title: "All contacts already selected",
+        description: "Try removing some contacts first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
+    setSelectedContacts([...selectedContacts, randomContact]);
   };
 
   return (
@@ -569,8 +574,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                             key={contact.id}
                             className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
                             onClick={() => {
-                              if (!manualAttendees.includes(contact.id)) {
-                                setManualAttendees(prev => [...prev, contact.id]);
+                              if (!selectedContacts.includes(contact)) {
+                                setSelectedContacts(prev => [...prev, contact]);
                               }
                               setContactSearchInput("");
                             }}
@@ -591,34 +596,32 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       </div>
                     )}
 
-                    {manualAttendees.length > 0 && (
+                    {selectedContacts.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {contacts
-                          .filter(contact => manualAttendees.includes(contact.id))
-                          .map((contact) => (
-                            <div
-                              key={contact.id}
-                              className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                            >
-                              <Avatar className="h-4 w-4">
-                                <AvatarFallback className="text-[10px]">
-                                  {getInitials(contact.name)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <span>{contact.name}</span>
-                              {contact.is_archived && (
-                                <Archive className="h-3 w-3 text-muted-foreground" />
+                        {selectedContacts.map((contact) => (
+                          <div
+                            key={contact.id}
+                            className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                          >
+                            <Avatar className="h-4 w-4">
+                              <AvatarFallback className="text-[10px]">
+                                {getInitials(contact.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span>{contact.name}</span>
+                            {contact.is_archived && (
+                              <Archive className="h-3 w-3 text-muted-foreground" />
+                            )}
+                            <button
+                              onClick={() => setSelectedContacts(prev => 
+                                prev.filter(id => id !== contact.id)
                               )}
-                              <button
-                                onClick={() => setManualAttendees(prev => 
-                                  prev.filter(id => id !== contact.id)
-                                )}
-                                className="hover:text-destructive"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
+                              className="hover:text-destructive"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -632,12 +635,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       value={manualActivity}
                       onChange={(e) => {
                         setManualActivity(e.target.value);
-                        setShowActivitySuggestions(true);
                       }}
                       className="h-8"
                     />
                     
-                    {manualActivity && showActivitySuggestions && filteredActivities.length > 0 && (
+                    {manualActivity && filteredActivities.length > 0 && (
                       <div className="border rounded-md overflow-hidden">
                         {filteredActivities.map((activity) => (
                           <div
@@ -645,7 +647,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                             className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
                             onClick={() => {
                               setManualActivity(activity.name);
-                              setShowActivitySuggestions(false);
                             }}
                           >
                             <span className="text-sm">{activity.name}</span>
@@ -732,7 +733,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               </div>
             )}
 
-            {(selectedEvent || (isManualEntry && manualAttendees.length > 0 && manualActivity)) && (
+            {(selectedEvent || (isManualEntry && selectedContacts.length > 0 && manualActivity)) && (
               <Button className="w-full" onClick={handleSubmit}>
                 Submit Feedback
               </Button>
