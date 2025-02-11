@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, X, Archive, Bot } from "lucide-react";
+import { CalendarIcon, X, Archive } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast, toast } from "@/hooks/use-toast";
@@ -48,13 +48,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
-  const [contactSearchInput, setContactSearchInput] = useState("");
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
   const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
+  const [contactSearchInput, setContactSearchInput] = useState("");
   const [hangDescription, setHangDescription] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("");
 
@@ -88,32 +89,195 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
       })) as Contact[];
     },
-    enabled: !!session?.user?.id && contactSearchInput.length > 0
+    enabled: !!session?.user?.id
   });
 
-  const filteredContacts = contacts.filter(contact => 
-    !manualAttendees.includes(contact.id)
-  );
+  const { data: activities = [] } = useQuery({
+    queryKey: ['activities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
-  const addContact = (contact: Contact) => {
-    if (!manualAttendees.includes(contact.id)) {
-      setManualAttendees(prev => [...prev, contact.id]);
-    }
-    setContactSearchInput("");
-  };
+  const { data: calendarData = { events: [], isConnected: false }, isLoading } = useQuery({
+    queryKey: ["calendar-events"],
+    queryFn: async () => {
+      if (!session?.user?.id) return { events: [], isConnected: false };
 
-  const removeContact = (contactId: string) => {
-    setManualAttendees(prev => prev.filter(id => id !== contactId));
-  };
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired')
+          .eq('id', session.user.id)
+          .single();
 
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          return { events: [], isConnected: false };
+        }
+
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        const thirtyDaysFromNow = new Date(now);
+        thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+        console.log('Fetching events with feedback filter...');
+        
+        // Add logging to check the query results
+        const { data: dbEvents, error: dbError } = await supabase
+          .from("calendar_events")
+          .select(`
+            id,
+            title,
+            description,
+            start_time,
+            end_time,
+            location,
+            google_event_id,
+            feedback_sent,
+            event_attendees!inner (
+              contacts!contact_id (
+                id,
+                name
+              )
+            )
+          `)
+          .eq("user_id", session.user.id)
+          .is("feedback_sent", false)  // Changed from .eq to .is to handle null values
+          .gte("start_time", thirtyDaysAgo.toISOString())
+          .lte("start_time", thirtyDaysFromNow.toISOString())
+          .order("start_time", { ascending: false });
+
+        if (dbError) {
+          console.error("Error fetching calendar events:", dbError);
+          toast({
+            title: "Error",
+            description: "Failed to fetch calendar events.",
+            variant: "destructive",
+          });
+          return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
+        }
+
+        // Log the events to check feedback_sent status
+        console.log('Retrieved events:', dbEvents?.map(e => ({
+          id: e.id,
+          title: e.title,
+          feedback_sent: e.feedback_sent
+        })));
+
+        const events = (dbEvents || []).map(event => ({
+          id: event.id,
+          title: event.title,
+          date: new Date(event.start_time),
+          description: event.description || undefined,
+          start_time: event.start_time,
+          end_time: event.end_time,
+          location: event.location || "No location specified",
+          google_event_id: event.google_event_id || undefined,
+          attendees: event.event_attendees?.map(attendee => ({
+            id: attendee.contacts.id,
+            name: attendee.contacts.name
+          })) || []
+        }));
+
+        return { 
+          events, 
+          isConnected: profile?.has_google_calendar && !profile?.google_token_expired 
+        };
+      } catch (error) {
+        console.error("Exception in fetchCalendarEvents:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch calendar events. Please try again.",
+          variant: "destructive",
+        });
+        return { events: [], isConnected: false };
+      }
+    },
+    retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    gcTime: 0
+  });
+
+  const { data: events = [] } = useQuery({
+    queryKey: ['calendar-events-with-attendees'],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data: calendarEvents, error: eventsError } = await supabase
+        .from('calendar_events')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .is('feedback_sent', false)  // Add this filter to match the other query
+        .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .lte('start_time', new Date().toISOString())
+        .order('start_time', { ascending: false });
+
+      if (eventsError) {
+        console.error('Error fetching events:', eventsError);
+        return [];
+      }
+
+      const eventsWithAttendees = await Promise.all(
+        (calendarEvents || []).map(async (event) => {
+          const { data: attendeeLinks, error: attendeesError } = await supabase
+            .from('event_attendees')
+            .select('contact_id')
+            .eq('event_id', event.id);
+
+          if (attendeesError) {
+            console.error('Error fetching attendees:', attendeesError);
+            return null;
+          }
+
+          const { data: contacts, error: contactsError } = await supabase
+            .from('contacts')
+            .select('*')
+            .in('id', (attendeeLinks || []).map(link => link.contact_id));
+
+          if (contactsError) {
+            console.error('Error fetching contacts:', contactsError);
+            return null;
+          }
+
+          return {
+            id: event.id,
+            title: event.title,
+            date: new Date(event.start_time),
+            location: event.location || "No location specified",
+            attendees: contacts || []
+          } as Event;
+        })
+      );
+
+      return eventsWithAttendees.filter((event): event is Event => 
+        event !== null && 
+        'id' in event && 
+        'title' in event && 
+        'date' in event && 
+        'location' in event && 
+        'attendees' in event
+      );
+    },
+    enabled: !!session?.user?.id
+  });
+
+  const filteredContacts = contacts;
+
+  const filteredActivities = activities
+    ?.filter(activity =>
+      activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
+      activity.name.toLowerCase() !== manualActivity.toLowerCase()
+    )
+    .slice(0, 5) || [];
 
   const handleSubmit = async () => {
     console.log('handleSubmit called - starting submission process');
@@ -126,9 +290,10 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         return;
       }
 
+      // Create the event time based on the selected time of day
       const eventDate = new Date(manualDate);
       const startHour = manualTime === 'morning' ? 9 : manualTime === 'afternoon' ? 14 : 19;
-      const endHour = startHour + 1;
+      const endHour = startHour + 1; // Default to 1-hour events
 
       const startTime = new Date(eventDate.setHours(startHour, 0, 0, 0));
       const endTime = new Date(eventDate.setHours(endHour, 0, 0, 0));
@@ -148,6 +313,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           return;
         }
 
+        // Insert the calendar event with feedback_sent set to true
         const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
@@ -156,7 +322,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
             user_id: session.user.id,
-            feedback_sent: true
+            feedback_sent: true  // Set this to true since we're submitting feedback right away
           })
           .select()
           .single();
@@ -168,6 +334,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
         console.log('Successfully created event:', newEvent);
 
+        // Insert event attendees using the existing contact IDs
         const attendeePromises = manualAttendees.map(async contactId => {
           const { data, error } = await supabase
             .from('event_attendees')
@@ -186,6 +353,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         const attendeeResults = await Promise.all(attendeePromises);
         console.log('Attendee insertion results:', attendeeResults);
 
+        // Get the contact names for the message
         const attendeeNames = contacts
           .filter(contact => manualAttendees.includes(contact.id))
           .map(contact => contact.name)
@@ -206,6 +374,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         message += ` ${hangDescription}`;
       }
 
+      // Update feedback status directly in calendar_events
       const { error: updateError } = await supabase
         .from('calendar_events')
         .update({ feedback_sent: true })
@@ -249,6 +418,24 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     if (attendees.length === 2) return `${attendees[0].name} and ${attendees[1].name}`;
     const allButLast = attendees.slice(0, -1).map(a => a.name).join(", ");
     return `${allButLast}, and ${attendees[attendees.length - 1].name}`;
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
+
+  const handleContactSelect = (contact: Contact) => {
+    if (!manualAttendees.includes(contact.id)) {
+      setManualAttendees(prev => [...prev, contact.id]);
+    }
+    setContactSearchInput("");
   };
 
   return (
@@ -381,11 +568,18 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                           <div
                             key={contact.id}
                             className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
-                            onClick={() => addContact(contact)}
+                            onClick={() => {
+                              if (!manualAttendees.includes(contact.id)) {
+                                setManualAttendees(prev => [...prev, contact.id]);
+                              }
+                              setContactSearchInput("");
+                            }}
                           >
                             <div className="flex items-center gap-2">
                               <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                                <AvatarFallback className="text-xs">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
                               </Avatar>
                               <span className="text-sm text-popover-foreground">{contact.name}</span>
                             </div>
@@ -399,34 +593,32 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
                     {manualAttendees.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {manualAttendees.map((attendeeId) => {
-                          const contact = contacts.find(c => c.id === attendeeId);
-                          if (!contact) return null;
-                          return (
+                        {contacts
+                          .filter(contact => manualAttendees.includes(contact.id))
+                          .map((contact) => (
                             <div
                               key={contact.id}
                               className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
                             >
                               <Avatar className="h-4 w-4">
-                                <AvatarFallback className="text-[10px]">{getInitials(contact.name)}</AvatarFallback>
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
                               </Avatar>
                               <span>{contact.name}</span>
                               {contact.is_archived && (
                                 <Archive className="h-3 w-3 text-muted-foreground" />
                               )}
                               <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  removeContact(contact.id);
-                                }}
-                                className="hover:text-destructive ml-1"
+                                onClick={() => setManualAttendees(prev => 
+                                  prev.filter(id => id !== contact.id)
+                                )}
+                                className="hover:text-destructive"
                               >
                                 <X className="h-3 w-3" />
                               </button>
                             </div>
-                          );
-                        })}
+                          ))}
                       </div>
                     )}
                   </div>
@@ -440,11 +632,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       value={manualActivity}
                       onChange={(e) => {
                         setManualActivity(e.target.value);
+                        setShowActivitySuggestions(true);
                       }}
                       className="h-8"
                     />
                     
-                    {manualActivity && filteredActivities.length > 0 && (
+                    {manualActivity && showActivitySuggestions && filteredActivities.length > 0 && (
                       <div className="border rounded-md overflow-hidden">
                         {filteredActivities.map((activity) => (
                           <div
@@ -452,6 +645,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                             className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
                             onClick={() => {
                               setManualActivity(activity.name);
+                              setShowActivitySuggestions(false);
                             }}
                           >
                             <span className="text-sm">{activity.name}</span>
