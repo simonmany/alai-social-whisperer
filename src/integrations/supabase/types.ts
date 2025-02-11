@@ -35,6 +35,7 @@ export type Database = {
           created_at: string | null
           description: string | null
           end_time: string
+          feedback_sent: boolean | null
           google_event_id: string | null
           id: string
           location: string | null
@@ -47,6 +48,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           end_time: string
+          feedback_sent?: boolean | null
           google_event_id?: string | null
           id?: string
           location?: string | null
@@ -59,6 +61,7 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           end_time?: string
+          feedback_sent?: boolean | null
           google_event_id?: string | null
           id?: string
           location?: string | null
@@ -244,32 +247,6 @@ export type Database = {
             foreignKeyName: "event_attendees_event_id_fkey"
             columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "calendar_events"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      event_feedback_status: {
-        Row: {
-          created_at: string | null
-          event_id: string
-          feedback_sent: boolean | null
-        }
-        Insert: {
-          created_at?: string | null
-          event_id: string
-          feedback_sent?: boolean | null
-        }
-        Update: {
-          created_at?: string | null
-          event_id?: string
-          feedback_sent?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "event_feedback_status_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: true
             referencedRelation: "calendar_events"
             referencedColumns: ["id"]
           },
