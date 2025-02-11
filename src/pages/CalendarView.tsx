@@ -74,8 +74,8 @@ const CalendarView = () => {
             end_time,
             location,
             google_event_id,
-            event_attendees!inner (
-              contact!inner:contacts!inner (
+            event_attendees (
+              contacts (
                 id,
                 name
               )
@@ -105,8 +105,8 @@ const CalendarView = () => {
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
           attendees: event.event_attendees?.map(attendee => ({
-            id: attendee.contact.id,
-            name: attendee.contact.name
+            id: attendee.contacts.id,
+            name: attendee.contacts.name
           })) || []
         }));
 
