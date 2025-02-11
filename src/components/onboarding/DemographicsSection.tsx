@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { ChatInput } from "@/components/ChatInput";
@@ -16,9 +17,9 @@ interface DemographicsSectionProps {
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
   const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
-  const [age, setAge] = useState("");
+  const [age, setAge] = useState<number>(0);
   const [selectedCity, setSelectedCity] = useState("");
-  const [utcOffset, setUtcOffset] = useState<number | null>(null);
+  const [utcOffset, setUtcOffset] = useState<number>(0); // Changed to number type
   const [occupation, setOccupation] = useState("");
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const [hasPlayedDetails, setHasPlayedDetails] = useState(false);
@@ -63,11 +64,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
       return;
     }
 
-    // Convert age to number and validate
-    const ageNum = parseInt(age);
-    console.log('Validating age:', { input: age, parsed: ageNum });
-    
-    if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+    if (age < 13 || age > 120) {
       toast({
         title: "Invalid age",
         description: "Please enter a valid age between 13 and 120",
@@ -79,7 +76,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     try {
       await supabase
         .from('profiles')
-        .update({ age: ageNum })
+        .update({ age })
         .eq('id', session?.user.id);
 
       setStep('city');
@@ -105,7 +102,10 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     try {
       await supabase
         .from('profiles')
-        .update({ city: selectedCity, utc_offset_minutes: utcOffset || 0 })
+        .update({ 
+          city: selectedCity, 
+          utc_offset_minutes: utcOffset || 0 // Ensure it's a number
+        })
         .eq('id', session?.user.id);
 
       setStep('languages');
@@ -239,8 +239,8 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
           <div className="space-y-4">
             <Input
               type="number"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
+              value={age || ''}
+              onChange={(e) => setAge(parseInt(e.target.value) || 0)}
               placeholder="Enter your age..."
               className="w-full"
             />
@@ -273,11 +273,11 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
                     console.log('Selected place:', place);
                     if (place && typeof place === 'object') {
                       const address = place.formatted_address || place.name || '';
-                      const utcOffset = place.utc_offset_minutes || 0;
+                      const offset = parseInt(place.utc_offset_minutes) || 0; // Parse to number
                       console.log('Using address:', address);
                       if (address) {
                         setSelectedCity(address);
-                        setUtcOffset(utcOffset);
+                        setUtcOffset(offset);
                       }
                     }
                   }}

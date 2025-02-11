@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Phone, Instagram, Linkedin, Twitter } from "lucide-react";
+import { User, Phone, Instagram, Linkedin, Twitter, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Contact {
@@ -14,11 +15,12 @@ export interface Contact {
   instagram: string;
   linkedin: string;
   twitter: string;
+  photo?: string;
+  is_archived: boolean;
   meeting_story: string;
   relationship: string;
   created_at: string;
 }
-
 interface ContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -59,18 +61,37 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
         instagram: instagram,
         linkedin: linkedin,
         twitter: twitter,
+        photo: photo,
         meeting_story: meetingStory,
         relationship: relationship,
+        is_archived: false,
         created_at: new Date().toISOString()
       };
 
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
+      // First, try to fetch all contacts with similar names to avoid duplicates
+      const { data: existingContacts } = await supabase
+        .from('contacts')
+        .select('name')
+        .ilike('name', `%${name}%`)
+        .eq('user_id', user.id);
+
+      // Check if we might be creating a duplicate
+      if (existingContacts && existingContacts.some(contact => 
+        contact.name.toLowerCase() === name.toLowerCase()
+      )) {
+        console.log('Found potential duplicate contact:', name);
+        // You might want to show a warning to the user here
+      }
+
       // Insert contact into database
       const { data, error } = await supabase
-        .from('contacts')
-        .insert([newContact])
-        .select()
-        .single();
-
+      .from('contacts')
+      .insert([newContact])
+      .select()
+      .single();
 
       if (error) {
         console.error('Error inserting contact:', error);
@@ -243,3 +264,4 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
 };
 
 export default ContactsDialog;
+
