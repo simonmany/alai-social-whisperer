@@ -129,7 +129,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
         console.log('Fetching events with feedback filter...');
         
-        // Add logging to check the query results
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
@@ -163,13 +162,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           });
           return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
-
-        // Log the events to check feedback_sent status
-        console.log('Retrieved events:', dbEvents?.map(e => ({
-          id: e.id,
-          title: e.title,
-          feedback_sent: e.feedback_sent
-        })));
 
         const events = (dbEvents || []).map(event => ({
           id: event.id,
@@ -289,10 +281,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         return;
       }
 
-      // Create the event time based on the selected time of day
       const eventDate = new Date(manualDate);
       const startHour = manualTime === 'morning' ? 9 : manualTime === 'afternoon' ? 14 : 19;
-      const endHour = startHour + 1; // Default to 1-hour events
+      const endHour = startHour + 1;
 
       const startTime = new Date(eventDate.setHours(startHour, 0, 0, 0));
       const endTime = new Date(eventDate.setHours(endHour, 0, 0, 0));
@@ -312,7 +303,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           return;
         }
 
-        // Insert the calendar event with feedback_sent set to true
         const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
@@ -321,7 +311,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
             user_id: session.user.id,
-            feedback_sent: true  // Set this to true since we're submitting feedback right away
+            feedback_sent: true
           })
           .select()
           .single();
@@ -333,7 +323,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
         console.log('Successfully created event:', newEvent);
 
-        // Insert event attendees using the existing contact IDs
         const attendeePromises = manualAttendees.map(async contactId => {
           const { data, error } = await supabase
             .from('event_attendees')
@@ -352,7 +341,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         const attendeeResults = await Promise.all(attendeePromises);
         console.log('Attendee insertion results:', attendeeResults);
 
-        // Get the contact names for the message
         const attendeeNames = contacts
           .filter(contact => manualAttendees.includes(contact.id))
           .map(contact => contact.name)
@@ -373,7 +361,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         message += ` ${hangDescription}`;
       }
 
-      // Update feedback status directly in calendar_events
       const { error: updateError } = await supabase
         .from('calendar_events')
         .update({ feedback_sent: true })
@@ -636,9 +623,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       className="h-8"
                     />
                     
-                    {manualActivity && showActivitySuggestions && filteredActivities.length > 0 && (
+                    {manualActivity && showActivitySuggestions && activitySuggestions.length > 0 && (
                       <div className="border rounded-md overflow-hidden">
-                        {filteredActivities.map((activity) => (
+                        {activitySuggestions.map((activity) => (
                           <div
                             key={activity.id}
                             className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
