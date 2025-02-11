@@ -50,6 +50,8 @@ const CalendarView = () => {
       if (!session?.user?.id) return { events: [], isConnected: false };
 
       try {
+        console.log("Starting calendar events fetch...");
+        
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired')
@@ -67,7 +69,11 @@ const CalendarView = () => {
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-        // Changed from inner join to left join by removing !inner
+        console.log("Fetching events between:", {
+          start: thirtyDaysAgo.toISOString(),
+          end: thirtyDaysFromNow.toISOString()
+        });
+
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
@@ -103,22 +109,29 @@ const CalendarView = () => {
           return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
 
-        const events: CalendarEvent[] = (dbEvents || []).map(event => ({
-          id: event.id,
-          title: event.title,
-          description: event.description || undefined,
-          start_time: event.start_time,
-          end_time: event.end_time,
-          location: event.location || undefined,
-          google_event_id: event.google_event_id || undefined,
-          feedback_sent: event.feedback_sent || false,  // Ensure this has a default value
-          mood: event.mood || undefined,
-          feedback_notes: event.feedback_notes || undefined,
-          attendees: event.event_attendees?.map(attendee => ({
-            id: attendee.contacts.id,
-            name: attendee.contacts.name
-          })) || []
-        }));
+        console.log("Raw events from database:", dbEvents);
+
+        const events: CalendarEvent[] = (dbEvents || []).map(event => {
+          const mappedEvent = {
+            id: event.id,
+            title: event.title,
+            description: event.description || undefined,
+            start_time: event.start_time,
+            end_time: event.end_time,
+            location: event.location || undefined,
+            google_event_id: event.google_event_id || undefined,
+            feedback_sent: event.feedback_sent || false,
+            mood: event.mood || undefined,
+            feedback_notes: event.feedback_notes || undefined,
+            attendees: event.event_attendees?.map(attendee => ({
+              id: attendee.contacts.id,
+              name: attendee.contacts.name
+            })) || []
+          };
+          return mappedEvent;
+        });
+
+        console.log("Mapped events:", events);
 
         return { 
           events, 
