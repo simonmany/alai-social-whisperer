@@ -104,6 +104,102 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
+  const { data: calendarData = { events: [], isConnected: false }, isLoading } = useQuery({
+    queryKey: ["calendar-events"],
+    queryFn: async () => {
+      if (!session?.user?.id) return { events: [], isConnected: false };
+
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching profile:', profileError);
+          return { events: [], isConnected: false };
+        }
+
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now);
+        thirtyDaysAgo.setDate(now.getDate() - 30);
+        const thirtyDaysFromNow = new Date(now);
+        thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+        // Fetch events and their feedback status
+        const { data: dbEvents, error: dbError } = await supabase
+          .from("calendar_events")
+          .select(`
+            id,
+            title,
+            description,
+            start_time,
+            end_time,
+            location,
+            google_event_id,
+            event_attendees!inner (
+              contacts!contact_id (
+                id,
+                name
+              )
+            ),
+            event_feedback_status!left (
+              feedback_sent
+            )
+          `)
+          .eq("user_id", session.user.id)
+          .gte("start_time", thirtyDaysAgo.toISOString())
+          .lte("start_time", thirtyDaysFromNow.toISOString())
+          .order("start_time", { ascending: false });
+
+        if (dbError) {
+          console.error("Error fetching calendar events:", dbError);
+          toast({
+            title: "Error",
+            description: "Failed to fetch calendar events.",
+            variant: "destructive",
+          });
+          return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
+        }
+
+        // Filter out events that already have feedback
+        const eventsWithoutFeedback = (dbEvents || [])
+          .filter(event => !event.event_feedback_status?.[0]?.feedback_sent)
+          .map(event => ({
+            id: event.id,
+            title: event.title,
+            description: event.description || undefined,
+            start_time: event.start_time,
+            end_time: event.end_time,
+            location: event.location || undefined,
+            google_event_id: event.google_event_id || undefined,
+            attendees: event.event_attendees?.map(attendee => ({
+              id: attendee.contacts.id,
+              name: attendee.contacts.name
+            })) || []
+          }));
+
+        return { 
+          events: eventsWithoutFeedback, 
+          isConnected: profile?.has_google_calendar && !profile?.google_token_expired 
+        };
+      } catch (error) {
+        console.error("Exception in fetchCalendarEvents:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch calendar events. Please try again.",
+          variant: "destructive",
+        });
+        return { events: [], isConnected: false };
+      }
+    },
+    retry: 1,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    gcTime: 0
+  });
+
   const { data: events = [] } = useQuery({
     queryKey: ['calendar-events-with-attendees'],
     queryFn: async () => {
@@ -263,17 +359,29 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     } else if (selectedEvent) {
       console.log('Selected existing event:', selectedEvent);
       const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
-      let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang with ${attendeeNames} at ${selectedEvent.location} on ${selectedEvent.date.toLocaleDateString([], {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-      })} at ${selectedEvent.date.toLocaleTimeString([], {
-        hour: "numeric",
-        minute: "2-digit",
-      })}. We ${selectedEvent.title.toLowerCase()}.`;
+      let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang with ${attendeeNames} at ${selectedEvent.location} on ${format(new Date(selectedEvent.date), "EEEE, MMMM d")} at ${format(new Date(selectedEvent.date), "h:mm a")}. We ${selectedEvent.title.toLowerCase()}.`;
 
       if (hangDescription) {
         message += ` ${hangDescription}`;
+      }
+
+      // Mark feedback as sent for this event
+      const { error: feedbackError } = await supabase
+        .from('event_feedback_status')
+        .upsert({
+          event_id: selectedEvent.id,
+          feedback_sent: true,
+          created_at: new Date().toISOString()
+        });
+
+      if (feedbackError) {
+        console.error('Error updating feedback status:', feedbackError);
+        toast({
+          title: "Error",
+          description: "Failed to update feedback status.",
+          variant: "destructive"
+        });
+        return;
       }
       
       console.log('Submitting existing event message:', message);
