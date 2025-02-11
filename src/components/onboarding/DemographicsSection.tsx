@@ -64,7 +64,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
 
     // Convert age to number and validate
-    const ageNum = parseInt(age);
+    const ageNum = parseInt(age, 10);
     console.log('Validating age:', { input: age, parsed: ageNum });
     
     if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -33,7 +34,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [contactInput, setContactInput] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const { toast } = useToast();
-  const session = supabase.auth.session();
+  const { session } = useAuth();
 
   const timeSlots = Array.from({ length: 17 }, (_, i) => {
     const hour = i + 7;
@@ -83,7 +84,14 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         .order('name');
 
       if (error) throw error;
-      return data || [];
+      
+      // Transform JSON fields to ensure they're arrays
+      return (data || []).map(contact => ({
+        ...contact,
+        food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
+        recreation_interests: Array.isArray(contact.recreation_interests) ? contact.recreation_interests : [],
+        arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
+      })) as Contact[];
     },
     enabled: !!session?.user?.id && contactInput.length > 0
   });

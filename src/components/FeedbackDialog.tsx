@@ -82,7 +82,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .order('name');
 
       if (error) throw error;
-      return data || [];
+      
+      // Transform JSON fields to ensure they're arrays
+      return (data || []).map(contact => ({
+        ...contact,
+        food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
+        recreation_interests: Array.isArray(contact.recreation_interests) ? contact.recreation_interests : [],
+        arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
+      })) as Contact[];
     },
     enabled: !!session?.user?.id && contactSearchInput.length > 0
   });
@@ -163,6 +170,13 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   });
 
   const filteredContacts = contacts;
+
+  const filteredActivities = activities
+    ?.filter(activity =>
+      activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
+      activity.name.toLowerCase() !== manualActivity.toLowerCase()
+    )
+    .slice(0, 5) || [];
 
   const handleSubmit = async () => {
     console.log('handleSubmit called - starting submission process');
