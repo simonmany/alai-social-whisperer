@@ -435,7 +435,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Who was there?</label>
-                  <div className="space-y-2">
+                  <div className="space-y-2 relative">
                     <Input
                       placeholder="Search contacts..."
                       value={contactSearchInput}
@@ -444,7 +444,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     />
                     
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {filteredContacts.map((contact) => (
                           <div
                             key={contact.id}
