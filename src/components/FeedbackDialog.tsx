@@ -48,7 +48,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
-  // Manual entry form state
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
@@ -450,7 +449,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                             className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
                             onClick={() => {
                               if (!manualAttendees.includes(contact.id)) {
-                                setManualAttendees([...manualAttendees, contact.id]);
+                                setManualAttendees(prev => [...prev, contact.id]);
                               }
                               setContactSearchInput("");
                             }}
