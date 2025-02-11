@@ -216,6 +216,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .from('calendar_events')
         .select('*')
         .eq('user_id', session.user.id)
+        .is('feedback_sent', false)  // Add this filter to match the other query
         .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .lte('start_time', new Date().toISOString())
         .order('start_time', { ascending: false });
@@ -251,7 +252,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             id: event.id,
             title: event.title,
             date: new Date(event.start_time),
-            location: event.description || "No location specified",
+            location: event.location || "No location specified",
             attendees: contacts || []
           } as Event;
         })
