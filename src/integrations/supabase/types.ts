@@ -35,12 +35,10 @@ export type Database = {
           created_at: string | null
           description: string | null
           end_time: string
-          feedback_notes: string | null
           feedback_sent: boolean | null
           google_event_id: string | null
           id: string
           location: string | null
-          mood: string | null
           start_time: string
           title: string
           updated_at: string | null
@@ -50,12 +48,10 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           end_time: string
-          feedback_notes?: string | null
           feedback_sent?: boolean | null
           google_event_id?: string | null
           id?: string
           location?: string | null
-          mood?: string | null
           start_time: string
           title: string
           updated_at?: string | null
@@ -65,12 +61,10 @@ export type Database = {
           created_at?: string | null
           description?: string | null
           end_time?: string
-          feedback_notes?: string | null
           feedback_sent?: boolean | null
           google_event_id?: string | null
           id?: string
           location?: string | null
-          mood?: string | null
           start_time?: string
           title?: string
           updated_at?: string | null

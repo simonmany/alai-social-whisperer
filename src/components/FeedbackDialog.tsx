@@ -40,14 +40,13 @@ interface FeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
-  initialEvent?: Event & { mood?: string; description?: string };
 }
 
-export default function FeedbackDialog({ open, onOpenChange, onSubmit, initialEvent }: FeedbackDialogProps) {
+export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
   const { session } = useAuth();
-  const [selectedEvent, setSelectedEvent] = useState<Event | null>(initialEvent || null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
-  const [isManualEntry, setIsManualEntry] = useState(!initialEvent);
+  const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
   const [manualActivity, setManualActivity] = useState("");
@@ -56,16 +55,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, initialEv
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
   const [contactSearchInput, setContactSearchInput] = useState("");
-  const [hangDescription, setHangDescription] = useState(initialEvent?.description || "");
-  const [selectedMood, setSelectedMood] = useState<string>(initialEvent?.mood || "");
-
-  useEffect(() => {
-    if (initialEvent) {
-      setSelectedEvent(initialEvent);
-      setHangDescription(initialEvent.description || "");
-      setSelectedMood(initialEvent.mood || "");
-    }
-  }, [initialEvent]);
+  const [hangDescription, setHangDescription] = useState("");
+  const [selectedMood, setSelectedMood] = useState<string>("");
 
   const moodOptions = [
     "fun",
