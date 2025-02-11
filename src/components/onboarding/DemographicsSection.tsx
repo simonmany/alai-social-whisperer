@@ -16,7 +16,7 @@ interface DemographicsSectionProps {
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
   const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
-  const [age, setAge] = useState("");
+  const [age, setAge] = useState<string>("");
   const [selectedCity, setSelectedCity] = useState("");
   const [utcOffset, setUtcOffset] = useState("");
   const [occupation, setOccupation] = useState("");
