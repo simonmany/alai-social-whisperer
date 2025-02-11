@@ -396,6 +396,7 @@ export type Database = {
           skill_gourmand: number | null
           skill_reveler: number | null
           skill_traveler: number | null
+          time_zone: string | null
           updated_at: string | null
           username: string | null
         }
@@ -432,6 +433,7 @@ export type Database = {
           skill_gourmand?: number | null
           skill_reveler?: number | null
           skill_traveler?: number | null
+          time_zone?: string | null
           updated_at?: string | null
           username?: string | null
         }
@@ -468,6 +470,7 @@ export type Database = {
           skill_gourmand?: number | null
           skill_reveler?: number | null
           skill_traveler?: number | null
+          time_zone?: string | null
           updated_at?: string | null
           username?: string | null
         }
