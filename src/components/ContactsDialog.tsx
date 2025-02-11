@@ -57,7 +57,7 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
         linkedin,
         twitter,
         photo,
-        meeting_story: meetingStory,  // Fixed: using the state variable meetingStory
+        meeting_story: meetingStory,  // using the state variable meetingStory
         relationship,
         is_archived: false
       }]);
