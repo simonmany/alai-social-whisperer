@@ -503,13 +503,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                           {manualDate ? format(manualDate, "PPP") : "Pick a date"}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={manualDate}
-                          onSelect={setManualDate}
-                          initialFocus
-                        />
+                      <PopoverContent 
+                        className="w-auto p-0" 
+                        align="start" 
+                        side="bottom"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="cursor-pointer hover:cursor-pointer">
+                          <Calendar
+                            mode="single"
+                            selected={manualDate}
+                            onSelect={setManualDate}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </div>
                       </PopoverContent>
                     </Popover>
                   </div>
