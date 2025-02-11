@@ -49,7 +49,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
-  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
+  const [manualAttendees, setManualAttendees] = useState<string[]>([]);
   const [contactInput, setContactInput] = useState("");
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
@@ -263,7 +263,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     enabled: !!session?.user?.id
   });
 
-  const filteredContacts = contacts;
+  const filteredContacts = contacts.filter(contact => 
+    !manualAttendees.includes(contact.id)
+  );
 
   const filteredActivities = activities
     ?.filter(activity =>
@@ -278,8 +280,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     if (isManualEntry) {
       console.log('Manual entry mode detected');
       
-      if (!manualDate || !manualActivity || selectedContacts.length === 0) {
-        console.log('Validation failed:', { manualDate, manualActivity, attendeesCount: selectedContacts.length });
+      if (!manualDate || !manualActivity || manualAttendees.length === 0) {
+        console.log('Validation failed:', { manualDate, manualActivity, attendeesCount: manualAttendees.length });
         return;
       }
 
@@ -295,7 +297,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         location: manualLocation,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-        attendees: selectedContacts.map(contact => contact.id),
+        attendees: manualAttendees,
         userId: session?.user?.id
       });
 
@@ -325,25 +327,26 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
         console.log('Successfully created event:', newEvent);
 
-        const attendeePromises = selectedContacts.map(async contact => {
+        const attendeePromises = manualAttendees.map(async contactId => {
           const { data, error } = await supabase
             .from('event_attendees')
             .insert({
               event_id: newEvent.id,
-              contact_id: contact.id
+              contact_id: contactId
             })
             .select();
           
           if (error) {
-            console.error(`Error inserting attendee ${contact.id}:`, error);
+            console.error(`Error inserting attendee ${contactId}:`, error);
           }
-          return { contact, data, error };
+          return { contactId, data, error };
         });
 
         const attendeeResults = await Promise.all(attendeePromises);
         console.log('Attendee insertion results:', attendeeResults);
 
-        const attendeeNames = selectedContacts
+        const attendeeNames = contacts
+          .filter(contact => manualAttendees.includes(contact.id))
           .map(contact => contact.name)
           .join(', ');
 
@@ -388,7 +391,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setSelectedEvent(null);
     setSelectedContact(null);
     setIsManualEntry(false);
-    setSelectedContacts([]);
+    setManualAttendees([]);
     setManualActivity("");
     setManualLocation("");
     setManualDate(new Date());
@@ -416,6 +419,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       .slice(0, 2);
   };
 
+  const addContact = (contact: Contact) => {
+    setManualAttendees(prev => [...prev, contact.id]);
+    setContactInput("");
+  };
+
+  const removeContact = (contactId: string) => {
+    setManualAttendees(prev => prev.filter(id => id !== contactId));
+  };
+
   const handleAiPickContact = () => {
     if (!contacts || contacts.length === 0) {
       toast({
@@ -427,7 +439,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     }
 
     const availableContacts = contacts.filter(
-      contact => !selectedContacts.some(selected => selected.id === contact.id)
+      contact => !manualAttendees.includes(contact.id)
     );
 
     if (availableContacts.length === 0) {
@@ -440,7 +452,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     }
 
     const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
-    setSelectedContacts([...selectedContacts, randomContact]);
+    setManualAttendees([...manualAttendees, randomContact.id]);
   };
 
   return (
@@ -573,12 +585,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                           <div
                             key={contact.id}
                             className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
-                            onClick={() => {
-                              if (!selectedContacts.includes(contact)) {
-                                setSelectedContacts(prev => [...prev, contact]);
-                              }
-                              setContactSearchInput("");
-                            }}
+                            onClick={() => addContact(contact)}
                           >
                             <div className="flex items-center gap-2">
                               <Avatar className="h-6 w-6">
@@ -596,32 +603,34 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       </div>
                     )}
 
-                    {selectedContacts.length > 0 && (
+                    {manualAttendees.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {selectedContacts.map((contact) => (
-                          <div
-                            key={contact.id}
-                            className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                          >
-                            <Avatar className="h-4 w-4">
-                              <AvatarFallback className="text-[10px]">
-                                {getInitials(contact.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span>{contact.name}</span>
-                            {contact.is_archived && (
-                              <Archive className="h-3 w-3 text-muted-foreground" />
-                            )}
-                            <button
-                              onClick={() => setSelectedContacts(prev => 
-                                prev.filter(id => id !== contact.id)
-                              )}
-                              className="hover:text-destructive"
+                        {manualAttendees.map((attendeeId) => {
+                          const contact = contacts.find(c => c.id === attendeeId);
+                          if (!contact) return null;
+                          return (
+                            <div
+                              key={contact.id}
+                              className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
                             >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
+                              <Avatar className="h-4 w-4">
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{contact.name}</span>
+                              {contact.is_archived && (
+                                <Archive className="h-3 w-3 text-muted-foreground" />
+                              )}
+                              <button
+                                onClick={() => removeContact(contact.id)}
+                                className="hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -733,7 +742,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               </div>
             )}
 
-            {(selectedEvent || (isManualEntry && selectedContacts.length > 0 && manualActivity)) && (
+            {(selectedEvent || (isManualEntry && manualAttendees.length > 0 && manualActivity)) && (
               <Button className="w-full" onClick={handleSubmit}>
                 Submit Feedback
               </Button>
