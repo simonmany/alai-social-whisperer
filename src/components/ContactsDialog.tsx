@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Phone, Instagram, Linkedin, Twitter } from "lucide-react";
+import { supabase } from "@/lib/supabase";
 
 interface ContactsDialogProps {
   open: boolean;
@@ -33,7 +34,7 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
     "a date"
   ];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name) return;
 
     let contactsString = "";
@@ -41,6 +42,29 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
     if (instagram) contactsString += `📸 @${instagram} `;
     if (linkedin) contactsString += `💼 ${linkedin} `;
     if (twitter) contactsString += `🐦 @${twitter}`;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user');
+
+    const { error: contactError } = await supabase
+      .from('contacts')
+      .insert([{
+        user_id: user.id,
+        name,
+        phone,
+        instagram,
+        linkedin,
+        twitter,
+        photo,
+        meeting_story,
+        relationship,
+        is_archived: false  // Explicitly set is_archived to false when creating new contacts
+      }]);
+
+    if (contactError) {
+      console.error('Error creating contact:', contactError);
+      return;
+    }
 
     const message = `I met ${name} ${meetingStory ? `at ${meetingStory}` : ""}. ${
       contactsString ? `Their contacts are ${contactsString.trim()}.` : ""
