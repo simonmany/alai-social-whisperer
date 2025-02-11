@@ -224,7 +224,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
         console.log('Successfully created event:', newEvent);
 
-        // Insert event attendees
+        // Insert event attendees using the existing contact IDs
         const attendeePromises = manualAttendees.map(async contactId => {
           const { data, error } = await supabase
             .from('event_attendees')
@@ -253,18 +253,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           console.error('Error fetching attendee contacts:', contactsError);
         } else {
           console.log('Event attendees:', attendeeContacts);
-        }
-
-        // Verify trigger execution by fetching updated contacts
-        const { data: updatedContacts, error: updateCheckError } = await supabase
-          .from('contacts')
-          .select('id, name, food_interests, recreation_interests, arts_interests')
-          .in('id', manualAttendees);
-
-        if (updateCheckError) {
-          console.error('Error checking updated contacts:', updateCheckError);
-        } else {
-          console.log('Updated contacts interests:', updatedContacts);
         }
 
         const attendeeNames = contacts
