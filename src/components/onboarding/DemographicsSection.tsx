@@ -16,7 +16,7 @@ interface DemographicsSectionProps {
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
   const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
-  const [age, setAge] = useState<string>("");
+  const [age, setAge] = useState<number>(0);
   const [selectedCity, setSelectedCity] = useState("");
   const [utcOffset, setUtcOffset] = useState("");
   const [occupation, setOccupation] = useState("");
@@ -63,11 +63,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
       return;
     }
 
-    // Convert age to number and validate
-    const ageNum = parseInt(age, 10);
-    console.log('Validating age:', { input: age, parsed: ageNum });
-    
-    if (isNaN(ageNum) || ageNum < 13 || ageNum > 120) {
+    if (age < 13 || age > 120) {
       toast({
         title: "Invalid age",
         description: "Please enter a valid age between 13 and 120",
@@ -79,7 +75,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     try {
       await supabase
         .from('profiles')
-        .update({ age: ageNum })
+        .update({ age })
         .eq('id', session?.user.id);
 
       setStep('city');
@@ -239,8 +235,8 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
           <div className="space-y-4">
             <Input
               type="number"
-              value={age}
-              onChange={(e) => setAge(e.target.value)}
+              value={age || ''}
+              onChange={(e) => setAge(parseInt(e.target.value) || 0)}
               placeholder="Enter your age..."
               className="w-full"
             />
