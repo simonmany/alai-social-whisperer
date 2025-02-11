@@ -1,4 +1,3 @@
-
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -43,6 +42,10 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
+
+  const handleConnectCalendar = () => {
+    navigate('/connect-calendar');
+  };
 
   const { data: calendarData = { events: [], isConnected: false }, isLoading } = useQuery<CalendarData, Error>({
     queryKey: ["calendar-events"],

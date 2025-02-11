@@ -2,7 +2,7 @@
 import { format } from "date-fns";
 import { MapPin, Users, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { FeedbackDialog } from "@/components/FeedbackDialog";
+import FeedbackDialog from "@/components/FeedbackDialog"; // Changed from named to default import
 import { useState } from "react";
 
 interface CalendarEvent {
