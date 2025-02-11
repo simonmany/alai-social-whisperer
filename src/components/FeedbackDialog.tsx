@@ -48,7 +48,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
@@ -207,7 +206,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     gcTime: 0
   });
 
-  const { data: events = [] } = useQuery({
+  const { data: recentEvents = [] } = useQuery({
     queryKey: ['calendar-events-with-attendees'],
     queryFn: async () => {
       if (!session?.user?.id) return [];
@@ -216,7 +215,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .from('calendar_events')
         .select('*')
         .eq('user_id', session.user.id)
-        .is('feedback_sent', false)  // Add this filter to match the other query
+        .is('feedback_sent', false)
         .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
         .lte('start_time', new Date().toISOString())
         .order('start_time', { ascending: false });
@@ -272,7 +271,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
   const filteredContacts = contacts;
 
-  const filteredActivities = activities
+  const activitySuggestions = activities
     ?.filter(activity =>
       activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
       activity.name.toLowerCase() !== manualActivity.toLowerCase()
@@ -467,7 +466,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             {!isManualEntry ? (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  {events.map((event) => (
+                  {recentEvents.map((event) => (
                     <div
                       key={event.id}
                       className={`p-4 rounded-lg border cursor-pointer transition-colors ${
