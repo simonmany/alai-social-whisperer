@@ -79,12 +79,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         .ilike('name', `%${contactSearchInput}%`)
         .order('name');
 
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        throw error;
-      }
-      
-      console.log('Retrieved contacts:', data);
+      if (error) throw error;
       
       return (data || []).map(contact => ({
         ...contact,
@@ -93,14 +88,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
       })) as Contact[];
     },
-    enabled: !!session?.user?.id,
-    staleTime: 30000
+    enabled: !!session?.user?.id
   });
-
-  const filteredContacts = contacts.filter(contact => 
-    contact.name.toLowerCase().includes(contactSearchInput.toLowerCase()) &&
-    !manualAttendees.includes(contact.id)
-  );
 
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
@@ -271,6 +260,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     },
     enabled: !!session?.user?.id
   });
+
+  const filteredContacts = contacts;
 
   const activitySuggestions = activities
     ?.filter(activity =>
