@@ -46,6 +46,7 @@ interface Contact {
   twitter?: string;
   meetingStory?: string;
   relationship?: string;
+  photo?: string;
 }
 
 const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";

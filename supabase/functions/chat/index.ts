@@ -321,7 +321,9 @@ async function upsertContactGroupMemberships(
     .insert(memberships)
     .select();
 
-  if (error) throw error;
+  if (error) {
+    console.log("Error inserting into contact groups", error)
+  };
   return data;
 }
 
