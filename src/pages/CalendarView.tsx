@@ -67,6 +67,7 @@ const CalendarView = () => {
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
+        // Changed from inner join to left join by removing !inner
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
@@ -80,7 +81,7 @@ const CalendarView = () => {
             feedback_sent,
             feedback_notes,
             mood,
-            event_attendees!inner (
+            event_attendees (
               contacts!contact_id (
                 id,
                 name
@@ -110,7 +111,7 @@ const CalendarView = () => {
           end_time: event.end_time,
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
-          feedback_sent: event.feedback_sent,
+          feedback_sent: event.feedback_sent || false,  // Ensure this has a default value
           mood: event.mood || undefined,
           feedback_notes: event.feedback_notes || undefined,
           attendees: event.event_attendees?.map(attendee => ({
