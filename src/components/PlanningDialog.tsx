@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot, ArrowLeft } from "lucide-react";
+import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot, ArrowLeft, Archive } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import Autocomplete from 'react-google-autocomplete';
@@ -15,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -34,6 +34,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [contactInput, setContactInput] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const { toast } = useToast();
+  const { session } = useAuth();
 
   const timeSlots = Array.from({ length: 17 }, (_, i) => {
     const hour = i + 7;
@@ -70,27 +71,28 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     }
   }, [selectedCategory, toast]);
 
-  const { data: contacts, isLoading } = useQuery({
-    queryKey: ['contacts'],
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts', contactInput],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return [];
-
+      if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from('contacts')
-        .select('id, name, email')
-        .eq('user_id', user.id)
-        .eq('is_archived', false)
+        .select('*')
+        .eq('user_id', session.user.id)
+        .ilike('name', `%${contactInput}%`)
         .order('name');
-      
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        throw error;
-      }
 
-      console.log('Total contacts fetched in planning dialog:', data?.length);
-      return data || [];
-    }
+      if (error) throw error;
+      
+      // Transform JSON fields to ensure they're arrays
+      return (data || []).map(contact => ({
+        ...contact,
+        food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
+        recreation_interests: Array.isArray(contact.recreation_interests) ? contact.recreation_interests : [],
+        arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
+      })) as Contact[];
+    },
+    enabled: !!session?.user?.id && contactInput.length > 0
   });
 
   const { data: foodItems } = useQuery({
@@ -222,12 +224,9 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedTime(randomTime);
   };
 
-  const filteredContacts = contacts
-    ? contacts.filter(contact => 
-        contact.name.toLowerCase().includes(contactInput.toLowerCase()) &&
-        !selectedContacts.some(selected => selected.id === contact.id)
-      )
-    : [];
+  const filteredContacts = contacts.filter(contact => 
+    !selectedContacts.some(selected => selected.id === contact.id)
+  );
 
   const getInitials = (name: string) => {
     return name
@@ -634,13 +633,18 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                   {filteredContacts.map((contact) => (
                     <div
                       key={contact.id}
-                      className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2"
+                      className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
                       onClick={() => addContact(contact)}
                     >
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{contact.name}</span>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{contact.name}</span>
+                      </div>
+                      {contact.is_archived && (
+                        <Archive className="h-4 w-4 text-muted-foreground" />
+                      )}
                     </div>
                   ))}
                 </div>
@@ -658,6 +662,9 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
                       <AvatarFallback className="text-[10px]">{getInitials(contact.name)}</AvatarFallback>
                     </Avatar>
                     <span>{contact.name}</span>
+                    {contact.is_archived && (
+                      <Archive className="h-3 w-3 text-muted-foreground" />
+                    )}
                     <button
                       onClick={() => removeContact(contact)}
                       className="hover:text-destructive"
@@ -740,4 +747,3 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 };
 
 export default PlanningDialog;
-

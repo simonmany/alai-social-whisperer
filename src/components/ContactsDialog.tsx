@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { User, Phone, Instagram, Linkedin, Twitter } from "lucide-react";
+import { User, Phone, Instagram, Linkedin, Twitter, Archive } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ContactsDialogProps {
   open: boolean;
@@ -33,7 +35,7 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
     "a date"
   ];
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!name) return;
 
     let contactsString = "";
@@ -41,6 +43,44 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
     if (instagram) contactsString += `📸 @${instagram} `;
     if (linkedin) contactsString += `💼 ${linkedin} `;
     if (twitter) contactsString += `🐦 @${twitter}`;
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user');
+
+    // First, try to fetch all contacts with similar names to avoid duplicates
+    const { data: existingContacts } = await supabase
+      .from('contacts')
+      .select('name')
+      .ilike('name', `%${name}%`)
+      .eq('user_id', user.id);
+
+    // Check if we might be creating a duplicate
+    if (existingContacts && existingContacts.some(contact => 
+      contact.name.toLowerCase() === name.toLowerCase()
+    )) {
+      console.log('Found potential duplicate contact:', name);
+      // You might want to show a warning to the user here
+    }
+
+    const { error: contactError } = await supabase
+      .from('contacts')
+      .insert([{
+        user_id: user.id,
+        name,
+        phone,
+        instagram,
+        linkedin,
+        twitter,
+        photo,
+        meeting_story: meetingStory,
+        relationship,
+        is_archived: false
+      }]);
+
+    if (contactError) {
+      console.error('Error creating contact:', contactError);
+      return;
+    }
 
     const message = `I met ${name} ${meetingStory ? `at ${meetingStory}` : ""}. ${
       contactsString ? `Their contacts are ${contactsString.trim()}.` : ""
@@ -197,3 +237,4 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit }: ContactsDialogProps) =
 };
 
 export default ContactsDialog;
+

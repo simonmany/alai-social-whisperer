@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, Archive } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
@@ -48,7 +48,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   
-  // Manual entry form state
   const [manualAttendees, setManualAttendees] = useState<string[]>([]);
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
@@ -70,16 +69,26 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   ];
 
   const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts'],
+    queryKey: ['contacts', contactSearchInput],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
-        .eq('user_id', session.user.id);
+        .eq('user_id', session.user.id)
+        .ilike('name', `%${contactSearchInput}%`)
+        .order('name');
+
       if (error) throw error;
-      return data || [];
-    }
+      
+      return (data || []).map(contact => ({
+        ...contact,
+        food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
+        recreation_interests: Array.isArray(contact.recreation_interests) ? contact.recreation_interests : [],
+        arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
+      })) as Contact[];
+    },
+    enabled: !!session?.user?.id
   });
 
   const { data: activities = [] } = useQuery({
@@ -157,18 +166,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     enabled: !!session?.user?.id
   });
 
-  const filteredContacts = contacts
-    .filter(contact => 
-      contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
-    )
-    .slice(0, 5);
+  const filteredContacts = contacts;
 
   const filteredActivities = activities
-    .filter(activity =>
+    ?.filter(activity =>
       activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
       activity.name.toLowerCase() !== manualActivity.toLowerCase()
     )
-    .slice(0, 5);
+    .slice(0, 5) || [];
 
   const handleSubmit = async () => {
     console.log('handleSubmit called - starting submission process');
@@ -312,6 +317,13 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
   const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
 
+  const handleContactSelect = (contact: Contact) => {
+    if (!manualAttendees.includes(contact.id)) {
+      setManualAttendees(prev => [...prev, contact.id]);
+    }
+    setContactSearchInput("");
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -428,7 +440,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Who was there?</label>
-                  <div className="space-y-2">
+                  <div className="space-y-2 relative">
                     <Input
                       placeholder="Search contacts..."
                       value={contactSearchInput}
@@ -437,24 +449,29 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     />
                     
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="border rounded-md overflow-hidden">
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {filteredContacts.map((contact) => (
                           <div
                             key={contact.id}
-                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
                             onClick={() => {
                               if (!manualAttendees.includes(contact.id)) {
-                                setManualAttendees([...manualAttendees, contact.id]);
+                                setManualAttendees(prev => [...prev, contact.id]);
                               }
                               setContactSearchInput("");
                             }}
                           >
-                            <Avatar className="h-6 w-6">
-                              <AvatarFallback className="text-xs">
-                                {getInitials(contact.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm">{contact.name}</span>
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-xs">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm text-popover-foreground">{contact.name}</span>
+                            </div>
+                            {contact.is_archived && (
+                              <Archive className="h-4 w-4 text-muted-foreground" />
+                            )}
                           </div>
                         ))}
                       </div>
@@ -475,6 +492,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                                 </AvatarFallback>
                               </Avatar>
                               <span>{contact.name}</span>
+                              {contact.is_archived && (
+                                <Archive className="h-3 w-3 text-muted-foreground" />
+                              )}
                               <button
                                 onClick={() => setManualAttendees(prev => 
                                   prev.filter(id => id !== contact.id)
