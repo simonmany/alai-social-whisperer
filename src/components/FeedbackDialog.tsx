@@ -444,7 +444,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                     />
                     
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto backdrop-blur-none">
+                      <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                         {filteredContacts.map((contact) => (
                           <div
                             key={contact.id}
