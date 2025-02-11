@@ -476,11 +476,35 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      extract_activity: {
+        Args: {
+          title: string
+        }
+        Returns: string
+      }
+      extract_food_item: {
+        Args: {
+          title: string
+        }
+        Returns: string
+      }
       get_timezone_for_city: {
         Args: {
           city_name: string
         }
         Returns: string
+      }
+      matches_activity: {
+        Args: {
+          title: string
+        }
+        Returns: boolean
+      }
+      matches_food_item: {
+        Args: {
+          title: string
+        }
+        Returns: boolean
       }
       schedule_all_user_checkins: {
         Args: Record<PropertyKey, never>
