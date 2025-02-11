@@ -14,6 +14,8 @@ interface CalendarEvent {
   google_event_id?: string;
   location?: string;
   feedback_sent?: boolean;
+  mood?: string;
+  feedback_notes?: string;
   attendees?: Array<{
     id: string;
     name: string;
@@ -26,6 +28,16 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
   const handleSubmit = (message: string) => {
     // Handle the feedback submission
     console.log("Feedback submitted:", message);
+  };
+
+  const eventForDialog = {
+    id: event.id,
+    title: event.title,
+    date: new Date(event.start_time),
+    location: event.location || "No location specified",
+    attendees: event.attendees || [],
+    mood: event.mood,
+    description: event.feedback_notes
   };
 
   return (
@@ -78,6 +90,7 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
         open={showFeedback}
         onOpenChange={setShowFeedback}
         onSubmit={handleSubmit}
+        initialEvent={eventForDialog}
       />
     </>
   );
