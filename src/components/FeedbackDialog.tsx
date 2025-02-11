@@ -652,21 +652,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                       className="h-8"
                     />
                     
-                    {manualActivity && filteredActivities.length > 0 && (
-                      <div className="border rounded-md overflow-hidden">
-                        {filteredActivities.map((activity) => (
-                          <div
-                            key={activity.id}
-                            className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
-                            onClick={() => {
-                              setManualActivity(activity.name);
-                            }}
-                          >
-                            <span className="text-sm">{activity.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    
                   </div>
                 </div>
 
