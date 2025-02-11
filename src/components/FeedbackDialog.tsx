@@ -75,6 +75,35 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     }
   });
 
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendar-events'],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const { data: eventsWithAttendees, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          event_attendees (
+            contacts (*)
+          )
+        `)
+        .eq('user_id', session.user.id)
+        .order('start_time', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching calendar events:', error);
+        throw error;
+      }
+
+      // Transform the nested data structure into our expected format
+      return (eventsWithAttendees || []).map(event => ({
+        ...event,
+        attendees: event.event_attendees?.map(ea => ea.contacts) || []
+      })) as EventWithAttendees[];
+    }
+  });
+
   const filteredContacts = contacts
     .filter(contact => 
       contact.name.toLowerCase().includes(contactInput.toLowerCase()) &&
