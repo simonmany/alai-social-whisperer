@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 type EventAttendee = Contact;
 
@@ -489,18 +490,28 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">When did you hang?</label>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal h-8"
-                      onClick={() => {
-                        // The calendar will be implemented in a future iteration
-                        // For now, we'll just use the current date
-                        setManualDate(new Date());
-                      }}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {manualDate ? format(manualDate, "PPP") : "Pick a date"}
-                    </Button>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal h-8",
+                            !manualDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {manualDate ? format(manualDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={manualDate}
+                          onSelect={setManualDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
                   </div>
 
                   <div className="space-y-2">
