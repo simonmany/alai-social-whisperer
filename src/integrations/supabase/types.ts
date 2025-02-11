@@ -170,6 +170,7 @@ export type Database = {
           meeting_story: string | null
           name: string
           phone: string | null
+          photo: string | null
           recreation_interests: Json | null
           relationship: string | null
           twitter: string | null
@@ -188,6 +189,7 @@ export type Database = {
           meeting_story?: string | null
           name: string
           phone?: string | null
+          photo?: string | null
           recreation_interests?: Json | null
           relationship?: string | null
           twitter?: string | null
@@ -206,6 +208,7 @@ export type Database = {
           meeting_story?: string | null
           name?: string
           phone?: string | null
+          photo?: string | null
           recreation_interests?: Json | null
           relationship?: string | null
           twitter?: string | null
