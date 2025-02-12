@@ -13,6 +13,10 @@ import { ContactSorter } from './ContactSorter';
 import { supabase } from "@/integrations/supabase/client";
 import { ContactCard } from "./ContactCard";
 
+interface ContactCardProps extends Contact {
+  meetingStory?: string;
+}
+
 interface DeepSpaceViewProps {
   contacts: Contact[];
 }
@@ -164,6 +168,11 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
       }
     }
   }, [ungroupedContacts]);
+
+  const handleContactSorted = () => {
+    setSortedCount(prev => prev + 1);
+    loadContacts(0); // Reload contacts to reflect any changes
+  };
 
   return (
     <div className="absolute inset-0 overflow-y-auto bg-black/90 p-4 pb-40">
