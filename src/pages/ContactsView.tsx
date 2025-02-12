@@ -619,6 +619,48 @@ const ContactsView = () => {
     );
   }
 
+  const handleDeleteGroup = async () => {
+    const groupToDelete = groups.find(g => g.name === selectedGroup);
+    if (!groupToDelete) return;
+
+    try {
+      // Delete all group memberships first
+      const { error: membershipError } = await supabase
+        .from('contact_group_memberships')
+        .delete()
+        .eq('group_id', groupToDelete.id);
+
+      if (membershipError) throw membershipError;
+
+      // Then delete the group itself
+      const { error: groupError } = await supabase
+        .from('contact_groups')
+        .delete()
+        .eq('id', groupToDelete.id);
+
+      if (groupError) throw groupError;
+
+      toast({
+        title: "Group deleted",
+        description: "The group and all its memberships have been removed.",
+      });
+
+      // Reset view to Home and refresh data
+      setSelectedGroup("Home");
+      queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
+    } catch (error: any) {
+      console.error('Error deleting group:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the group. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowDeleteConfirmation(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 overflow-hidden">
       <div 
