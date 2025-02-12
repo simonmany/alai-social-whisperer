@@ -12,6 +12,9 @@ interface Contact {
   twitter?: string;
   meeting_story?: string;
   relationship?: string;
+  food_interests?: string[];
+  recreation_interests?: string[];
+  arts_interests?: string[];
 }
 
 const corsHeaders = {
@@ -148,6 +151,9 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
             twitter?: string
             meeting_story?: string
             relationship?: string
+            food_interests?: array of strings, any foods the contact likes to eat or cook
+            recreation_interests?: array of strings, any activities the contact likes to do
+            arts_interests?: array of strings, any arts, culture, or media the contact likes
           }
         ],
         contact_groups: [
@@ -352,6 +358,24 @@ async function mergeContacts(existingContacts: Contact[], newContacts: Contact[]
       }
       if (contact.meeting_story) {
         matchingContact.meeting_story = contact.meeting_story;
+      }
+      if (contact.food_interests) {
+        matchingContact.food_interests = Array.from(new Set([
+          ...(matchingContact.food_interests || []),
+          ...(contact.food_interests || [])
+        ]));
+      }
+      if (contact.recreation_interests) {
+        matchingContact.recreation_interests = Array.from(new Set([
+          ...(matchingContact.recreation_interests || []),
+          ...(contact.recreation_interests || [])
+        ]));
+      }
+      if (contact.arts_interests) {
+        matchingContact.arts_interests = Array.from(new Set([
+          ...(matchingContact.arts_interests || []),
+          ...(contact.arts_interests || [])
+        ]));
       }
     }
   }
