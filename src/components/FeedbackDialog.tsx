@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 
 type EventAttendee = Contact;
 
@@ -174,6 +175,49 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     enabled: open && !selectedEventId
   });
 
+  // Add query for contacts suggestions
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', session?.user?.id)
+        .eq('is_archived', false)
+        .order('name');
+      
+      if (error) throw error;
+      return data as Contact[];
+    },
+    enabled: isManualEntry && open,
+  });
+
+  // Add query for activities suggestions
+  const { data: activities = [] } = useQuery({
+    queryKey: ['activities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: isManualEntry && open,
+  });
+
+  // Filter contacts based on search input
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(contactSearchInput.toLowerCase()) &&
+    !selectedContacts.some(selected => selected.id === contact.id)
+  );
+
+  // Filter activities based on input
+  const activitySuggestions = activities.filter(activity =>
+    activity.name.toLowerCase().includes(manualActivity.toLowerCase())
+  );
+
   // Set selectedEvent when eventDetails changes
   useEffect(() => {
     if (eventDetails) {
@@ -209,12 +253,44 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     if (!session?.user?.id) return;
 
     try {
-      let description = hangDescription;
-      if (selectedMood) {
-        description = `Mood: ${selectedMood}. ${description}`;
-      }
+      let description = '';
+      let eventId = '';
 
-      if (selectedEvent) {
+      if (isManualEntry) {
+        // Create a new calendar event for manual entry
+        const { data: newEvent, error: eventError } = await supabase
+          .from('calendar_events')
+          .insert([{
+            user_id: session.user.id,
+            title: manualActivity,
+            location: manualLocation,
+            start_time: manualDate,
+            end_time: manualDate, // For manual entries, we use the same date
+            description: `Mood: ${selectedMood}. ${manualNotes}`,
+            feedback_sent: true
+          }])
+          .select()
+          .single();
+
+        if (eventError) throw eventError;
+        eventId = newEvent.id;
+
+        // Add attendees
+        const attendeePromises = selectedContacts.map(contact =>
+          supabase
+            .from('event_attendees')
+            .insert({
+              event_id: eventId,
+              contact_id: contact.id
+            })
+        );
+
+        await Promise.all(attendeePromises);
+        description = `Mood: ${selectedMood}. ${manualNotes}`;
+      } else if (selectedEvent) {
+        // Update existing calendar event
+        description = selectedMood ? `Mood: ${selectedMood}. ${hangDescription}` : hangDescription;
+        
         const { error } = await supabase
           .from('calendar_events')
           .update({
@@ -224,6 +300,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           .eq('id', selectedEvent.id);
 
         if (error) throw error;
+        eventId = selectedEvent.id;
       }
 
       toast({
@@ -376,11 +453,37 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                 <div>
                   <h4 className="text-sm font-medium mb-2">Who was there?</h4>
                   <div className="space-y-2">
-                    <Input 
-                      value={contactSearchInput}
-                      onChange={(e) => setContactSearchInput(e.target.value)}
-                      placeholder="Search contacts..."
-                    />
+                    <div className="relative">
+                      <Input 
+                        value={contactSearchInput}
+                        onChange={(e) => setContactSearchInput(e.target.value)}
+                        placeholder="Search contacts..."
+                      />
+                      {contactSearchInput && filteredContacts.length > 0 && (
+                        <Command className="absolute top-full left-0 right-0 z-50 mt-1">
+                          <CommandGroup>
+                            {filteredContacts.map((contact) => (
+                              <CommandItem
+                                key={contact.id}
+                                onSelect={() => {
+                                  setSelectedContacts(prev => [...prev, contact]);
+                                  setContactSearchInput('');
+                                }}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarFallback>
+                                      {getInitials(contact.name)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span>{contact.name}</span>
+                                </div>
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {selectedContacts.map((contact, index) => (
                         <div
@@ -412,13 +515,31 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
 
                 <div>
                   <h4 className="text-sm font-medium mb-2">What did you do?</h4>
-                  <Input
-                    value={manualActivity}
-                    onChange={(e) => setManualActivity(e.target.value)}
-                    placeholder="e.g., Coffee chat, Dinner, Hiking..."
-                    onFocus={() => setShowActivitySuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowActivitySuggestions(false), 200)}
-                  />
+                  <div className="relative">
+                    <Input
+                      value={manualActivity}
+                      onChange={(e) => setManualActivity(e.target.value)}
+                      placeholder="e.g., Coffee chat, Dinner, Hiking..."
+                      onFocus={() => setShowActivitySuggestions(true)}
+                    />
+                    {showActivitySuggestions && activitySuggestions.length > 0 && (
+                      <Command className="absolute top-full left-0 right-0 z-50 mt-1">
+                        <CommandGroup>
+                          {activitySuggestions.map((activity) => (
+                            <CommandItem
+                              key={activity.id}
+                              onSelect={() => {
+                                setManualActivity(activity.name);
+                                setShowActivitySuggestions(false);
+                              }}
+                            >
+                              {activity.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    )}
+                  </div>
                 </div>
 
                 <div>
