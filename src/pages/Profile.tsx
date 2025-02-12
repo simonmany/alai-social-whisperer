@@ -66,6 +66,8 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         throw new Error('No user ID available');
       }
 
+      console.log("Querying for user ID:", userData.id);
+
       const { data: profile, error } = await supabase
         .from('profiles')
         .select(`
@@ -88,21 +90,32 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         console.error("Error fetching profile:", error);
         throw error;
       }
-      
-      console.log("Profile data fetched:", profile);
-      console.log("Raw skills from database:", {
-        gourmand: profile.skill_gourmand,
-        aesthete: profile.skill_aesthete,
-        traveler: profile.skill_traveler,
-        athlete: profile.skill_athlete,
-        reveler: profile.skill_reveler,
+
+      console.log("Complete profile data:", profile);
+      console.log("Skills data:", {
+        skill_gourmand: profile.skill_gourmand,
+        skill_aesthete: profile.skill_aesthete,
+        skill_traveler: profile.skill_traveler,
+        skill_athlete: profile.skill_athlete,
+        skill_reveler: profile.skill_reveler,
       });
+      console.log("Skills data types:", {
+        skill_gourmand: typeof profile.skill_gourmand,
+        skill_aesthete: typeof profile.skill_aesthete,
+        skill_traveler: typeof profile.skill_traveler,
+        skill_athlete: typeof profile.skill_athlete,
+        skill_reveler: typeof profile.skill_reveler,
+      });
+      console.log("Profile ID matches query?", profile.id === userData.id);
+
       return profile;
     },
     enabled: !!userData?.id && open,
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 2
   });
+
+  console.log("Final profileData being used:", profileData);
 
   // Query to get Maps API key
   useQuery({
