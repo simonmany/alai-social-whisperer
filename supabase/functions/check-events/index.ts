@@ -36,16 +36,10 @@ serve(async (req) => {
 
     const { data: completedEvents, error: eventsError } = await supabaseClient
       .from('calendar_events')
-      .select(`
-        id,
-        title,
-        user_id,
-        end_time,
-        event_feedback_status!left(feedback_sent)
-      `)
+      .select('id, title, user_id, end_time')
       .lt('end_time', now.toISOString())
       .gt('end_time', fifteenMinutesAgo.toISOString())
-      .is('event_feedback_status.feedback_sent', null);
+      .is('feedback_sent', false);
 
     if (eventsError) {
       console.error('Error fetching completed events:', eventsError);
@@ -86,15 +80,13 @@ serve(async (req) => {
 
           // Mark feedback as sent
           console.log(`Marking feedback as sent for event ${event.id}`);
-          const { error: upsertError } = await supabaseClient
-            .from('event_feedback_status')
-            .upsert({
-              event_id: event.id,
-              feedback_sent: true
-            });
+          const { error: updateError } = await supabaseClient
+            .from('calendar_events')
+            .update({ feedback_sent: true })
+            .eq('id', event.id);
 
-          if (upsertError) {
-            console.error(`Error marking feedback as sent for event ${event.id}:`, upsertError);
+          if (updateError) {
+            console.error(`Error marking feedback as sent for event ${event.id}:`, updateError);
           }
         } catch (error) {
           console.error(`Error processing event ${event.id}:`, error);
