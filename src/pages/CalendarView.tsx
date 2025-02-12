@@ -1,3 +1,4 @@
+
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,8 +22,6 @@ interface CalendarEvent {
   google_event_id?: string;
   location?: string;
   feedback_sent?: boolean;
-  mood?: string;
-  feedback_notes?: string;
   attendees?: Array<{
     id: string;
     name: string;
@@ -49,8 +48,6 @@ const CalendarView = () => {
       if (!session?.user?.id) return { events: [], isConnected: false };
 
       try {
-        console.log("Starting calendar events fetch...");
-        
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired')
@@ -68,11 +65,6 @@ const CalendarView = () => {
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-        console.log("Fetching events between:", {
-          start: thirtyDaysAgo.toISOString(),
-          end: thirtyDaysFromNow.toISOString()
-        });
-
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
@@ -84,9 +76,7 @@ const CalendarView = () => {
             location,
             google_event_id,
             feedback_sent,
-            feedback_notes,
-            mood,
-            event_attendees (
+            event_attendees!inner (
               contacts!contact_id (
                 id,
                 name
@@ -108,29 +98,20 @@ const CalendarView = () => {
           return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
 
-        console.log("Raw events from database:", dbEvents);
-
-        const events: CalendarEvent[] = (dbEvents || []).map(event => {
-          console.log("Processing event:", event);
-          return {
-            id: event.id,
-            title: event.title,
-            description: event.description || undefined,
-            start_time: event.start_time,
-            end_time: event.end_time,
-            location: event.location || undefined,
-            google_event_id: event.google_event_id || undefined,
-            feedback_sent: event.feedback_sent,
-            mood: event.mood || undefined,
-            feedback_notes: event.feedback_notes || undefined,
-            attendees: event.event_attendees?.map(attendee => ({
-              id: attendee.contacts.id,
-              name: attendee.contacts.name
-            })) || []
-          };
-        });
-
-        console.log("Final mapped events:", events);
+        const events: CalendarEvent[] = (dbEvents || []).map(event => ({
+          id: event.id,
+          title: event.title,
+          description: event.description || undefined,
+          start_time: event.start_time,
+          end_time: event.end_time,
+          location: event.location || undefined,
+          google_event_id: event.google_event_id || undefined,
+          feedback_sent: event.feedback_sent,
+          attendees: event.event_attendees?.map(attendee => ({
+            id: attendee.contacts.id,
+            name: attendee.contacts.name
+          })) || []
+        }));
 
         return { 
           events, 
@@ -198,14 +179,7 @@ const CalendarView = () => {
                 <p className="text-center text-muted-foreground">
                   Connect your Google Calendar to sync and manage your events
                 </p>
-                <Button onClick={() => {
-                  const { data: { user } } = supabase.auth.getUser();
-                  if (user?.app_metadata?.provider === 'email') {
-                    navigate('/email-calendar/connect');
-                  } else {
-                    navigate('/connect-calendar');
-                  }
-                }}>
+                <Button onClick={handleConnectCalendar}>
                   Connect Google Calendar
                 </Button>
               </div>

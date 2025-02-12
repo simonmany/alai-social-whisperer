@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,20 +32,17 @@ interface Event {
   date: Date;
   location: string;
   attendees: EventAttendee[];
-  mood?: string;
-  notes?: string;
 }
+
+const timeOptions = ["morning", "afternoon", "evening"];
 
 interface FeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
-  initialEvent?: Event;
 }
 
-const timeOptions = ["morning", "afternoon", "evening"] as const;
-
-export default function FeedbackDialog({ open, onOpenChange, onSubmit, initialEvent }: FeedbackDialogProps) {
+export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
   const { session } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
@@ -61,15 +57,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, initialEv
   const [contactSearchInput, setContactSearchInput] = useState("");
   const [hangDescription, setHangDescription] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("");
-
-  useEffect(() => {
-    if (initialEvent) {
-      setSelectedEvent(initialEvent);
-      setSelectedMood(initialEvent.mood || "");
-      setHangDescription(initialEvent.notes || "");
-      setIsManualEntry(false);
-    }
-  }, [initialEvent]);
 
   const moodOptions = [
     "fun",

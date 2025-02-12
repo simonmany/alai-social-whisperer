@@ -12,7 +12,6 @@ interface CalendarEvent {
   end_time: string;
   google_event_id?: string;
   location?: string;
-  feedback_sent?: boolean;
   attendees?: Array<{
     id: string;
     name: string;
