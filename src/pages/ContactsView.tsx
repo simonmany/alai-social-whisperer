@@ -735,6 +735,16 @@ const ContactsView = () => {
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
+                {!isDefaultGroup && selectedGroup !== "Home" && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 bg-red-900/50 border-red-500/50 text-white hover:bg-red-800/50 -mt-0.5"
+                    onClick={() => setShowDeleteConfirmation(true)}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {getUserCreatedGroups().map((group) => (
