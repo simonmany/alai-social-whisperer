@@ -120,6 +120,7 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
       3. If they mention meeting someone new, respond in a way that shows interest in the new connection
       4. Ask follow-up questions about the person if not much information was shared
       5. Summarize the contacts relationship story and add it to the field "relationship" in their profile
+      6. If the user mentions any foods, recreation activities, or arts/media that the contact likes, add it to the food_interests, recreation_interests, or arts_interests fields
 
       When the user talks about multiple contacts together, they are probably part of a group
       1. Give the group a descriptive name
