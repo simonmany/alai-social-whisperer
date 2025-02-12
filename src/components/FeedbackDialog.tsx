@@ -83,9 +83,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       
       return (data || []).map(contact => ({
         ...contact,
-        food_interests: Array.isArray(contact.food_interests) ? contact.food_interests : [],
-        recreation_interests: Array.isArray(contact.recreation_interests) ? contact.recreation_interests : [],
-        arts_interests: Array.isArray(contact.arts_interests) ? contact.arts_interests : []
+        interests: Array.isArray(contact.interests) ? contact.interests : []
       })) as Contact[];
     },
     enabled: !!session?.user?.id

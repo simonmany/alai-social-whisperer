@@ -63,9 +63,7 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
           .filter(contact => !groupedContactIds.has(contact.id))
           .map(contact => ({
             ...contact,
-            food_interests: (contact.food_interests as string[]) || [],
-            recreation_interests: (contact.recreation_interests as string[]) || [],
-            arts_interests: (contact.arts_interests as string[]) || []
+            interests: (contact.interests as string[]) || [],
           }));
         
         setContacts(unsortedContacts);
