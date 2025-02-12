@@ -122,9 +122,27 @@ async function callLLM(apiKey: string, messages: any[], tools?: any[]) {
 }
 
 function constructSystemPrompt(profile: any, events: any, contacts: any) {
+  // Format events to be more readable
+  const formattedEvents = events.map((event: any) => ({
+    ...event,
+    start_time: new Date(event.start_time).toLocaleString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }),
+    end_time: new Date(event.end_time).toLocaleString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  }));
+
   return `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
       - Profile: ${JSON.stringify(profile, null, 2)}
-      - Calendar Events for the next 30 days: ${JSON.stringify(events, null, 2)}
+      - Calendar Events for the next 30 days: ${JSON.stringify(formattedEvents, null, 2)}
       
       When discussing calendar events, always format dates and times in a user-friendly way.
       If asked about the calendar or scheduling, you can:
@@ -486,6 +504,23 @@ serve(async (req) => {
     const thirtyDaysFromNow = new Date();
     thirtyDaysFromNow.setDate(now.getDate() + 30);
 
+    // Get user's UTC offset
+    const { data: userProfile } = await supabase
+      .from('profiles')
+      .select('utc_offset_minutes')
+      .eq('id', userId)
+      .single();
+    
+    const utcOffsetMinutes = userProfile?.utc_offset_minutes || -240;
+
+    // Function to convert UTC time to local time
+    const convertToLocalTime = (utcTime: string) => {
+      const date = new Date(utcTime);
+      const localDate = new Date(date.getTime() + (utcOffsetMinutes * 60 * 1000));
+      return localDate.toISOString();
+    };
+
+    // Get events and convert times to local timezone
     const { data: events } = await supabase
       .from('calendar_events')
       .select('*')
@@ -493,6 +528,13 @@ serve(async (req) => {
       .gte('start_time', now.toISOString())
       .lte('start_time', thirtyDaysFromNow.toISOString())
       .order('start_time', { ascending: true });
+
+    // Convert event times to local timezone
+    const localEvents = events?.map(event => ({
+      ...event,
+      start_time: convertToLocalTime(event.start_time),
+      end_time: convertToLocalTime(event.end_time)
+    })) || [];
 
     const { data: chatHistory } = await supabase
       .from('chat_history')
@@ -541,7 +583,7 @@ serve(async (req) => {
       content: contactContext + message
     });
 
-    const systemPrompt = constructSystemPrompt(profileData, events, mentionedContacts);
+    const systemPrompt = constructSystemPrompt(profileData, localEvents, mentionedContacts);
     messages.unshift({
       role: 'system',
       content: systemPrompt

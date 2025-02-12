@@ -35,6 +35,7 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contactInput, setContactInput] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
+  const [utcOffsetMinutes, setUtcOffsetMinutes] = useState<number | null>(null);
   const { toast } = useToast();
   const { session } = useAuth();
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
@@ -74,6 +75,27 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
       fetchMapsKey();
     }
   }, [selectedCategory, toast]);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      if (!session?.user?.id) return;
+      
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('utc_offset_minutes')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (error) {
+        console.error('Error fetching user profile:', error);
+        return;
+      }
+      
+      setUtcOffsetMinutes(profile?.utc_offset_minutes || -240);
+    };
+
+    fetchUserProfile();
+  }, [session?.user?.id]);
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts', contactInput],
@@ -364,11 +386,19 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
         const endDate = new Date(startDate);
         endDate.setHours(endDate.getHours() + 1);
 
+        // Convert local time to UTC by subtracting the offset
+        if (utcOffsetMinutes !== null) {
+          const startUTC = new Date(startDate.getTime() - (utcOffsetMinutes * 60 * 1000));
+          const endUTC = new Date(endDate.getTime() - (utcOffsetMinutes * 60 * 1000));
+          startDate.setTime(startUTC.getTime());
+          endDate.setTime(endUTC.getTime());
+        }
+
         // Get the current user
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('No authenticated user');
 
-        // Create the calendar event
+        // Create the calendar event with UTC times
         const { data: eventData, error: eventError } = await supabase
           .from('calendar_events')
           .insert({

@@ -1,4 +1,3 @@
-
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,7 +49,7 @@ const CalendarView = () => {
       try {
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired')
+          .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired, utc_offset_minutes')
           .eq('id', session.user.id)
           .single();
 
@@ -98,12 +97,21 @@ const CalendarView = () => {
           return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
 
+        const convertToLocalTime = (utcTime: string, offsetMinutes: number | null) => {
+          if (!offsetMinutes) return utcTime;
+          const date = new Date(utcTime);
+          const localDate = new Date(date.getTime() + (offsetMinutes * 60 * 1000));
+          return localDate.toISOString();
+        };
+
+        const utcOffsetMinutes = profile?.utc_offset_minutes || -240;
+
         const events: CalendarEvent[] = (dbEvents || []).map(event => ({
           id: event.id,
           title: event.title,
           description: event.description || undefined,
-          start_time: event.start_time,
-          end_time: event.end_time,
+          start_time: convertToLocalTime(event.start_time, utcOffsetMinutes),
+          end_time: convertToLocalTime(event.end_time, utcOffsetMinutes),
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
           feedback_sent: event.feedback_sent,
