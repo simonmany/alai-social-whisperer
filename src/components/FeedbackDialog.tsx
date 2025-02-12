@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,10 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, X, Archive } from "lucide-react";
+import { CalendarIcon, X, Archive, ArrowLeft } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useToast, toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -34,19 +34,30 @@ interface Event {
   attendees: EventAttendee[];
 }
 
-const timeOptions = ["morning", "afternoon", "evening"];
-
 interface FeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
+  selectedEventId?: string;
 }
 
-export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
+// Utility function to get initials from a name
+const getInitials = (name: string) => {
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase();
+};
+
+export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedEventId }: FeedbackDialogProps) {
   const { session } = useAuth();
+  const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
+  const [hangDescription, setHangDescription] = useState("");
+  const [selectedMood, setSelectedMood] = useState<string>("");
+  const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [selectedContactIndex, setSelectedContactIndex] = useState<number>(-1);
   const [manualActivity, setManualActivity] = useState("");
@@ -55,418 +66,218 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
   const [contactSearchInput, setContactSearchInput] = useState("");
-  const [hangDescription, setHangDescription] = useState("");
-  const [selectedMood, setSelectedMood] = useState<string>("");
+  const [showActivitySuggestions, setShowActivitySuggestions] = useState(false);
 
-  const moodOptions = [
-    "fun",
-    "chill",
-    "deep",
-    "productive",
-    "nostalgic",
-    "exciting",
-    "meaningful"
-  ];
+  const [moodOptions] = useState([
+    "fun", "chill", "deep", "productive", "nostalgic", "exciting", "meaningful"
+  ]);
 
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts', contactSearchInput],
+  const timeOptions = ["morning", "afternoon", "evening", "night"];
+
+  // Query to fetch specific event details when selectedEventId is provided
+  const { data: eventDetails } = useQuery({
+    queryKey: ['event-details', selectedEventId],
     queryFn: async () => {
-      if (!session?.user?.id) return [];
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .ilike('name', `%${contactSearchInput}%`)
-        .order('name');
+      if (!selectedEventId) return null;
+
+      const { data: event, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          event_attendees!inner (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('id', selectedEventId)
+        .single();
 
       if (error) throw error;
       
-      return (data || []).map(contact => ({
-        ...contact,
-        interests: Array.isArray(contact.interests) ? contact.interests : []
-      })) as Contact[];
-    },
-    enabled: !!session?.user?.id
-  });
-
-  const { data: activities = [] } = useQuery({
-    queryKey: ['activities'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('activities')
-        .select('*')
-        .order('name');
-      if (error) throw error;
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
-
-  const { data: calendarData = { events: [], isConnected: false }, isLoading } = useQuery({
-    queryKey: ["calendar-events"],
-    queryFn: async () => {
-      if (!session?.user?.id) return { events: [], isConnected: false };
-
-      try {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired')
-          .eq('id', session.user.id)
-          .single();
-
-        if (profileError) {
-          console.error('Error fetching profile:', profileError);
-          return { events: [], isConnected: false };
-        }
-
-        const now = new Date();
-        const thirtyDaysAgo = new Date(now);
-        thirtyDaysAgo.setDate(now.getDate() - 30);
-        const thirtyDaysFromNow = new Date(now);
-        thirtyDaysFromNow.setDate(now.getDate() + 30);
-
-        console.log('Fetching events with feedback filter...');
-        
-        const { data: dbEvents, error: dbError } = await supabase
-          .from("calendar_events")
-          .select(`
-            id,
-            title,
-            description,
-            start_time,
-            end_time,
-            location,
-            google_event_id,
-            feedback_sent,
-            event_attendees!inner (
-              contacts!contact_id (
-                id,
-                name
-              )
-            )
-          `)
-          .eq("user_id", session.user.id)
-          .is("feedback_sent", false)  // Changed from .eq to .is to handle null values
-          .gte("start_time", thirtyDaysAgo.toISOString())
-          .lte("start_time", thirtyDaysFromNow.toISOString())
-          .order("start_time", { ascending: false });
-
-        if (dbError) {
-          console.error("Error fetching calendar events:", dbError);
-          toast({
-            title: "Error",
-            description: "Failed to fetch calendar events.",
-            variant: "destructive",
-          });
-          return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
-        }
-
-        const events = (dbEvents || []).map(event => ({
+      if (event) {
+        const formattedEvent = {
           id: event.id,
           title: event.title,
           date: new Date(event.start_time),
-          description: event.description || undefined,
-          start_time: event.start_time,
-          end_time: event.end_time,
           location: event.location || "No location specified",
-          google_event_id: event.google_event_id || undefined,
-          attendees: event.event_attendees?.map(attendee => ({
-            id: attendee.contacts.id,
-            name: attendee.contacts.name
-          })) || []
-        }));
-
-        return { 
-          events, 
-          isConnected: profile?.has_google_calendar && !profile?.google_token_expired 
+          attendees: event.event_attendees.map((ea: any) => ({
+            id: ea.contacts.id,
+            name: ea.contacts.name
+          }))
         };
-      } catch (error) {
-        console.error("Exception in fetchCalendarEvents:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch calendar events. Please try again.",
-          variant: "destructive",
-        });
-        return { events: [], isConnected: false };
+
+        // Set the description and mood if they exist
+        if (event.description) {
+          const moodMatch = event.description.match(/Mood: (.*?)\./);
+          if (moodMatch) {
+            setSelectedMood(moodMatch[1]);
+            setHangDescription(event.description.replace(moodMatch[0], '').trim());
+          } else {
+            setHangDescription(event.description);
+          }
+        }
+
+        return formattedEvent;
       }
+      return null;
     },
-    retry: 1,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    gcTime: 0
+    enabled: !!selectedEventId && open
   });
 
+  // Query to fetch recent calendar events that need feedback
   const { data: recentEvents = [] } = useQuery({
-    queryKey: ['calendar-events-with-attendees'],
+    queryKey: ['recent-events-without-feedback'],
     queryFn: async () => {
       if (!session?.user?.id) return [];
 
-      const { data: calendarEvents, error: eventsError } = await supabase
-        .from('calendar_events')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .is('feedback_sent', false)
-        .gte('start_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
-        .lte('start_time', new Date().toISOString())
-        .order('start_time', { ascending: false });
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      if (eventsError) {
-        console.error('Error fetching events:', eventsError);
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          id,
+          title,
+          start_time,
+          location,
+          feedback_sent,
+          event_attendees!inner (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('user_id', session.user.id)
+        .eq('feedback_sent', false)
+        .gte('start_time', thirtyDaysAgo.toISOString())
+        .order('start_time', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('Error fetching recent events:', error);
         return [];
       }
 
-      const eventsWithAttendees = await Promise.all(
-        (calendarEvents || []).map(async (event) => {
-          const { data: attendeeLinks, error: attendeesError } = await supabase
-            .from('event_attendees')
-            .select('contact_id')
-            .eq('event_id', event.id);
-
-          if (attendeesError) {
-            console.error('Error fetching attendees:', attendeesError);
-            return null;
-          }
-
-          const { data: contacts, error: contactsError } = await supabase
-            .from('contacts')
-            .select('*')
-            .in('id', (attendeeLinks || []).map(link => link.contact_id));
-
-          if (contactsError) {
-            console.error('Error fetching contacts:', contactsError);
-            return null;
-          }
-
-          return {
-            id: event.id,
-            title: event.title,
-            date: new Date(event.start_time),
-            location: event.location || "No location specified",
-            attendees: contacts || []
-          } as Event;
-        })
-      );
-
-      return eventsWithAttendees.filter((event): event is Event => 
-        event !== null && 
-        'id' in event && 
-        'title' in event && 
-        'date' in event && 
-        'location' in event && 
-        'attendees' in event
-      );
+      return data.map(event => ({
+        id: event.id,
+        title: event.title,
+        date: new Date(event.start_time),
+        location: event.location || "No location specified",
+        attendees: event.event_attendees.map((ea: any) => ({
+          id: ea.contacts.id,
+          name: ea.contacts.name
+        }))
+      }));
     },
-    enabled: !!session?.user?.id
+    enabled: open && !selectedEventId
   });
 
-  const filteredContacts = contacts.filter(contact => 
-    contact.name.toLowerCase().includes(contactSearchInput.toLowerCase()) &&
-    !selectedContacts.some(selected => selected.id === contact.id)
-  );
+  // Query to fetch filtered contacts
+  const { data: filteredContacts = [] } = useQuery({
+    queryKey: ['filtered-contacts', contactSearchInput],
+    queryFn: async () => {
+      if (!session?.user?.id || !contactSearchInput) return [];
 
-  const activitySuggestions = activities
-    ?.filter(activity =>
-      activity.name.toLowerCase().includes(manualActivity.toLowerCase()) &&
-      activity.name.toLowerCase() !== manualActivity.toLowerCase()
-    )
-    .slice(0, 5) || [];
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('id, name, is_archived')
+        .ilike('name', `%${contactSearchInput}%`)
+        .limit(5);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!contactSearchInput && !!session?.user?.id
+  });
+
+  // Query to fetch activity suggestions
+  const { data: activitySuggestions = [] } = useQuery({
+    queryKey: ['activity-suggestions', manualActivity],
+    queryFn: async () => {
+      if (!manualActivity) return [];
+
+      const { data, error } = await supabase
+        .from('activities')
+        .select('name, category')
+        .ilike('name', `%${manualActivity}%`)
+        .limit(5);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!manualActivity && isManualEntry
+  });
+
+  // Set selectedEvent when eventDetails changes
+  useEffect(() => {
+    if (eventDetails) {
+      setSelectedEvent(eventDetails);
+      setIsManualEntry(false);
+    }
+  }, [eventDetails]);
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      if (!selectedEventId) {
+        setSelectedEvent(null);
+        setHangDescription("");
+        setSelectedMood("");
+      }
+    }
+  }, [open, selectedEventId]);
+
+  const handleBackClick = () => {
+    if (!selectedEventId) {
+      setSelectedEvent(null);
+      setHangDescription("");
+      setSelectedMood("");
+    }
+  };
+
+  const handleEventSelect = (event: Event) => {
+    setSelectedEvent(event);
+  };
 
   const handleSubmit = async () => {
-    console.log('handleSubmit called - starting submission process');
+    if (!session?.user?.id) return;
 
-    if (isManualEntry) {
-      console.log('Manual entry mode detected');
-      
-      if (!manualDate || !manualActivity || selectedContacts.length === 0) {
-        console.log('Validation failed:', { manualDate, manualActivity, attendeesCount: selectedContacts.length });
-        return;
+    try {
+      let description = hangDescription;
+      if (selectedMood) {
+        description = `Mood: ${selectedMood}. ${description}`;
       }
 
-      const eventDate = new Date(manualDate);
-      const startHour = manualTime === 'morning' ? 9 : manualTime === 'afternoon' ? 14 : 19;
-      const endHour = startHour + 1;
-
-      const startTime = new Date(eventDate.setHours(startHour, 0, 0, 0));
-      const endTime = new Date(eventDate.setHours(endHour, 0, 0, 0));
-
-      console.log('Submitting manual event:', {
-        activity: manualActivity,
-        location: manualLocation,
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-        attendees: selectedContacts.map(contact => contact.id),
-        userId: session?.user?.id
-      });
-
-      try {
-        if (!session?.user?.id) {
-          console.error('No user session found');
-          return;
-        }
-
-        const { data: newEvent, error: eventError } = await supabase
-          .from('calendar_events')
-          .insert({
-            title: manualActivity,
-            location: manualLocation,
-            description: manualNotes,
-            start_time: startTime.toISOString(),
-            end_time: endTime.toISOString(),
-            user_id: session.user.id,
-            feedback_sent: true
-          })
-          .select()
-          .single();
-
-        if (eventError) {
-          console.error('Error creating event:', eventError);
-          return;
-        }
-
-        console.log('Successfully created event:', newEvent);
-
-        const attendeePromises = selectedContacts.map(async contact => {
-          const { data, error } = await supabase
-            .from('event_attendees')
-            .insert({
-              event_id: newEvent.id,
-              contact_id: contact.id
-            })
-            .select();
-          
-          if (error) {
-            console.error(`Error inserting attendee ${contact.id}:`, error);
-          }
-          return { contact, data, error };
-        });
-
-        const attendeeResults = await Promise.all(attendeePromises);
-        console.log('Attendee insertion results:', attendeeResults);
-
-        const attendeeNames = selectedContacts.map(contact => contact.name).join(', ');
-
-        let message = `I had a hang with ${attendeeNames} at ${manualLocation} on ${format(manualDate, 'EEEE, MMMM d')} in the ${manualTime}. We ${manualActivity.toLowerCase()}. ${manualNotes}`;
-        console.log('Submitting message:', message);
-        
-        if (manualNotes) {
-          message += ` ${manualNotes}`;
-        }
-
-        // Update relationship field for each contact
-        for (const contact of selectedContacts) {
-          const { error: contactUpdateError } = await supabase
-            .from('contacts')
-            .update({ relationship: message })
-            .eq('id', contact.id);
-
-          if (contactUpdateError) {
-            console.error('Error updating contact relationship:', contactUpdateError);
-          }
-        }
-
-        console.log('Submitting manual entry message:', message);
-        onSubmit(message);
-      } catch (error) {
-        console.error('Error in event submission process:', error);
-      }
-    } else if (selectedEvent) {
-      console.log('Selected existing event:', selectedEvent);
-      const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
-      const location = selectedEvent.location && selectedEvent.location !== "No location specified" ? selectedEvent.location : "";
-      let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang ${attendeeNames ? "with " + attendeeNames : ""} ${location? "at " + location : ""} on ${format(new Date(selectedEvent.date), "EEEE, MMMM d")} at ${format(new Date(selectedEvent.date), "h:mm a")}. We ${selectedEvent.title.toLowerCase()}.`;
-
-      if (hangDescription) {
-        message += ` ${hangDescription}`;
-      }
-      
-      if (hangDescription || selectedMood) {
-        const { error: updateError } = await supabase
+      if (selectedEvent) {
+        const { error } = await supabase
           .from('calendar_events')
           .update({
-            description: `${selectedMood ? `Mood: ${selectedMood}. ` : ''}${hangDescription || ''}`,
-            feedback_sent: true,
+            description,
+            feedback_sent: true
           })
           .eq('id', selectedEvent.id);
 
-          if (updateError) {
-            console.error('Error updating feedback status:', updateError);
-            toast({
-              title: "Error",
-              description: "Failed to update feedback status.",
-              variant: "destructive"
-            });
-            return;
-          }
-        }
-      else {
-        const { error: updateError } = await supabase
-          .from('calendar_events')
-          .update({ feedback_sent: true })
-          .eq('id', selectedEvent.id);
+        if (error) throw error;
+      }
 
-          if (updateError) {
-            console.error('Error updating feedback status:', updateError);
-            toast({
-              title: "Error",
-              description: "Failed to update feedback status.",
-              variant: "destructive"
-            });
-            return;
-          }
-        }
+      toast({
+        title: "Success",
+        description: "Feedback submitted successfully",
+      });
 
-      console.log('Submitting existing event message:', message);
-      onSubmit(message);
+      onSubmit(description);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback",
+        variant: "destructive",
+      });
     }
-    onOpenChange(false);
-    resetForm();
-  };
-
-  const resetForm = () => {
-    setSelectedEvent(null);
-    setSelectedContacts([]);
-    setIsManualEntry(false);
-    setManualActivity("");
-    setManualLocation("");
-    setManualDate(new Date());
-    setManualTime("afternoon");
-    setManualNotes("");
-    setContactSearchInput("");
-    setHangDescription("");
-    setSelectedMood("");
-  };
-
-  const formatAttendeeNames = (attendees: EventAttendee[]) => {
-    if (attendees.length === 0) return "";
-    if (attendees.length === 1) return attendees[0].name;
-    if (attendees.length === 2) return `${attendees[0].name} and ${attendees[1].name}`;
-    const allButLast = attendees.slice(0, -1).map(a => a.name).join(", ");
-    return `${allButLast}, and ${attendees[attendees.length - 1].name}`;
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
-  const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
-
-  const handleContactSelect = (contact: Contact) => {
-    console.log('Attempting to select contact:', contact);
-    if (!selectedContacts.some(selected => selected.id === contact.id)) {
-      console.log('Adding contact to selection:', contact.name);
-      setSelectedContacts(prev => [...prev, contact]);
-    }
-    setContactSearchInput("");
-  };
-
-  const openContactDrawer = (index: number) => {
-    setSelectedContactIndex(index);
-    setIsContactDrawerOpen(true);
   };
 
   return (
@@ -478,267 +289,277 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           </DialogHeader>
           
           <div className="space-y-6 py-4">
-            <div className="flex gap-2">
-              <Button
-                variant={!isManualEntry ? "default" : "outline"}
-                onClick={() => setIsManualEntry(false)}
-                className="flex-1"
-              >
-                Recent Calendar Events
-              </Button>
-              <Button
-                variant={isManualEntry ? "default" : "outline"}
-                onClick={() => setIsManualEntry(true)}
-                className="flex-1"
-              >
-                Something off the books
-              </Button>
-            </div>
+            {!selectedEventId && (
+              <div className="flex gap-2">
+                <Button
+                  variant={!isManualEntry ? "default" : "outline"}
+                  onClick={() => setIsManualEntry(false)}
+                  className="flex-1"
+                >
+                  Recent Calendar Events
+                </Button>
+                <Button
+                  variant={isManualEntry ? "default" : "outline"}
+                  onClick={() => setIsManualEntry(true)}
+                  className="flex-1"
+                >
+                  Something off the books
+                </Button>
+              </div>
+            )}
 
-            {!isManualEntry ? (
+            {!isManualEntry && (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  {recentEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                        selectedEvent?.id === event.id
-                          ? "border-primary bg-primary/5"
-                          : "hover:bg-accent"
-                      }`}
-                      onClick={() => setSelectedEvent(event)}
-                    >
-                      <div className="font-medium">{event.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {event.date.toLocaleDateString([], {
-                          weekday: "long",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                        {" at "}
-                        {event.date.toLocaleTimeString([], {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
+                {!selectedEventId && !selectedEvent && (
+                  <div className="space-y-2">
+                    {recentEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className="p-4 rounded-lg border cursor-pointer hover:bg-accent"
+                        onClick={() => handleEventSelect(event)}
+                      >
+                        <div className="font-medium">{event.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {format(event.date, "EEEE, MMMM d 'at' h:mm a")}
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {event.location}
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">{event.location}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {selectedEvent && (
-                  <div className="space-y-4 mt-4 p-4 border rounded-lg bg-accent/5">
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">Who was there:</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedEvent.attendees.map((attendee) => (
-                          <div
-                            key={attendee.id}
-                            className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                          >
-                            <Avatar className="h-4 w-4">
-                              <AvatarFallback className="text-[10px]">
-                                {getInitials(attendee.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span>{attendee.name}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-sm font-medium mb-2">How was it?</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {moodOptions.map((mood) => (
-                          <button
-                            key={mood}
-                            onClick={() => setSelectedMood(mood)}
-                            className={cn(
-                              "px-3 py-1 rounded-full text-xs border transition-colors",
-                              selectedMood === mood
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "hover:bg-accent"
-                            )}
-                          >
-                            {mood}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-medium">Add more details:</h4>
-                      <Textarea
-                        value={hangDescription}
-                        onChange={(e) => setHangDescription(e.target.value)}
-                        placeholder="• What did you talk about?
-• How'd you feel about the activity?
-• Any memorable moments?"
-                        className="min-h-[100px]"
-                      />
-                    </div>
+                    ))}
                   </div>
                 )}
+
+                {(selectedEvent || selectedEventId) && (
+                  <>
+                    {!selectedEventId && (
+                      <Button
+                        variant="ghost"
+                        onClick={handleBackClick}
+                        className="flex items-center gap-1.5 mb-4 h-8 px-2 -ml-2"
+                      >
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to events
+                      </Button>
+                    )}
+
+                    <div className="p-4 border rounded-lg bg-accent/5">
+                      <div className="font-medium">{selectedEvent?.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {selectedEvent?.date && format(selectedEvent.date, "EEEE, MMMM d 'at' h:mm a")}
+                      </div>
+                      <div className="text-sm text-muted-foreground mb-4">
+                        {selectedEvent?.location}
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">Who was there:</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {selectedEvent?.attendees.map((attendee) => (
+                              <div
+                                key={attendee.id}
+                                className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                              >
+                                <Avatar className="h-4 w-4">
+                                  <AvatarFallback className="text-[10px]">
+                                    {getInitials(attendee.name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span>{attendee.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">How was it?</h4>
+                          <div className="flex flex-wrap gap-2">
+                            {moodOptions.map((mood) => (
+                              <button
+                                key={mood}
+                                onClick={() => setSelectedMood(mood)}
+                                className={cn(
+                                  "px-3 py-1 rounded-full text-xs border transition-colors",
+                                  selectedMood === mood
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "hover:bg-accent"
+                                )}
+                              >
+                                {mood}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="text-sm font-medium">Add more details:</h4>
+                          <Textarea
+                            value={hangDescription}
+                            onChange={(e) => setHangDescription(e.target.value)}
+                            placeholder="• What did you talk about?
+• How'd you feel about the activity?
+• Any memorable moments?"
+                            className="min-h-[100px]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
-            ) : (
+            )}
+
+            {isManualEntry && (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Who was there?</label>
-                  <div className="space-y-2 relative">
-                    <Input
-                      placeholder="Search contacts..."
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Who was there?</h4>
+                  <div className="space-y-2">
+                    <Input 
                       value={contactSearchInput}
                       onChange={(e) => setContactSearchInput(e.target.value)}
-                      className="h-8"
+                      placeholder="Search contacts..."
                     />
-                    
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                      <div className="bg-popover border rounded-md shadow-md p-1">
                         {filteredContacts.map((contact) => (
-                          <div
+                          <Button
                             key={contact.id}
-                            className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
-                            onClick={() => handleContactSelect(contact)}
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setSelectedContacts(prev => [...prev, contact]);
+                              setContactSearchInput('');
+                            }}
                           >
                             <div className="flex items-center gap-2">
                               <Avatar className="h-6 w-6">
-                                <AvatarFallback className="text-xs">
-                                  {getInitials(contact.name)}
-                                </AvatarFallback>
+                                <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
                               </Avatar>
-                              <span className="text-sm text-popover-foreground">{contact.name}</span>
+                              <span>{contact.name}</span>
+                              {contact.is_archived && (
+                                <Archive className="h-3 w-3 ml-2 text-muted-foreground" />
+                              )}
                             </div>
-                            {contact.is_archived && (
-                              <Archive className="h-4 w-4 text-muted-foreground" />
-                            )}
-                          </div>
+                          </Button>
                         ))}
                       </div>
                     )}
-
-                    {selectedContacts.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {selectedContacts.map((contact, index) => (
-                          <div
-                            key={contact.id}
-                            className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
-                            onClick={() => openContactDrawer(index)}
-                          >
-                            <Avatar className="h-4 w-4">
-                              <AvatarFallback className="text-[10px]">
-                                {getInitials(contact.name)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span>{contact.name}</span>
-                            {contact.is_archived && (
-                              <Archive className="h-3 w-3 text-muted-foreground" />
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedContacts(prev => 
-                                  prev.filter(c => c.id !== contact.id)
-                                );
-                              }}
-                              className="hover:text-destructive"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {selectedContacts.map((contact, index) => (
+                        <div
+                          key={contact.id}
+                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
+                          onClick={() => {
+                            setSelectedContactIndex(index);
+                            setIsContactDrawerOpen(true);
+                          }}
+                        >
+                          <Avatar className="h-4 w-4">
+                            <AvatarFallback className="text-[10px]">
+                              {getInitials(contact.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{contact.name}</span>
+                          <X
+                            className="h-3 w-3 ml-1 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedContacts(prev => prev.filter((_, i) => i !== index));
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">What did you do?</label>
-                  <div className="space-y-2">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">What did you do?</h4>
+                  <div className="relative">
                     <Input
-                      placeholder="Type an activity..."
                       value={manualActivity}
-                      onChange={(e) => {
-                        setManualActivity(e.target.value);
-                        setShowActivitySuggestions(true);
+                      onChange={(e) => setManualActivity(e.target.value)}
+                      onFocus={() => setShowActivitySuggestions(true)}
+                      onBlur={() => {
+                        // Delay hiding suggestions to allow for clicks
+                        setTimeout(() => setShowActivitySuggestions(false), 200);
                       }}
-                      className="h-8"
+                      placeholder="e.g., Coffee chat, Dinner, Hiking..."
                     />
-                    
-                    {manualActivity && showActivitySuggestions && activitySuggestions.length > 0 && (
-                      <div className="border rounded-md overflow-hidden">
-                        {activitySuggestions.map((activity) => (
-                          <div
-                            key={activity.id}
-                            className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                    {showActivitySuggestions && activitySuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                        {activitySuggestions.map((activity, index) => (
+                          <Button
+                            key={index}
+                            variant="ghost"
+                            className="w-full justify-start text-sm h-9"
                             onClick={() => {
                               setManualActivity(activity.name);
                               setShowActivitySuggestions(false);
                             }}
                           >
-                            <span className="text-sm">{activity.name}</span>
-                          </div>
+                            <span>{activity.name}</span>
+                            {activity.category && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                ({activity.category})
+                              </span>
+                            )}
+                          </Button>
                         ))}
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Where did you go?</label>
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Where was it?</h4>
                   <Input
                     value={manualLocation}
                     onChange={(e) => setManualLocation(e.target.value)}
                     placeholder="Enter location..."
-                    className="h-8"
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">When did you hang?</label>
+                <div className="grid gap-2">
+                  <h4 className="text-sm font-medium">When was it?</h4>
+                  <div className="flex gap-2">
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full justify-start text-left font-normal h-8",
+                            "justify-start text-left font-normal h-8 text-sm flex-1",
                             !manualDate && "text-muted-foreground"
                           )}
                         >
                           <CalendarIcon className="mr-2 h-4 w-4" />
-                          {manualDate ? format(manualDate, "PPP") : "Pick a date"}
+                          {manualDate ? format(manualDate, "PPP") : <span>Pick a date</span>}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent 
                         className="w-auto p-0" 
                         align="start" 
                         side="bottom"
-                        onClick={(e) => e.stopPropagation()}
                       >
-                        <div className="cursor-pointer hover:cursor-pointer">
-                          <Calendar
-                            mode="single"
-                            selected={manualDate}
-                            onSelect={setManualDate}
-                            initialFocus
-                            className="pointer-events-auto"
-                          />
-                        </div>
+                        <Calendar
+                          mode="single"
+                          selected={manualDate}
+                          onSelect={setManualDate}
+                          initialFocus
+                        />
                       </PopoverContent>
                     </Popover>
-                  </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Time of day</label>
                     <Select value={manualTime} onValueChange={setManualTime}>
-                      <SelectTrigger className="h-8">
-                        <SelectValue placeholder="Select time..." />
+                      <SelectTrigger className="h-8 text-sm w-[130px]">
+                        <SelectValue placeholder="Pick a time" />
                       </SelectTrigger>
                       <SelectContent>
                         {timeOptions.map((time) => (
-                          <SelectItem key={time} value={time}>
-                            {time.charAt(0).toUpperCase() + time.slice(1)}
+                          <SelectItem key={time} value={time} className="text-sm">
+                            {time}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -746,14 +567,34 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                   </div>
                 </div>
 
+                <div>
+                  <h4 className="text-sm font-medium mb-2">How was it?</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {moodOptions.map((mood) => (
+                      <button
+                        key={mood}
+                        onClick={() => setSelectedMood(mood)}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs border transition-colors",
+                          selectedMood === mood
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "hover:bg-accent"
+                        )}
+                      >
+                        {mood}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">How'd it go?</label>
+                  <h4 className="text-sm font-medium">Add more details:</h4>
                   <Textarea
                     value={manualNotes}
                     onChange={(e) => setManualNotes(e.target.value)}
                     placeholder="• What did you talk about?
-• How did you meet?
-• How'd you feel about the person / activity?"
+• How'd you feel about the activity?
+• Any memorable moments?"
                     className="min-h-[100px]"
                   />
                 </div>
