@@ -21,45 +21,38 @@ interface SkillsRadarProps {
 }
 
 export const SkillsRadar = ({ skills }: SkillsRadarProps) => {
-  // Enhanced debugging
-  console.log("SkillsRadar received raw skills:", skills);
-  console.log("SkillsRadar skills values:", {
-    gourmand: Number(skills.gourmand) || 0,
-    aesthete: Number(skills.aesthete) || 0,
-    traveler: Number(skills.traveler) || 0,
-    athlete: Number(skills.athlete) || 0,
-    reveler: Number(skills.reveler) || 0
-  });
+  // Log the raw skills data
+  console.log("SkillsRadar raw skills:", skills);
 
   const data = [
     {
       subject: "Gourmand",
-      value: Number(skills.gourmand) || 0,
+      value: skills.gourmand,
       icon: <Utensils className="h-4 w-4" />,
     },
     {
       subject: "Aesthete",
-      value: Number(skills.aesthete) || 0,
+      value: skills.aesthete,
       icon: <Palette className="h-4 w-4" />,
     },
     {
       subject: "Traveler",
-      value: Number(skills.traveler) || 0,
+      value: skills.traveler,
       icon: <Map className="h-4 w-4" />,
     },
     {
       subject: "Athlete",
-      value: Number(skills.athlete) || 0,
+      value: skills.athlete,
       icon: <Activity className="h-4 w-4" />,
     },
     {
       subject: "Reveler",
-      value: Number(skills.reveler) || 0,
+      value: skills.reveler,
       icon: <Music className="h-4 w-4" />,
     },
   ];
 
-  // Add console log to debug transformed data
+  // Log the transformed data
   console.log("SkillsRadar chart data:", data);
 
   return (
