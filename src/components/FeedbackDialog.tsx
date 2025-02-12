@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -183,7 +184,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
 
       const { data, error } = await supabase
         .from('contacts')
-        .select('id, name')
+        .select('id, name, is_archived')
         .ilike('name', `%${contactSearchInput}%`)
         .limit(5);
 
@@ -437,6 +438,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                                 <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
                               </Avatar>
                               <span>{contact.name}</span>
+                              {contact.is_archived && (
+                                <Archive className="h-3 w-3 ml-2 text-muted-foreground" />
+                              )}
                             </div>
                           </Button>
                         ))}
