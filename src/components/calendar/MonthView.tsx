@@ -13,6 +13,7 @@ interface CalendarEvent {
   end_time: string;
   google_event_id?: string;
   location?: string;
+  feedback_sent?: boolean;
   attendees?: Array<{
     id: string;
     name: string;
@@ -22,9 +23,10 @@ interface CalendarEvent {
 interface MonthViewProps {
   events: CalendarEvent[];
   onPrompt: (message: string) => void;
+  onEventClick?: (event: CalendarEvent) => void;
 }
 
-export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
+export const MonthView = ({ events, onPrompt, onEventClick }: MonthViewProps) => {
   const futureEvents = events.filter(event => isFuture(new Date(event.start_time)));
   const pastEvents = events.filter(event => isPast(new Date(event.start_time)));
 
@@ -65,7 +67,11 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
             ) : (
               <div className="space-y-3">
                 {futureEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard 
+                    key={event.id} 
+                    event={event} 
+                    onClick={() => onEventClick?.(event)}
+                  />
                 ))}
               </div>
             )}
@@ -78,7 +84,11 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
             ) : (
               <div className="space-y-3">
                 {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard 
+                    key={event.id} 
+                    event={event} 
+                    onClick={() => onEventClick?.(event)}
+                  />
                 ))}
               </div>
             )}
