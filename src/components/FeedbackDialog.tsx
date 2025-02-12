@@ -419,14 +419,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                       value={contactSearchInput}
                       onChange={(e) => setContactSearchInput(e.target.value)}
                       placeholder="Search contacts..."
+                      className="h-8"
                     />
                     {contactSearchInput && filteredContacts.length > 0 && (
-                      <div className="bg-popover border rounded-md shadow-md p-1">
+                      <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
                         {filteredContacts.map((contact) => (
-                          <Button
+                          <div
                             key={contact.id}
-                            variant="ghost"
-                            className="w-full justify-start"
+                            className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
                             onClick={() => {
                               setSelectedContacts(prev => [...prev, contact]);
                               setContactSearchInput('');
@@ -436,17 +436,17 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                               <Avatar className="h-6 w-6">
                                 <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
                               </Avatar>
-                              <span>{contact.name}</span>
-                              {contact.is_archived && (
-                                <Archive className="h-3 w-3 ml-2 text-muted-foreground" />
-                              )}
+                              <span className="text-sm">{contact.name}</span>
                             </div>
-                          </Button>
+                            {contact.is_archived && (
+                              <Archive className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
                         ))}
                       </div>
                     )}
                     
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1 mt-1">
                       {selectedContacts.map((contact, index) => (
                         <div
                           key={contact.id}
@@ -462,13 +462,18 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                             </AvatarFallback>
                           </Avatar>
                           <span>{contact.name}</span>
-                          <X
-                            className="h-3 w-3 ml-1 hover:text-destructive"
+                          {contact.is_archived && (
+                            <Archive className="h-3 w-3 text-muted-foreground" />
+                          )}
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedContacts(prev => prev.filter((_, i) => i !== index));
                             }}
-                          />
+                            className="hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </div>
                       ))}
                     </div>
