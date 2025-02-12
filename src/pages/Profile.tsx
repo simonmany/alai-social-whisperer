@@ -35,7 +35,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const { toast } = useToast();
 
   // First query to get auth user data
-  const { data: userData } = useQuery({
+  const { data: userData, isSuccess: isAuthReady } = useQuery({
     queryKey: ['auth-user'],
     queryFn: async () => {
       console.log("Fetching auth user data...");
@@ -50,12 +50,13 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     enabled: open, // Only run when profile is open
   });
 
-  // Second query to get profile data
+  // Second query to get profile data - now depends on auth being ready
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile', userData?.id],
     queryFn: async () => {
       console.log("Fetching profile data...");
-      console.log("Current conditions:", { 
+      console.log("Auth state:", { 
+        isReady: isAuthReady,
         hasUserId: !!userData?.id, 
         userId: userData?.id,
         isOpen: open 
@@ -110,7 +111,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
       return profile;
     },
-    enabled: !!userData?.id && open,
+    enabled: isAuthReady && !!userData?.id && open,  // Only run when auth is ready
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 2
   });
