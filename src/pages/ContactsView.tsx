@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ChevronUp, Plus, ArrowLeft } from "lucide-react";
+import { Search, ChevronUp, Plus, ArrowLeft, Trash } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { DeepSpaceView } from "@/components/DeepSpaceView";
 import { Contact } from "@/types/contacts";
 import { ContactCard } from "@/components/ContactCard";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 interface Group {
   id: string;
@@ -69,6 +70,7 @@ const ContactsView = () => {
   const [selectedGroup, setSelectedGroup] = useState<string>("Home");
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [showDeepSpace, setShowDeepSpace] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -510,6 +512,8 @@ const ContactsView = () => {
     );
   };
 
+  const isDefaultGroup = selectedGroup === "Home" || selectedGroup === "Inner Orbit" || selectedGroup === "Deep Space";
+
   if (contactsError) {
     toast({
       title: "Error loading contacts",
@@ -719,6 +723,23 @@ const ContactsView = () => {
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure? Deleting this group will remove all members from it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteGroup} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <GroupManagementDialog
         open={isGroupDialogOpen}
