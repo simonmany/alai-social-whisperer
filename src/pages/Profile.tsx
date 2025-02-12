@@ -69,18 +69,17 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       const { data: profile, error } = await supabase
         .from('profiles')
         .select(`
-          *,
-          current_interests,
-          desired_interests,
-          food_preferences,
-          desired_food_preferences,
-          music_preferences,
-          desired_music_preferences,
+          id,
+          username,
+          avatar_url,
+          city,
           skill_gourmand,
           skill_aesthete,
           skill_traveler,
           skill_athlete,
-          skill_reveler
+          skill_reveler,
+          display_name,
+          goals
         `)
         .eq('id', userData.id)
         .single();
