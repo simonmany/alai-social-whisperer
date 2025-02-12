@@ -111,6 +111,33 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_summaries: {
+        Row: {
+          chat_end: string | null
+          chat_start: string | null
+          created_at: string
+          id: string
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          chat_end?: string | null
+          chat_start?: string | null
+          created_at?: string
+          id?: string
+          summary?: string | null
+          user_id?: string
+        }
+        Update: {
+          chat_end?: string | null
+          chat_start?: string | null
+          created_at?: string
+          id?: string
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       contact_group_memberships: {
         Row: {
           contact_id: string
@@ -167,12 +194,12 @@ export type Database = {
       }
       contacts: {
         Row: {
-          interests: Json | null
           closeness: number | null
           created_at: string
           email: string | null
           id: string
           instagram: string | null
+          interests: Json | null
           is_archived: boolean | null
           linkedin: string | null
           meeting_story: string | null
@@ -184,12 +211,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
-          interests?: Json | null
           closeness?: number | null
           created_at?: string
           email?: string | null
           id?: string
           instagram?: string | null
+          interests?: Json | null
           is_archived?: boolean | null
           linkedin?: string | null
           meeting_story?: string | null
@@ -201,12 +228,12 @@ export type Database = {
           user_id: string
         }
         Update: {
-          interests?: Json | null
           closeness?: number | null
           created_at?: string
           email?: string | null
           id?: string
           instagram?: string | null
+          interests?: Json | null
           is_archived?: boolean | null
           linkedin?: string | null
           meeting_story?: string | null
