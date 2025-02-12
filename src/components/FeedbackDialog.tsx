@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -49,7 +48,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
-  const [selectedDrawerContact, setSelectedDrawerContact] = useState<Contact | null>(null); // Added this state for the drawer
+  const [selectedContactIndex, setSelectedContactIndex] = useState<number>(-1);
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
   const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
@@ -465,6 +464,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setContactSearchInput("");
   };
 
+  const openContactDrawer = (index: number) => {
+    setSelectedContactIndex(index);
+    setIsContactDrawerOpen(true);
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -615,10 +619,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
                     {selectedContacts.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {selectedContacts.map((contact) => (
+                        {selectedContacts.map((contact, index) => (
                           <div
                             key={contact.id}
-                            className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                            className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
+                            onClick={() => openContactDrawer(index)}
                           >
                             <Avatar className="h-4 w-4">
                               <AvatarFallback className="text-[10px]">
@@ -630,9 +635,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                               <Archive className="h-3 w-3 text-muted-foreground" />
                             )}
                             <button
-                              onClick={() => setSelectedContacts(prev => 
-                                prev.filter(c => c.id !== contact.id)
-                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedContacts(prev => 
+                                  prev.filter(c => c.id !== contact.id)
+                                );
+                              }}
                               className="hover:text-destructive"
                             >
                               <X className="h-3 w-3" />
@@ -764,8 +772,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       <Drawer open={isContactDrawerOpen} onOpenChange={setIsContactDrawerOpen}>
         <DrawerContent>
           <div className="mx-auto w-full max-w-sm p-4">
-            {selectedDrawerContact && (
-              <ContactCard {...selectedDrawerContact} />
+            {selectedContactIndex >= 0 && selectedContacts[selectedContactIndex] && (
+              <ContactCard {...selectedContacts[selectedContactIndex]} />
             )}
           </div>
         </DrawerContent>
