@@ -21,8 +21,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL');
-const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const supabaseUrl = Deno.env.get('DB_URL');
+const supabaseServiceKey = Deno.env.get('DB_SERVICE_ROLE_KEY');
 if (!supabaseUrl || !supabaseServiceKey) {
   throw new Error('Missing environment variables');
 }
@@ -56,6 +56,32 @@ const functions = [
           },
           "additionalProperties": false
       }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+        "name": "findFriendsForActivity",
+        "description": "Identifies two friends who are most likely to match a given activity based on the user's contacts.",
+        "strict": true,
+        "parameters": {
+            "type": "object",
+            "required": [
+                "userId",
+                "activity"
+            ],
+            "properties": {
+                "userId": {
+                    "type": "string",
+                    "description": "The ID of the user for whom to find friends for an activity"
+                },
+                "activity": {
+                    "type": "string",
+                    "description": "The activity around which to find matching friends"
+                }
+            },
+            "additionalProperties": false
+        }
     }
   }
 ];
@@ -167,6 +193,36 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
       
       Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
 }
+
+async function findFriendsForActivity(userId: string, activity: string): Promise<string[]> {
+  const { data: contacts, error } = await supabase
+    .from('contacts')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Error fetching contacts:', error);
+    throw new Error('Failed to fetch contacts');
+  }
+
+  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openAIApiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
+
+  const systemPrompt = `Given the following list of contacts and their interests, identify the 2 friends who are most likely to want to do this activity: ${activity}. Return their contact data JSON array.`;
+
+  const response = await callLLM(openAIApiKey, [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: JSON.stringify(contacts) }
+  ]);
+
+  const data = await response.json();
+  const result = JSON.parse(data.choices[0].message.content);
+
+  return result;
+}
+
 
 async function searchGooglePlaces(searchString: string, location?: string): Promise<any> {
   const apiKey = Deno.env.get('VITE_PUBLIC_GOOGLE_MAPS_API_KEY');
@@ -390,17 +446,17 @@ serve(async (req) => {
 
     console.log('Processing chat request:', { userId, contactInfo });
 
-    // Store user message
-    const { error: userMessageError } = await supabase
-    .from('chat_history')
-    .insert([
-      { user_id: userId, message, is_ai: false }
-    ]);
+    // // Store user message
+    // const { error: userMessageError } = await supabase
+    // .from('chat_history')
+    // .insert([
+    //   { user_id: userId, message, is_ai: false }
+    // ]);
 
-    if (userMessageError) {
-      console.error('Error storing user message:', userMessageError);
-      throw userMessageError;
-    }
+    // if (userMessageError) {
+    //   console.error('Error storing user message:', userMessageError);
+    //   throw userMessageError;
+    // }
 
     const { data: profile } = await supabase
       .from('profiles')
@@ -520,7 +576,14 @@ serve(async (req) => {
             );
           }
         }
-        // Add more tool calls here as needed
+        if (toolCall.function.name === 'findFriendsForActivity') {
+          const args = JSON.parse(toolCall.function.arguments);
+          const friends = await findFriendsForActivity(userId, args.activity);
+          messages.push(responseData.choices[0].message);
+          messages.push(
+            { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(friends) }
+          );
+        }
       }
       
       // After processing all tool calls, get the final response
@@ -569,16 +632,16 @@ serve(async (req) => {
       }
     }
 
-    const { error: aiMessageError } = await supabase
-      .from('chat_history')
-      .insert([
-        { user_id: userId, message: parsedResponse.text, is_ai: true }
-      ]);
+    // const { error: aiMessageError } = await supabase
+    //   .from('chat_history')
+    //   .insert([
+    //     { user_id: userId, message: parsedResponse.text, is_ai: true }
+    //   ]);
 
-    if (aiMessageError) {
-      console.error('Error storing AI message:', aiMessageError);
-      throw aiMessageError;
-    }
+    // if (aiMessageError) {
+    //   console.error('Error storing AI message:', aiMessageError);
+    //   throw aiMessageError;
+    // }
 
     return new Response(JSON.stringify({ 
       response: parsedResponse.text,
