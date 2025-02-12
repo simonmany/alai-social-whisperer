@@ -51,6 +51,8 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   const [page, setPage] = useState(0);
   const [isSorterOpen, setIsSorterOpen] = useState(false);
   const [sortedCount, setSortedCount] = useState(0);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const loadContacts = async (currentPage: number, isLoadingMore = false) => {
     try {
@@ -143,28 +145,25 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
     }
   };
 
-  const renderContactDrawerContent = (contact: Contact) => (
-    <DrawerContent className="bg-black/90 border-purple-500/50 h-[100vh] overflow-y-auto">
-      <div className="p-6 space-y-8 relative z-10">
-        <DrawerTrigger asChild>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="absolute top-4 left-4 text-white hover:bg-purple-900/50"
-          >
-            <ArrowLeft className="h-6 w-6" />
-          </Button>
-        </DrawerTrigger>
-
-        <ContactCard {...contact} />
-      </div>
-    </DrawerContent>
-  );
-
-  const handleContactSorted = () => {
-    setSortedCount(prev => prev + 1);
-    loadContacts(0); // Reload contacts after sorting
+  const handleContactSelect = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsDrawerOpen(true);
   };
+
+  const handleDrawerClose = () => {
+    setSelectedContact(null);
+    setIsDrawerOpen(false);
+  };
+
+  // Update selected contact when contacts array changes
+  useEffect(() => {
+    if (selectedContact) {
+      const updatedContact = ungroupedContacts.find(c => c.id === selectedContact.id);
+      if (updatedContact) {
+        setSelectedContact(updatedContact);
+      }
+    }
+  }, [ungroupedContacts]);
 
   return (
     <div className="absolute inset-0 overflow-y-auto bg-black/90 p-4 pb-40">
@@ -202,26 +201,53 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
             {filteredContacts.map((contact) => (
-              <Drawer key={contact.id}>
-                <DrawerTrigger className="w-full">
-                  <div className="group relative flex flex-col items-center">
-                    <div 
-                      className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
-                      style={{
-                        background: getContactGradient(contact.id),
-                      }}
-                    >
-                      <div className="absolute inset-0 bg-black/10"></div>
-                      <span className="relative text-white font-semibold text-lg z-10">
-                        {getInitials(contact.name)}
+              <Drawer 
+                key={contact.id}
+                open={isDrawerOpen && selectedContact?.id === contact.id}
+                onOpenChange={(open) => {
+                  if (!open) {
+                    handleDrawerClose();
+                  }
+                }}
+              >
+                <DrawerTrigger asChild>
+                  <button 
+                    className="w-full" 
+                    onClick={() => handleContactSelect(contact)}
+                  >
+                    <div className="group relative flex flex-col items-center">
+                      <div 
+                        className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                        style={{
+                          background: getContactGradient(contact.id),
+                        }}
+                      >
+                        <div className="absolute inset-0 bg-black/10"></div>
+                        <span className="relative text-white font-semibold text-lg z-10">
+                          {getInitials(contact.name)}
+                        </span>
+                      </div>
+                      <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+                        {contact.name}
                       </span>
                     </div>
-                    <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-                      {contact.name}
-                    </span>
-                  </div>
+                  </button>
                 </DrawerTrigger>
-                {renderContactDrawerContent(contact)}
+                <DrawerContent className="bg-black/90 border-purple-500/50 h-[100vh] overflow-y-auto">
+                  <div className="p-6 space-y-8 relative z-10">
+                    <DrawerTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="absolute top-4 left-4 text-white hover:bg-purple-900/50"
+                        onClick={handleDrawerClose}
+                      >
+                        <ArrowLeft className="h-6 w-6" />
+                      </Button>
+                    </DrawerTrigger>
+                    {selectedContact && <ContactCard {...selectedContact} />}
+                  </div>
+                </DrawerContent>
               </Drawer>
             ))}
           </div>
