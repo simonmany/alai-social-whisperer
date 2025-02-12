@@ -388,8 +388,8 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
 
         // Convert local time to UTC by subtracting the offset
         if (utcOffsetMinutes !== null) {
-          const startUTC = new Date(startDate.getTime() - (utcOffsetMinutes * 60 * 1000));
-          const endUTC = new Date(endDate.getTime() - (utcOffsetMinutes * 60 * 1000));
+          const startUTC = new Date(startDate.getTime() + (utcOffsetMinutes * 60 * 1000));
+          const endUTC = new Date(endDate.getTime() + (utcOffsetMinutes * 60 * 1000));
           startDate.setTime(startUTC.getTime());
           endDate.setTime(endUTC.getTime());
         }
