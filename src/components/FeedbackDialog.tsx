@@ -45,6 +45,17 @@ interface FeedbackDialogProps {
 export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
   const { session } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+
+  const handleEventSelect = (event: Event) => {
+    setSelectedEvent(event);
+  };
+
+  const handleBackClick = () => {
+    setSelectedEvent(null);
+    setHangDescription("");
+    setSelectedMood("");
+  };
+
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
@@ -498,32 +509,39 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
             {!isManualEntry ? (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  {recentEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                        selectedEvent?.id === event.id
-                          ? "border-primary bg-primary/5"
-                          : "hover:bg-accent"
-                      }`}
-                      onClick={() => setSelectedEvent(event)}
-                    >
-                      <div className="font-medium">{event.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {event.date.toLocaleDateString([], {
-                          weekday: "long",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                        {" at "}
-                        {event.date.toLocaleTimeString([], {
-                          hour: "numeric",
-                          minute: "2-digit",
-                        })}
+                  {recentEvents.map((event) => {
+                    // Only show the selected event if one is selected
+                    if (selectedEvent && selectedEvent.id !== event.id) {
+                      return null;
+                    }
+
+                    return (
+                      <div
+                        key={event.id}
+                        className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                          selectedEvent?.id === event.id
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-accent"
+                        }`}
+                        onClick={() => handleEventSelect(event)}
+                      >
+                        <div className="font-medium">{event.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {event.date.toLocaleDateString([], {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                          {" at "}
+                          {event.date.toLocaleTimeString([], {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                        <div className="text-sm text-muted-foreground">{event.location}</div>
                       </div>
-                      <div className="text-sm text-muted-foreground">{event.location}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {selectedEvent && (
