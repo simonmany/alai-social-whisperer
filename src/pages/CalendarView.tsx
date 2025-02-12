@@ -80,7 +80,7 @@ const CalendarView = () => {
             location,
             google_event_id,
             feedback_sent,
-            event_attendees!inner (
+            event_attendees (
               contacts!contact_id (
                 id,
                 name
@@ -176,8 +176,8 @@ const CalendarView = () => {
                     Connect your Google Calendar to sync and manage your events
                   </p>
                   <Button onClick={() => {
-                    const { data: { user } } = supabase.auth.getUser();
-                    if (user?.app_metadata?.provider === 'email') {
+                    const user = supabase.auth.getUser();
+                    if (user?.data?.user?.app_metadata?.provider === 'email') {
                       navigate('/email-calendar/connect');
                     } else {
                       navigate('/connect-calendar');
@@ -286,12 +286,14 @@ const CalendarView = () => {
         </SheetContent>
       </Sheet>
 
-      <FeedbackDialog
-        open={isFeedbackOpen}
-        onOpenChange={setIsFeedbackOpen}
-        onSubmit={handlePrompt}
-        selectedEvent={selectedEvent}
-      />
+      {selectedEvent && (
+        <FeedbackDialog
+          open={isFeedbackOpen}
+          onOpenChange={setIsFeedbackOpen}
+          onSubmit={handlePrompt}
+          event={selectedEvent}
+        />
+      )}
     </>
   );
 };
