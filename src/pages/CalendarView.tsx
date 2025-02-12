@@ -1,4 +1,3 @@
-
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -74,7 +73,6 @@ const CalendarView = () => {
           end: thirtyDaysFromNow.toISOString()
         });
 
-        // Remove the .eq("feedback_sent", false) filter that was here
         const { data: dbEvents, error: dbError } = await supabase
           .from("calendar_events")
           .select(`
@@ -200,7 +198,14 @@ const CalendarView = () => {
                 <p className="text-center text-muted-foreground">
                   Connect your Google Calendar to sync and manage your events
                 </p>
-                <Button onClick={handleConnectCalendar}>
+                <Button onClick={() => {
+                  const { data: { user } } = supabase.auth.getUser();
+                  if (user?.app_metadata?.provider === 'email') {
+                    navigate('/email-calendar/connect');
+                  } else {
+                    navigate('/connect-calendar');
+                  }
+                }}>
                   Connect Google Calendar
                 </Button>
               </div>
