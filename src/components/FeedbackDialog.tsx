@@ -259,7 +259,10 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     enabled: !!session?.user?.id
   });
 
-  const filteredContacts = contacts;
+  const filteredContacts = contacts.filter(contact => 
+    contact.name.toLowerCase().includes(contactSearchInput.toLowerCase()) &&
+    !manualAttendees.includes(contact.id)  // Only show contacts that haven't been selected yet
+  );
 
   const activitySuggestions = activities
     ?.filter(activity =>
@@ -457,7 +460,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [showActivitySuggestions, setShowActivitySuggestions] = useState(true);
 
   const handleContactSelect = (contact: Contact) => {
+    console.log('Attempting to select contact:', contact);
+    console.log('Current selected contacts:', manualAttendees);
+    
     if (!manualAttendees.includes(contact.id)) {
+      console.log('Adding contact to selection:', contact.name);
       setManualAttendees(prev => [...prev, contact.id]);
     }
     setContactSearchInput("");
@@ -593,12 +600,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                           <div
                             key={contact.id}
                             className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
-                            onClick={() => {
-                              if (!manualAttendees.includes(contact.id)) {
-                                setManualAttendees(prev => [...prev, contact.id]);
-                              }
-                              setContactSearchInput("");
-                            }}
+                            onClick={() => handleContactSelect(contact)}
                           >
                             <div className="flex items-center gap-2">
                               <Avatar className="h-6 w-6">
