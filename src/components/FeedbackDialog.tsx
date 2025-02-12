@@ -14,7 +14,7 @@ import { format } from "date-fns";
 import { CalendarIcon, X, Archive, ArrowLeft } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useToast, toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -41,8 +41,18 @@ interface FeedbackDialogProps {
   selectedEventId?: string;
 }
 
+// Utility function to get initials from a name
+const getInitials = (name: string) => {
+  return name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase();
+};
+
 export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedEventId }: FeedbackDialogProps) {
   const { session } = useAuth();
+  const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [hangDescription, setHangDescription] = useState("");
@@ -56,6 +66,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
   const [contactSearchInput, setContactSearchInput] = useState("");
+  const [showActivitySuggestions, setShowActivitySuggestions] = useState(false);
   const [moodOptions] = useState([
     "fun",
     "chill",
@@ -66,15 +77,24 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     "meaningful"
   ]);
 
-  const { data: eventDetails } = useQuery({
-    queryKey: ['event-details', selectedEventId],
-    queryFn: async () => {
-      if (!selectedEventId) return null;
+  const timeOptions = ["morning", "afternoon", "evening", "night"];
 
-      const { data: event, error } = await supabase
+  // Query to fetch recent calendar events
+  const { data: recentEvents = [] } = useQuery({
+    queryKey: ['recent-events'],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      const { data, error } = await supabase
         .from('calendar_events')
         .select(`
-          *,
+          id,
+          title,
+          start_time,
+          location,
           event_attendees!inner (
             contacts!contact_id (
               id,
@@ -82,56 +102,77 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
             )
           )
         `)
-        .eq('id', selectedEventId)
-        .single();
+        .eq('user_id', session.user.id)
+        .gte('start_time', thirtyDaysAgo.toISOString())
+        .order('start_time', { ascending: false })
+        .limit(10);
 
-      if (error) throw error;
-      
-      if (event) {
-        const formattedEvent = {
-          id: event.id,
-          title: event.title,
-          date: new Date(event.start_time),
-          location: event.location || "No location specified",
-          attendees: event.event_attendees.map((ea: any) => ({
-            id: ea.contacts.id,
-            name: ea.contacts.name
-          }))
-        };
-
-        if (event.description) {
-          const moodMatch = event.description.match(/Mood: (.*?)\./);
-          if (moodMatch) {
-            setSelectedMood(moodMatch[1]);
-            setHangDescription(event.description.replace(moodMatch[0], '').trim());
-          } else {
-            setHangDescription(event.description);
-          }
-        }
-
-        return formattedEvent;
+      if (error) {
+        console.error('Error fetching recent events:', error);
+        return [];
       }
-      return null;
+
+      return data.map(event => ({
+        id: event.id,
+        title: event.title,
+        date: new Date(event.start_time),
+        location: event.location || "No location specified",
+        attendees: event.event_attendees.map((ea: any) => ({
+          id: ea.contacts.id,
+          name: ea.contacts.name
+        }))
+      }));
     },
-    enabled: !!selectedEventId && open
+    enabled: open && !selectedEventId
   });
 
-  useEffect(() => {
-    if (eventDetails) {
-      setSelectedEvent(eventDetails);
-      setIsManualEntry(false);
-    }
-  }, [eventDetails]);
+  // Query to fetch contacts for manual entry
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      if (!session?.user?.id) return [];
 
-  useEffect(() => {
-    if (!open) {
-      if (!selectedEventId) {
-        setSelectedEvent(null);
-        setHangDescription("");
-        setSelectedMood("");
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', session.user.id);
+
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        return [];
       }
+
+      return data;
     }
-  }, [open, selectedEventId]);
+  });
+
+  // Filter contacts based on search input
+  const filteredContacts = contacts.filter(contact =>
+    contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
+  );
+
+  // Activity suggestions (you can expand this list)
+  const activitySuggestions = [
+    { id: 1, name: 'Coffee' },
+    { id: 2, name: 'Lunch' },
+    { id: 3, name: 'Dinner' },
+    { id: 4, name: 'Meeting' },
+    { id: 5, name: 'Phone call' }
+  ].filter(activity =>
+    activity.name.toLowerCase().includes(manualActivity.toLowerCase())
+  );
+
+  const handleContactSelect = (contact: Contact) => {
+    if (!selectedContacts.some(c => c.id === contact.id)) {
+      setSelectedContacts(prev => [...prev, contact]);
+    }
+    setContactSearchInput('');
+  };
+
+  const openContactDrawer = (index: number) => {
+    setSelectedContactIndex(index);
+    setIsContactDrawerOpen(true);
+  };
 
   const handleEventSelect = (event: Event) => {
     setSelectedEvent(event);
@@ -142,6 +183,82 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     setHangDescription("");
     setSelectedMood("");
   };
+
+  const handleSubmit = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      let description = hangDescription;
+      if (selectedMood) {
+        description = `Mood: ${selectedMood}. ${description}`;
+      }
+
+      if (selectedEvent) {
+        const { error } = await supabase
+          .from('calendar_events')
+          .update({
+            description,
+            feedback_sent: true
+          })
+          .eq('id', selectedEvent.id);
+
+        if (error) throw error;
+      } else if (isManualEntry) {
+        // Handle manual entry submission
+        const { error } = await supabase
+          .from('calendar_events')
+          .insert({
+            user_id: session.user.id,
+            title: manualActivity,
+            description: manualNotes,
+            start_time: manualDate,
+            location: manualLocation,
+          });
+
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Feedback submitted successfully",
+      });
+
+      onSubmit(description);
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      toast({
+        title: "Error",
+        description: "Failed to submit feedback",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (selectedEventId) {
+      const selected = recentEvents.find(event => event.id === selectedEventId);
+      if (selected) {
+        setSelectedEvent(selected);
+        setIsManualEntry(false);
+      }
+    }
+  }, [selectedEventId, recentEvents]);
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedEvent(null);
+      setHangDescription("");
+      setSelectedMood("");
+      setSelectedContacts([]);
+      setManualActivity("");
+      setManualLocation("");
+      setManualDate(undefined);
+      setManualTime("afternoon");
+      setManualNotes("");
+      setContactSearchInput("");
+    }
+  }, [open]);
 
   return (
     <>
