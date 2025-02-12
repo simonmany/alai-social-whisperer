@@ -250,7 +250,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   };
 
   const handleSubmit = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || !manualDate) return;
 
     try {
       let description = '';
@@ -260,19 +260,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         // Create a new calendar event for manual entry
         const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
-          .insert([{
+          .insert({
             user_id: session.user.id,
             title: manualActivity,
             location: manualLocation,
-            start_time: manualDate,
-            end_time: manualDate, // For manual entries, we use the same date
+            start_time: manualDate.toISOString(), // Convert Date to ISO string
+            end_time: manualDate.toISOString(), // Convert Date to ISO string
             description: `Mood: ${selectedMood}. ${manualNotes}`,
             feedback_sent: true
-          }])
+          })
           .select()
           .single();
 
         if (eventError) throw eventError;
+        if (!newEvent) throw new Error('No event created');
+        
         eventId = newEvent.id;
 
         // Add attendees
@@ -460,30 +462,34 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                         placeholder="Search contacts..."
                       />
                       {contactSearchInput && filteredContacts.length > 0 && (
-                        <Command className="absolute top-full left-0 right-0 z-50 mt-1">
-                          <CommandGroup>
-                            {filteredContacts.map((contact) => (
-                              <CommandItem
-                                key={contact.id}
-                                onSelect={() => {
-                                  setSelectedContacts(prev => [...prev, contact]);
-                                  setContactSearchInput('');
-                                }}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarFallback>
-                                      {getInitials(contact.name)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span>{contact.name}</span>
-                                </div>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
+                        <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md">
+                          <Command>
+                            <CommandGroup>
+                              {filteredContacts.map((contact) => (
+                                <CommandItem
+                                  key={contact.id}
+                                  value={contact.id}
+                                  onSelect={() => {
+                                    setSelectedContacts(prev => [...prev, contact]);
+                                    setContactSearchInput('');
+                                  }}
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarFallback>
+                                        {getInitials(contact.name)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span>{contact.name}</span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </div>
                       )}
                     </div>
+                    
                     <div className="flex flex-wrap gap-2">
                       {selectedContacts.map((contact, index) => (
                         <div
@@ -523,21 +529,24 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                       onFocus={() => setShowActivitySuggestions(true)}
                     />
                     {showActivitySuggestions && activitySuggestions.length > 0 && (
-                      <Command className="absolute top-full left-0 right-0 z-50 mt-1">
-                        <CommandGroup>
-                          {activitySuggestions.map((activity) => (
-                            <CommandItem
-                              key={activity.id}
-                              onSelect={() => {
-                                setManualActivity(activity.name);
-                                setShowActivitySuggestions(false);
-                              }}
-                            >
-                              {activity.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
+                      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-md shadow-md">
+                        <Command>
+                          <CommandGroup>
+                            {activitySuggestions.map((activity) => (
+                              <CommandItem
+                                key={activity.id}
+                                value={activity.name}
+                                onSelect={() => {
+                                  setManualActivity(activity.name);
+                                  setShowActivitySuggestions(false);
+                                }}
+                              >
+                                {activity.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </Command>
+                      </div>
                     )}
                   </div>
                 </div>
