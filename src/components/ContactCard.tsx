@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import ContactGroupsManager from "@/components/ContactGroupsManager";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ContactCardProps extends Contact {
   meetingStory?: string;
