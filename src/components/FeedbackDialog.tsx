@@ -271,7 +271,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
               </div>
             )}
 
-            {!isManualEntry && (
+            {!isManualEntry ? (
               <div className="space-y-4">
                 {!selectedEventId && !selectedEvent && (
                   <div className="space-y-2">
@@ -371,9 +371,144 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                   </>
                 )}
               </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Who was there?</h4>
+                  <div className="space-y-2">
+                    <Input 
+                      value={contactSearchInput}
+                      onChange={(e) => setContactSearchInput(e.target.value)}
+                      placeholder="Search contacts..."
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      {selectedContacts.map((contact, index) => (
+                        <div
+                          key={contact.id}
+                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
+                          onClick={() => {
+                            setSelectedContactIndex(index);
+                            setIsContactDrawerOpen(true);
+                          }}
+                        >
+                          <Avatar className="h-4 w-4">
+                            <AvatarFallback className="text-[10px]">
+                              {getInitials(contact.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{contact.name}</span>
+                          <X
+                            className="h-3 w-3 ml-1 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedContacts(prev => prev.filter((_, i) => i !== index));
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">What did you do?</h4>
+                  <Input
+                    value={manualActivity}
+                    onChange={(e) => setManualActivity(e.target.value)}
+                    placeholder="e.g., Coffee chat, Dinner, Hiking..."
+                    onFocus={() => setShowActivitySuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowActivitySuggestions(false), 200)}
+                  />
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Where did you go?</h4>
+                  <Input
+                    value={manualLocation}
+                    onChange={(e) => setManualLocation(e.target.value)}
+                    placeholder="Enter location..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">When did you hang?</h4>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !manualDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {manualDate ? format(manualDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={manualDate}
+                          onSelect={setManualDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Time of day</h4>
+                    <Select value={manualTime} onValueChange={setManualTime}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeOptions.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">How was it?</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {moodOptions.map((mood) => (
+                      <button
+                        key={mood}
+                        onClick={() => setSelectedMood(mood)}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs border transition-colors",
+                          selectedMood === mood
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "hover:bg-accent"
+                        )}
+                      >
+                        {mood}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Notes</h4>
+                  <Textarea
+                    value={manualNotes}
+                    onChange={(e) => setManualNotes(e.target.value)}
+                    placeholder="• What did you talk about?
+• How'd you feel about the person / activity?
+• Any memorable moments?"
+                    className="min-h-[100px]"
+                  />
+                </div>
+              </div>
             )}
 
-            {selectedEvent && (
+            {(selectedEvent || (isManualEntry && selectedContacts.length > 0 && manualActivity)) && (
               <Button className="w-full" onClick={handleSubmit}>
                 Submit Feedback
               </Button>
@@ -381,6 +516,16 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           </div>
         </DialogContent>
       </Dialog>
+
+      <Drawer open={isContactDrawerOpen} onOpenChange={setIsContactDrawerOpen}>
+        <DrawerContent>
+          <div className="mx-auto w-full max-w-sm p-4">
+            {selectedContactIndex >= 0 && selectedContacts[selectedContactIndex] && (
+              <ContactCard {...selectedContacts[selectedContactIndex]} />
+            )}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </>
   );
 }
