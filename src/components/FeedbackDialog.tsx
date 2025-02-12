@@ -142,7 +142,10 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         return [];
       }
 
-      return data;
+      return data.map(contact => ({
+        ...contact,
+        interests: Array.isArray(contact.interests) ? contact.interests : []
+      })) as Contact[];
     }
   });
 
@@ -203,15 +206,37 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           .eq('id', selectedEvent.id);
 
         if (error) throw error;
-      } else if (isManualEntry) {
-        // Handle manual entry submission
+      } else if (isManualEntry && manualDate) {
+        // Format the dates properly for Supabase
+        const startTime = new Date(manualDate);
+        // Set the time based on the selected time of day
+        switch (manualTime) {
+          case 'morning':
+            startTime.setHours(9, 0, 0, 0);
+            break;
+          case 'afternoon':
+            startTime.setHours(14, 0, 0, 0);
+            break;
+          case 'evening':
+            startTime.setHours(18, 0, 0, 0);
+            break;
+          case 'night':
+            startTime.setHours(20, 0, 0, 0);
+            break;
+        }
+        
+        const endTime = new Date(startTime);
+        endTime.setHours(startTime.getHours() + 1); // Default to 1-hour duration
+
+        // Handle manual entry submission with properly formatted dates
         const { error } = await supabase
           .from('calendar_events')
           .insert({
             user_id: session.user.id,
             title: manualActivity,
             description: manualNotes,
-            start_time: manualDate,
+            start_time: startTime.toISOString(),
+            end_time: endTime.toISOString(),
             location: manualLocation,
           });
 

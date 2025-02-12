@@ -1,4 +1,3 @@
-
 export interface Contact {
   id: string;
   name: string;
@@ -12,6 +11,9 @@ export interface Contact {
   closeness?: number;
   interests?: string[];
   is_archived?: boolean;
+  created_at?: string;
+  user_id?: string;
+  photo?: string | null;
 }
 
 export interface CalendarEvent {
