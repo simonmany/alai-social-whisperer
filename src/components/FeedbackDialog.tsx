@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
+  const [selectedDrawerContact, setSelectedDrawerContact] = useState<Contact | null>(null); // Added this state for the drawer
   const [manualActivity, setManualActivity] = useState("");
   const [manualLocation, setManualLocation] = useState("");
   const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
@@ -762,8 +764,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
       <Drawer open={isContactDrawerOpen} onOpenChange={setIsContactDrawerOpen}>
         <DrawerContent>
           <div className="mx-auto w-full max-w-sm p-4">
-            {selectedContact && (
-              <ContactCard {...selectedContact} />
+            {selectedDrawerContact && (
+              <ContactCard {...selectedDrawerContact} />
             )}
           </div>
         </DrawerContent>
