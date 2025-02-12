@@ -4,14 +4,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Phone, Instagram, Linkedin, Twitter, Archive, Calendar } from "lucide-react";
 import { Contact, ContactEvent } from "@/types/contacts";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import ContactGroupsManager from "@/components/ContactGroupsManager";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface ContactCardProps extends Contact {
   meetingStory?: string;
-  is_archived?: boolean;
 }
 
 export const ContactCard = ({
@@ -28,10 +30,9 @@ export const ContactCard = ({
   is_archived,
   interests = [],
 }: ContactCardProps) => {
-  console.log('Contact Card rendered with:', {
-    name,
-    interests
-  });
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const getClosenessLabel = (value: number | undefined | null) => {
     if (value === undefined || value === null) return null;
@@ -64,6 +65,36 @@ export const ContactCard = ({
         </div>
       </div>
     );
+  };
+
+  const toggleArchiveStatus = async () => {
+    if (!id) return;
+    
+    setIsUpdating(true);
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .update({ is_archived: !is_archived })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: is_archived ? "Contact unarchived" : "Contact archived",
+        description: `${name} has been ${is_archived ? "unarchived" : "archived"}.`,
+      });
+
+      // Invalidate queries to refresh the contacts list
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    } catch (error: any) {
+      toast({
+        title: "Error updating contact",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   // Fetch past and upcoming events for this contact
@@ -110,17 +141,22 @@ export const ContactCard = ({
 
   return (
     <Card className="w-full max-w-3xl mx-auto bg-black/60 shadow-xl relative border-purple-500/20 backdrop-blur-sm">
-      {is_archived && (
-        <div className="absolute -top-2 -right-2 z-50">
-          <Badge 
-            variant="destructive" 
-            className="flex items-center gap-1 shadow-xl bg-red-500/90 backdrop-blur-sm border border-red-400/50 text-white font-medium"
-          >
-            <Archive className="h-3 w-3" />
-            Archived
-          </Badge>
-        </div>
-      )}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={toggleArchiveStatus}
+        disabled={isUpdating}
+        className={cn(
+          "absolute -top-2 -right-2 z-50 flex items-center gap-1 shadow-xl backdrop-blur-sm border text-xs font-medium h-8",
+          is_archived 
+            ? "bg-red-500/90 border-red-400/50 text-white hover:bg-red-600/90" 
+            : "bg-black/60 border-purple-500/20 text-muted-foreground hover:bg-purple-900/20"
+        )}
+      >
+        <Archive className="h-3 w-3" />
+        {is_archived ? "Archived" : "Archive"}
+      </Button>
+
       <CardContent className="p-8">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-4">
