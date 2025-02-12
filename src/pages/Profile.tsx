@@ -459,11 +459,11 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
               <SkillsRadar
                 skills={{
-                  gourmand: profileData?.skill_gourmand || 0,
-                  aesthete: profileData?.skill_aesthete || 0,
-                  traveler: profileData?.skill_traveler || 0,
-                  athlete: profileData?.skill_athlete || 0,
-                  reveler: profileData?.skill_reveler || 0,
+                  gourmand: profileData?.skill_gourmand ?? 0,
+                  aesthete: profileData?.skill_aesthete ?? 0,
+                  traveler: profileData?.skill_traveler ?? 0,
+                  athlete: profileData?.skill_athlete ?? 0,
+                  reveler: profileData?.skill_reveler ?? 0,
                 }}
               />
 
