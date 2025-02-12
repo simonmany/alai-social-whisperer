@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -67,6 +66,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
   const [contactSearchInput, setContactSearchInput] = useState("");
+  const [showActivitySuggestions, setShowActivitySuggestions] = useState(false);
 
   const [moodOptions] = useState([
     "fun", "chill", "deep", "productive", "nostalgic", "exciting", "meaningful"
@@ -191,6 +191,24 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
       return data;
     },
     enabled: !!contactSearchInput && !!session?.user?.id
+  });
+
+  // Query to fetch activity suggestions
+  const { data: activitySuggestions = [] } = useQuery({
+    queryKey: ['activity-suggestions', manualActivity],
+    queryFn: async () => {
+      if (!manualActivity) return [];
+
+      const { data, error } = await supabase
+        .from('activities')
+        .select('name, category')
+        .ilike('name', `%${manualActivity}%`)
+        .limit(5);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!manualActivity && isManualEntry
   });
 
   // Set selectedEvent when eventDetails changes
@@ -456,11 +474,40 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
 
                 <div>
                   <h4 className="text-sm font-medium mb-2">What did you do?</h4>
-                  <Input
-                    value={manualActivity}
-                    onChange={(e) => setManualActivity(e.target.value)}
-                    placeholder="e.g., Coffee chat, Dinner, Hiking..."
-                  />
+                  <div className="relative">
+                    <Input
+                      value={manualActivity}
+                      onChange={(e) => setManualActivity(e.target.value)}
+                      onFocus={() => setShowActivitySuggestions(true)}
+                      onBlur={() => {
+                        // Delay hiding suggestions to allow for clicks
+                        setTimeout(() => setShowActivitySuggestions(false), 200);
+                      }}
+                      placeholder="e.g., Coffee chat, Dinner, Hiking..."
+                    />
+                    {showActivitySuggestions && activitySuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                        {activitySuggestions.map((activity, index) => (
+                          <Button
+                            key={index}
+                            variant="ghost"
+                            className="w-full justify-start text-sm h-9"
+                            onClick={() => {
+                              setManualActivity(activity.name);
+                              setShowActivitySuggestions(false);
+                            }}
+                          >
+                            <span>{activity.name}</span>
+                            {activity.category && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                ({activity.category})
+                              </span>
+                            )}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div>
