@@ -450,7 +450,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                       {selectedContacts.map((contact, index) => (
                         <div
                           key={contact.id}
-                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-[11px] cursor-pointer max-w-[200px] group"
+                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-[11px] hover:bg-secondary/80 cursor-pointer max-w-[150px]"
                           onClick={() => {
                             setSelectedContactIndex(index);
                             setIsContactDrawerOpen(true);
@@ -470,7 +470,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                               e.stopPropagation();
                               setSelectedContacts(prev => prev.filter((_, i) => i !== index));
                             }}
-                            className="hover:text-destructive shrink-0"
+                            className="shrink-0"
                           >
                             <X className="h-3 w-3" />
                           </button>
