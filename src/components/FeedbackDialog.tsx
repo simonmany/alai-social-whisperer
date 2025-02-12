@@ -40,11 +40,82 @@ interface FeedbackDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
+  selectedEventId?: string;
 }
 
-export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
+export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedEventId }: FeedbackDialogProps) {
   const { session } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  const [hangDescription, setHangDescription] = useState("");
+  const [selectedMood, setSelectedMood] = useState<string>("");
+
+  const { data: eventDetails } = useQuery({
+    queryKey: ['event-details', selectedEventId],
+    queryFn: async () => {
+      if (!selectedEventId) return null;
+
+      const { data: event, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          event_attendees!inner (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('id', selectedEventId)
+        .single();
+
+      if (error) throw error;
+      
+      if (event) {
+        const formattedEvent = {
+          id: event.id,
+          title: event.title,
+          date: new Date(event.start_time),
+          location: event.location || "No location specified",
+          attendees: event.event_attendees.map((ea: any) => ({
+            id: ea.contacts.id,
+            name: ea.contacts.name
+          }))
+        };
+
+        if (event.description) {
+          const moodMatch = event.description.match(/Mood: (.*?)\./);
+          if (moodMatch) {
+            setSelectedMood(moodMatch[1]);
+            setHangDescription(event.description.replace(moodMatch[0], '').trim());
+          } else {
+            setHangDescription(event.description);
+          }
+        }
+
+        return formattedEvent;
+      }
+      return null;
+    },
+    enabled: !!selectedEventId && open
+  });
+
+  useEffect(() => {
+    if (eventDetails) {
+      setSelectedEvent(eventDetails);
+      setIsManualEntry(false);
+    }
+  }, [eventDetails]);
+
+  useEffect(() => {
+    if (!open) {
+      if (!selectedEventId) {
+        setSelectedEvent(null);
+        setHangDescription("");
+        setSelectedMood("");
+      }
+    }
+  }, [open, selectedEventId]);
 
   const handleEventSelect = (event: Event) => {
     setSelectedEvent(event);
@@ -66,10 +137,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [manualTime, setManualTime] = useState<string>("afternoon");
   const [manualNotes, setManualNotes] = useState("");
   const [contactSearchInput, setContactSearchInput] = useState("");
-  const [hangDescription, setHangDescription] = useState("");
-  const [selectedMood, setSelectedMood] = useState<string>("");
-
-  const moodOptions = [
+  const [moodOptions] = useState([
     "fun",
     "chill",
     "deep",
@@ -77,7 +145,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     "nostalgic",
     "exciting",
     "meaningful"
-  ];
+  ]);
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts', contactSearchInput],
