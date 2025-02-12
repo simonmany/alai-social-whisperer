@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { X } from "lucide-react";
+import { Archive, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
 
@@ -26,7 +26,6 @@ export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
         .from('contacts')
         .select('*')
         .eq('user_id', user.id)
-        .eq('is_archived', false)
         .ilike('name', `%${contactInput}%`)
         .order('name');
 
@@ -83,7 +82,12 @@ export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
                     {getInitials(contact.name)}
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm">{contact.name}</span>
+                <div className="flex-1 flex items-center justify-between">
+                  <span className="text-sm">{contact.name}</span>
+                  {contact.is_archived && (
+                    <Archive className="h-3 w-3 text-muted-foreground" />
+                  )}
+                </div>
               </div>
             ))}
           </div>
@@ -99,6 +103,9 @@ export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
               </AvatarFallback>
             </Avatar>
             <span>{selectedContact.name}</span>
+            {selectedContact.is_archived && (
+              <Archive className="h-3 w-3 text-muted-foreground" />
+            )}
             <button
               onClick={handleRemoveContact}
               className="hover:text-destructive"
