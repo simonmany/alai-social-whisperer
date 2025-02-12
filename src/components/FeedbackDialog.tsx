@@ -350,105 +350,189 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
               </div>
             )}
 
-            {!isManualEntry ? (
+            {isManualEntry ? (
               <div className="space-y-4">
-                {!selectedEventId && !selectedEvent && (
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Who was there?</h4>
                   <div className="space-y-2">
-                    {recentEvents.map((event) => (
-                      <div
-                        key={event.id}
-                        className="p-4 rounded-lg border cursor-pointer hover:bg-accent"
-                        onClick={() => handleEventSelect(event)}
-                      >
-                        <div className="font-medium">{event.title}</div>
-                        <div className="text-sm text-muted-foreground">
-                          {format(event.date, "EEEE, MMMM d 'at' h:mm a")}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {event.location}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {(selectedEvent || selectedEventId) && (
-                  <>
-                    {!selectedEventId && (
-                      <Button
-                        variant="ghost"
-                        onClick={handleBackClick}
-                        className="flex items-center gap-1.5 mb-4 h-8 px-2 -ml-2"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                        Back to events
-                      </Button>
-                    )}
-
-                    <div className="p-4 border rounded-lg bg-accent/5">
-                      <div className="font-medium">{selectedEvent?.title}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {selectedEvent?.date && format(selectedEvent.date, "EEEE, MMMM d 'at' h:mm a")}
-                      </div>
-                      <div className="text-sm text-muted-foreground mb-4">
-                        {selectedEvent?.location}
-                      </div>
-
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="text-sm font-medium mb-2">Who was there:</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedEvent?.attendees.map((attendee) => (
-                              <div
-                                key={attendee.id}
-                                className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                    <Command className="rounded-lg border shadow-md">
+                      <CommandInput
+                        placeholder="Search contacts..."
+                        value={contactSearchInput}
+                        onValueChange={setContactSearchInput}
+                      />
+                      {contactSearchInput && (
+                        <CommandGroup>
+                          {filteredContacts.length === 0 ? (
+                            <CommandEmpty>No contacts found.</CommandEmpty>
+                          ) : (
+                            filteredContacts.map((contact) => (
+                              <CommandItem
+                                key={contact.id}
+                                onSelect={() => {
+                                  setSelectedContacts(prev => [...prev, contact]);
+                                  setContactSearchInput('');
+                                }}
                               >
-                                <Avatar className="h-4 w-4">
-                                  <AvatarFallback className="text-[10px]">
-                                    {getInitials(attendee.name)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{attendee.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div>
-                          <h4 className="text-sm font-medium mb-2">How was it?</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {moodOptions.map((mood) => (
-                              <button
-                                key={mood}
-                                onClick={() => setSelectedMood(mood)}
-                                className={cn(
-                                  "px-3 py-1 rounded-full text-xs border transition-colors",
-                                  selectedMood === mood
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "hover:bg-accent"
-                                )}
-                              >
-                                {mood}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium">Add more details:</h4>
-                          <Textarea
-                            value={hangDescription}
-                            onChange={(e) => setHangDescription(e.target.value)}
-                            placeholder="• What did you talk about?
-• How'd you feel about the activity?
-• Any memorable moments?"
-                            className="min-h-[100px]"
+                                <div className="flex items-center gap-2">
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarFallback>
+                                      {getInitials(contact.name)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span>{contact.name}</span>
+                                </div>
+                              </CommandItem>
+                            ))
+                          )}
+                        </CommandGroup>
+                      )}
+                    </Command>
+                    
+                    <div className="flex flex-wrap gap-2">
+                      {selectedContacts.map((contact, index) => (
+                        <div
+                          key={contact.id}
+                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
+                          onClick={() => {
+                            setSelectedContactIndex(index);
+                            setIsContactDrawerOpen(true);
+                          }}
+                        >
+                          <Avatar className="h-4 w-4">
+                            <AvatarFallback className="text-[10px]">
+                              {getInitials(contact.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{contact.name}</span>
+                          <X
+                            className="h-3 w-3 ml-1 hover:text-destructive"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedContacts(prev => prev.filter((_, i) => i !== index));
+                            }}
                           />
                         </div>
-                      </div>
+                      ))}
                     </div>
-                  </>
-                )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">What did you do?</h4>
+                  <Command className="rounded-lg border shadow-md">
+                    <CommandInput
+                      placeholder="e.g., Coffee chat, Dinner, Hiking..."
+                      value={manualActivity}
+                      onValueChange={setManualActivity}
+                      onFocus={() => setShowActivitySuggestions(true)}
+                    />
+                    {showActivitySuggestions && (
+                      <CommandGroup>
+                        {activitySuggestions.length === 0 ? (
+                          <CommandEmpty>No activities found.</CommandEmpty>
+                        ) : (
+                          activitySuggestions.map((activity) => (
+                            <CommandItem
+                              key={activity.id}
+                              onSelect={() => {
+                                setManualActivity(activity.name);
+                                setShowActivitySuggestions(false);
+                              }}
+                            >
+                              {activity.name}
+                            </CommandItem>
+                          ))
+                        )}
+                      </CommandGroup>
+                    )}
+                  </Command>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Where did you go?</h4>
+                  <Input
+                    value={manualLocation}
+                    onChange={(e) => setManualLocation(e.target.value)}
+                    placeholder="Enter location..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">When did you hang?</h4>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !manualDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {manualDate ? format(manualDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={manualDate}
+                          onSelect={setManualDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Time of day</h4>
+                    <Select value={manualTime} onValueChange={setManualTime}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeOptions.map((time) => (
+                          <SelectItem key={time} value={time}>
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">How was it?</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {moodOptions.map((mood) => (
+                      <button
+                        key={mood}
+                        onClick={() => setSelectedMood(mood)}
+                        className={cn(
+                          "px-3 py-1 rounded-full text-xs border transition-colors",
+                          selectedMood === mood
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "hover:bg-accent"
+                        )}
+                      >
+                        {mood}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Notes</h4>
+                  <Textarea
+                    value={manualNotes}
+                    onChange={(e) => setManualNotes(e.target.value)}
+                    placeholder="• What did you talk about?
+• How'd you feel about the person / activity?
+• Any memorable moments?"
+                    className="min-h-[100px]"
+                  />
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -475,8 +559,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                                   }}
                                 >
                                   <div className="flex items-center gap-2">
-                                    <Avatar className="h-6 w-6">
-                                      <AvatarFallback>
+                                    <Avatar className="h-4 w-4">
+                                      <AvatarFallback className="text-[10px]">
                                         {getInitials(contact.name)}
                                       </AvatarFallback>
                                     </Avatar>
