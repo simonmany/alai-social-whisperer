@@ -21,7 +21,6 @@ interface CalendarEvent {
 interface WeekViewProps {
   events: CalendarEvent[];
   onPrompt: (message: string) => void;
-  onEventClick?: (event: CalendarEvent) => void;
 }
 
 const groupEventsByDayOfWeek = (events: CalendarEvent[]) => {
@@ -44,7 +43,7 @@ const groupEventsByDayOfWeek = (events: CalendarEvent[]) => {
   return weekDays;
 };
 
-export const WeekView = ({ events, onPrompt, onEventClick }: WeekViewProps) => {
+export const WeekView = ({ events, onPrompt }: WeekViewProps) => {
   return (
     <div className="flex flex-col h-full">
       <ScrollArea className="flex-1 px-4">
@@ -62,11 +61,7 @@ export const WeekView = ({ events, onPrompt, onEventClick }: WeekViewProps) => {
               ) : (
                 <div className="space-y-3">
                   {dayEvents.map((event) => (
-                    <EventCard 
-                      key={event.id} 
-                      event={event} 
-                      onClick={() => onEventClick?.(event)}
-                    />
+                    <EventCard key={event.id} event={event} />
                   ))}
                 </div>
               )}

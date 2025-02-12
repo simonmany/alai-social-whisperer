@@ -18,17 +18,9 @@ interface CalendarEvent {
   }>;
 }
 
-interface EventCardProps {
-  event: CalendarEvent;
-  onClick?: () => void;
-}
-
-export const EventCard = ({ event, onClick }: EventCardProps) => {
+export const EventCard = ({ event }: { event: CalendarEvent }) => {
   return (
-    <div 
-      className="p-4 rounded-lg border bg-card text-card-foreground relative hover:bg-accent transition-colors cursor-pointer" 
-      onClick={onClick}
-    >
+    <div className="p-4 rounded-lg border bg-card text-card-foreground relative">
       {event.feedback_sent !== undefined && (
         <div className="absolute top-2 right-2">
           <Badge variant={event.feedback_sent ? "default" : "outline"} className="flex items-center gap-1">
@@ -70,3 +62,4 @@ export const EventCard = ({ event, onClick }: EventCardProps) => {
     </div>
   );
 };
+

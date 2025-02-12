@@ -11,8 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { DayView } from "@/components/calendar/DayView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
-import FeedbackDialog from "@/components/FeedbackDialog";
-import { useState } from "react";
 import type { Database } from "@/integrations/supabase/types";
 
 interface CalendarEvent {
@@ -43,8 +41,6 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   const { data: calendarData = { events: [], isConnected: false }, isLoading } = useQuery<CalendarData, Error>({
     queryKey: ["calendar-events"],
@@ -80,7 +76,7 @@ const CalendarView = () => {
             location,
             google_event_id,
             feedback_sent,
-            event_attendees (
+            event_attendees!inner (
               contacts!contact_id (
                 id,
                 name
@@ -138,163 +134,142 @@ const CalendarView = () => {
     gcTime: 0
   });
 
+  const handleConnectCalendar = async () => {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error('Error getting user:', userError);
+      return;
+    }
+
+    if (user?.app_metadata?.provider === 'email') {
+      navigate('/email-calendar/connect');
+    } else {
+      navigate('/connect-calendar');
+    }
+  };
+
   const handlePrompt = (message: string) => {
     navigate("/", { state: { prompt: message } });
   };
 
-  const handleCardClick = (event: CalendarEvent) => {
-    setSelectedEvent(event);
-    setIsFeedbackOpen(true);
-  };
-
   return (
-    <>
-      <Sheet open={true}>
-        <SheetContent
-          side="left"
-          className="w-full sm:w-[540px] p-0 flex flex-col h-full"
-          onPointerDownOutside={() => navigate("/")}
-          showCloseButton={false}
-        >
-          <div className="flex items-center p-4 border-b">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/")}
-              className="mr-2"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <SheetTitle>Calendar</SheetTitle>
-          </div>
+    <Sheet open={true}>
+      <SheetContent
+        side="left"
+        className="w-full sm:w-[540px] p-0 flex flex-col h-full"
+        onPointerDownOutside={() => navigate("/")}
+        showCloseButton={false}
+      >
+        <div className="flex items-center p-4 border-b">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/")}
+            className="mr-2"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <SheetTitle>Calendar</SheetTitle>
+        </div>
 
-          <div className="flex flex-col flex-1 overflow-hidden">
-            {!calendarData.isConnected && !isLoading && (
-              <div className="p-4 border-b bg-muted/30">
-                <div className="flex flex-col items-center justify-center space-y-4">
-                  <p className="text-center text-muted-foreground">
-                    Connect your Google Calendar to sync and manage your events
-                  </p>
-                  <Button onClick={() => {
-                    const user = supabase.auth.getUser();
-                    if (user?.data?.user?.app_metadata?.provider === 'email') {
-                      navigate('/email-calendar/connect');
-                    } else {
-                      navigate('/connect-calendar');
-                    }
-                  }}>
-                    Connect Google Calendar
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <Tabs defaultValue="day" className="flex-1 flex flex-col min-h-0">
-              <div className="px-4 pt-2">
-                <TabsList className="w-full">
-                  <TabsTrigger value="day" className="flex-1">
-                    Day
-                  </TabsTrigger>
-                  <TabsTrigger value="week" className="flex-1">
-                    Week
-                  </TabsTrigger>
-                  <TabsTrigger value="month" className="flex-1">
-                    Month
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              {isLoading ? (
-                <div className="flex flex-col items-center justify-center flex-1 p-4">
-                  <p className="text-center text-muted-foreground">
-                    Loading events...
-                  </p>
-                </div>
-              ) : (
-                <div className="flex-1 min-h-0">
-                  <TabsContent value="day" className="h-full m-0 p-0">
-                    <DayView 
-                      events={calendarData.events} 
-                      onPrompt={handlePrompt} 
-                      onEventClick={handleCardClick}
-                    />
-                  </TabsContent>
-                  <TabsContent value="week" className="h-full m-0 p-0">
-                    <WeekView 
-                      events={calendarData.events} 
-                      onPrompt={handlePrompt}
-                      onEventClick={handleCardClick}
-                    />
-                  </TabsContent>
-                  <TabsContent value="month" className="h-full m-0 p-0">
-                    <MonthView 
-                      events={calendarData.events} 
-                      onPrompt={handlePrompt}
-                      onEventClick={handleCardClick}
-                    />
-                  </TabsContent>
-                </div>
-              )}
-            </Tabs>
-
-            {calendarData.isConnected && (
-              <div className="p-4 border-t mt-auto">
-                <Button
-                  variant="destructive"
-                  className="w-full"
-                  onClick={async () => {
-                    try {
-                      if (!session?.user?.id) return;
-
-                      const { error: updateError } = await supabase
-                        .from('profiles')
-                        .update({
-                          google_access_token: null,
-                          google_refresh_token: null,
-                          google_token_expires_at: null,
-                          has_google_calendar: false,
-                          google_token_expired: false,
-                          updated_at: new Date().toISOString()
-                        } satisfies Partial<ProfileUpdate>)
-                        .eq('id', session.user.id);
-
-                      if (updateError) throw updateError;
-
-                      const { error: deleteError } = await supabase
-                        .from('calendar_events')
-                        .delete()
-                        .eq('user_id', session.user.id);
-
-                      if (deleteError) throw deleteError;
-
-                      window.location.reload();
-                    } catch (error) {
-                      console.error("Error disconnecting calendar:", error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to disconnect calendar. Please try again.",
-                        variant: "destructive"
-                      });
-                    }
-                  }}
-                >
-                  Disconnect Calendar
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {!calendarData.isConnected && !isLoading && (
+            <div className="p-4 border-b bg-muted/30">
+              <div className="flex flex-col items-center justify-center space-y-4">
+                <p className="text-center text-muted-foreground">
+                  Connect your Google Calendar to sync and manage your events
+                </p>
+                <Button onClick={handleConnectCalendar}>
+                  Connect Google Calendar
                 </Button>
               </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
+            </div>
+          )}
 
-      {selectedEvent && (
-        <FeedbackDialog
-          open={isFeedbackOpen}
-          onOpenChange={setIsFeedbackOpen}
-          onSubmit={handlePrompt}
-          event={selectedEvent}
-        />
-      )}
-    </>
+          <Tabs defaultValue="day" className="flex-1 flex flex-col min-h-0">
+            <div className="px-4 pt-2">
+              <TabsList className="w-full">
+                <TabsTrigger value="day" className="flex-1">
+                  Day
+                </TabsTrigger>
+                <TabsTrigger value="week" className="flex-1">
+                  Week
+                </TabsTrigger>
+                <TabsTrigger value="month" className="flex-1">
+                  Month
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center flex-1 p-4">
+                <p className="text-center text-muted-foreground">
+                  Loading events...
+                </p>
+              </div>
+            ) : (
+              <div className="flex-1 min-h-0">
+                <TabsContent value="day" className="h-full m-0 p-0">
+                  <DayView events={calendarData.events} onPrompt={handlePrompt} />
+                </TabsContent>
+                <TabsContent value="week" className="h-full m-0 p-0">
+                  <WeekView events={calendarData.events} onPrompt={handlePrompt} />
+                </TabsContent>
+                <TabsContent value="month" className="h-full m-0 p-0">
+                  <MonthView events={calendarData.events} onPrompt={handlePrompt} />
+                </TabsContent>
+              </div>
+            )}
+          </Tabs>
+
+          {calendarData.isConnected && (
+            <div className="p-4 border-t mt-auto">
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={async () => {
+                  try {
+                    if (!session?.user?.id) return;
+
+                    const { error: updateError } = await supabase
+                      .from('profiles')
+                      .update({
+                        google_access_token: null,
+                        google_refresh_token: null,
+                        google_token_expires_at: null,
+                        has_google_calendar: false,
+                        google_token_expired: false,
+                        updated_at: new Date().toISOString()
+                      } satisfies Partial<ProfileUpdate>)
+                      .eq('id', session.user.id);
+
+                    if (updateError) throw updateError;
+
+                    const { error: deleteError } = await supabase
+                      .from('calendar_events')
+                      .delete()
+                      .eq('user_id', session.user.id);
+
+                    if (deleteError) throw deleteError;
+
+                    window.location.reload();
+                  } catch (error) {
+                    console.error("Error disconnecting calendar:", error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to disconnect calendar. Please try again.",
+                      variant: "destructive"
+                    });
+                  }
+                }}
+              >
+                Disconnect Calendar
+              </Button>
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 };
 

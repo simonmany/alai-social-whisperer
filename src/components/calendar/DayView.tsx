@@ -12,7 +12,6 @@ interface CalendarEvent {
   end_time: string;
   google_event_id?: string;
   location?: string;
-  feedback_sent?: boolean;
   attendees?: Array<{
     id: string;
     name: string;
@@ -22,7 +21,6 @@ interface CalendarEvent {
 interface DayViewProps {
   events: CalendarEvent[];
   onPrompt: (message: string) => void;
-  onEventClick?: (event: CalendarEvent) => void;
 }
 
 const filterEventsForToday = (events: CalendarEvent[]) => {
@@ -47,7 +45,7 @@ const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
   };
 };
 
-export const DayView = ({ events, onPrompt, onEventClick }: DayViewProps) => {
+export const DayView = ({ events, onPrompt }: DayViewProps) => {
   const todayEvents = filterEventsForToday(events);
 
   return (
@@ -62,11 +60,7 @@ export const DayView = ({ events, onPrompt, onEventClick }: DayViewProps) => {
               ) : (
                 <div className="space-y-3">
                   {timeEvents.map((event) => (
-                    <EventCard 
-                      key={event.id} 
-                      event={event} 
-                      onClick={() => onEventClick?.(event)}
-                    />
+                    <EventCard key={event.id} event={event} />
                   ))}
                 </div>
               )}
