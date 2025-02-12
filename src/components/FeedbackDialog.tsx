@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -525,40 +524,47 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
 
                 <div className="grid gap-2">
                   <h4 className="text-sm font-medium">When was it?</h4>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !manualDate && "text-muted-foreground"
-                        )}
+                  <div className="flex gap-2">
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "justify-start text-left font-normal h-8 text-sm flex-1",
+                            !manualDate && "text-muted-foreground"
+                          )}
+                        >
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {manualDate ? format(manualDate, "PPP") : <span>Pick a date</span>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent 
+                        className="w-auto p-0" 
+                        align="start" 
+                        side="bottom"
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {manualDate ? format(manualDate, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={manualDate}
-                        onSelect={setManualDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <Select value={manualTime} onValueChange={setManualTime}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select time of day" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {timeOptions.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        <Calendar
+                          mode="single"
+                          selected={manualDate}
+                          onSelect={setManualDate}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+
+                    <Select value={manualTime} onValueChange={setManualTime}>
+                      <SelectTrigger className="h-8 text-sm w-[130px]">
+                        <SelectValue placeholder="Pick a time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {timeOptions.map((time) => (
+                          <SelectItem key={time} value={time} className="text-sm">
+                            {time}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 <div>
