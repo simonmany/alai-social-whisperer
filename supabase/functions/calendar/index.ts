@@ -75,6 +75,10 @@ serve(async (req: Request) => {
       throw new Error('Missing timeMin/timeMax for list action');
     }
 
+    // Ensure timeMin and timeMax are in UTC format for Google Calendar API
+    const timeMinUTC = new Date(timeMin).toISOString();
+    const timeMaxUTC = new Date(timeMax).toISOString();
+
     // Function to refresh access token
     async function refreshAccessToken(): Promise<string> {
       // Get refresh token from profile
@@ -128,7 +132,7 @@ serve(async (req: Request) => {
 
     // Function to make calendar API request
     async function fetchCalendarEvents(token: string) {
-      const calendarUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMin}&timeMax=${timeMax}&singleEvents=true&orderBy=startTime`;
+      const calendarUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${timeMinUTC}&timeMax=${timeMaxUTC}&singleEvents=true&orderBy=startTime`;
       
       console.log('Making Calendar API request:', {
         url: calendarUrl,
@@ -232,17 +236,21 @@ serve(async (req: Request) => {
 
     // Transform events
     const events = data.items.map((event: any) => {
-      // Parse dates to ensure they're valid timestamps
+      // Parse dates to ensure they're valid timestamps and in UTC
       const startTime = event.start?.dateTime || event.start?.date;
       const endTime = event.end?.dateTime || event.end?.date;
+      
+      // Convert to UTC if not already
+      const startUTC = new Date(startTime);
+      const endUTC = new Date(endTime);
       
       return {
         user_id: user.id,
         google_event_id: event.id,
         title: event.summary || 'Untitled Event',
         description: event.description || null,
-        start_time: new Date(startTime).toISOString(),
-        end_time: new Date(endTime).toISOString(),
+        start_time: startUTC.toISOString(), // This ensures UTC format
+        end_time: endUTC.toISOString(), // This ensures UTC format
         updated_at: new Date().toISOString()
       };
     });
