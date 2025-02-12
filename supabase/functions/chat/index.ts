@@ -581,7 +581,7 @@ serve(async (req) => {
           const friends = await findFriendsForActivity(userId, args.activity);
           messages.push(responseData.choices[0].message);
           messages.push(
-            { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(friends) }
+            { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(friends, null, 2) }
           );
         }
       }
