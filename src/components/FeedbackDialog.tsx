@@ -79,9 +79,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
 
   const timeOptions = ["morning", "afternoon", "evening", "night"];
 
-  // Query to fetch recent calendar events
+  // Query to fetch recent calendar events that need feedback
   const { data: recentEvents = [] } = useQuery({
-    queryKey: ['recent-events'],
+    queryKey: ['recent-events-without-feedback'],
     queryFn: async () => {
       if (!session?.user?.id) return [];
 
@@ -95,6 +95,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           title,
           start_time,
           location,
+          feedback_sent,
           event_attendees!inner (
             contacts!contact_id (
               id,
@@ -103,6 +104,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           )
         `)
         .eq('user_id', session.user.id)
+        .eq('feedback_sent', false) // Only fetch events without feedback
         .gte('start_time', thirtyDaysAgo.toISOString())
         .order('start_time', { ascending: false })
         .limit(10);
@@ -123,47 +125,76 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         }))
       }));
     },
-    enabled: open && !selectedEventId
+    enabled: open && !selectedEventId // Only fetch when dialog is open and no specific event is selected
   });
 
-  // Query to fetch contacts for manual entry
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts'],
+  // Query to fetch specific event details when selectedEventId is provided
+  const { data: eventDetails } = useQuery({
+    queryKey: ['event-details', selectedEventId],
     queryFn: async () => {
-      if (!session?.user?.id) return [];
+      if (!selectedEventId) return null;
 
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', session.user.id);
+      const { data: event, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          event_attendees!inner (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('id', selectedEventId)
+        .single();
 
-      if (error) {
-        console.error('Error fetching contacts:', error);
-        return [];
+      if (error) throw error;
+      
+      if (event) {
+        const formattedEvent = {
+          id: event.id,
+          title: event.title,
+          date: new Date(event.start_time),
+          location: event.location || "No location specified",
+          attendees: event.event_attendees.map((ea: any) => ({
+            id: ea.contacts.id,
+            name: ea.contacts.name
+          }))
+        };
+
+        if (event.description) {
+          const moodMatch = event.description.match(/Mood: (.*?)\./);
+          if (moodMatch) {
+            setSelectedMood(moodMatch[1]);
+            setHangDescription(event.description.replace(moodMatch[0], '').trim());
+          } else {
+            setHangDescription(event.description);
+          }
+        }
+
+        return formattedEvent;
       }
-
-      return data.map(contact => ({
-        ...contact,
-        interests: Array.isArray(contact.interests) ? contact.interests : []
-      })) as Contact[];
-    }
+      return null;
+    },
+    enabled: !!selectedEventId && open
   });
 
-  // Filter contacts based on search input
-  const filteredContacts = contacts.filter(contact =>
-    contact.name.toLowerCase().includes(contactSearchInput.toLowerCase())
-  );
+  useEffect(() => {
+    if (eventDetails) {
+      setSelectedEvent(eventDetails);
+      setIsManualEntry(false);
+    }
+  }, [eventDetails]);
 
-  // Activity suggestions (you can expand this list)
-  const activitySuggestions = [
-    { id: 1, name: 'Coffee' },
-    { id: 2, name: 'Lunch' },
-    { id: 3, name: 'Dinner' },
-    { id: 4, name: 'Meeting' },
-    { id: 5, name: 'Phone call' }
-  ].filter(activity =>
-    activity.name.toLowerCase().includes(manualActivity.toLowerCase())
-  );
+  useEffect(() => {
+    if (!open) {
+      if (!selectedEventId) {
+        setSelectedEvent(null);
+        setHangDescription("");
+        setSelectedMood("");
+      }
+    }
+  }, [open, selectedEventId]);
 
   const handleContactSelect = (contact: Contact) => {
     if (!selectedContacts.some(c => c.id === contact.id)) {
@@ -294,22 +325,24 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           </DialogHeader>
           
           <div className="space-y-6 py-4">
-            <div className="flex gap-2">
-              <Button
-                variant={!isManualEntry ? "default" : "outline"}
-                onClick={() => setIsManualEntry(false)}
-                className="flex-1"
-              >
-                Recent Calendar Events
-              </Button>
-              <Button
-                variant={isManualEntry ? "default" : "outline"}
-                onClick={() => setIsManualEntry(true)}
-                className="flex-1"
-              >
-                Something off the books
-              </Button>
-            </div>
+            {!selectedEventId && (
+              <div className="flex gap-2">
+                <Button
+                  variant={!isManualEntry ? "default" : "outline"}
+                  onClick={() => setIsManualEntry(false)}
+                  className="flex-1"
+                >
+                  Recent Calendar Events
+                </Button>
+                <Button
+                  variant={isManualEntry ? "default" : "outline"}
+                  onClick={() => setIsManualEntry(true)}
+                  className="flex-1"
+                >
+                  Something off the books
+                </Button>
+              </div>
+            )}
 
             {!isManualEntry ? (
               <div className="space-y-4">
