@@ -91,7 +91,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         console.error("Error fetching profile:", error);
         throw error;
       }
-
+      
       console.log("Complete profile data:", profile);
       console.log("Skills data:", {
         skill_gourmand: profile.skill_gourmand,
