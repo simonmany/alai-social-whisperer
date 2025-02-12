@@ -10,9 +10,7 @@ export interface Contact {
   meeting_story?: string;
   relationship?: string;
   closeness?: number;
-  food_interests?: string[];
-  recreation_interests?: string[];
-  arts_interests?: string[];
+  interests?: string[];
   is_archived?: boolean;
 }
 

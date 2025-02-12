@@ -26,15 +26,11 @@ export const ContactCard = ({
   email,
   closeness,
   is_archived,
-  food_interests = [],
-  recreation_interests = [],
-  arts_interests = [],
+  interests = [],
 }: ContactCardProps) => {
   console.log('Contact Card rendered with:', {
     name,
-    food_interests,
-    recreation_interests,
-    arts_interests
+    interests
   });
 
   const getClosenessLabel = (value: number | undefined | null) => {
@@ -193,9 +189,7 @@ export const ContactCard = ({
         {/* Interests Section */}
         <div className="mt-8 space-y-4">
           <h3 className="text-sm font-bold text-purple-200">Interests</h3>
-          {renderInterestSection("Food & Drinks", food_interests)}
-          {renderInterestSection("Recreation", recreation_interests)}
-          {renderInterestSection("Arts", arts_interests)}
+          {renderInterestSection("Interests", interests)}
         </div>
 
         {/* History Section Header */}

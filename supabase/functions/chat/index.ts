@@ -12,9 +12,7 @@ interface Contact {
   twitter?: string;
   meeting_story?: string;
   relationship?: string;
-  food_interests?: string[];
-  recreation_interests?: string[];
-  arts_interests?: string[];
+  interests?: string[];
 }
 
 const corsHeaders = {
@@ -120,7 +118,7 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
       3. If they mention meeting someone new, respond in a way that shows interest in the new connection
       4. Ask follow-up questions about the person if not much information was shared
       5. Summarize the contacts relationship story and add it to the field "relationship" in their profile
-      6. If the user mentions any foods, recreation activities, or arts/media that the contact likes, add it to the food_interests, recreation_interests, or arts_interests fields
+      6. If the user mentions any foods, recreation activities, or arts/media that the contact likes, add it to the interests list
 
       When the user talks about multiple contacts together, they are probably part of a group
       1. Give the group a descriptive name
@@ -152,9 +150,7 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
             twitter?: string
             meeting_story?: string
             relationship?: string
-            food_interests?: array of strings, any foods the contact likes to eat or cook
-            recreation_interests?: array of strings, any activities the contact likes to do
-            arts_interests?: array of strings, any arts, culture, or media the contact likes
+            interests?: array of strings, a list of the contact's interests
           }
         ],
         contact_groups: [
@@ -360,22 +356,10 @@ async function mergeContacts(existingContacts: Contact[], newContacts: Contact[]
       if (contact.meeting_story) {
         matchingContact.meeting_story = contact.meeting_story;
       }
-      if (contact.food_interests) {
-        matchingContact.food_interests = Array.from(new Set([
-          ...(matchingContact.food_interests || []),
-          ...(contact.food_interests || [])
-        ]));
-      }
-      if (contact.recreation_interests) {
-        matchingContact.recreation_interests = Array.from(new Set([
-          ...(matchingContact.recreation_interests || []),
-          ...(contact.recreation_interests || [])
-        ]));
-      }
-      if (contact.arts_interests) {
-        matchingContact.arts_interests = Array.from(new Set([
-          ...(matchingContact.arts_interests || []),
-          ...(contact.arts_interests || [])
+      if (contact.interests) {
+        matchingContact.interests = Array.from(new Set([
+          ...(matchingContact.interests || []),
+          ...(contact.interests || [])
         ]));
       }
     }
