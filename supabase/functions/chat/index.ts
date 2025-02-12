@@ -12,6 +12,9 @@ interface Contact {
   twitter?: string;
   meeting_story?: string;
   relationship?: string;
+  food_interests?: string[];
+  recreation_interests?: string[];
+  arts_interests?: string[];
 }
 
 const corsHeaders = {
@@ -117,6 +120,7 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
       3. If they mention meeting someone new, respond in a way that shows interest in the new connection
       4. Ask follow-up questions about the person if not much information was shared
       5. Summarize the contacts relationship story and add it to the field "relationship" in their profile
+      6. If the user mentions any foods, recreation activities, or arts/media that the contact likes, add it to the food_interests, recreation_interests, or arts_interests fields
 
       When the user talks about multiple contacts together, they are probably part of a group
       1. Give the group a descriptive name
@@ -148,6 +152,9 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
             twitter?: string
             meeting_story?: string
             relationship?: string
+            food_interests?: array of strings, any foods the contact likes to eat or cook
+            recreation_interests?: array of strings, any activities the contact likes to do
+            arts_interests?: array of strings, any arts, culture, or media the contact likes
           }
         ],
         contact_groups: [
@@ -283,29 +290,6 @@ async function upsertContacts(userId: string, contacts: Contact[]) {
   return data;
 }
 
-async function createContact(userId: string, contact: Contact) {
-  const { data, error } = await supabase
-  .from('contacts')
-  .insert([{
-    user_id: userId,
-    name: contact.name,
-    phone: contact.phone,
-    instagram: contact.instagram,
-    linkedin: contact.linkedin,
-    twitter: contact.twitter,
-    meeting_story: contact.meeting_story,
-    relationship: contact.relationship,
-    created_at: new Date().toISOString()
-  }]);
-
-  if (error) {
-    console.error('Error inserting contact:', error);
-    throw new Error(`Error inserting contact: ${error.message}`);
-  }
-
-  return data;
-}
-
 async function upsertContactGroup(userId: string, group: { 
   id?: string;
   name: string;
@@ -344,7 +328,9 @@ async function upsertContactGroupMemberships(
     .insert(memberships)
     .select();
 
-  if (error) throw error;
+  if (error) {
+    console.log("Error inserting into contact groups", error)
+  };
   return data;
 }
 
@@ -374,6 +360,24 @@ async function mergeContacts(existingContacts: Contact[], newContacts: Contact[]
       if (contact.meeting_story) {
         matchingContact.meeting_story = contact.meeting_story;
       }
+      if (contact.food_interests) {
+        matchingContact.food_interests = Array.from(new Set([
+          ...(matchingContact.food_interests || []),
+          ...(contact.food_interests || [])
+        ]));
+      }
+      if (contact.recreation_interests) {
+        matchingContact.recreation_interests = Array.from(new Set([
+          ...(matchingContact.recreation_interests || []),
+          ...(contact.recreation_interests || [])
+        ]));
+      }
+      if (contact.arts_interests) {
+        matchingContact.arts_interests = Array.from(new Set([
+          ...(matchingContact.arts_interests || []),
+          ...(contact.arts_interests || [])
+        ]));
+      }
     }
   }
   console.log('merged contacts', existingContacts);
@@ -401,12 +405,6 @@ serve(async (req) => {
     }
 
     console.log('Processing chat request:', { userId, contactInfo });
-
-    // Save contact info if provided
-    if (contactInfo && contactInfo.name) {
-      console.log('Creating contact:', contactInfo);
-      await createContact(userId, contactInfo);
-    }
 
     // Store user message
     const { error: userMessageError } = await supabase
@@ -464,41 +462,25 @@ serve(async (req) => {
       .limit(10);
 
     // Extract names from the message and get their contact info
-    let mentionedContacts = [];
-    const names = await extractNamesFromText(message);
-    if (names.length > 0) { 
-      mentionedContacts = await searchContactsByNames(userId, names);
-      if (mentionedContacts.length === 0) {
-        await upsertContacts(userId, names.map(name => ({name})));
-        console.log('Upserting new contacts ', names);
+    let mentionedContacts = contactInfo ? [contactInfo] : [];
+    if (!contactInfo) {
+      const names = await extractNamesFromText(message);
+      if (names.length > 0) { 
         mentionedContacts = await searchContactsByNames(userId, names);
+        if (mentionedContacts.length === 0) {
+          await upsertContacts(userId, names.map(name => ({name})));
+          console.log('Upserting new contacts ', names);
+          mentionedContacts = await searchContactsByNames(userId, names);
+        }
+        else if (names.some(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()))) {
+          const newNames = names.filter(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()));
+          console.log('Creating new contacts for:', newNames);
+          await upsertContacts(userId, newNames.map(name => ({ name })));
+          mentionedContacts = await searchContactsByNames(userId, names);
+        }
       }
-      else if (names.some(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()))) {
-        const newNames = names.filter(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()));
-        console.log('Creating new contacts for:', newNames);
-        await upsertContacts(userId, newNames.map(name => ({ name })));
-        mentionedContacts = await searchContactsByNames(userId, names);
-      }
+      console.log("mentioned contacts",mentionedContacts)
     }
-    console.log("mentioned contacts",mentionedContacts)
-
-    // // Get closest contacts
-    // const { data: closestContacts } = await supabase
-    //   .from('contacts')
-    //   .select('name, email, phone, instagram, linkedin, twitter, meeting_story, relationship, closeness')
-    //   .eq('user_id', userId)
-    //   .order('closeness', { ascending: false })
-    //   .limit(15);
-
-    // // Combine mentioned contacts with closest contacts, removing duplicates
-    // const allContacts = [...mentionedContacts];
-    // if (closestContacts) {
-    //   for (const contact of closestContacts) {
-    //     if (!allContacts.some(c => c.name === contact.name)) {
-    //       allContacts.push(contact);
-    //     }
-    //   }
-    // }
 
     const messages = chatHistory?.map(msg => ({
       role: msg.is_ai ? 'assistant' : 'user',

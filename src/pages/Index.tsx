@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +36,17 @@ interface Message {
     meetingStory?: string;
     relationship?: string;
   }[];
+}
+
+interface Contact {
+  name: string;
+  phone?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  meetingStory?: string;
+  relationship?: string;
+  photo?: string;
 }
 
 const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
@@ -568,10 +578,8 @@ const Index = () => {
     }
   };
 
-  const handleSend = async (message: string) => {
+  const handleSend = async (message: string, contactInfo?: Contact) => {
     if (!message.trim()) return;
-
-    const contactInfo = message.startsWith("I met ") ? parseContactInfo(message) : undefined;
 
     setIsLoading(true);
 
@@ -846,6 +854,7 @@ const Index = () => {
         open={isContactsOpen}
         onOpenChange={setIsContactsOpen}
         onSubmit={handleSend}
+        userId={session?.user.id}
       />
     </div>
   );

@@ -307,7 +307,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           .from('calendar_events')
           .insert({
             title: manualActivity,
-            description: manualLocation,
+            location: manualLocation,
+            description: manualNotes,
             start_time: startTime.toISOString(),
             end_time: endTime.toISOString(),
             user_id: session.user.id,
@@ -346,8 +347,26 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
           .map(contact => contact.name)
           .join(', ');
 
-        const message = `I had a hang with ${attendeeNames} at ${manualLocation} on ${format(manualDate, 'EEEE, MMMM d')} in the ${manualTime}. We ${manualActivity.toLowerCase()}. ${manualNotes}`;
+        let message = `I had a hang with ${attendeeNames} at ${manualLocation} on ${format(manualDate, 'EEEE, MMMM d')} in the ${manualTime}. We ${manualActivity.toLowerCase()}. ${manualNotes}`;
         console.log('Submitting message:', message);
+        
+        if (manualNotes) {
+          message += ` ${manualNotes}`;
+        }
+
+        // Update relationship field for each contact
+        for (const attendeeId of manualAttendees) {
+          const { error: contactUpdateError } = await supabase
+            .from('contacts')
+            .update({ relationship: message })
+            .eq('id', attendeeId);
+
+          if (contactUpdateError) {
+            console.error('Error updating contact relationship:', contactUpdateError);
+          }
+        }
+
+        console.log('Submitting manual entry message:', message);
         onSubmit(message);
       } catch (error) {
         console.error('Error in event submission process:', error);
@@ -355,27 +374,49 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     } else if (selectedEvent) {
       console.log('Selected existing event:', selectedEvent);
       const attendeeNames = formatAttendeeNames(selectedEvent.attendees);
-      let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang with ${attendeeNames} at ${selectedEvent.location} on ${format(new Date(selectedEvent.date), "EEEE, MMMM d")} at ${format(new Date(selectedEvent.date), "h:mm a")}. We ${selectedEvent.title.toLowerCase()}.`;
+      const location = selectedEvent.location && selectedEvent.location !== "No location specified" ? selectedEvent.location : "";
+      let message = `I had a ${selectedMood ? selectedMood + " " : ""}hang ${attendeeNames ? "with " + attendeeNames : ""} ${location? "at " + location : ""} on ${format(new Date(selectedEvent.date), "EEEE, MMMM d")} at ${format(new Date(selectedEvent.date), "h:mm a")}. We ${selectedEvent.title.toLowerCase()}.`;
 
       if (hangDescription) {
         message += ` ${hangDescription}`;
       }
-
-      const { error: updateError } = await supabase
-        .from('calendar_events')
-        .update({ feedback_sent: true })
-        .eq('id', selectedEvent.id);
-
-      if (updateError) {
-        console.error('Error updating feedback status:', updateError);
-        toast({
-          title: "Error",
-          description: "Failed to update feedback status.",
-          variant: "destructive"
-        });
-        return;
-      }
       
+      if (hangDescription || selectedMood) {
+        const { error: updateError } = await supabase
+          .from('calendar_events')
+          .update({
+            description: `${selectedMood ? `Mood: ${selectedMood}. ` : ''}${hangDescription || ''}`,
+            feedback_sent: true,
+          })
+          .eq('id', selectedEvent.id);
+
+          if (updateError) {
+            console.error('Error updating feedback status:', updateError);
+            toast({
+              title: "Error",
+              description: "Failed to update feedback status.",
+              variant: "destructive"
+            });
+            return;
+          }
+        }
+      else {
+        const { error: updateError } = await supabase
+          .from('calendar_events')
+          .update({ feedback_sent: true })
+          .eq('id', selectedEvent.id);
+
+          if (updateError) {
+            console.error('Error updating feedback status:', updateError);
+            toast({
+              title: "Error",
+              description: "Failed to update feedback status.",
+              variant: "destructive"
+            });
+            return;
+          }
+        }
+
       console.log('Submitting existing event message:', message);
       onSubmit(message);
     }

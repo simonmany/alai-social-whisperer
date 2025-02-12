@@ -132,12 +132,20 @@ const GoalsDialog = ({ open, onOpenChange, onSubmit }: GoalsDialogProps) => {
 
     if (!error) {
       if (selectedGoal === "try something new") {
-        onSubmit(activityInput ? `I want to try ${description}` : "Can you suggest a new activity for me to try?");
+        onSubmit(activityInput ? `I want to try ${description} ${timeframe}` : "Can you suggest a new activity for me to try?");
       } else if (selectedGoal === "Meet new people") {
-        onSubmit(`I want to ${description}`);
+        onSubmit(`I want to ${description} ${timeframe}`);
       } else if (selectedGoal === "Catch up with old friends") {
-        onSubmit(friendInput ? `I want to catch up with ${friendInput}` : "Can you suggest someone I should catch up with?");
+        onSubmit(friendInput ? `I want to catch up with ${friendInput} ${timeframe}` : "Can you suggest someone I should catch up with?");
       }
+      
+      // Reset form state
+      setSelectedGoal(null);
+      setActivityInput("");
+      setPeopleCount("");
+      setFriendInput("");
+      setTimeframe(null);
+      
       onOpenChange(false);
     }
   };
