@@ -214,7 +214,7 @@ async function findFriendsForActivity(userId: string, activity: string): Promise
 
   const response = await callLLM(openAIApiKey, [
     { role: 'system', content: systemPrompt },
-    { role: 'user', content: JSON.stringify(contacts) }
+    { role: 'user', content: JSON.stringify(contacts, null, 2) }
   ]);
 
   const data = await response.json();
