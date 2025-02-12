@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { ContactCard } from "@/components/ContactCard";
 import { Contact } from "@/types/contacts";
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +13,7 @@ import { format } from "date-fns";
 import { CalendarIcon, X, Archive } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useToast, toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -45,7 +44,6 @@ interface FeedbackDialogProps {
 export default function FeedbackDialog({ open, onOpenChange, onSubmit }: FeedbackDialogProps) {
   const { session } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [selectedContactIndex, setSelectedContactIndex] = useState<number>(-1);
@@ -57,6 +55,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
   const [contactSearchInput, setContactSearchInput] = useState("");
   const [hangDescription, setHangDescription] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("");
+  const [viewingContactIndex, setViewingContactIndex] = useState<number>(-1);
 
   const moodOptions = [
     "fun",
@@ -153,11 +152,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
         if (dbError) {
           console.error("Error fetching calendar events:", dbError);
-          toast({
-            title: "Error",
-            description: "Failed to fetch calendar events.",
-            variant: "destructive",
-          });
           return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
         }
 
@@ -182,11 +176,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
         };
       } catch (error) {
         console.error("Exception in fetchCalendarEvents:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch calendar events. Please try again.",
-          variant: "destructive",
-        });
         return { events: [], isConnected: false };
       }
     },
@@ -390,11 +379,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
           if (updateError) {
             console.error('Error updating feedback status:', updateError);
-            toast({
-              title: "Error",
-              description: "Failed to update feedback status.",
-              variant: "destructive"
-            });
             return;
           }
         }
@@ -406,11 +390,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
 
           if (updateError) {
             console.error('Error updating feedback status:', updateError);
-            toast({
-              title: "Error",
-              description: "Failed to update feedback status.",
-              variant: "destructive"
-            });
             return;
           }
         }
@@ -464,338 +443,354 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
     setContactSearchInput("");
   };
 
-  const openContactDrawer = (index: number) => {
-    setSelectedContactIndex(index);
-    setIsContactDrawerOpen(true);
-  };
-
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
-          {selectedContact ? (
-            <>
-              <DialogHeader className="flex-row items-center justify-between">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={() => setSelectedContact(null)}
-                  className="h-6 w-6"
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+        {viewingContactIndex >= 0 && selectedContacts[viewingContactIndex] ? (
+          <>
+            <DialogHeader className="flex-row items-center justify-between">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setViewingContactIndex(-1)}
+                className="h-6 w-6"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogHeader>
+            <ContactCard {...selectedContacts[viewingContactIndex]} />
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Tell me about your hang</DialogTitle>
+            </DialogHeader>
+            
+            <div className="space-y-6 py-4">
+              <div className="flex gap-2">
+                <Button
+                  variant={!isManualEntry ? "default" : "outline"}
+                  onClick={() => setIsManualEntry(false)}
+                  className="flex-1"
                 >
-                  <X className="h-4 w-4" />
+                  Recent Calendar Events
                 </Button>
-              </DialogHeader>
-              <ContactCard {...selectedContact} />
-            </>
-          ) : (
-            <>
-              <DialogHeader>
-                <DialogTitle>Tell me about your hang</DialogTitle>
-              </DialogHeader>
-              
-              <div className="space-y-6 py-4">
-                <div className="flex gap-2">
-                  <Button
-                    variant={!isManualEntry ? "default" : "outline"}
-                    onClick={() => setIsManualEntry(false)}
-                    className="flex-1"
-                  >
-                    Recent Calendar Events
-                  </Button>
-                  <Button
-                    variant={isManualEntry ? "default" : "outline"}
-                    onClick={() => setIsManualEntry(true)}
-                    className="flex-1"
-                  >
-                    Something off the books
-                  </Button>
-                </div>
+                <Button
+                  variant={isManualEntry ? "default" : "outline"}
+                  onClick={() => setIsManualEntry(true)}
+                  className="flex-1"
+                >
+                  Something off the books
+                </Button>
+              </div>
 
-                {!isManualEntry ? (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      {recentEvents.map((event) => (
-                        <div
-                          key={event.id}
-                          className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                            selectedEvent?.id === event.id
-                              ? "border-primary bg-primary/5"
-                              : "hover:bg-accent"
-                          }`}
-                          onClick={() => setSelectedEvent(event)}
-                        >
-                          <div className="font-medium">{event.title}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {event.date.toLocaleDateString([], {
-                              weekday: "long",
-                              month: "long",
-                              day: "numeric",
-                            })}
-                            {" at "}
-                            {event.date.toLocaleTimeString([], {
-                              hour: "numeric",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                          <div className="text-sm text-muted-foreground">{event.location}</div>
-                        </div>
-                      ))}
+              {selectedContacts.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {selectedContacts.map((contact, index) => (
+                    <div
+                      key={contact.id}
+                      className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
+                      onClick={() => setViewingContactIndex(index)}
+                    >
+                      <Avatar className="h-4 w-4">
+                        <AvatarFallback className="text-[10px]">
+                          {getInitials(contact.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span>{contact.name}</span>
+                      {contact.is_archived && (
+                        <Archive className="h-3 w-3 text-muted-foreground" />
+                      )}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedContacts(prev => 
+                            prev.filter(c => c.id !== contact.id)
+                          );
+                        }}
+                        className="hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
+                  ))}
+                </div>
+              )}
 
-                    {selectedEvent && (
-                      <div className="space-y-4 mt-4 p-4 border rounded-lg bg-accent/5">
-                        <div>
-                          <h4 className="text-sm font-medium mb-2">Who was there:</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedEvent.attendees.map((attendee) => (
-                              <div
-                                key={attendee.id}
-                                className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                              >
-                                <Avatar className="h-4 w-4">
-                                  <AvatarFallback className="text-[10px]">
-                                    {getInitials(attendee.name)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>{attendee.name}</span>
-                              </div>
-                            ))}
-                          </div>
+              {!isManualEntry ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    {recentEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                          selectedEvent?.id === event.id
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-accent"
+                        }`}
+                        onClick={() => setSelectedEvent(event)}
+                      >
+                        <div className="font-medium">{event.title}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {event.date.toLocaleDateString([], {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                          {" at "}
+                          {event.date.toLocaleTimeString([], {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
                         </div>
+                        <div className="text-sm text-muted-foreground">{event.location}</div>
+                      </div>
+                    ))}
+                  </div>
 
-                        <div>
-                          <h4 className="text-sm font-medium mb-2">How was it?</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {moodOptions.map((mood) => (
-                              <button
-                                key={mood}
-                                onClick={() => setSelectedMood(mood)}
-                                className={cn(
-                                  "px-3 py-1 rounded-full text-xs border transition-colors",
-                                  selectedMood === mood
-                                    ? "bg-primary text-primary-foreground border-primary"
-                                    : "hover:bg-accent"
-                                )}
-                              >
-                                {mood}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <h4 className="text-sm font-medium">Add more details:</h4>
-                          <Textarea
-                            value={hangDescription}
-                            onChange={(e) => setHangDescription(e.target.value)}
-                            placeholder="• What did you talk about?
-• How'd you feel about the activity?
-• Any memorable moments?"
-                            className="min-h-[100px]"
-                          />
+                  {selectedEvent && (
+                    <div className="space-y-4 mt-4 p-4 border rounded-lg bg-accent/5">
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">Who was there:</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedEvent.attendees.map((attendee) => (
+                            <div
+                              key={attendee.id}
+                              className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                            >
+                              <Avatar className="h-4 w-4">
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(attendee.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{attendee.name}</span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Who was there?</label>
-                      <div className="space-y-2 relative">
-                        <Input
-                          placeholder="Search contacts..."
-                          value={contactSearchInput}
-                          onChange={(e) => setContactSearchInput(e.target.value)}
-                          className="h-8"
+
+                      <div>
+                        <h4 className="text-sm font-medium mb-2">How was it?</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {moodOptions.map((mood) => (
+                            <button
+                              key={mood}
+                              onClick={() => setSelectedMood(mood)}
+                              className={cn(
+                                "px-3 py-1 rounded-full text-xs border transition-colors",
+                                selectedMood === mood
+                                  ? "bg-primary text-primary-foreground border-primary"
+                                  : "hover:bg-accent"
+                              )}
+                            >
+                              {mood}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="text-sm font-medium">Add more details:</h4>
+                        <Textarea
+                          value={hangDescription}
+                          onChange={(e) => setHangDescription(e.target.value)}
+                          placeholder="• What did you talk about?
+• How'd you feel about the activity?
+• Any memorable moments?"
+                          className="min-h-[100px]"
                         />
-                        
-                        {contactSearchInput && filteredContacts.length > 0 && (
-                          <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
-                            {filteredContacts.map((contact) => (
-                              <div
-                                key={contact.id}
-                                className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
-                                onClick={() => handleContactSelect(contact)}
-                              >
-                                <div className="flex items-center gap-2">
-                                  <Avatar className="h-6 w-6">
-                                    <AvatarFallback className="text-xs">
-                                      {getInitials(contact.name)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span className="text-sm text-popover-foreground">{contact.name}</span>
-                                </div>
-                                {contact.is_archived && (
-                                  <Archive className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {selectedContacts.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {selectedContacts.map((contact) => (
-                              <div
-                                key={contact.id}
-                                className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
-                                onClick={() => setSelectedContact(contact)}
-                              >
-                                <Avatar className="h-4 w-4">
-                                  <AvatarFallback className="text-[10px]">
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Who was there?</label>
+                    <div className="space-y-2 relative">
+                      <Input
+                        placeholder="Search contacts..."
+                        value={contactSearchInput}
+                        onChange={(e) => setContactSearchInput(e.target.value)}
+                        className="h-8"
+                      />
+                      
+                      {contactSearchInput && filteredContacts.length > 0 && (
+                        <div className="absolute z-50 left-0 right-0 mt-1 bg-popover border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                          {filteredContacts.map((contact) => (
+                            <div
+                              key={contact.id}
+                              className="flex items-center gap-2 p-2 hover:bg-accent cursor-pointer border-b last:border-b-0 justify-between bg-popover"
+                              onClick={() => handleContactSelect(contact)}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-6 w-6">
+                                  <AvatarFallback className="text-xs">
                                     {getInitials(contact.name)}
                                   </AvatarFallback>
                                 </Avatar>
-                                <span>{contact.name}</span>
-                                {contact.is_archived && (
-                                  <Archive className="h-3 w-3 text-muted-foreground" />
-                                )}
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedContacts(prev => 
-                                      prev.filter(c => c.id !== contact.id)
-                                    );
-                                  }}
-                                  className="hover:text-destructive"
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
+                                <span className="text-sm text-popover-foreground">{contact.name}</span>
                               </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">What did you do?</label>
-                      <div className="space-y-2">
-                        <Input
-                          placeholder="Type an activity..."
-                          value={manualActivity}
-                          onChange={(e) => {
-                            setManualActivity(e.target.value);
-                            setShowActivitySuggestions(true);
-                          }}
-                          className="h-8"
-                        />
-                        
-                        {manualActivity && showActivitySuggestions && activitySuggestions.length > 0 && (
-                          <div className="border rounded-md overflow-hidden">
-                            {activitySuggestions.map((activity) => (
-                              <div
-                                key={activity.id}
-                                className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
-                                onClick={() => {
-                                  setManualActivity(activity.name);
-                                  setShowActivitySuggestions(false);
-                                }}
-                              >
-                                <span className="text-sm">{activity.name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Where did you go?</label>
-                      <Input
-                        value={manualLocation}
-                        onChange={(e) => setManualLocation(e.target.value)}
-                        placeholder="Enter location..."
-                        className="h-8"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">When did you hang?</label>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full justify-start text-left font-normal h-8",
-                                !manualDate && "text-muted-foreground"
+                              {contact.is_archived && (
+                                <Archive className="h-4 w-4 text-muted-foreground" />
                               )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {manualDate ? format(manualDate, "PPP") : "Pick a date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent 
-                            className="w-auto p-0" 
-                            align="start" 
-                            side="bottom"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <div className="cursor-pointer hover:cursor-pointer">
-                              <Calendar
-                                mode="single"
-                                selected={manualDate}
-                                onSelect={setManualDate}
-                                initialFocus
-                                className="pointer-events-auto"
-                              />
                             </div>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Time of day</label>
-                        <Select value={manualTime} onValueChange={setManualTime}>
-                          <SelectTrigger className="h-8">
-                            <SelectValue placeholder="Select time..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {timeOptions.map((time) => (
-                              <SelectItem key={time} value={time}>
-                                {time.charAt(0).toUpperCase() + time.slice(1)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">How'd it go?</label>
-                      <Textarea
-                        value={manualNotes}
-                        onChange={(e) => setManualNotes(e.target.value)}
-                        placeholder="• What did you talk about?
-• How did you meet?
-• How'd you feel about the person / activity?"
-                        className="min-h-[100px]"
-                      />
+                          ))}
+                        </div>
+                      )}
+                      
+                      {selectedContacts.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {selectedContacts.map((contact) => (
+                            <div
+                              key={contact.id}
+                              className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
+                              onClick={() => setViewingContactIndex(selectedContacts.indexOf(contact))}
+                            >
+                              <Avatar className="h-4 w-4">
+                                <AvatarFallback className="text-[10px]">
+                                  {getInitials(contact.name)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <span>{contact.name}</span>
+                              {contact.is_archived && (
+                                <Archive className="h-3 w-3 text-muted-foreground" />
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedContacts(prev => 
+                                    prev.filter(c => c.id !== contact.id)
+                                  );
+                                }}
+                                className="hover:text-destructive"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
-                )}
 
-                {(selectedEvent || (isManualEntry && selectedContacts.length > 0 && manualActivity)) && (
-                  <Button className="w-full" onClick={handleSubmit}>
-                    Submit Feedback
-                  </Button>
-                )}
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">What did you do?</label>
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Type an activity..."
+                        value={manualActivity}
+                        onChange={(e) => {
+                          setManualActivity(e.target.value);
+                          setShowActivitySuggestions(true);
+                        }}
+                        className="h-8"
+                      />
+                      
+                      {manualActivity && showActivitySuggestions && activitySuggestions.length > 0 && (
+                        <div className="border rounded-md overflow-hidden">
+                          {activitySuggestions.map((activity) => (
+                            <div
+                              key={activity.id}
+                              className="p-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                              onClick={() => {
+                                setManualActivity(activity.name);
+                                setShowActivitySuggestions(false);
+                              }}
+                            >
+                              <span className="text-sm">{activity.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-      <Drawer open={isContactDrawerOpen} onOpenChange={setIsContactDrawerOpen}>
-        <DrawerContent>
-          <div className="mx-auto w-full max-w-sm p-4">
-            {selectedContactIndex >= 0 && selectedContacts[selectedContactIndex] && (
-              <ContactCard {...selectedContacts[selectedContactIndex]} />
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    </>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Where did you go?</label>
+                    <Input
+                      value={manualLocation}
+                      onChange={(e) => setManualLocation(e.target.value)}
+                      placeholder="Enter location..."
+                      className="h-8"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">When did you hang?</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal h-8",
+                              !manualDate && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {manualDate ? format(manualDate, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent 
+                          className="w-auto p-0" 
+                          align="start" 
+                          side="bottom"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="cursor-pointer hover:cursor-pointer">
+                            <Calendar
+                              mode="single"
+                              selected={manualDate}
+                              onSelect={setManualDate}
+                              initialFocus
+                              className="pointer-events-auto"
+                            />
+                          </div>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Time of day</label>
+                      <Select value={manualTime} onValueChange={setManualTime}>
+                        <SelectTrigger className="h-8">
+                          <SelectValue placeholder="Select time..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {timeOptions.map((time) => (
+                            <SelectItem key={time} value={time}>
+                              {time.charAt(0).toUpperCase() + time.slice(1)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">How'd it go?</label>
+                    <Textarea
+                      value={manualNotes}
+                      onChange={(e) => setManualNotes(e.target.value)}
+                      placeholder="• What did you talk about?
+• How did you meet?
+• How'd you feel about the person / activity?"
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {(selectedEvent || (isManualEntry && selectedContacts.length > 0 && manualActivity)) && (
+                <Button className="w-full" onClick={handleSubmit}>
+                  Submit Feedback
+                </Button>
+              )}
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
