@@ -450,27 +450,27 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                       {selectedContacts.map((contact, index) => (
                         <div
                           key={contact.id}
-                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
+                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-[11px] cursor-pointer max-w-[200px] group"
                           onClick={() => {
                             setSelectedContactIndex(index);
                             setIsContactDrawerOpen(true);
                           }}
                         >
-                          <Avatar className="h-4 w-4">
-                            <AvatarFallback className="text-[10px]">
+                          <Avatar className="h-4 w-4 shrink-0">
+                            <AvatarFallback className="text-[9px]">
                               {getInitials(contact.name)}
                             </AvatarFallback>
                           </Avatar>
-                          <span>{contact.name}</span>
+                          <span className="truncate">{contact.name}</span>
                           {contact.is_archived && (
-                            <Archive className="h-3 w-3 text-muted-foreground" />
+                            <Archive className="h-3 w-3 text-muted-foreground shrink-0" />
                           )}
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedContacts(prev => prev.filter((_, i) => i !== index));
                             }}
-                            className="hover:text-destructive"
+                            className="hover:text-destructive shrink-0"
                           >
                             <X className="h-3 w-3" />
                           </button>
