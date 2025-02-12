@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -15,7 +14,7 @@ import { format } from "date-fns";
 import { CalendarIcon, X, Archive } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { useToast, toast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -271,7 +270,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit }: Feedbac
                 />
                 
                 {contactSearchInput && filteredContacts.length > 0 && (
-                  <div className="border rounded-md overflow-hidden">
+                  <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
                     {filteredContacts.map((contact) => (
                       <div
                         key={contact.id}
