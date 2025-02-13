@@ -24,15 +24,16 @@ interface CalendarEvent {
 export const EventCard = ({ event }: { event: CalendarEvent }) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showPlanning, setShowPlanning] = useState(false);
+  
+  // Define these at component level so they're available throughout
+  const eventDate = new Date(event.start_time);
+  const now = new Date();
 
   const handleSubmit = (message: string) => {
     setShowFeedback(false);
   };
 
   const handleCardClick = () => {
-    const eventDate = new Date(event.start_time);
-    const now = new Date();
-
     if (eventDate > now) {
       // Future event - open planning dialog
       setShowPlanning(true);
@@ -98,12 +99,7 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
       <PlanningDialog
         open={showPlanning}
         onOpenChange={setShowPlanning}
-        defaultValues={{
-          activity: event.title,
-          location: event.location,
-          contacts: event.attendees?.map(a => ({ id: a.id, name: a.name })) || [],
-          date: new Date(event.start_time),
-        }}
+        onSubmit={() => {}} // Add onSubmit prop as it's required
       />
     </>
   );
