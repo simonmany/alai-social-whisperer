@@ -22,17 +22,29 @@ interface PlanningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
+  defaultActivity?: string;
+  defaultLocation?: string;
+  defaultDate?: Date;
+  defaultContacts?: Contact[];
 }
 
 type ActivityCategory = "Food / Drinks" | "Recreation" | "Arts" | "A Party!" | "A Trip" | null;
 
-const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) => {
-  const [activity, setActivity] = useState("");
+const PlanningDialog = ({ 
+  open, 
+  onOpenChange, 
+  onSubmit,
+  defaultActivity,
+  defaultLocation,
+  defaultDate,
+  defaultContacts = []
+}: PlanningDialogProps) => {
+  const [activity, setActivity] = useState(defaultActivity || "");
   const [selectedCategory, setSelectedCategory] = useState<ActivityCategory>(null);
   const [showCustomSpot, setShowCustomSpot] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>();
-  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
   const [contactInput, setContactInput] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const [utcOffsetMinutes, setUtcOffsetMinutes] = useState<number | null>(null);
@@ -471,6 +483,13 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedContactIndex(index);
     setIsContactDrawerOpen(true);
   };
+
+  useEffect(() => {
+    if (open && defaultLocation) {
+      setActivity(defaultLocation);
+      setShowCustomSpot(true);
+    }
+  }, [open, defaultLocation]);
 
   return (
     <>

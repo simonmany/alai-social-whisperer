@@ -99,7 +99,18 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
       <PlanningDialog
         open={showPlanning}
         onOpenChange={setShowPlanning}
-        onSubmit={() => {}} // Add onSubmit prop as it's required
+        onSubmit={() => {}}
+        defaultActivity={event.title}
+        defaultLocation={event.location}
+        defaultDate={eventDate}
+        defaultContacts={event.attendees?.map(a => ({ 
+          id: a.id, 
+          name: a.name,
+          // Add required Contact interface fields with default values
+          email: null,
+          created_at: new Date().toISOString(),
+          user_id: '',
+        }))}
       />
     </>
   );
