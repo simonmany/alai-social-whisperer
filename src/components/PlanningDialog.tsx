@@ -485,11 +485,63 @@ const PlanningDialog = ({
   };
 
   useEffect(() => {
-    if (open && defaultLocation) {
-      setActivity(defaultLocation);
-      setShowCustomSpot(true);
+    if (open && defaultActivity) {
+      const determineCategory = async () => {
+        // Try to match with food items
+        const { data: foodMatch } = await supabase
+          .from('food_items')
+          .select('name')
+          .ilike('name', `%${defaultActivity}%`)
+          .limit(1);
+
+        if (foodMatch && foodMatch.length > 0) {
+          setSelectedCategory("Food / Drinks");
+          setActivity(defaultActivity);
+          return;
+        }
+
+        // Try to match with recreation activities
+        const { data: recreationMatch } = await supabase
+          .from('activities')
+          .select('name')
+          .eq('category', 'Recreation')
+          .ilike('name', `%${defaultActivity}%`)
+          .limit(1);
+
+        if (recreationMatch && recreationMatch.length > 0) {
+          setSelectedCategory("Recreation");
+          setActivity(defaultActivity);
+          return;
+        }
+
+        // Try to match with arts activities
+        const { data: artsMatch } = await supabase
+          .from('activities')
+          .select('name')
+          .eq('category', 'Arts')
+          .ilike('name', `%${defaultActivity}%`)
+          .limit(1);
+
+        if (artsMatch && artsMatch.length > 0) {
+          setSelectedCategory("Arts");
+          setActivity(defaultActivity);
+          return;
+        }
+
+        // If no matches found but we have a location, treat it as a custom spot
+        if (defaultLocation) {
+          setShowCustomSpot(true);
+          setActivity(defaultLocation);
+        } else {
+          // If no matches and no location, set as custom activity
+          setShowCustomSpot(true);
+          setActivity(defaultActivity);
+        }
+      };
+
+      determineCategory();
     }
-  }, [open, defaultLocation]);
+  }, [open, defaultActivity, defaultLocation]);
 
   return (
     <>
