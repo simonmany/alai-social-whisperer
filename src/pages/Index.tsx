@@ -777,56 +777,29 @@ const Index = () => {
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={handleStartTutorial}
+          asChild
         >
-          <Play className="h-4 w-4" />
-          Start Tutorial
+          <a 
+            href="https://www.notion.so/196eca1a0dba80dbbafce78242472aa0?v=196eca1a0dba8074b6a5000cf37f3c9b" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            Report a Bug
+          </a>
         </Button>
         <Button
           variant="outline"
           size="sm"
           className="gap-2"
-          onClick={handleSkipOnboarding}
+          asChild
         >
-          Skip Onboarding (Dev Only)
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleRestartOnboarding}
-        >
-          <Redo className="h-4 w-4" />
-          Restart Onboarding
-        </Button>
-        
-        <div className="h-px bg-border my-2" />
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestMorningCheckin}
-        >
-          <Play className="h-4 w-4" />
-          Test Morning Check-in
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestEveningCheckin}
-        >
-          <Play className="h-4 w-4" />
-          Test Evening Check-in
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestCompletedEvents}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Test Completed Events
+          <a 
+            href="https://www.notion.so/196eca1a0dba80bcb631cbed4b9c2b75?v=196eca1a0dba80f4b7e5000c31f0bb16" 
+            target="_blank" 
+            rel="noopener noreferrer"
+          >
+            Request a Feature
+          </a>
         </Button>
       </div>
 
