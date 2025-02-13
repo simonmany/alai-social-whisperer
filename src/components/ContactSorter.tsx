@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Contact } from '@/types/contacts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -294,6 +295,7 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
         onOpenChange={setIsGroupDialogOpen}
         contacts={contacts}
         onGroupCreated={handleGroupCreated}
+        preSelectedContact={currentContact || undefined}
       />
     </>
   );

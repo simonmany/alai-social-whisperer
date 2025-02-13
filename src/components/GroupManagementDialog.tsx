@@ -19,17 +19,21 @@ interface GroupManagementDialogProps {
   onOpenChange: (open: boolean) => void;
   contacts: Contact[];
   onGroupCreated: () => void;
+  preSelectedContact?: Contact;
 }
 
 const GroupManagementDialog = ({ 
   open, 
   onOpenChange, 
   contacts,
-  onGroupCreated 
+  onGroupCreated,
+  preSelectedContact 
 }: GroupManagementDialogProps) => {
   const [groupName, setGroupName] = useState("");
   const [groupEmoji, setGroupEmoji] = useState("👥");
-  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>(
+    preSelectedContact ? [preSelectedContact] : []
+  );
   const [contactInput, setContactInput] = useState("");
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { toast } = useToast();
