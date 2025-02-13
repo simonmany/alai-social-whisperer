@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -158,14 +159,23 @@ const GroupManagementDialog = ({
                   onInteractOutside={(e) => {
                     e.preventDefault();
                   }}
+                  style={{ 
+                    position: 'relative',
+                    zIndex: 9999,
+                    pointerEvents: 'auto'
+                  }}
                 >
-                  <div className="fixed z-[9999] bg-popover shadow-md">
+                  <div className="relative bg-popover shadow-md">
                     <Picker 
                       data={data} 
                       onEmojiSelect={handleEmojiSelect}
                       theme="dark"
                       previewPosition="none"
                       skinTonePosition="none"
+                      onClickOutside={(e: Event) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                     />
                   </div>
                 </PopoverContent>
