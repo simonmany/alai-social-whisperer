@@ -142,9 +142,8 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
 
   return `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
       - Profile: ${JSON.stringify(profile, null, 2)}
-      - Calendar Events for the next 30 days: ${JSON.stringify(formattedEvents, null, 2)}
+      - Calendar Events for the next 10 days: ${JSON.stringify(formattedEvents, null, 2)}
       
-      When discussing calendar events, always format dates and times in a user-friendly way.
       If asked about the calendar or scheduling, you can:
       - List upcoming events
       - Suggest free time slots for new activities
@@ -157,17 +156,16 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
       3. Consider typical timing for the suggested activity (e.g., dinner in the evening)
 
       When users mention meeting someone new or talk about a contact:
-      1. Extract the person's name and any contact information shared
+      1. Extract the person's name and any contact information shared. This information is stored automatically so you should not offer to store it.
       2. If the user did not share any contact information, ask for at least one contact method (phone, email, instagram, etc.)
       3. If they mention meeting someone new, respond in a way that shows interest in the new connection
       4. Ask follow-up questions about the person if not much information was shared
-      5. Summarize the contacts relationship story and add it to the field "relationship" in their profile
-      6. If the user mentions any foods, recreation activities, or arts/media that the contact likes, add it to the interests list
+      5. If the user mentions any foods, recreation activities, or arts/media that the contact likes, add it to the interests list
 
       When the user talks about multiple contacts together, they are probably part of a group
       1. Give the group a descriptive name
       2. Include the name of each person discussed in the context of the group
-      3. Otherwise leace the contact_groups list empty
+      3. Otherwise leave the contact_groups list empty
 
       When users provide feedback about a social interaction or "hang":
       1. Ask thoughtful follow-up questions about:
@@ -186,14 +184,14 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
         "text": "your conversational response here",
         contacts: [
           {
-            name: string
-            email?: string
-            phone?: string
-            instagram?: string
-            linkedin?: string
-            twitter?: string
-            meeting_story?: string
-            relationship?: string
+            name: string, the contact's name
+            email?: string, the contact's email
+            phone?: string, the contact's phone number
+            instagram?: string, the contact's instagram handle
+            linkedin?: string, the contact's linkedin handle
+            twitter?: string, the contact's twitter handle
+            meeting_story?: string, a brief description of the meeting
+            relationship?: string, a brief summary of the relationship
             interests?: array of strings, a list of the contact's interests
           }
         ],
@@ -501,8 +499,8 @@ serve(async (req) => {
     };
 
     const now = new Date();
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(now.getDate() + 30);
+    const tenDaysFromNow = new Date();
+    tenDaysFromNow.setDate(now.getDate() + 10);
 
     // Get user's UTC offset
     const { data: userProfile } = await supabase
@@ -526,7 +524,7 @@ serve(async (req) => {
       .select('*')
       .eq('user_id', userId)
       .gte('start_time', now.toISOString())
-      .lte('start_time', thirtyDaysFromNow.toISOString())
+      .lte('start_time', tenDaysFromNow.toISOString())
       .order('start_time', { ascending: true });
 
     // Convert event times to local timezone
@@ -555,7 +553,7 @@ serve(async (req) => {
           mentionedContacts = await searchContactsByNames(userId, names);
         }
         else if (names.some(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()))) {
-          const newNames = names.filter(name => !mentionedContacts.some(mc => mc.name.toLowerCase() === name.toLowerCase()));
+          const newNames = names.filter(name => !mentionedContacts.some(mc => mc.name.toLowerCase().includes(name.toLowerCase())));
           console.log('Creating new contacts for:', newNames);
           await upsertContacts(userId, newNames.map(name => ({ name })));
           mentionedContacts = await searchContactsByNames(userId, names);
