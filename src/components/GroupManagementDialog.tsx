@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,12 +31,20 @@ const GroupManagementDialog = ({
 }: GroupManagementDialogProps) => {
   const [groupName, setGroupName] = useState("");
   const [groupEmoji, setGroupEmoji] = useState("👥");
-  const [selectedContacts, setSelectedContacts] = useState<Contact[]>(
-    preSelectedContact ? [preSelectedContact] : []
-  );
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [contactInput, setContactInput] = useState("");
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { toast } = useToast();
+
+  // Reset state when dialog opens, including preselected contact
+  useEffect(() => {
+    if (open) {
+      setGroupName("");
+      setGroupEmoji("👥");
+      setSelectedContacts(preSelectedContact ? [preSelectedContact] : []);
+      setContactInput("");
+    }
+  }, [open, preSelectedContact]);
 
   const handleEmojiSelect = (emoji: { native: string }) => {
     setGroupEmoji(emoji.native);
@@ -109,10 +117,6 @@ const GroupManagementDialog = ({
 
       onGroupCreated();
       onOpenChange(false);
-      setGroupName("");
-      setGroupEmoji("👥");
-      setSelectedContacts([]);
-      setContactInput("");
     } catch (error) {
       console.error('Error creating group:', error);
       toast({
