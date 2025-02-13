@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Contact } from '@/types/contacts';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -8,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { X, Archive, Undo, Plus } from 'lucide-react';
-import { GroupManagementDialog } from './GroupManagementDialog';
+import GroupManagementDialog from './GroupManagementDialog';
 
 interface ContactSorterProps {
   isOpen: boolean;
