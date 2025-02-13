@@ -234,10 +234,15 @@ const Index = () => {
       try {
         console.log('Loading chat history for user:', session.user.id);
         
+        // Get the start of the current day in UTC
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+        
         const { data, error } = await supabase
           .from('chat_history')
           .select('*')
           .eq('user_id', session.user.id)
+          .gte('created_at', startOfDay)
           .order('created_at', { ascending: true });
 
         if (error) {

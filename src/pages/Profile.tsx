@@ -44,14 +44,17 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         console.error("Error fetching auth user:", error);
         throw error;
       }
+      if (!user) {
+        console.error("No user found in auth response");
+        throw new Error('No user found');
+      }
       console.log("Auth user data:", user);
       return user;
     },
-    enabled: open,
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes (renamed from cacheTime)
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   // Second query to get profile data with improved caching
@@ -67,12 +70,13 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       });
 
       if (!userData?.id) {
-        console.error("No user ID available");
+        console.error("No user ID available for profile fetch");
         throw new Error('No user ID available');
       }
 
       console.log("Querying for user ID:", userData.id);
 
+      // Get profile data with all fields
       const { data: profile, error } = await supabase
         .from('profiles')
         .select(`
@@ -86,7 +90,15 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
           skill_athlete,
           skill_reveler,
           display_name,
-          goals
+          goals,
+          utc_offset_minutes,
+          onboarding_step,
+          has_completed_tutorial,
+          google_access_token,
+          google_refresh_token,
+          google_token_expires_at,
+          has_google_calendar,
+          google_token_expired
         `)
         .eq('id', userData.id)
         .single();
@@ -96,22 +108,30 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         throw error;
       }
       
-      console.log("Complete profile data:", profile);
-      console.log("Skills data:", {
-        skill_gourmand: profile.skill_gourmand,
-        skill_aesthete: profile.skill_aesthete,
-        skill_traveler: profile.skill_traveler,
-        skill_athlete: profile.skill_athlete,
-        skill_reveler: profile.skill_reveler,
-      });
-      
-      return profile;
+      if (!profile) {
+        console.error("No profile found for user:", userData.id);
+        throw new Error('No profile found');
+      }
+
+      // Format profile data
+      const formattedProfile = {
+        ...profile,
+        hasGoogleCalendar: profile?.has_google_calendar || false,
+        googleTokenExpired: profile?.google_token_expired || false,
+        tokenExpiresAt: profile?.google_token_expires_at ? new Date(profile.google_token_expires_at) : null,
+        hasAccessToken: !!profile?.google_access_token,
+        hasRefreshToken: !!profile?.google_refresh_token,
+        hasValidTokens: profile?.has_google_calendar && !profile?.google_token_expired
+      };
+
+      console.log("Complete profile data:", formattedProfile);
+      return formattedProfile;
     },
     enabled: isAuthReady && !!userData?.id && open,
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes (renamed from cacheTime)
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   console.log("Final profileData being used:", profileData);
@@ -162,39 +182,41 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   };
 
   const handleLocationUpdate = async (place: any) => {
-    if (!userData?.id || !place) return;
+    if (!place || typeof place !== 'object') return;
 
     const address = place.formatted_address || place.name || '';
+    const offset = parseInt(place.utc_offset_minutes) || -240;
+
     if (!address) return;
 
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ city: address })
+        .update({ 
+          city: address,
+          utc_offset_minutes: offset
+        })
         .eq('id', userData.id);
 
       if (error) throw error;
-
-      // Optimistically update the cache
-      queryClient.setQueryData(['profile', userData.id], (old: any) => ({
-        ...old,
-        city: address
-      }));
-
-      // Then invalidate to ensure we have fresh data
-      await queryClient.invalidateQueries({ queryKey: ['profile', userData.id] });
       
+      // Close the location dialog after successful update
       setIsLocationDialogOpen(false);
+      
+      // Show success toast
       toast({
-        title: "Location updated",
+        title: "Location Updated",
         description: "Your location has been updated successfully",
       });
-    } catch (error: any) {
+
+      // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+    } catch (error) {
       console.error('Error updating location:', error);
       toast({
-        title: "Error updating location",
-        description: error.message || "Please try again",
-        variant: "destructive",
+        title: "Error",
+        description: "Failed to update location. Please try again.",
+        variant: "destructive"
       });
     }
   };
@@ -535,7 +557,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 onPlaceSelected={(place) => handleLocationUpdate(place)}
                 options={{
                   types: ['(cities)'],
-                  fields: ['formatted_address']
+                  fields: ['formatted_address', 'utc_offset_minutes']
                 }}
                 className="w-full px-4 py-2 text-gray-700 bg-white border rounded-lg focus:outline-none focus:border-blue-500"
                 placeholder="Enter your city..."
