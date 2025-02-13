@@ -122,27 +122,35 @@ async function callLLM(apiKey: string, messages: any[], tools?: any[]) {
 }
 
 function constructSystemPrompt(profile: any, events: any, contacts: any) {
-  // Format events to be more readable
-  const formattedEvents = events.map((event: any) => ({
-    ...event,
-    start_time: new Date(event.start_time).toLocaleString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    }),
-    end_time: new Date(event.end_time).toLocaleString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
+  const formattedEvents = events
+    .filter((event: any) => {
+      const eventDate = new Date(event.start_time);
+      const sevenDaysFromNow = new Date();
+      sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7);
+      return eventDate <= sevenDaysFromNow;
     })
-  }));
+    .map((event: any) => ({
+      title: event.title,
+      start_time: new Date(event.start_time).toLocaleString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    }));
+
+  const essentialProfile = {
+    username: profile.username,
+    city: profile.city,
+    current_interests: profile.current_interests,
+    desired_interests: profile.desired_interests
+  };
 
   return `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
-      - Profile: ${JSON.stringify(profile, null, 2)}
-      - Calendar Events for the next 30 days: ${JSON.stringify(formattedEvents, null, 2)}
+      - Profile: ${JSON.stringify(essentialProfile, null, 2)}
+      - Calendar Events for the next 7 days: ${JSON.stringify(formattedEvents, null, 2)}
       
       When discussing calendar events, always format dates and times in a user-friendly way.
       If asked about the calendar or scheduling, you can:
@@ -154,32 +162,17 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
       When suggesting times for activities:
       1. Check the existing calendar events to avoid conflicts
       2. Suggest specific dates and times that work around existing commitments
-      3. Consider typical timing for the suggested activity (e.g., dinner in the evening)
+      3. Consider typical timing for the suggested activity
 
       When users mention meeting someone new or talk about a contact:
       1. Extract the person's name and any contact information shared
-      2. If the user did not share any contact information, ask for at least one contact method (phone, email, instagram, etc.)
-      3. If they mention meeting someone new, respond in a way that shows interest in the new connection
-      4. Ask follow-up questions about the person if not much information was shared
-      5. Summarize the contacts relationship story and add it to the field "relationship" in their profile
-      6. If the user mentions any foods, recreation activities, or arts/media that the contact likes, add it to the interests list
+      2. If they did not share any contact information, ask for at least one contact method
+      3. Show interest in the new connection
+      4. Ask follow-up questions if not much information was shared
+      5. Summarize the relationship story
+      6. Note any mentioned interests
 
-      When the user talks about multiple contacts together, they are probably part of a group
-      1. Give the group a descriptive name
-      2. Include the name of each person discussed in the context of the group
-      3. Otherwise leace the contact_groups list empty
-
-      When users provide feedback about a social interaction or "hang":
-      1. Ask thoughtful follow-up questions about:
-         - The quality of the conversation and connection
-         - Any interesting topics or shared interests discovered
-         - Their comfort level and engagement during the interaction
-         - Whether they'd like to plan another hang with these people
-      2. Look for patterns in their social preferences
-      3. Use their feedback to make better suggestions for future social activities
-      4. If they express any concerns or negative experiences, provide empathetic support and constructive suggestions
-
-      Ask these questions one at a time to not overwhelm the user. Keep a natural conversational flow.
+      Ask follow-up questions one at a time to maintain a natural conversation flow.
       
       Your response should be in this JSON format:
       {
@@ -194,7 +187,7 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
             twitter?: string
             meeting_story?: string
             relationship?: string
-            interests?: array of strings, a list of the contact's interests
+            interests?: array of strings
           }
         ],
         contact_groups: [
@@ -207,9 +200,7 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
             ]
           }
         ]
-      }
-      
-      Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
+      }`;
 }
 
 async function findFriendsForActivity(userId: string, activity: string): Promise<string[]> {
