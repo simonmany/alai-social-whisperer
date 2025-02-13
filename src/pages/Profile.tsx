@@ -49,9 +49,9 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     },
     enabled: open,
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    cacheTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
+    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes (renamed from cacheTime)
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   // Second query to get profile data with improved caching
@@ -109,9 +109,9 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     },
     enabled: isAuthReady && !!userData?.id && open,
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    cacheTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnReconnect: false, // Don't refetch on reconnect
+    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes (renamed from cacheTime)
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
   console.log("Final profileData being used:", profileData);
@@ -137,8 +137,8 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       }
     },
     enabled: open,
-    staleTime: Infinity, // API key won't change during session
-    cacheTime: Infinity,
+    staleTime: Infinity,
+    gcTime: Infinity, // Renamed from cacheTime
   });
 
   const handleGoalSubmit = async (message: string) => {
