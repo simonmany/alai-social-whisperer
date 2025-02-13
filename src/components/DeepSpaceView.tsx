@@ -1,9 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { Contact } from "@/types/contacts";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,12 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
 
       // Create a Set of grouped contact IDs for efficient lookup
       const groupedContactIds = new Set(memberships?.map(m => m.contact_id) || []);
+
+      // Calculate total sorted contacts (grouped or archived)
+      const totalSorted = contacts.filter(contact => 
+        groupedContactIds.has(contact.id) || contact.is_archived
+      ).length;
+      setSortedCount(totalSorted);
       
       if (searchQuery) {
         // If searching, filter across all contacts
@@ -162,8 +168,7 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   );
 
   const handleContactSorted = () => {
-    setSortedCount(prev => prev + 1);
-    loadContacts(0); // Reload contacts after sorting
+    loadContacts(0); // Reload contacts to update counts
   };
 
   return (
@@ -182,7 +187,7 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
           variant="outline" 
           className="ml-4 bg-purple-900/50 border-purple-500/50 text-purple-100"
         >
-          {isLoading ? "Loading..." : `${totalUngroupedCount} in Deep Space`}
+          {isLoading ? "Loading..." : `${sortedCount} contacts sorted`}
         </Badge>
       </div>
 
