@@ -141,14 +141,16 @@ const GroupManagementDialog = ({
                     <Smile className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="p-0 w-auto border-none" side="right" align="start">
-                  <Picker 
-                    data={data} 
-                    onSelect={(emoji: { native: string }) => {
-                      setGroupEmoji(emoji.native);
-                    }}
-                    theme="dark"
-                  />
+                <PopoverContent className="p-0 w-auto border-none" side="right" align="start" sideOffset={0}>
+                  <div className="z-[9999] relative bg-popover shadow-md">
+                    <Picker 
+                      data={data} 
+                      onSelect={(emoji: { native: string }) => {
+                        setGroupEmoji(emoji.native);
+                      }}
+                      theme="dark"
+                    />
+                  </div>
                 </PopoverContent>
               </Popover>
             </div>
