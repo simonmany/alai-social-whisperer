@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -663,8 +664,8 @@ const ContactsView = () => {
   };
 
   return (
-    <Dialog open={true} onOpenChange={() => navigate("/")}>
-      <DialogContent className="max-w-[90vw] w-screen h-[90vh] p-0">
+    <Dialog open={true} onOpenChange={() => navigate("/")} modal={false}>
+      <DialogContent className="fixed inset-0 p-0 max-w-none bg-background border-0">
         <div className="relative w-full h-full overflow-hidden bg-gradient-to-b from-black to-purple-950">
           <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
             style={{ 
