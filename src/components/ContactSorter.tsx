@@ -68,8 +68,13 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
           }));
         
         setContacts(unsortedContacts);
-        if (unsortedContacts.length > 0 && !currentContact) {
-          setCurrentContact(unsortedContacts[0]);
+        if (unsortedContacts.length > 0) {
+          // Only update currentContact if it's either null or has been sorted
+          if (!currentContact || !unsortedContacts.find(c => c.id === currentContact.id)) {
+            setCurrentContact(unsortedContacts[0]);
+          }
+        } else {
+          setCurrentContact(null);
         }
       }
     } catch (error) {
@@ -185,6 +190,7 @@ export const ContactSorter = ({ isOpen, onClose, onContactSorted }: ContactSorte
 
   const handleGroupCreated = async () => {
     await fetchGroups();
+    await fetchContacts(); // Add this line to refresh contacts
     setIsGroupDialogOpen(false);
   };
 
