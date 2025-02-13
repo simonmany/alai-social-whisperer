@@ -3,7 +3,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { EventCard } from "./EventCard";
 import { CalendarPrompts } from "@/components/CalendarPrompts";
-import { isFuture, isPast } from "date-fns";
+import { isFuture, isPast, isSameDay, isToday } from "date-fns";
+import { useState } from "react";
 
 interface CalendarEvent {
   id: string;
@@ -25,15 +26,31 @@ interface MonthViewProps {
 }
 
 export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
-  const futureEvents = events.filter(event => isFuture(new Date(event.start_time)));
-  const pastEvents = events.filter(event => isPast(new Date(event.start_time)));
+  const [selectedDay, setSelectedDay] = useState<Date | undefined>(undefined);
+
+  const filteredEvents = selectedDay 
+    ? events.filter(event => isSameDay(new Date(event.start_time), selectedDay))
+    : events;
+
+  const futureEvents = filteredEvents.filter(event => isFuture(new Date(event.start_time)));
+  const pastEvents = filteredEvents.filter(event => isPast(new Date(event.start_time)));
+
+  const handleDaySelect = (date: Date | undefined) => {
+    if (date && isToday(date)) {
+      // If clicking today's date, clear selection to show all events
+      setSelectedDay(undefined);
+    } else {
+      setSelectedDay(date);
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
       <div className="px-4 pt-4">
         <Calendar
           mode="single"
-          selected={new Date()}
+          selected={selectedDay}
+          onSelect={handleDaySelect}
           className="rounded-md border"
           components={{
             DayContent: ({ date }) => {
@@ -59,7 +76,9 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-6 py-4">
           <div>
-            <h3 className="font-semibold text-muted-foreground mb-3">Upcoming Events</h3>
+            <h3 className="font-semibold text-muted-foreground mb-3">
+              {selectedDay ? 'Events for Selected Day' : 'Upcoming Events'}
+            </h3>
             {futureEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No upcoming events</p>
             ) : (
