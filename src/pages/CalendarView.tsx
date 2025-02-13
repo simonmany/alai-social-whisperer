@@ -41,31 +41,62 @@ const CalendarView = () => {
   const { session } = useAuth();
   const { toast } = useToast();
 
-  const { data: calendarData = { events: [], isConnected: false }, isLoading } = useQuery<CalendarData, Error>({
+  const { data: calendarData = { events: [], isConnected: false }, isLoading, refetch } = useQuery<CalendarData, Error>({
     queryKey: ["calendar-events"],
     queryFn: async () => {
       if (!session?.user?.id) return { events: [], isConnected: false };
 
       try {
+        // Get profile data with calendar tokens
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('google_access_token, google_refresh_token, google_token_expires_at, has_google_calendar, google_token_expired, utc_offset_minutes')
+          .select('google_access_token, has_google_calendar, google_token_expired')
           .eq('id', session.user.id)
           .single();
 
         if (profileError) {
           console.error('Error fetching profile:', profileError);
-          return { events: [], isConnected: false };
+          throw new Error('Failed to fetch user profile');
         }
 
+        // Calculate time window (30 days before and after today)
         const now = new Date();
         const thirtyDaysAgo = new Date(now);
         thirtyDaysAgo.setDate(now.getDate() - 30);
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
+        // If Google Calendar is connected and active, sync first
+        if (profile?.has_google_calendar && !profile?.google_token_expired && profile?.google_access_token) {
+          const { data: syncResponse, error: syncError } = await supabase.functions.invoke('calendar', {
+            body: {
+              action: 'list',
+              timeMin: thirtyDaysAgo.toISOString(),
+              timeMax: thirtyDaysFromNow.toISOString(),
+              google_token: profile.google_access_token
+            }
+          });
+
+          if (syncError) {
+            console.error('Calendar sync error:', syncError);
+            throw new Error('Failed to sync calendar events');
+          }
+
+          // Check for auth errors in sync response
+          if (syncResponse?.error?.type === 'auth_error') {
+            await supabase
+              .from('profiles')
+              .update({
+                google_token_expired: true,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', session.user.id);
+          }
+        }
+
+        // Always fetch events from our database, regardless of Google Calendar connection
         const { data: dbEvents, error: dbError } = await supabase
-          .from("calendar_events")
+          .from('calendar_events')
           .select(`
             id,
             title,
@@ -75,70 +106,61 @@ const CalendarView = () => {
             location,
             google_event_id,
             feedback_sent,
-            event_attendees!inner (
+            event_attendees!left (
               contacts!contact_id (
                 id,
                 name
               )
             )
           `)
-          .eq("user_id", session.user.id)
-          .gte("start_time", thirtyDaysAgo.toISOString())
-          .lte("start_time", thirtyDaysFromNow.toISOString())
-          .order("start_time", { ascending: true });
+          .eq('user_id', session.user.id)
+          .gte('start_time', thirtyDaysAgo.toISOString())
+          .lte('start_time', thirtyDaysFromNow.toISOString())
+          .order('start_time', { ascending: true });
 
         if (dbError) {
-          console.error("Error fetching calendar events:", dbError);
-          toast({
-            title: "Error",
-            description: "Failed to fetch calendar events.",
-            variant: "destructive",
-          });
-          return { events: [], isConnected: profile?.has_google_calendar && !profile?.google_token_expired };
+          console.error('Error fetching calendar events:', dbError);
+          throw new Error('Failed to fetch calendar events');
         }
 
-        const convertToLocalTime = (utcTime: string, offsetMinutes: number | null) => {
-          if (!offsetMinutes) return utcTime;
-          const date = new Date(utcTime);
-          const localDate = new Date(date.getTime() + (offsetMinutes * 60 * 1000));
-          return localDate.toISOString();
-        };
-
-        const utcOffsetMinutes = profile?.utc_offset_minutes || -240;
-
+        // Transform database events to our format
         const events: CalendarEvent[] = (dbEvents || []).map(event => ({
           id: event.id,
           title: event.title,
           description: event.description || undefined,
-          start_time: convertToLocalTime(event.start_time, utcOffsetMinutes),
-          end_time: convertToLocalTime(event.end_time, utcOffsetMinutes),
+          start_time: event.start_time,
+          end_time: event.end_time,
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
           feedback_sent: event.feedback_sent,
-          attendees: event.event_attendees?.map(attendee => ({
-            id: attendee.contacts.id,
-            name: attendee.contacts.name
-          })) || []
+          attendees: event.event_attendees
+            ?.filter(ea => ea.contacts) // Filter out null contacts
+            ?.map(attendee => ({
+              id: attendee.contacts.id,
+              name: attendee.contacts.name
+            })) || []
         }));
 
+        // Return events with connection status
         return { 
-          events, 
-          isConnected: profile?.has_google_calendar && !profile?.google_token_expired 
+          events,
+          isConnected: profile?.has_google_calendar && !profile?.google_token_expired
         };
       } catch (error) {
         console.error("Exception in fetchCalendarEvents:", error);
-        
         toast({
           title: "Error",
-          description: "Failed to fetch calendar events. Please try again.",
+          description: error instanceof Error ? error.message : "Failed to fetch calendar events. Please try again.",
           variant: "destructive",
         });
         return { events: [], isConnected: false };
       }
     },
-    retry: 1,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     refetchOnMount: true,
     refetchOnWindowFocus: true,
+    refetchInterval: 5 * 60 * 1000,
     gcTime: 0
   });
 
