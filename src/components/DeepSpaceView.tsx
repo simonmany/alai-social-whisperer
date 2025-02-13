@@ -187,7 +187,7 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
           variant="outline" 
           className="ml-4 bg-purple-900/50 border-purple-500/50 text-purple-100"
         >
-          {isLoading ? "Loading..." : `${sortedCount} contacts sorted`}
+          {isLoading ? "Loading..." : `${totalUngroupedCount} in Deep Space`}
         </Badge>
       </div>
 
