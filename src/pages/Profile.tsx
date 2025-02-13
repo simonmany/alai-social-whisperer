@@ -34,7 +34,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // First query to get auth user data
+  // First query to get auth user data with improved caching
   const { data: userData, isSuccess: isAuthReady } = useQuery({
     queryKey: ['auth-user'],
     queryFn: async () => {
@@ -47,10 +47,14 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       console.log("Auth user data:", user);
       return user;
     },
-    enabled: open, // Only run when profile is open
+    enabled: open,
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    cacheTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
   });
 
-  // Second query to get profile data - now depends on auth being ready
+  // Second query to get profile data with improved caching
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile', userData?.id],
     queryFn: async () => {
@@ -100,20 +104,14 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         skill_athlete: profile.skill_athlete,
         skill_reveler: profile.skill_reveler,
       });
-      console.log("Skills data types:", {
-        skill_gourmand: typeof profile.skill_gourmand,
-        skill_aesthete: typeof profile.skill_aesthete,
-        skill_traveler: typeof profile.skill_traveler,
-        skill_athlete: typeof profile.skill_athlete,
-        skill_reveler: typeof profile.skill_reveler,
-      });
-      console.log("Profile ID matches query?", profile.id === userData.id);
-
+      
       return profile;
     },
-    enabled: isAuthReady && !!userData?.id && open,  // Only run when auth is ready
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 2
+    enabled: isAuthReady && !!userData?.id && open,
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    cacheTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
   });
 
   console.log("Final profileData being used:", profileData);
@@ -138,7 +136,9 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         });
       }
     },
-    enabled: open
+    enabled: open,
+    staleTime: Infinity, // API key won't change during session
+    cacheTime: Infinity,
   });
 
   const handleGoalSubmit = async (message: string) => {
@@ -175,7 +175,15 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
       if (error) throw error;
 
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // Optimistically update the cache
+      queryClient.setQueryData(['profile', userData.id], (old: any) => ({
+        ...old,
+        city: address
+      }));
+
+      // Then invalidate to ensure we have fresh data
+      await queryClient.invalidateQueries({ queryKey: ['profile', userData.id] });
+      
       setIsLocationDialogOpen(false);
       toast({
         title: "Location updated",
