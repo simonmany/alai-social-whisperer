@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -34,7 +33,13 @@ const GroupManagementDialog = ({
   const [groupName, setGroupName] = useState("");
   const [groupEmoji, setGroupEmoji] = useState("👥");
   const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { toast } = useToast();
+
+  const handleEmojiSelect = (emoji: { native: string }) => {
+    setGroupEmoji(emoji.native);
+    setIsEmojiPickerOpen(false);
+  };
 
   const handleSubmit = async () => {
     if (!groupName || selectedContacts.length === 0) {
@@ -107,7 +112,11 @@ const GroupManagementDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(value) => {
+      if (!isEmojiPickerOpen) {
+        onOpenChange(value);
+      }
+    }}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create New Group</DialogTitle>
@@ -135,19 +144,25 @@ const GroupManagementDialog = ({
                 className="flex-1"
                 readOnly
               />
-              <Popover>
+              <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="icon">
                     <Smile className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="p-0 w-auto border-none" side="right" align="start" sideOffset={0}>
-                  <div className="z-[9999] relative bg-popover shadow-md">
+                <PopoverContent 
+                  className="p-0 w-auto border-none" 
+                  side="right" 
+                  align="start" 
+                  sideOffset={0}
+                  onInteractOutside={(e) => {
+                    e.preventDefault();
+                  }}
+                >
+                  <div className="fixed z-[9999] bg-popover shadow-md">
                     <Picker 
                       data={data} 
-                      onEmojiSelect={(emoji: { native: string }) => {
-                        setGroupEmoji(emoji.native);
-                      }}
+                      onEmojiSelect={handleEmojiSelect}
                       theme="dark"
                       previewPosition="none"
                       skinTonePosition="none"
