@@ -162,7 +162,28 @@ Ask the user for their rose, bud, and thorn of the day.
 Your goal is to better understand the user's likes and dislikes across people, activities, etc.`;
       }
     } else if (type === 'post-event' && event_id && event_title) {
-      message = `How was ${event_title}? I'd love to hear about it!`;
+      // Get event details including attendees
+      const { data: eventDetails, error: eventError } = await supabaseClient
+        .from('calendar_events')
+        .select(`
+          *,
+          event_attendees!inner (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('id', event_id)
+        .single();
+
+      if (eventError) {
+        console.error('Error fetching event details:', eventError);
+        throw eventError;
+      }
+
+      const attendees = eventDetails.event_attendees?.map((ea: any) => ea.contacts.name).join(', ');
+      message = `You just finished ${event_title}${attendees ? ` with ${attendees}` : ''}. How was it? I'd love to learn more about how it went and what you enjoyed or didn't enjoy about it.`;
     }
 
     // Route through the chat function
