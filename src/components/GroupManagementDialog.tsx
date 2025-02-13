@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Smile } from "lucide-react";
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface Contact {
   id: string;
@@ -122,12 +126,30 @@ const GroupManagementDialog = ({
 
           <div className="grid gap-2">
             <Label htmlFor="emoji">Group Emoji</Label>
-            <Input
-              id="emoji"
-              value={groupEmoji}
-              onChange={(e) => setGroupEmoji(e.target.value)}
-              placeholder="Enter emoji..."
-            />
+            <div className="flex gap-2">
+              <Input
+                id="emoji"
+                value={groupEmoji}
+                onChange={(e) => setGroupEmoji(e.target.value)}
+                placeholder="Enter emoji..."
+                className="flex-1"
+                readOnly
+              />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="icon">
+                    <Smile className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-auto" side="right" align="start">
+                  <Picker 
+                    data={data} 
+                    onEmojiSelect={(emoji: any) => setGroupEmoji(emoji.native)}
+                    theme="dark"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
 
           <div className="grid gap-2">
