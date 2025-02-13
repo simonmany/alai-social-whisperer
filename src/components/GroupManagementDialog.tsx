@@ -145,10 +145,12 @@ const GroupManagementDialog = ({
                   <div className="z-[9999] relative bg-popover shadow-md">
                     <Picker 
                       data={data} 
-                      onSelect={(emoji: { native: string }) => {
+                      onEmojiSelect={(emoji: { native: string }) => {
                         setGroupEmoji(emoji.native);
                       }}
                       theme="dark"
+                      previewPosition="none"
+                      skinTonePosition="none"
                     />
                   </div>
                 </PopoverContent>
