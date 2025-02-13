@@ -5,18 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { UserPlus, Smile } from "lucide-react";
+import { UserPlus, Smile, X, Archive } from "lucide-react";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-
-interface Contact {
-  id: string;
-  name: string;
-}
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Contact } from "@/types/contacts";
 
 interface GroupManagementDialogProps {
   open: boolean;
@@ -33,13 +29,23 @@ const GroupManagementDialog = ({
 }: GroupManagementDialogProps) => {
   const [groupName, setGroupName] = useState("");
   const [groupEmoji, setGroupEmoji] = useState("👥");
-  const [selectedContacts, setSelectedContacts] = useState<string[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
+  const [contactInput, setContactInput] = useState("");
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const { toast } = useToast();
 
   const handleEmojiSelect = (emoji: { native: string }) => {
     setGroupEmoji(emoji.native);
     setIsEmojiPickerOpen(false);
+  };
+
+  const getInitials = (name: string): string => {
+    return name
+      .split(' ')
+      .map(word => word[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   const handleSubmit = async () => {
@@ -81,8 +87,8 @@ const GroupManagementDialog = ({
       if (groupError) throw groupError;
 
       // Add selected contacts to the group
-      const memberships = selectedContacts.map(contactId => ({
-        contact_id: contactId,
+      const memberships = selectedContacts.map(contact => ({
+        contact_id: contact.id,
         group_id: groupData.id,
       }));
 
@@ -102,6 +108,7 @@ const GroupManagementDialog = ({
       setGroupName("");
       setGroupEmoji("👥");
       setSelectedContacts([]);
+      setContactInput("");
     } catch (error) {
       console.error('Error creating group:', error);
       toast({
@@ -111,6 +118,11 @@ const GroupManagementDialog = ({
       });
     }
   };
+
+  const filteredContacts = contacts.filter(contact => 
+    contact.name.toLowerCase().includes(contactInput.toLowerCase()) &&
+    !selectedContacts.some(selected => selected.id === contact.id)
+  );
 
   return (
     <Dialog open={open} onOpenChange={(value) => {
@@ -183,31 +195,69 @@ const GroupManagementDialog = ({
             </div>
           </div>
 
-          <div className="grid gap-2">
+          <div className="space-y-2">
             <Label>Select Contacts</Label>
-            <ScrollArea className="h-[200px] border rounded-md p-4">
-              {contacts.map((contact) => (
-                <div key={contact.id} className="flex items-center space-x-2 py-2">
-                  <Checkbox
-                    id={contact.id}
-                    checked={selectedContacts.includes(contact.id)}
-                    onCheckedChange={(checked) => {
-                      setSelectedContacts(prev =>
-                        checked
-                          ? [...prev, contact.id]
-                          : prev.filter(id => id !== contact.id)
-                      );
-                    }}
-                  />
-                  <label
-                    htmlFor={contact.id}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {contact.name}
-                  </label>
+            <div className="relative">
+              <Input
+                placeholder="Type to search contacts..."
+                value={contactInput}
+                onChange={(e) => setContactInput(e.target.value)}
+                className="h-8"
+              />
+              {contactInput && filteredContacts.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                  {filteredContacts.map((contact) => (
+                    <div
+                      key={contact.id}
+                      className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
+                      onClick={() => {
+                        setSelectedContacts([...selectedContacts, contact]);
+                        setContactInput("");
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">{contact.name}</span>
+                      </div>
+                      {contact.is_archived && (
+                        <Archive className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </ScrollArea>
+              )}
+            </div>
+
+            {selectedContacts.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {selectedContacts.map((contact) => (
+                  <div
+                    key={contact.id}
+                    className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                  >
+                    <Avatar className="h-4 w-4">
+                      <AvatarFallback className="text-[10px]">
+                        {getInitials(contact.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>{contact.name}</span>
+                    {contact.is_archived && (
+                      <Archive className="h-3 w-3 text-muted-foreground" />
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedContacts(selectedContacts.filter(c => c.id !== contact.id));
+                      }}
+                      className="hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <Button onClick={handleSubmit} className="w-full" disabled={!groupName || selectedContacts.length === 0}>
