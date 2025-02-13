@@ -22,17 +22,29 @@ interface PlanningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
+  defaultActivity?: string;
+  defaultLocation?: string;
+  defaultDate?: Date;
+  defaultContacts?: Contact[];
 }
 
 type ActivityCategory = "Food / Drinks" | "Recreation" | "Arts" | "A Party!" | "A Trip" | null;
 
-const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) => {
-  const [activity, setActivity] = useState("");
+const PlanningDialog = ({ 
+  open, 
+  onOpenChange, 
+  onSubmit,
+  defaultActivity,
+  defaultLocation,
+  defaultDate,
+  defaultContacts = []
+}: PlanningDialogProps) => {
+  const [activity, setActivity] = useState(defaultActivity || "");
   const [selectedCategory, setSelectedCategory] = useState<ActivityCategory>(null);
   const [showCustomSpot, setShowCustomSpot] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>();
-  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
   const [contactInput, setContactInput] = useState("");
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const [utcOffsetMinutes, setUtcOffsetMinutes] = useState<number | null>(null);
@@ -471,6 +483,65 @@ const PlanningDialog = ({ open, onOpenChange, onSubmit }: PlanningDialogProps) =
     setSelectedContactIndex(index);
     setIsContactDrawerOpen(true);
   };
+
+  useEffect(() => {
+    if (open && defaultActivity) {
+      const determineCategory = async () => {
+        // Try to match with food items
+        const { data: foodMatch } = await supabase
+          .from('food_items')
+          .select('name')
+          .ilike('name', `%${defaultActivity}%`)
+          .limit(1);
+
+        if (foodMatch && foodMatch.length > 0) {
+          setSelectedCategory("Food / Drinks");
+          setActivity(defaultActivity);
+          return;
+        }
+
+        // Try to match with recreation activities
+        const { data: recreationMatch } = await supabase
+          .from('activities')
+          .select('name')
+          .eq('category', 'Recreation')
+          .ilike('name', `%${defaultActivity}%`)
+          .limit(1);
+
+        if (recreationMatch && recreationMatch.length > 0) {
+          setSelectedCategory("Recreation");
+          setActivity(defaultActivity);
+          return;
+        }
+
+        // Try to match with arts activities
+        const { data: artsMatch } = await supabase
+          .from('activities')
+          .select('name')
+          .eq('category', 'Arts')
+          .ilike('name', `%${defaultActivity}%`)
+          .limit(1);
+
+        if (artsMatch && artsMatch.length > 0) {
+          setSelectedCategory("Arts");
+          setActivity(defaultActivity);
+          return;
+        }
+
+        // If no matches found but we have a location, treat it as a custom spot
+        if (defaultLocation) {
+          setShowCustomSpot(true);
+          setActivity(defaultLocation);
+        } else {
+          // If no matches and no location, set as custom activity
+          setShowCustomSpot(true);
+          setActivity(defaultActivity);
+        }
+      };
+
+      determineCategory();
+    }
+  }, [open, defaultActivity, defaultLocation]);
 
   return (
     <>
