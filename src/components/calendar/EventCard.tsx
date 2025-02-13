@@ -4,6 +4,7 @@ import { MapPin, Users, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import FeedbackDialog from "@/components/FeedbackDialog";
+import PlanningDialog from "@/components/PlanningDialog";
 
 interface CalendarEvent {
   id: string;
@@ -22,19 +23,32 @@ interface CalendarEvent {
 
 export const EventCard = ({ event }: { event: CalendarEvent }) => {
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showPlanning, setShowPlanning] = useState(false);
 
   const handleSubmit = (message: string) => {
-    // This will be handled by FeedbackDialog internally now
     setShowFeedback(false);
+  };
+
+  const handleCardClick = () => {
+    const eventDate = new Date(event.start_time);
+    const now = new Date();
+
+    if (eventDate > now) {
+      // Future event - open planning dialog
+      setShowPlanning(true);
+    } else {
+      // Past event - open feedback dialog
+      setShowFeedback(true);
+    }
   };
 
   return (
     <>
       <div 
         className="p-4 rounded-lg border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors"
-        onClick={() => setShowFeedback(true)}
+        onClick={handleCardClick}
       >
-        {event.feedback_sent !== undefined && (
+        {event.feedback_sent !== undefined && eventDate < now && (
           <div className="absolute top-2 right-2">
             <Badge variant={event.feedback_sent ? "default" : "outline"} className="flex items-center gap-1">
               <Check className={`h-3 w-3 ${event.feedback_sent ? "" : "opacity-50"}`} />
@@ -79,6 +93,17 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
         onOpenChange={setShowFeedback}
         onSubmit={handleSubmit}
         selectedEventId={event.id}
+      />
+
+      <PlanningDialog
+        open={showPlanning}
+        onOpenChange={setShowPlanning}
+        defaultValues={{
+          activity: event.title,
+          location: event.location,
+          contacts: event.attendees?.map(a => ({ id: a.id, name: a.name })) || [],
+          date: new Date(event.start_time),
+        }}
       />
     </>
   );
