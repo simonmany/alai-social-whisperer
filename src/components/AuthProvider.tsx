@@ -104,7 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!isCallback) {
           navigate('/', { replace: true });
         }
-      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      } else if (event === 'SIGNED_OUT') {
         localStorage.removeItem('supabase.auth.token');
         navigate('/auth', { replace: true });
       }
