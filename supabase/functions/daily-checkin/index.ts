@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
@@ -162,7 +161,30 @@ Ask the user for their rose, bud, and thorn of the day.
 Your goal is to better understand the user's likes and dislikes across people, activities, etc.`;
       }
     } else if (type === 'post-event' && event_id && event_title) {
-      message = `How was ${event_title}? I'd love to hear about it!`;
+      // Get event details including attendees
+      const { data: eventDetails, error: eventError } = await supabaseClient
+        .from('calendar_events')
+        .select(`
+          *,
+          event_attendees!inner (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('id', event_id)
+        .single();
+
+      if (eventError) {
+        console.error('Error fetching event details:', eventError);
+        throw eventError;
+      }
+
+      const attendees = eventDetails.event_attendees?.map((ea: any) => ea.contacts.name).join(', ');
+      const location = eventDetails.location ? ` at ${eventDetails.location}` : '';
+      
+      message = `The user just completed ${event_title}${attendees ? ` with ${attendees}` : ''}${location}. Ask them how it went, what they enjoyed about it, and whether they learned anything new about their friends. Try to understand their experience and preferences to provide better recommendations in the future.`;
     }
 
     // Route through the chat function
