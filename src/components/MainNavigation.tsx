@@ -10,6 +10,7 @@ import { checkMissingGoals } from "@/utils/goalUtils";
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect, Dispatch, SetStateAction } from "react";
 import { APP_CONSTANTS } from '../utils/constants';
+import { useAuth } from "@/components/AuthProvider";
 
 interface MainNavigationProps {
   isConnectingCalendar: boolean;
@@ -26,79 +27,61 @@ export const MainNavigation = ({
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { session } = useAuth();
 
   const { data: profile, isLoading } = useQuery({
-    queryKey: ['profile'],
+    queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
-      // Get current session and user
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError) throw sessionError;
-
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) throw userError;
-      if (!user) throw new Error('No user found');
-
+      if (!session?.user?.id) throw new Error('No session found');
+      
       // Get profile data with all fields
-      const { data: profile, error } = await supabase
+      const { data: profileData, error } = await supabase
         .from('profiles')
         .select(`
-          *,
+          id,
+          username,
+          avatar_url,
+          city,
+          skill_gourmand,
+          skill_aesthete,
+          skill_traveler,
+          skill_athlete,
+          skill_reveler,
+          display_name,
+          goals,
+          utc_offset_minutes,
+          onboarding_step,
+          has_completed_tutorial,
           google_access_token,
           google_refresh_token,
           google_token_expires_at,
           has_google_calendar,
           google_token_expired
         `)
-        //.select('goals, onboarding_step')
-        .eq('id', user.id)
+        .eq('id', session.user.id)
         .single();
 
       if (error) throw error;
+      if (!profileData) throw new Error('No profile found');
 
-      console.log('Raw profile data:', {
-        hasGoogleCalendar: profile?.has_google_calendar,
-        googleTokenExpired: profile?.google_token_expired,
-        hasAccessToken: !!profile?.google_access_token,
-        hasRefreshToken: !!profile?.google_refresh_token,
-        tokenExpiresAt: profile?.google_token_expires_at,
-        provider: session?.user?.app_metadata?.provider,
-        userId: user.id
-      });
-      
       // Format profile data
       const formattedProfile = {
-        ...profile,
-        hasGoogleCalendar: profile?.has_google_calendar || false,
-        googleTokenExpired: profile?.google_token_expired || false,
-        tokenExpiresAt: profile?.google_token_expires_at ? new Date(profile.google_token_expires_at) : null,
-        hasAccessToken: !!profile?.google_access_token,
-        hasRefreshToken: !!profile?.google_refresh_token
+        ...profileData,
+        hasGoogleCalendar: profileData?.has_google_calendar || false,
+        googleTokenExpired: profileData?.google_token_expired || false,
+        tokenExpiresAt: profileData?.google_token_expires_at ? new Date(profileData.google_token_expires_at) : null,
+        hasAccessToken: !!profileData?.google_access_token,
+        hasRefreshToken: !!profileData?.google_refresh_token,
+        hasValidTokens: profileData?.has_google_calendar && !profileData?.google_token_expired
       };
 
-      // Check if calendar is properly connected and tokens are valid
-      const hasValidTokens = formattedProfile.hasGoogleCalendar && !formattedProfile.googleTokenExpired;
-
-      console.log('Token status:', {
-        hasAccessToken: formattedProfile.hasAccessToken,
-        hasRefreshToken: formattedProfile.hasRefreshToken,
-        tokenExpiresAt: formattedProfile.tokenExpiresAt,
-        isExpired: formattedProfile.tokenExpiresAt ? formattedProfile.tokenExpiresAt <= new Date() : true,
-        hasGoogleCalendar: formattedProfile.hasGoogleCalendar,
-        googleTokenExpired: formattedProfile.googleTokenExpired,
-        hasValidTokens,
-        userId: user.id
-      });
-      
-      return {
-        ...profile,
-        ...formattedProfile,
-        hasValidTokens
-      };
+      return formattedProfile;
     },
-    refetchInterval: 5000, // Refetch every 5 seconds until we see the tokens
-    retry: 3, // Retry failed requests 3 times
-    retryDelay: 1000, // Wait 1 second between retries
-    staleTime: 0 // Consider data immediately stale to ensure we get fresh data
+    enabled: !!session?.user?.id,
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const [isCalendarConnected, setIsCalendarConnected] = useState(false);
