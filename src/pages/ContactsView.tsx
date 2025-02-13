@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ChevronUp, Plus, ArrowLeft } from "lucide-react";
+import { Search, ChevronUp, Plus, ArrowLeft, Trash } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { DeepSpaceView } from "@/components/DeepSpaceView";
 import { Contact } from "@/types/contacts";
 import { ContactCard } from "@/components/ContactCard";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
 
 interface Group {
   id: string;
@@ -69,6 +70,7 @@ const ContactsView = () => {
   const [selectedGroup, setSelectedGroup] = useState<string>("Home");
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [showDeepSpace, setShowDeepSpace] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -510,6 +512,8 @@ const ContactsView = () => {
     );
   };
 
+  const isDefaultGroup = selectedGroup === "Home" || selectedGroup === "Inner Orbit" || selectedGroup === "Deep Space";
+
   if (contactsError) {
     toast({
       title: "Error loading contacts",
@@ -557,7 +561,7 @@ const ContactsView = () => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
+                    className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
                     onClick={() => setIsGroupDialogOpen(true)}
                   >
                     <Plus className="h-4 w-4" />
@@ -615,6 +619,48 @@ const ContactsView = () => {
     );
   }
 
+  const handleDeleteGroup = async () => {
+    const groupToDelete = groups.find(g => g.name === selectedGroup);
+    if (!groupToDelete) return;
+
+    try {
+      // Delete all group memberships first
+      const { error: membershipError } = await supabase
+        .from('contact_group_memberships')
+        .delete()
+        .eq('group_id', groupToDelete.id);
+
+      if (membershipError) throw membershipError;
+
+      // Then delete the group itself
+      const { error: groupError } = await supabase
+        .from('contact_groups')
+        .delete()
+        .eq('id', groupToDelete.id);
+
+      if (groupError) throw groupError;
+
+      toast({
+        title: "Group deleted",
+        description: "The group and all its memberships have been removed.",
+      });
+
+      // Reset view to Home and refresh data
+      setSelectedGroup("Home");
+      queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
+    } catch (error: any) {
+      console.error('Error deleting group:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the group. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowDeleteConfirmation(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 overflow-hidden">
       <div 
@@ -643,40 +689,82 @@ const ContactsView = () => {
             {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
           </div>
 
-          <div className="space-y-2 mb-16">
-            <div className="flex items-center gap-2 mb-4">
-              <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
-                onClick={() => setIsGroupDialogOpen(true)}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {groups.map((group) => (
-                <Badge
-                  key={group.id}
-                  variant={selectedGroup === group.name ? "default" : "outline"}
-                  className={`cursor-pointer hover:bg-purple-800/50 ${
-                    selectedGroup === group.name
-                      ? "bg-purple-600"
-                      : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
-                  }`}
-                  onClick={() => setSelectedGroup(group.name)}
+          <div className="space-y-4 mb-16">
+            {!isDefaultGroup && selectedGroup !== "Home" && (
+              <div className="flex justify-center mb-4">
+                <Button
+                  variant="ghost"
+                  className="bg-red-900/50 border border-red-500/50 text-white hover:bg-red-800/50 flex items-center gap-2"
+                  onClick={() => setShowDeleteConfirmation(true)}
                 >
-                  {group.emoji || "👥"} {group.name}
-                </Badge>
-              ))}
+                  <Trash className="h-4 w-4" />
+                  Delete Group
+                </Button>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <Badge
+                variant={selectedGroup === "Home" ? "default" : "outline"}
+                className={`cursor-pointer hover:bg-purple-800/50 text-sm ${
+                  selectedGroup === "Home"
+                    ? "bg-purple-600"
+                    : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
+                }`}
+                onClick={() => setSelectedGroup("Home")}
+              >
+                🏠 Home
+              </Badge>
+              <Badge
+                variant={selectedGroup === "Inner Orbit" ? "default" : "outline"}
+                className={`cursor-pointer hover:bg-purple-800/50 text-sm ${
+                  selectedGroup === "Inner Orbit"
+                    ? "bg-purple-600"
+                    : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
+                }`}
+                onClick={() => setSelectedGroup("Inner Orbit")}
+              >
+                ✨ Inner Orbit
+              </Badge>
               <Badge
                 variant="outline"
-                className="cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
+                className="cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50 text-sm"
                 onClick={() => setShowDeepSpace(true)}
               >
                 🌌 Deep Space
               </Badge>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-4">
+                <h3 className="text-lg font-semibold text-white">
+                  Contact Groups ({getUserCreatedGroups().length})
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
+                  onClick={() => setIsGroupDialogOpen(true)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {getUserCreatedGroups().map((group) => (
+                  <Badge
+                    key={group.id}
+                    variant={selectedGroup === group.name ? "default" : "outline"}
+                    className={`cursor-pointer hover:bg-purple-800/50 ${
+                      selectedGroup === group.name
+                        ? "bg-purple-600"
+                        : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
+                    }`}
+                    onClick={() => setSelectedGroup(group.name)}
+                  >
+                    {group.emoji || "👥"} {group.name}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -690,6 +778,23 @@ const ContactsView = () => {
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure? Deleting this group will remove all members from it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteGroup} className="bg-red-600 hover:bg-red-700">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <GroupManagementDialog
         open={isGroupDialogOpen}
