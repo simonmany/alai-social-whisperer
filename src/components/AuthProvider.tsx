@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,14 +34,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Initialize session
+    // Initialize session from localStorage if available
+    const storedSession = localStorage.getItem('supabase.auth.token');
+    if (storedSession) {
+      try {
+        const parsedSession = JSON.parse(storedSession);
+        if (parsedSession?.currentSession) {
+          setSession(parsedSession.currentSession);
+        }
+      } catch (error) {
+        console.error('Error parsing stored session:', error);
+      }
+    }
+
+    // Get initial session
     const initSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
-        setSession(session);
+        const { data: { session: initialSession }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          console.error('Error getting initial session:', sessionError);
+          if (window.location.pathname !== '/auth') {
+            navigate('/auth');
+          }
+          return;
+        }
+
+        console.log('Initial session established:', {
+          hasSession: !!initialSession,
+          userId: initialSession?.user?.id,
+          provider: initialSession?.user?.app_metadata?.provider
+        });
+
+        setSession(initialSession);
+
+        // Redirect based on session state
+        if (!initialSession && window.location.pathname !== '/auth') {
+          navigate('/auth');
+        } else if (initialSession && window.location.pathname === '/auth') {
+          navigate('/');
+        }
       } catch (error) {
-        console.error('Error getting session:', error);
+        console.error('Error in initSession:', error);
+        if (window.location.pathname !== '/auth') {
+          navigate('/auth');
+        }
       } finally {
         setLoading(false);
       }
@@ -49,17 +86,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     initSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log('Auth state changed:', event, {
-        hasSession: !!session,
-        userId: session?.user?.id,
-        provider: session?.user?.app_metadata?.provider,
-        hasProviderToken: !!session?.provider_token,
-        hasProviderRefreshToken: !!session?.provider_refresh_token,
-        metadata: session?.user?.app_metadata
+        hasSession: !!newSession,
+        userId: newSession?.user?.id,
+        provider: newSession?.user?.app_metadata?.provider,
+        hasProviderToken: !!newSession?.provider_token,
+        hasProviderRefreshToken: !!newSession?.provider_refresh_token,
+        metadata: newSession?.user?.app_metadata
       });
       
-      setSession(session);
+      setSession(newSession);
 
       if (event === 'SIGNED_IN') {
         // Check if we're in the OAuth callback
@@ -67,12 +104,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (!isCallback) {
           navigate('/', { replace: true });
         }
-      } else if (event === 'SIGNED_OUT') {
+      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        localStorage.removeItem('supabase.auth.token');
         navigate('/auth', { replace: true });
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [navigate, toast]);
 
   const handleGoogleLogin = async () => {
