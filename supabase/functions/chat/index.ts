@@ -593,6 +593,7 @@ serve(async (req) => {
 
     let parsedResponse;
     if (responseData.choices[0].message.tool_calls) {
+      messages.push(responseData.choices[0].message);
       for (const toolCall of responseData.choices[0].message.tool_calls) {
         console.log(toolCall);
         
@@ -605,7 +606,6 @@ serve(async (req) => {
             const placeResult = await searchGooglePlaces(args.searchString, args.location);
             
             // Send the place result back to GPT for a natural response
-            messages.push(responseData.choices[0].message);
             messages.push(
               { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(placeResult) }
             );
@@ -619,7 +619,6 @@ serve(async (req) => {
         if (toolCall.function.name === 'findFriendsForActivity') {
           const args = JSON.parse(toolCall.function.arguments);
           const friends = await findFriendsForActivity(userId, args.activity);
-          messages.push(responseData.choices[0].message);
           messages.push(
             { role: 'tool', tool_call_id: toolCall.id, content: JSON.stringify(friends, null, 2) }
           );
