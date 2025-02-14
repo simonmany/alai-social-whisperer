@@ -79,7 +79,7 @@ export const EventCard = ({
           
           <div className="flex flex-col gap-1.5 max-w-full">
             <p className="text-sm text-muted-foreground">
-              {format(new Date(event.start_time), 'h:mm a')}
+              {format(new Date(event.start_time), 'MMM d, h:mm a')}
             </p>
 
             {event.location && (
