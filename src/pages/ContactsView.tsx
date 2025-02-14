@@ -1,4 +1,3 @@
-<lov-code>
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -525,48 +524,6 @@ const ContactsView = () => {
 
   const isDefaultGroup = selectedGroup === "Home" || selectedGroup === "Inner Orbit" || selectedGroup === "Deep Space";
 
-  const handleGroupNameSave = async (groupData: Group) => {
-    if (!groupData || editedGroupName.trim() === '' || editedGroupName === groupData.name) {
-      setEditedGroupName(groupData.name);
-      setIsEditingGroupName(false);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('contact_groups')
-        .update({ name: editedGroupName.trim() })
-        .eq('id', groupData.id)
-        .select();
-
-      if (error) throw error;
-
-      console.log('Group name update response:', data);
-
-      await queryClient.invalidateQueries({ 
-        queryKey: ['contact_groups', session?.user?.id],
-        exact: true 
-      });
-      
-      setSelectedGroup(editedGroupName.trim());
-      setIsEditingGroupName(false);
-
-      toast({
-        title: "Success",
-        description: "Group name updated successfully",
-      });
-    } catch (error: any) {
-      console.error('Error updating group name:', error);
-      setEditedGroupName(groupData.name);
-      toast({
-        title: "Error",
-        description: "Failed to update group name",
-        variant: "destructive",
-      });
-    }
-    setIsEditingGroupName(false);
-  };
-
   const renderGroupHeader = () => {
     if (selectedGroup === "Home" || selectedGroup === "Inner Orbit" || selectedGroup === "Deep Space") {
       return null;
@@ -649,6 +606,48 @@ const ContactsView = () => {
       setEditedGroupName(groupData.name);
     }
   }, [selectedGroup, groups]);
+
+  const handleGroupNameSave = async (groupData: Group) => {
+    if (!groupData || editedGroupName.trim() === '' || editedGroupName === groupData.name) {
+      setEditedGroupName(groupData.name);
+      setIsEditingGroupName(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('contact_groups')
+        .update({ name: editedGroupName.trim() })
+        .eq('id', groupData.id)
+        .select();
+
+      if (error) throw error;
+
+      console.log('Group name update response:', data);
+
+      await queryClient.invalidateQueries({ 
+        queryKey: ['contact_groups', session?.user?.id],
+        exact: true 
+      });
+      
+      setSelectedGroup(editedGroupName.trim());
+      setIsEditingGroupName(false);
+
+      toast({
+        title: "Success",
+        description: "Group name updated successfully",
+      });
+    } catch (error: any) {
+      console.error('Error updating group name:', error);
+      setEditedGroupName(groupData.name);
+      toast({
+        title: "Error",
+        description: "Failed to update group name",
+        variant: "destructive",
+      });
+    }
+    setIsEditingGroupName(false);
+  };
 
   const handleDeleteGroup = async () => {
     const groupToDelete = groups.find(g => g.name === selectedGroup);
@@ -816,4 +815,4 @@ const ContactsView = () => {
                   ))}
                   <Badge
                     variant="default"
-                    className="cursor-pointer bg-purple-600 hover:bg-purple-800/
+                    className="cursor-pointer bg-purple-600 hover:bg-purple-800/50 text
