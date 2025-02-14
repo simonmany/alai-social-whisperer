@@ -75,35 +75,35 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4">
+        <div className="p-4 w-full">
           {/* Upcoming Events */}
-          <div className="rounded-lg mb-4">
+          <div className="rounded-lg mb-4 w-full">
             <h3 className="font-semibold text-muted-foreground mb-3">
               {selectedDay ? 'Events for Selected Day' : 'Upcoming Events'}
             </h3>
-            {futureEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No upcoming events</p>
-            ) : (
-              futureEvents.map((event) => (
-                <div key={event.id} className="mb-3">
-                  <EventCard event={event} />
-                </div>
-              ))
-            )}
+            <div className="w-full space-y-3">
+              {futureEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No upcoming events</p>
+              ) : (
+                futureEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))
+              )}
+            </div>
           </div>
 
           {/* Past Events */}
-          <div className="rounded-lg">
+          <div className="rounded-lg w-full">
             <h3 className="font-semibold text-muted-foreground mb-3">Past Events</h3>
-            {pastEvents.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No past events</p>
-            ) : (
-              pastEvents.map((event) => (
-                <div key={event.id} className="mb-3">
-                  <EventCard event={event} />
-                </div>
-              ))
-            )}
+            <div className="w-full space-y-3">
+              {pastEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No past events</p>
+              ) : (
+                pastEvents.map((event) => (
+                  <EventCard key={event.id} event={event} />
+                ))
+              )}
+            </div>
           </div>
         </div>
       </ScrollArea>
