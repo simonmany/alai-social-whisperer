@@ -838,7 +838,16 @@ const ContactsView = () => {
       {renderGroupHeader()}
       <GroupManagementDialog 
         open={isGroupDialogOpen} 
-        onOpenChange={setIsGroupDialogOpen} 
+        onOpenChange={setIsGroupDialogOpen}
+        contacts={contacts}
+        onGroupCreated={() => {
+          queryClient.invalidateQueries({ 
+            queryKey: ['contact_groups', session?.user?.id] 
+          });
+          queryClient.invalidateQueries({ 
+            queryKey: ['group_memberships', session?.user?.id] 
+          });
+        }}
       />
       <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
         <AlertDialogContent>
