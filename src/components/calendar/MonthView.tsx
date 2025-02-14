@@ -46,7 +46,7 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-4">
+      <div className="p-4">
         <Calendar
           mode="single"
           selected={selectedDay}
@@ -73,37 +73,41 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
           }}
         />
       </div>
-      <ScrollArea className="flex-1 px-4">
-        <div className="space-y-6 py-4">
-          <div>
+
+      <ScrollArea className="flex-1">
+        <div className="p-4">
+          {/* Upcoming Events */}
+          <div className="rounded-lg mb-4">
             <h3 className="font-semibold text-muted-foreground mb-3">
               {selectedDay ? 'Events for Selected Day' : 'Upcoming Events'}
             </h3>
             {futureEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No upcoming events</p>
             ) : (
-              <div className="space-y-3">
-                {futureEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
+              futureEvents.map((event) => (
+                <div key={event.id} className="mb-3">
+                  <EventCard event={event} />
+                </div>
+              ))
             )}
           </div>
 
-          <div>
+          {/* Past Events */}
+          <div className="rounded-lg">
             <h3 className="font-semibold text-muted-foreground mb-3">Past Events</h3>
             {pastEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No past events</p>
             ) : (
-              <div className="space-y-3">
-                {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
+              pastEvents.map((event) => (
+                <div key={event.id} className="mb-3">
+                  <EventCard event={event} />
+                </div>
+              ))
             )}
           </div>
         </div>
       </ScrollArea>
+
       <div className="px-4 py-3 border-t bg-background">
         <CalendarPrompts onPrompt={onPrompt} type="month" />
       </div>
