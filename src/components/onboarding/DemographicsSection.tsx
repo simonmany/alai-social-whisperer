@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { ChatInput } from "@/components/ChatInput";
@@ -19,7 +18,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const [age, setAge] = useState<number>(0);
   const [selectedCity, setSelectedCity] = useState("");
-  const [utcOffset, setUtcOffset] = useState<number>(0); // Changed to number type
+  const [utcOffset, setUtcOffset] = useState<number>(0);
   const [occupation, setOccupation] = useState("");
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const [hasPlayedDetails, setHasPlayedDetails] = useState(false);
@@ -104,7 +103,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         .from('profiles')
         .update({ 
           city: selectedCity, 
-          utc_offset_minutes: utcOffset || 0 // Ensure it's a number
+          utc_offset_minutes: utcOffset || 0 
         })
         .eq('id', session?.user.id);
 
@@ -200,6 +199,11 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     }
   };
 
+  const handleOccupationChange = (value: string) => {
+    console.log('Occupation changed to:', value);
+    setOccupation(value);
+  };
+
   return (
     <div className="space-y-4">
       {step === 'age' && (
@@ -273,7 +277,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
                     console.log('Selected place:', place);
                     if (place && typeof place === 'object') {
                       const address = place.formatted_address || place.name || '';
-                      const offset = parseInt(place.utc_offset_minutes) || 0; // Parse to number
+                      const offset = parseInt(place.utc_offset_minutes) || 0;
                       console.log('Using address:', address);
                       if (address) {
                         setSelectedCity(address);
@@ -375,7 +379,8 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
           </div>
           <div className="space-y-4">
             <ChatInput
-              onSend={(value) => setOccupation(value)}
+              onSend={handleOccupationChange}
+              onChange={handleOccupationChange}
               placeholder="What do you do for work?"
               initialValue={occupation}
               showSendButton={false}
@@ -383,7 +388,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             <Button 
               onClick={handleOccupationSubmit}
               className="w-full"
-              disabled={occupation === ''}
+              disabled={!occupation || occupation.length === 0}
             >
               Finish
             </Button>
