@@ -75,7 +75,6 @@ const ContactsView = () => {
   const [showDeepSpace, setShowDeepSpace] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
-  // Add these new state variables at the component level
   const [isEditingGroupName, setIsEditingGroupName] = useState(false);
   const [editedGroupName, setEditedGroupName] = useState("");
   
@@ -525,6 +524,14 @@ const ContactsView = () => {
 
   const isDefaultGroup = selectedGroup === "Home" || selectedGroup === "Inner Orbit" || selectedGroup === "Deep Space";
 
+  // Update editedGroupName when selectedGroup changes
+  useEffect(() => {
+    const groupData = groups.find(g => g.name === selectedGroup);
+    if (groupData) {
+      setEditedGroupName(groupData.name);
+    }
+  }, [selectedGroup, groups]);
+
   const handleGroupNameSave = async (groupData: Group) => {
     if (!groupData || editedGroupName.trim() === '' || editedGroupName === groupData.name) {
       setEditedGroupName(groupData.name);
@@ -576,11 +583,6 @@ const ContactsView = () => {
     console.log('Group data for header:', { selectedGroup, groupData });
 
     if (!groupData) return null;
-
-    // When the group changes, update the edited name
-    useEffect(() => {
-      setEditedGroupName(groupData.name);
-    }, [groupData.name]);
 
     return (
       <div className="flex items-center justify-center gap-2 mb-8 relative z-50">
@@ -818,5 +820,4 @@ const ContactsView = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50 z-30"
-            onClick
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-
