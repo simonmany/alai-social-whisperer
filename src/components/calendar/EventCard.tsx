@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import PlanningDialog from "@/components/PlanningDialog";
+import { generateChatResponse } from "@/utils/openai";
+import { useToast } from "@/hooks/use-toast";
 
 interface CalendarEvent {
   id: string;
@@ -24,13 +26,25 @@ interface CalendarEvent {
 export const EventCard = ({ event }: { event: CalendarEvent }) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showPlanning, setShowPlanning] = useState(false);
+  const { toast } = useToast();
   
-  // Define these at component level so they're available throughout
   const eventDate = new Date(event.start_time);
   const now = new Date();
 
-  const handleSubmit = (message: string) => {
-    setShowFeedback(false);
+  const handleSubmit = async (message: string) => {
+    try {
+      // Send feedback to AI
+      await generateChatResponse(`Here's my feedback about ${event.title}: ${message}`);
+      
+      setShowFeedback(false);
+    } catch (error) {
+      console.error('Error sending feedback to AI:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process feedback with AI",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCardClick = () => {
@@ -115,3 +129,4 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
     </>
   );
 };
+
