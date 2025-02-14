@@ -255,9 +255,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           attendees: [...selectedEvent.attendees, contact]
         });
       }
+      setIsAddingAttendee(false);
+      setNewAttendee('');
     }
-    setIsAddingAttendee(false);
-    setNewAttendee('');
   };
 
   const handleRemoveAttendee = (contactId: string) => {

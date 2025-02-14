@@ -54,14 +54,17 @@ export const CatchUpForm = ({ friendInput, onChange, onSelect }: CatchUpFormProp
     setSelectedContact(contact);
     onChange(contact.name);
     setContactInput('');
-    if (onSelect) {
-      onSelect(contact);
-    }
   };
 
   const handleRemoveContact = () => {
     setSelectedContact(null);
     onChange('');
+  };
+
+  const handleSubmit = () => {
+    if (selectedContact && onSelect) {
+      onSelect(selectedContact);
+    }
   };
 
   return (
@@ -120,11 +123,11 @@ export const CatchUpForm = ({ friendInput, onChange, onSelect }: CatchUpFormProp
         </div>
       )}
 
-      {selectedContact && onSelect && (
+      {selectedContact && (
         <Button 
           className="w-full h-8 mt-2" 
           size="sm"
-          onClick={() => onSelect(selectedContact)}
+          onClick={handleSubmit}
         >
           Add to event
         </Button>
