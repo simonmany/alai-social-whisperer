@@ -383,7 +383,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             <Button 
               onClick={handleOccupationSubmit}
               className="w-full"
-              disabled={!occupation.trim()}
+              disabled={occupation === ''}
             >
               Finish
             </Button>
