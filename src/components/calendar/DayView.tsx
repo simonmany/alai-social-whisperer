@@ -50,47 +50,49 @@ export const DayView = ({ events, onPrompt }: DayViewProps) => {
   const { past, future } = groupEventsByTimeOfDay(todayEvents);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full w-full overflow-hidden">
       <ScrollArea className="flex-1">
-        <div className="space-y-4 py-4 px-4 min-w-0">
-          {/* Past Events */}
-          <div className="min-w-0">
-            <h3 className="font-semibold text-muted-foreground mb-3">Past</h3>
-            {past.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No past events</p>
-            ) : (
-              <div className="space-y-3 min-w-0">
-                {past.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Divider Line */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[#8E9196]"></div>
+        <div className="w-full">
+          <div className="space-y-4 py-4 px-4">
+            {/* Past Events */}
+            <div>
+              <h3 className="font-semibold text-muted-foreground mb-3">Past</h3>
+              {past.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No past events</p>
+              ) : (
+                <div className="space-y-3">
+                  {past.map((event) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="relative flex justify-center">
-              <span className="bg-background px-2 text-sm text-muted-foreground">
-                Now
-              </span>
-            </div>
-          </div>
 
-          {/* Future Events */}
-          <div className="min-w-0">
-            <h3 className="font-semibold text-muted-foreground mb-3">Upcoming</h3>
-            {future.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No upcoming events</p>
-            ) : (
-              <div className="space-y-3 min-w-0">
-                {future.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))}
+            {/* Divider Line */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#8E9196]"></div>
               </div>
-            )}
+              <div className="relative flex justify-center">
+                <span className="bg-background px-2 text-sm text-muted-foreground">
+                  Now
+                </span>
+              </div>
+            </div>
+
+            {/* Future Events */}
+            <div>
+              <h3 className="font-semibold text-muted-foreground mb-3">Upcoming</h3>
+              {future.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No upcoming events</p>
+              ) : (
+                <div className="space-y-3">
+                  {future.map((event) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </ScrollArea>
