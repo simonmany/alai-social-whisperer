@@ -74,35 +74,35 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
         />
       </div>
 
-      <ScrollArea>
-        <div className="p-4 space-y-4">
+      <ScrollArea className="flex-1">
+        <div className="p-4">
           {/* Upcoming Events */}
-          <div>
+          <div className="rounded-lg mb-4">
             <h3 className="font-semibold text-muted-foreground mb-3">
               {selectedDay ? 'Events for Selected Day' : 'Upcoming Events'}
             </h3>
             {futureEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No upcoming events</p>
             ) : (
-              <div className="space-y-3">
-                {futureEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
+              futureEvents.map((event) => (
+                <div key={event.id} className="mb-3">
+                  <EventCard event={event} />
+                </div>
+              ))
             )}
           </div>
 
           {/* Past Events */}
-          <div>
+          <div className="rounded-lg">
             <h3 className="font-semibold text-muted-foreground mb-3">Past Events</h3>
             {pastEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No past events</p>
             ) : (
-              <div className="space-y-3">
-                {pastEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))}
-              </div>
+              pastEvents.map((event) => (
+                <div key={event.id} className="mb-3">
+                  <EventCard event={event} />
+                </div>
+              ))
             )}
           </div>
         </div>
