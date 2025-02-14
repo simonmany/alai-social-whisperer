@@ -243,10 +243,19 @@ serve(async (req: Request) => {
       const startUTC = new Date(startTime);
       const endUTC = new Date(endTime);
 
-      // Check for existing event data
+      // Check for existing event data - using maybeSingle() and left join
       const { data: existingEvent } = await supabase
         .from('calendar_events')
-        .select('description, feedback_sent')
+        .select(`
+          description,
+          feedback_sent,
+          event_attendees!left (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
         .eq('google_event_id', event.id)
         .maybeSingle();
       
@@ -268,17 +277,20 @@ serve(async (req: Request) => {
       firstEvent: events[0] ? {
         id: events[0].google_event_id,
         title: events[0].title,
-        start: events[0].start_time,
-        end: events[0].end_time
+        hasStart: !!events[0].start_time,
+        hasEnd: !!events[0].end_time
       } : null
     });
 
     // Only attempt database save if we have events
     if (events.length > 0) {
-      // Save to database
+      // Save to database using upsert
       const { error: dbError } = await supabase
         .from('calendar_events')
-        .upsert(events, { onConflict: 'google_event_id' });
+        .upsert(events, { 
+          onConflict: 'google_event_id',
+          ignoreDuplicates: false
+        });
 
       if (dbError) {
         console.error('Database error:', {
