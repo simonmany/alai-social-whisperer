@@ -530,29 +530,26 @@ const ContactsView = () => {
       <div className="flex items-center justify-center gap-2 mb-8">
         <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
           <PopoverTrigger asChild>
-            <button className="text-4xl hover:opacity-80 transition-opacity">
+            <Button 
+              variant="ghost" 
+              className="text-4xl hover:opacity-80 transition-opacity p-0 h-auto"
+              onClick={() => setIsEmojiPickerOpen(true)}
+            >
               {groupData.emoji || "👥"}
-            </button>
+            </Button>
           </PopoverTrigger>
           <PopoverContent 
-            className="p-0 w-auto border-none" 
+            className="p-0 w-[352px] border-purple-500/50" 
             side="bottom" 
             align="center"
-            style={{ 
-              position: 'relative',
-              zIndex: 9999,
-              pointerEvents: 'auto'
-            }}
           >
-            <div className="relative bg-popover shadow-md">
-              <Picker 
-                data={data} 
-                onEmojiSelect={handleEmojiSelect}
-                theme="dark"
-                previewPosition="none"
-                skinTonePosition="none"
-              />
-            </div>
+            <Picker 
+              data={data} 
+              onEmojiSelect={handleEmojiSelect}
+              theme="dark"
+              previewPosition="none"
+              skinTonePosition="none"
+            />
           </PopoverContent>
         </Popover>
         <h2 className="text-2xl font-bold text-white">{selectedGroup}</h2>
@@ -623,7 +620,7 @@ const ContactsView = () => {
 
       queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
       setIsEmojiPickerOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating group emoji:', error);
       toast({
         title: "Error",
