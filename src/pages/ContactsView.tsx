@@ -215,6 +215,8 @@ const ContactsView = () => {
       return [...defaultGroups, ...data] as Group[];
     },
     enabled: !!session?.user?.id,
+    staleTime: 0, // Always treat data as stale
+    cacheTime: 0  // Don't cache the data
   });
 
   const { data: groupMemberships = [] } = useQuery<GroupMembership[]>({
@@ -619,8 +621,9 @@ const ContactsView = () => {
 
       if (error) throw error;
 
-      // Wait for the query to invalidate and refetch
-      await queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+      // Force an immediate refetch of the groups data
+      await queryClient.invalidateQueries({ queryKey: ['contact_groups', session?.user?.id] });
+      await queryClient.refetchQueries({ queryKey: ['contact_groups', session?.user?.id] });
       
       toast({
         title: "Success",
