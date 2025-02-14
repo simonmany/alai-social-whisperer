@@ -235,25 +235,32 @@ serve(async (req: Request) => {
     }
 
     // Transform events
-    const events = data.items.map((event: any) => {
-      // Parse dates to ensure they're valid timestamps and in UTC
+    const events = await Promise.all(data.items.map(async (event: any) => {
       const startTime = event.start?.dateTime || event.start?.date;
       const endTime = event.end?.dateTime || event.end?.date;
       
-      // Convert to UTC if not already
+      // Convert to UTC
       const startUTC = new Date(startTime);
       const endUTC = new Date(endTime);
+
+      // Check for existing event data
+      const { data: existingEvent } = await supabase
+        .from('calendar_events')
+        .select('description, feedback_sent')
+        .eq('google_event_id', event.id)
+        .maybeSingle();
       
       return {
         user_id: user.id,
         google_event_id: event.id,
         title: event.summary || 'Untitled Event',
-        description: event.description || null,
-        start_time: startUTC.toISOString(), // This ensures UTC format
-        end_time: endUTC.toISOString(), // This ensures UTC format
+        description: existingEvent?.description || event.description || null,
+        start_time: startUTC.toISOString(),
+        end_time: endUTC.toISOString(),
+        feedback_sent: existingEvent?.feedback_sent || false,
         updated_at: new Date().toISOString()
       };
-    });
+    }));
 
     // Log the transformed events
     console.log('Transformed events:', {
