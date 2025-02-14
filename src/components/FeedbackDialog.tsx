@@ -69,6 +69,19 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
 
   const timeOptions = ["morning", "afternoon", "evening", "night"];
 
+  // Add missing state variables for manual entry
+  const [manualActivity, setManualActivity] = useState("");
+  const [showActivitySuggestions, setShowActivitySuggestions] = useState(false);
+  const [manualLocation, setManualLocation] = useState("");
+  const [manualDate, setManualDate] = useState<Date | undefined>(undefined);
+  const [manualTime, setManualTime] = useState<string>("");
+  const [manualNotes, setManualNotes] = useState("");
+
+  const openContactDrawer = (index: number) => {
+    setSelectedContactIndex(index);
+    setIsContactDrawerOpen(true);
+  };
+
   // Query to fetch specific event details when selectedEventId is provided
   const { data: eventDetails } = useQuery({
     queryKey: ['event-details', selectedEventId],
@@ -302,6 +315,36 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
             .insert(newAttendees);
 
           if (insertError) throw insertError;
+        }
+      } else if (isManualEntry) {
+        // Create new event for manual entry
+        const { data: event, error: eventError } = await supabase
+          .from('calendar_events')
+          .insert({
+            title: manualActivity,
+            description,
+            start_time: manualDate,
+            location: manualLocation,
+            user_id: session.user.id,
+            feedback_sent: true
+          })
+          .select()
+          .single();
+
+        if (eventError) throw eventError;
+
+        // Add attendees
+        if (selectedContacts.length > 0) {
+          const newAttendees = selectedContacts.map(contact => ({
+            event_id: event.id,
+            contact_id: contact.id
+          }));
+
+          const { error: attendeesError } = await supabase
+            .from('event_attendees')
+            .insert(newAttendees);
+
+          if (attendeesError) throw attendeesError;
         }
       }
 
