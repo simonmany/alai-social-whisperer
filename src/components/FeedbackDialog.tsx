@@ -11,10 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, X, Archive, ArrowLeft } from "lucide-react";
+import { CalendarIcon, X, Archive, ArrowLeft, UserPlus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { CatchUpForm } from "@/components/goals/CatchUpForm";
 import {
   Select,
   SelectContent,
@@ -67,6 +68,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const [manualNotes, setManualNotes] = useState("");
   const [contactSearchInput, setContactSearchInput] = useState("");
   const [showActivitySuggestions, setShowActivitySuggestions] = useState(false);
+  const [isAddingAttendee, setIsAddingAttendee] = useState(false);
+  const [newAttendee, setNewAttendee] = useState('');
 
   const [moodOptions] = useState([
     "fun", "chill", "deep", "productive", "nostalgic", "exciting", "meaningful"
@@ -242,6 +245,30 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     setSelectedEvent(event);
   };
 
+  const handleContactSelect = (contact: Contact) => {
+    if (selectedEvent) {
+      // Add the new contact to the attendees list if not already present
+      const isAlreadyAttendee = selectedEvent.attendees.some(a => a.id === contact.id);
+      if (!isAlreadyAttendee) {
+        setSelectedEvent({
+          ...selectedEvent,
+          attendees: [...selectedEvent.attendees, contact]
+        });
+      }
+    }
+    setIsAddingAttendee(false);
+    setNewAttendee('');
+  };
+
+  const handleRemoveAttendee = (contactId: string) => {
+    if (selectedEvent) {
+      setSelectedEvent({
+        ...selectedEvent,
+        attendees: selectedEvent.attendees.filter(a => a.id !== contactId)
+      });
+    }
+  };
+
   const handleSubmit = async () => {
     if (!session?.user?.id) return;
 
@@ -252,7 +279,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
       }
 
       if (selectedEvent) {
-        const { error } = await supabase
+        // Update event description and feedback status
+        const { error: eventError } = await supabase
           .from('calendar_events')
           .update({
             description,
@@ -260,7 +288,28 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           })
           .eq('id', selectedEvent.id);
 
-        if (error) throw error;
+        if (eventError) throw eventError;
+
+        // Update event attendees
+        const { error: attendeesError } = await supabase
+          .from('event_attendees')
+          .delete()
+          .eq('event_id', selectedEvent.id);
+
+        if (attendeesError) throw attendeesError;
+
+        const newAttendees = selectedEvent.attendees.map(attendee => ({
+          event_id: selectedEvent.id,
+          contact_id: attendee.id
+        }));
+
+        if (newAttendees.length > 0) {
+          const { error: insertError } = await supabase
+            .from('event_attendees')
+            .insert(newAttendees);
+
+          if (insertError) throw insertError;
+        }
       }
 
       toast({
@@ -367,9 +416,33 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                                   </AvatarFallback>
                                 </Avatar>
                                 <span>{attendee.name}</span>
+                                <button
+                                  onClick={() => handleRemoveAttendee(attendee.id)}
+                                  className="hover:text-destructive"
+                                >
+                                  <X className="h-3 w-3" />
+                                </button>
                               </div>
                             ))}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 gap-1"
+                              onClick={() => setIsAddingAttendee(true)}
+                            >
+                              <UserPlus className="h-3 w-3" />
+                              <span className="text-xs">Add person</span>
+                            </Button>
                           </div>
+                          {isAddingAttendee && (
+                            <div className="mt-2">
+                              <CatchUpForm
+                                friendInput={newAttendee}
+                                onChange={(value) => setNewAttendee(value)}
+                                onSelect={handleContactSelect}
+                              />
+                            </div>
+                          )}
                         </div>
 
                         <div>

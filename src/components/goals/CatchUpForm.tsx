@@ -10,9 +10,10 @@ import { Contact } from "@/types/contacts";
 interface CatchUpFormProps {
   friendInput: string;
   onChange: (value: string) => void;
+  onSelect?: (contact: Contact) => void;
 }
 
-export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
+export const CatchUpForm = ({ friendInput, onChange, onSelect }: CatchUpFormProps) => {
   const [contactInput, setContactInput] = useState('');
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
@@ -52,6 +53,9 @@ export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
     setSelectedContact(contact);
     onChange(contact.name);
     setContactInput('');
+    if (onSelect) {
+      onSelect(contact);
+    }
   };
 
   const handleRemoveContact = () => {
@@ -61,7 +65,6 @@ export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">Who would you like to catch up with?</p>
       <div className="relative">
         <Input
           placeholder="Type to search contacts..."
