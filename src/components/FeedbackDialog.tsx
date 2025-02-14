@@ -11,12 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, Archive, ArrowLeft, UserPlus } from "lucide-react";
+import { CalendarIcon, X, Archive, ArrowLeft, UserPlus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { CatchUpForm } from "@/components/goals/CatchUpForm";
-import ContactsDialog from "@/components/ContactsDialog";
 import { useToast } from "@/hooks/use-toast";
+import { CatchUpForm } from "@/components/goals/CatchUpForm";
 import {
   Select,
   SelectContent,
@@ -62,7 +61,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
   const [selectedContactIndex, setSelectedContactIndex] = useState<number>(-1);
-  const [showContactsDialog, setShowContactsDialog] = useState(false);
+  const [contactInput, setContactInput] = useState("");
 
   const [moodOptions] = useState([
     "fun", "chill", "deep", "productive", "nostalgic", "exciting", "meaningful"
@@ -184,6 +183,45 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     enabled: open && !selectedEventId
   });
 
+  // Query to fetch filtered contacts
+  const { data: filteredContacts = [] } = useQuery({
+    queryKey: ['filtered-contacts', contactInput],
+    queryFn: async () => {
+      if (!session?.user?.id || !contactInput) return [];
+
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .ilike('name', `%${contactInput}%`)
+        .order('name');
+
+      if (error) throw error;
+      return data.map(contact => ({
+        ...contact,
+        interests: Array.isArray(contact.interests) ? contact.interests : [],
+      })) as Contact[];
+    },
+    enabled: !!contactInput && !!session?.user?.id
+  });
+
+  // Query to fetch activity suggestions
+  const { data: activitySuggestions = [] } = useQuery({
+    queryKey: ['activity-suggestions', manualActivity],
+    queryFn: async () => {
+      if (!manualActivity) return [];
+
+      const { data, error } = await supabase
+        .from('activities')
+        .select('name, category')
+        .ilike('name', `%${manualActivity}%`)
+        .limit(5);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!manualActivity && isManualEntry
+  });
+
   // Set selectedEvent when eventDetails changes
   useEffect(() => {
     if (eventDetails) {
@@ -215,16 +253,26 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     setSelectedEvent(event);
   };
 
-  const handleContactSelect = (_message: string, contact: Contact) => {
+  const handleContactSelect = (contact: Contact) => {
+    if (selectedEvent) {
+      const isAlreadyAttendee = selectedEvent.attendees.some(a => a.id === contact.id);
+      if (!isAlreadyAttendee) {
+        setSelectedEvent({
+          ...selectedEvent,
+          attendees: [...selectedEvent.attendees, contact]
+        });
+      }
+      setContactInput("");
+    }
+  };
+
+  const handleRemoveAttendee = (contactId: string) => {
     if (selectedEvent) {
       setSelectedEvent({
         ...selectedEvent,
-        attendees: [...selectedEvent.attendees, contact]
+        attendees: selectedEvent.attendees.filter(a => a.id !== contactId)
       });
-    } else {
-      setSelectedContacts([...selectedContacts, contact]);
     }
-    setShowContactsDialog(false);
   };
 
   const handleSubmit = async () => {
@@ -275,8 +323,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           .insert({
             title: manualActivity,
             description,
-            start_time: manualDate?.toISOString() || new Date().toISOString(),
-            end_time: manualDate?.toISOString() || new Date().toISOString(),
+            start_time: manualDate?.toISOString() || new Date().toISOString(), // Ensure we have a string
+            end_time: manualDate?.toISOString() || new Date().toISOString(), // Using same time for end for manual entries
             location: manualLocation,
             user_id: session.user.id,
             feedback_sent: true
@@ -394,24 +442,44 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                         <div>
                           <h4 className="text-sm font-medium mb-2">Who was there:</h4>
                           <div className="space-y-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full justify-start font-normal"
-                              onClick={() => setShowContactsDialog(true)}
-                            >
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              {selectedEvent?.attendees.length === 0 
-                                ? "Add people"
-                                : `${selectedEvent?.attendees.length} people selected`}
-                            </Button>
+                            <div className="relative">
+                              <Input
+                                placeholder="Type to search contacts..."
+                                value={contactInput}
+                                onChange={(e) => setContactInput(e.target.value)}
+                                className="h-8"
+                              />
+                              {contactInput && filteredContacts.length > 0 && (
+                                <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
+                                  {filteredContacts
+                                    .filter(contact => !selectedEvent?.attendees.some(a => a.id === contact.id))
+                                    .map((contact) => (
+                                      <div
+                                        key={contact.id}
+                                        className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
+                                        onClick={() => handleContactSelect(contact)}
+                                      >
+                                        <div className="flex items-center gap-2">
+                                          <Avatar className="h-6 w-6">
+                                            <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+                                          </Avatar>
+                                          <span className="text-sm">{contact.name}</span>
+                                        </div>
+                                        {contact.is_archived && (
+                                          <Archive className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
 
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {selectedEvent?.attendees.map((attendee, index) => (
+                              {selectedEvent?.attendees.map((attendee) => (
                                 <div
                                   key={attendee.id}
                                   className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                                  onClick={() => openContactDrawer(index)}
+                                  onClick={() => openContactDrawer(selectedEvent.attendees.indexOf(attendee))}
                                 >
                                   <Avatar className="h-4 w-4">
                                     <AvatarFallback className="text-[10px]">
@@ -422,6 +490,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                                   {attendee.is_archived && (
                                     <Archive className="h-3 w-3 text-muted-foreground" />
                                   )}
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveAttendee(attendee.id);
+                                    }}
+                                    className="hover:text-destructive"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
                                 </div>
                               ))}
                             </div>
@@ -471,23 +548,42 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                 <div>
                   <h4 className="text-sm font-medium mb-2">Who was there?</h4>
                   <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="w-full justify-start font-normal"
-                      onClick={() => setShowContactsDialog(true)}
-                    >
-                      <UserPlus className="h-4 w-4 mr-2" />
-                      {selectedContacts.length === 0 
-                        ? "Add people"
-                        : `${selectedContacts.length} people selected`}
-                    </Button>
+                    <Input 
+                      value={contactInput}
+                      onChange={(e) => setContactInput(e.target.value)}
+                      placeholder="Search contacts..."
+                      className="h-8"
+                    />
+                    {contactInput && filteredContacts.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg">
+                        {filteredContacts.map((contact) => (
+                          <div
+                            key={contact.id}
+                            className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
+                            onClick={() => {
+                              setSelectedContacts(prev => [...prev, contact]);
+                              setContactInput('');
+                            }}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback>{getInitials(contact.name)}</AvatarFallback>
+                              </Avatar>
+                              <span className="text-sm">{contact.name}</span>
+                            </div>
+                            {contact.is_archived && (
+                              <Archive className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     
                     <div className="flex flex-wrap gap-1 mt-1">
                       {selectedContacts.map((contact, index) => (
                         <div
                           key={contact.id}
-                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs hover:bg-secondary/80 cursor-pointer max-w-[150px]"
+                          className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-[11px] hover:bg-secondary/80 cursor-pointer max-w-[150px]"
                           onClick={() => {
                             setSelectedContactIndex(index);
                             setIsContactDrawerOpen(true);
@@ -502,6 +598,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                           {contact.is_archived && (
                             <Archive className="h-3 w-3 text-muted-foreground shrink-0" />
                           )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedContacts(prev => prev.filter((_, i) => i !== index));
+                            }}
+                            className="shrink-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -521,6 +626,28 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                       }}
                       placeholder="e.g., Coffee chat, Dinner, Hiking..."
                     />
+                    {showActivitySuggestions && activitySuggestions.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-popover border rounded-md shadow-lg">
+                        {activitySuggestions.map((activity, index) => (
+                          <Button
+                            key={index}
+                            variant="ghost"
+                            className="w-full justify-start text-sm h-9"
+                            onClick={() => {
+                              setManualActivity(activity.name);
+                              setShowActivitySuggestions(false);
+                            }}
+                          >
+                            <span>{activity.name}</span>
+                            {activity.category && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                ({activity.category})
+                              </span>
+                            )}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -624,19 +751,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
       <Drawer open={isContactDrawerOpen} onOpenChange={setIsContactDrawerOpen}>
         <DrawerContent>
           <div className="mx-auto w-full max-w-sm p-4">
-            {selectedContactIndex >= 0 && (isManualEntry ? selectedContacts[selectedContactIndex] : selectedEvent?.attendees[selectedContactIndex]) && (
-              <ContactCard {...(isManualEntry ? selectedContacts[selectedContactIndex] : selectedEvent?.attendees[selectedContactIndex]!)} />
+            {selectedContactIndex >= 0 && selectedContacts[selectedContactIndex] && (
+              <ContactCard {...selectedContacts[selectedContactIndex]} />
             )}
           </div>
         </DrawerContent>
       </Drawer>
-
-      <ContactsDialog
-        open={showContactsDialog}
-        onOpenChange={setShowContactsDialog}
-        onSubmit={handleContactSelect}
-        userId={session?.user?.id || ''}
-      />
     </>
   );
 }
