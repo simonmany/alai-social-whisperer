@@ -54,17 +54,17 @@ const groupEventsByDayOfWeek = (events: CalendarEvent[]) => {
 export const WeekView = ({ events, onPrompt }: WeekViewProps) => {
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1">
-        <div className="space-y-4 py-4 px-4 min-w-0">
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-4 py-4">
           {groupEventsByDayOfWeek(events).map(({ date, dayName, pastEvents, futureEvents, isToday }) => (
-            <div key={dayName} className={`p-3 rounded-lg ${isToday ? 'bg-muted/30' : ''} min-w-0`}>
+            <div key={dayName} className={`p-3 rounded-lg ${isToday ? 'bg-muted/30' : ''}`}>
               <h3 className="font-semibold text-muted-foreground mb-3">
                 {dayName} ({format(date, 'M/d')})
               </h3>
               
               {/* Past Events */}
               {pastEvents.length > 0 && (
-                <div className="space-y-3 mb-3 min-w-0">
+                <div className="space-y-3 mb-3">
                   {pastEvents.map((event) => (
                     <EventCard key={event.id} event={event} />
                   ))}
@@ -87,7 +87,7 @@ export const WeekView = ({ events, onPrompt }: WeekViewProps) => {
 
               {/* Future Events */}
               {futureEvents.length > 0 ? (
-                <div className="space-y-3 min-w-0">
+                <div className="space-y-3">
                   {futureEvents.map((event) => (
                     <EventCard key={event.id} event={event} />
                   ))}

@@ -4,7 +4,7 @@ import { ContactCard } from "@/components/ContactCard";
 import ReactMarkdown from "react-markdown";
 
 interface Contact {
-  id: string;
+  id: string; // Added id as required property
   name: string;
   phone?: string;
   instagram?: string;
@@ -32,7 +32,7 @@ export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMes
     >
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
-          <div className="whitespace-pre-line prose prose-sm max-w-none prose-gray [&>*:not(:first-child)]:!mt-2 prose-headings:!mt-4 prose-headings:!mb-2">
+          <div className="whitespace-pre-line prose prose-sm max-w-none prose-gray">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
           {contacts && contacts.length > 0 && (
@@ -45,7 +45,7 @@ export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMes
         </div>
       ) : (
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm">
-          <div className="whitespace-pre-line prose prose-sm max-w-none prose-invert [&>*:not(:first-child)]:!mt-2 prose-headings:!mt-4 prose-headings:!mb-2">
+          <div className="whitespace-pre-line prose prose-sm max-w-none prose-invert">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
           {contacts && contacts.length > 0 && (

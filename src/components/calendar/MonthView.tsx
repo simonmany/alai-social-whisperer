@@ -73,16 +73,16 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
           }}
         />
       </div>
-      <ScrollArea className="flex-1">
-        <div className="space-y-6 py-4 px-4 min-w-0">
-          <div className="min-w-0">
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-6 py-4">
+          <div>
             <h3 className="font-semibold text-muted-foreground mb-3">
               {selectedDay ? 'Events for Selected Day' : 'Upcoming Events'}
             </h3>
             {futureEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No upcoming events</p>
             ) : (
-              <div className="space-y-3 min-w-0">
+              <div className="space-y-3">
                 {futureEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
@@ -90,12 +90,12 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
             )}
           </div>
 
-          <div className="min-w-0">
+          <div>
             <h3 className="font-semibold text-muted-foreground mb-3">Past Events</h3>
             {pastEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No past events</p>
             ) : (
-              <div className="space-y-3 min-w-0">
+              <div className="space-y-3">
                 {pastEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
