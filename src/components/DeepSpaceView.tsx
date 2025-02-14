@@ -1,19 +1,17 @@
+
 import { useState, useEffect } from "react";
 import { Contact } from "@/types/contacts";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronUp } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ContactSorter } from './ContactSorter';
 import { supabase } from "@/integrations/supabase/client";
 import { ContactCard } from "./ContactCard";
-import { useNavigate } from "react-router-dom";
-import GroupManagementDialog from "@/components/GroupManagementDialog";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface DeepSpaceViewProps {
   contacts: Contact[];
@@ -53,9 +51,6 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   const [page, setPage] = useState(0);
   const [isSorterOpen, setIsSorterOpen] = useState(false);
   const [sortedCount, setSortedCount] = useState(0);
-  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const loadContacts = async (currentPage: number, isLoadingMore = false) => {
     try {
@@ -140,10 +135,11 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   };
 
   useEffect(() => {
-    setPage(0);
+    setPage(0); // Reset page when search query changes
     loadContacts(0);
-  }, [contacts, searchQuery]);
+  }, [contacts, searchQuery]); // Added searchQuery as dependency
 
+  // Use ungroupedContacts directly since filtering is now handled in loadContacts
   const filteredContacts = ungroupedContacts;
 
   const loadMore = () => {
@@ -172,146 +168,95 @@ export const DeepSpaceView = ({ contacts }: DeepSpaceViewProps) => {
   );
 
   const handleContactSorted = () => {
-    loadContacts(0);
+    loadContacts(0); // Reload contacts to update counts
   };
 
   return (
-    <div className="absolute inset-0 overflow-y-auto bg-black/90">
-      <div className="container mx-auto p-4 relative z-10 h-full flex flex-col pb-40">
-        <div className="flex justify-between items-center mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contacts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-black/50 border-purple-500/50 text-white"
-            />
-          </div>
-          <Badge 
-            variant="outline" 
-            className="ml-4 bg-purple-900/50 border-purple-500/50 text-purple-100"
-          >
-            {isLoading ? "Loading..." : `${totalUngroupedCount} in Deep Space`}
-          </Badge>
+    <div className="absolute inset-0 overflow-y-auto bg-black/90 p-4 pb-40">
+      <div className="flex justify-between items-center mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search contacts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-black/50 border-purple-500/50 text-white"
+          />
         </div>
-
-        <Button
-          variant="outline"
-          onClick={() => setIsSorterOpen(true)}
-          className="w-full mb-8 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+        <Badge 
+          variant="outline" 
+          className="ml-4 bg-purple-900/50 border-purple-500/50 text-purple-100"
         >
-          Start Exploring: {sortedCount} contacts sorted
-        </Button>
-
-        <div className="flex-1 overflow-auto pb-16">
-          {isLoading ? (
-            <div className="flex items-center justify-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-            </div>
-          ) : (
-            <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {filteredContacts.map((contact) => (
-                  <Drawer key={contact.id}>
-                    <DrawerTrigger className="w-full">
-                      <div className="group relative flex flex-col items-center">
-                        <div 
-                          className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
-                          style={{
-                            background: getContactGradient(contact.id),
-                          }}
-                        >
-                          <div className="absolute inset-0 bg-black/10"></div>
-                          <span className="relative text-white font-semibold text-lg z-10">
-                            {getInitials(contact.name)}
-                          </span>
-                        </div>
-                        <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
-                          {contact.name}
-                        </span>
-                      </div>
-                    </DrawerTrigger>
-                    {renderContactDrawerContent(contact)}
-                  </Drawer>
-                ))}
-              </div>
-
-              {!searchQuery && hasMore && (
-                <div className="flex justify-center mt-8">
-                  <Button
-                    variant="outline"
-                    onClick={loadMore}
-                    disabled={isLoadingMore}
-                    className="bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
-                  >
-                    {isLoadingMore ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      'Load More Contacts'
-                    )}
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Bottom Contact Groups Overlay */}
-        <div className="fixed bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-4 pb-16 z-20">
-          <div className="container max-w-2xl mx-auto">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
-                  onClick={() => setIsGroupDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge
-                  variant="outline"
-                  className="cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50 text-sm"
-                  onClick={() => navigate("/contacts")}
-                >
-                  🏠 Back to Orbit View
-                </Badge>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50 z-30"
-          onClick={() => navigate("/")}
-        >
-          <ChevronUp className="h-6 w-6" />
-        </Button>
+          {isLoading ? "Loading..." : `${totalUngroupedCount} in Deep Space`}
+        </Badge>
       </div>
+
+      <Button
+        variant="outline"
+        onClick={() => setIsSorterOpen(true)}
+        className="w-full mb-8 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+      >
+        Start Exploring: {sortedCount} contacts sorted
+      </Button>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {filteredContacts.map((contact) => (
+              <Drawer key={contact.id}>
+                <DrawerTrigger className="w-full">
+                  <div className="group relative flex flex-col items-center">
+                    <div 
+                      className="h-20 w-20 rounded-full shadow-lg transition-transform duration-300 group-hover:scale-110 flex items-center justify-center relative overflow-hidden"
+                      style={{
+                        background: getContactGradient(contact.id),
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-black/10"></div>
+                      <span className="relative text-white font-semibold text-lg z-10">
+                        {getInitials(contact.name)}
+                      </span>
+                    </div>
+                    <span className="mt-2 text-sm text-white opacity-80 group-hover:opacity-100 transition-opacity duration-300">
+                      {contact.name}
+                    </span>
+                  </div>
+                </DrawerTrigger>
+                {renderContactDrawerContent(contact)}
+              </Drawer>
+            ))}
+          </div>
+
+          {!searchQuery && hasMore && (
+            <div className="flex justify-center mt-8">
+              <Button
+                variant="outline"
+                onClick={loadMore}
+                disabled={isLoadingMore}
+                className="bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50"
+              >
+                {isLoadingMore ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  'Load More Contacts'
+                )}
+              </Button>
+            </div>
+          )}
+        </>
+      )}
 
       <ContactSorter
         isOpen={isSorterOpen}
         onClose={() => setIsSorterOpen(false)}
         onContactSorted={handleContactSorted}
-      />
-
-      <GroupManagementDialog
-        open={isGroupDialogOpen}
-        onOpenChange={setIsGroupDialogOpen}
-        contacts={contacts}
-        onGroupCreated={() => {
-          queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
-          queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
-        }}
       />
     </div>
   );
