@@ -73,35 +73,35 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
           }}
         />
       </div>
-      <ScrollArea className="flex-1 px-4">
-        <div className="space-y-6 py-4 w-full">
-          <div className="w-full">
+      <ScrollArea className="flex-1">
+        <div className="px-4 py-4 flex flex-col gap-6 w-full max-w-full">
+          <section className="w-full max-w-full overflow-hidden">
             <h3 className="font-semibold text-muted-foreground mb-3">
               {selectedDay ? 'Events for Selected Day' : 'Upcoming Events'}
             </h3>
             {futureEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No upcoming events</p>
             ) : (
-              <div className="space-y-3 w-full max-w-full overflow-hidden">
+              <div className="flex flex-col gap-3 w-full max-w-full overflow-hidden">
                 {futureEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
               </div>
             )}
-          </div>
+          </section>
 
-          <div className="w-full">
+          <section className="w-full max-w-full overflow-hidden">
             <h3 className="font-semibold text-muted-foreground mb-3">Past Events</h3>
             {pastEvents.length === 0 ? (
               <p className="text-sm text-muted-foreground">No past events</p>
             ) : (
-              <div className="space-y-3 w-full max-w-full overflow-hidden">
+              <div className="flex flex-col gap-3 w-full max-w-full overflow-hidden">
                 {pastEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
               </div>
             )}
-          </div>
+          </section>
         </div>
       </ScrollArea>
       <div className="px-4 py-3 border-t bg-background">
