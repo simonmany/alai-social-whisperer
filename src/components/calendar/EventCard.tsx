@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { MapPin, Users, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -58,7 +59,7 @@ export const EventCard = ({
     <>
       <div 
         onClick={handleCardClick} 
-        className="p-4 border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors max-w-full"
+        className="p-4 border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors w-full"
       >
         {event.feedback_sent !== undefined && eventDate < now && (
           <div className="absolute top-2 right-2">
@@ -69,7 +70,7 @@ export const EventCard = ({
           </div>
         )}
         
-        <div className="space-y-2 pr-16">
+        <div className="space-y-2 pr-16 w-full">
           <h3 className="font-medium truncate">{event.title}</h3>
           
           {event.description && (
@@ -83,14 +84,14 @@ export const EventCard = ({
 
             {event.location && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                <MapPin className="h-3.5 w-3.5" />
                 <span className="truncate">{event.location}</span>
               </div>
             )}
 
             {event.attendees && event.attendees.length > 0 && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Users className="h-3.5 w-3.5 flex-shrink-0" />
+                <Users className="h-3.5 w-3.5" />
                 <span className="truncate">
                   {event.attendees.map(a => a.name).join(', ')}
                 </span>
