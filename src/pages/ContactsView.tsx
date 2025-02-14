@@ -757,11 +757,13 @@ const ContactsView = () => {
   if (showDeepSpace) {
     return (
       <div className="fixed inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
           style={{ 
             backgroundImage: 'url("/lovable-uploads/2d5625f4-eacc-494d-b391-4d338902ebb4.png")',
             backgroundSize: 'cover'
-          }}>
+          }}
+        >
           <div className="absolute inset-0 bg-black bg-opacity-50" />
         </div>
 
@@ -813,6 +815,11 @@ const ContactsView = () => {
                       {group.emoji || "👥"} {group.name}
                     </Badge>
                   ))}
-                  <Badge
-                    variant="default"
-                    className="cursor-pointer bg-purple-600 hover:bg-purple-800/50 text
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div className="absolute inset
