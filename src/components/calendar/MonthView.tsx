@@ -46,7 +46,7 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-4">
+      <div className="p-4">
         <Calendar
           mode="single"
           selected={selectedDay}
@@ -73,7 +73,8 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
           }}
         />
       </div>
-      <ScrollArea className="flex-1">
+
+      <ScrollArea>
         <div className="p-4 space-y-4">
           {/* Upcoming Events */}
           <div>
@@ -106,6 +107,7 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
           </div>
         </div>
       </ScrollArea>
+
       <div className="px-4 py-3 border-t bg-background">
         <CalendarPrompts onPrompt={onPrompt} type="month" />
       </div>
