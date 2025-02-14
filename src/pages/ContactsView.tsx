@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ChevronUp, Plus, ArrowLeft, Trash } from "lucide-react";
+import { Search, ChevronUp, Plus, ArrowLeft, Trash, Smile } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,9 @@ import { DeepSpaceView } from "@/components/DeepSpaceView";
 import { Contact } from "@/types/contacts";
 import { ContactCard } from "@/components/ContactCard";
 import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction } from "@/components/ui/alert-dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import data from '@emoji-mart/data';
+import Picker from '@emoji-mart/react';
 
 interface Group {
   id: string;
@@ -71,6 +74,7 @@ const ContactsView = () => {
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [showDeepSpace, setShowDeepSpace] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -196,6 +200,8 @@ const ContactsView = () => {
     queryFn: async () => {
       if (!session?.user?.id) return [];
 
+      console.log('Fetching contact groups for user:', session.user.id); // Debug log
+      
       const { data, error } = await supabase
         .from('contact_groups')
         .select('*')
@@ -208,9 +214,10 @@ const ContactsView = () => {
         { id: 'inner-orbit', name: 'Inner Orbit', emoji: '✨' }
       ];
       
+      console.log('Fetched groups:', data); // Debug log
       return [...defaultGroups, ...data] as Group[];
     },
-    enabled: !!session?.user?.id,
+    enabled: !!session?.user?.id
   });
 
   const { data: groupMemberships = [] } = useQuery<GroupMembership[]>({
@@ -514,6 +521,140 @@ const ContactsView = () => {
 
   const isDefaultGroup = selectedGroup === "Home" || selectedGroup === "Inner Orbit" || selectedGroup === "Deep Space";
 
+  const renderGroupHeader = () => {
+    if (selectedGroup === "Home" || selectedGroup === "Inner Orbit" || selectedGroup === "Deep Space") {
+      return null;
+    }
+
+    const groupData = groups.find(g => g.name === selectedGroup);
+    console.log('Group data for header:', { selectedGroup, groupData }); // Debug log
+
+    if (!groupData) return null;
+
+    return (
+      <div className="flex items-center justify-center gap-2 mb-8 relative z-50">
+        <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
+          <PopoverTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="text-4xl hover:opacity-80 transition-opacity p-0 h-auto"
+              onClick={() => setIsEmojiPickerOpen(true)}
+            >
+              {groupData.emoji || "👥"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent 
+            className="p-0 w-[352px] border-purple-500/50" 
+            side="bottom" 
+            align="center"
+          >
+            <Picker 
+              data={data} 
+              onEmojiSelect={handleEmojiSelect}
+              theme="dark"
+              previewPosition="none"
+              skinTonePosition="none"
+            />
+          </PopoverContent>
+        </Popover>
+        <h2 className="text-2xl font-bold text-white">{selectedGroup}</h2>
+      </div>
+    );
+  };
+
+  const handleDeleteGroup = async () => {
+    const groupToDelete = groups.find(g => g.name === selectedGroup);
+    if (!groupToDelete) return;
+
+    try {
+      // Delete all group memberships first
+      const { error: membershipError } = await supabase
+        .from('contact_group_memberships')
+        .delete()
+        .eq('group_id', groupToDelete.id);
+
+      if (membershipError) throw membershipError;
+
+      // Then delete the group itself
+      const { error: groupError } = await supabase
+        .from('contact_groups')
+        .delete()
+        .eq('id', groupToDelete.id);
+
+      if (groupError) throw groupError;
+
+      toast({
+        title: "Group deleted",
+        description: "The group and all its memberships have been removed.",
+      });
+
+      // Reset view to Home and refresh data
+      setSelectedGroup("Home");
+      queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+      queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
+    } catch (error: any) {
+      console.error('Error deleting group:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete the group. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setShowDeleteConfirmation(false);
+    }
+  };
+
+  const handleEmojiSelect = async (emoji: any) => { // Changed type to any to see full emoji object
+    console.log('Raw emoji object:', emoji); // Debug full emoji object
+    
+    const selectedGroupData = groups.find(g => g.name === selectedGroup);
+    if (!selectedGroupData || selectedGroupData.id === 'home' || selectedGroupData.id === 'inner-orbit') {
+      console.log('Invalid group selection:', { selectedGroup, selectedGroupData });
+      return;
+    }
+
+    console.log('Updating emoji for group:', {
+      groupId: selectedGroupData.id,
+      groupName: selectedGroupData.name,
+      newEmoji: emoji.native || emoji.unified
+    });
+
+    try {
+      // We'll use the native emoji character or the unified code
+      const emojiToUse = emoji.native || emoji.unified;
+      
+      const { data, error } = await supabase
+        .from('contact_groups')
+        .update({ emoji: emojiToUse })
+        .eq('id', selectedGroupData.id)
+        .select(); // Add select() to get back the updated record
+
+      if (error) throw error;
+
+      console.log('Supabase update response:', data); // Debug log
+
+      // Force an immediate refetch
+      await queryClient.invalidateQueries({ 
+        queryKey: ['contact_groups', session?.user?.id],
+        exact: true 
+      });
+      
+      toast({
+        title: "Success",
+        description: "Group emoji updated successfully",
+      });
+
+      setIsEmojiPickerOpen(false);
+    } catch (error: any) {
+      console.error('Error updating group emoji:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update group emoji",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (contactsError) {
     toast({
       title: "Error loading contacts",
@@ -572,7 +713,7 @@ const ContactsView = () => {
                     <Badge
                       key={group.id}
                       variant={selectedGroup === group.name ? "default" : "outline"}
-                      className={`cursor-pointer hover:bg-purple-800/50 ${
+                      className={`cursor-pointer hover:bg-purple-800/50 text-sm ${
                         selectedGroup === group.name
                           ? "bg-purple-600"
                           : "bg-purple-900/50 border-purple-500/50 text-purple-100"
@@ -619,48 +760,6 @@ const ContactsView = () => {
     );
   }
 
-  const handleDeleteGroup = async () => {
-    const groupToDelete = groups.find(g => g.name === selectedGroup);
-    if (!groupToDelete) return;
-
-    try {
-      // Delete all group memberships first
-      const { error: membershipError } = await supabase
-        .from('contact_group_memberships')
-        .delete()
-        .eq('group_id', groupToDelete.id);
-
-      if (membershipError) throw membershipError;
-
-      // Then delete the group itself
-      const { error: groupError } = await supabase
-        .from('contact_groups')
-        .delete()
-        .eq('id', groupToDelete.id);
-
-      if (groupError) throw groupError;
-
-      toast({
-        title: "Group deleted",
-        description: "The group and all its memberships have been removed.",
-      });
-
-      // Reset view to Home and refresh data
-      setSelectedGroup("Home");
-      queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
-      queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
-    } catch (error: any) {
-      console.error('Error deleting group:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete the group. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setShowDeleteConfirmation(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 overflow-hidden">
       <div 
@@ -686,7 +785,10 @@ const ContactsView = () => {
           </div>
 
           <div className="flex-1 relative">
-            {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
+            {renderGroupHeader()}
+            <div className="absolute inset-0 z-40">
+              {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
+            </div>
           </div>
 
           <div className="space-y-4 mb-16">
