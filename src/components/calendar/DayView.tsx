@@ -51,8 +51,8 @@ export const DayView = ({ events, onPrompt }: DayViewProps) => {
 
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1">
-        <div className="p-4 space-y-4">
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-4 py-4">
           {/* Past Events */}
           <div>
             <h3 className="font-semibold text-muted-foreground mb-3">Past</h3>
