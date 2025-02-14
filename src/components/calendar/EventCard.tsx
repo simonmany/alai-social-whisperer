@@ -60,11 +60,11 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
   return (
     <>
       <div 
-        className="p-4 rounded-lg border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors w-full overflow-hidden"
+        className="p-4 rounded-lg border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors max-w-full flex-shrink break-words"
         onClick={handleCardClick}
       >
         {event.feedback_sent !== undefined && eventDate < now && (
-          <div className="absolute top-2 right-2 z-10">
+          <div className="absolute top-2 right-2">
             <Badge variant={event.feedback_sent ? "default" : "outline"} className="flex items-center gap-1">
               <Check className={`h-3 w-3 ${event.feedback_sent ? "" : "opacity-50"}`} />
               <span className="text-xs">Feedback</span>
@@ -72,27 +72,27 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
           </div>
         )}
         
-        <div className="space-y-2 max-w-full">
-          <h3 className="font-medium text-sm truncate pr-20">{event.title}</h3>
+        <div className="space-y-2 pr-16">
+          <h3 className="font-medium text-sm truncate">{event.title}</h3>
           
           {event.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2 break-words">{event.description}</p>
           )}
           
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 min-w-0">
             <p className="text-sm text-muted-foreground">
               {format(new Date(event.start_time), 'h:mm a')}
             </p>
 
             {event.location && (
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
                 <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
                 <span className="truncate">{event.location}</span>
               </div>
             )}
 
             {event.attendees && event.attendees.length > 0 && (
-              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground min-w-0">
                 <Users className="h-3.5 w-3.5 flex-shrink-0" />
                 <span className="truncate">
                   {event.attendees.map(a => a.name).join(', ')}
