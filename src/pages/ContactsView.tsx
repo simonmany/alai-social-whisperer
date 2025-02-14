@@ -527,9 +527,55 @@ const ContactsView = () => {
     }
 
     const groupData = groups.find(g => g.name === selectedGroup);
-    console.log('Group data for header:', { selectedGroup, groupData }); // Debug log
+    console.log('Group data for header:', { selectedGroup, groupData });
 
     if (!groupData) return null;
+
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedName, setEditedName] = useState(groupData.name);
+
+    const handleNameSave = async () => {
+      if (!groupData || editedName.trim() === '' || editedName === groupData.name) {
+        setEditedName(groupData.name);
+        setIsEditing(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('contact_groups')
+          .update({ name: editedName.trim() })
+          .eq('id', groupData.id)
+          .select();
+
+        if (error) throw error;
+
+        console.log('Group name update response:', data);
+
+        // Force an immediate refetch
+        await queryClient.invalidateQueries({ 
+          queryKey: ['contact_groups', session?.user?.id],
+          exact: true 
+        });
+        
+        setSelectedGroup(editedName.trim());
+        setIsEditing(false);
+
+        toast({
+          title: "Success",
+          description: "Group name updated successfully",
+        });
+      } catch (error: any) {
+        console.error('Error updating group name:', error);
+        setEditedName(groupData.name);
+        toast({
+          title: "Error",
+          description: "Failed to update group name",
+          variant: "destructive",
+        });
+      }
+      setIsEditing(false);
+    };
 
     return (
       <div className="flex items-center justify-center gap-2 mb-8 relative z-50">
@@ -557,7 +603,31 @@ const ContactsView = () => {
             />
           </PopoverContent>
         </Popover>
-        <h2 className="text-2xl font-bold text-white">{selectedGroup}</h2>
+        
+        {isEditing ? (
+          <Input
+            value={editedName}
+            onChange={(e) => setEditedName(e.target.value)}
+            onBlur={handleNameSave}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                handleNameSave();
+              } else if (e.key === 'Escape') {
+                setEditedName(groupData.name);
+                setIsEditing(false);
+              }
+            }}
+            className="bg-purple-900/50 border-purple-500/50 text-white text-2xl font-bold w-auto min-w-[150px] max-w-[300px]"
+            autoFocus
+          />
+        ) : (
+          <h2 
+            className="text-2xl font-bold text-white cursor-pointer hover:text-purple-300 transition-colors"
+            onClick={() => setIsEditing(true)}
+          >
+            {groupData.name}
+          </h2>
+        )}
       </div>
     );
   };
