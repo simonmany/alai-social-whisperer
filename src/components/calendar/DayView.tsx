@@ -51,15 +51,15 @@ export const DayView = ({ events, onPrompt }: DayViewProps) => {
 
   return (
     <div className="flex flex-col h-full">
-      <ScrollArea className="flex-1 px-4">
-        <div className="space-y-4 py-4">
+      <ScrollArea className="flex-1">
+        <div className="space-y-4 py-4 px-4 min-w-0">
           {/* Past Events */}
-          <div>
+          <div className="min-w-0">
             <h3 className="font-semibold text-muted-foreground mb-3">Past</h3>
             {past.length === 0 ? (
               <p className="text-sm text-muted-foreground">No past events</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 min-w-0">
                 {past.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
@@ -80,12 +80,12 @@ export const DayView = ({ events, onPrompt }: DayViewProps) => {
           </div>
 
           {/* Future Events */}
-          <div>
+          <div className="min-w-0">
             <h3 className="font-semibold text-muted-foreground mb-3">Upcoming</h3>
             {future.length === 0 ? (
               <p className="text-sm text-muted-foreground">No upcoming events</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 min-w-0">
                 {future.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
