@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { CatchUpForm } from "@/components/goals/CatchUpForm";
+import { generateChatResponse } from "@/utils/openai";
 import {
   Select,
   SelectContent,
@@ -216,15 +218,20 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
 
           if (insertError) throw insertError;
         }
+
+        // Send feedback to AI through chat
+        const feedbackMessage = `I just had a ${selectedMood || 'great'} hang with ${selectedEvent.attendees.map(a => a.name).join(', ')} at ${selectedEvent.location || 'somewhere'}. ${description}`;
+        
+        const aiResponse = await generateChatResponse(feedbackMessage, selectedEvent.attendees[0]);
+
+        toast({
+          title: "Success",
+          description: "Feedback submitted successfully",
+        });
+
+        onSubmit(description);
+        onOpenChange(false);
       }
-
-      toast({
-        title: "Success",
-        description: "Feedback submitted successfully",
-      });
-
-      onSubmit(description);
-      onOpenChange(false);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
