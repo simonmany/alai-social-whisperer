@@ -200,6 +200,8 @@ const ContactsView = () => {
     queryFn: async () => {
       if (!session?.user?.id) return [];
 
+      console.log('Fetching contact groups for user:', session.user.id); // Debug log
+      
       const { data, error } = await supabase
         .from('contact_groups')
         .select('*')
@@ -212,11 +214,10 @@ const ContactsView = () => {
         { id: 'inner-orbit', name: 'Inner Orbit', emoji: '✨' }
       ];
       
+      console.log('Fetched groups:', data); // Debug log
       return [...defaultGroups, ...data] as Group[];
     },
-    enabled: !!session?.user?.id,
-    gcTime: 0,  // Replace cacheTime with gcTime
-    refetchInterval: 0  // Use refetchInterval instead of staleTime
+    enabled: !!session?.user?.id
   });
 
   const { data: groupMemberships = [] } = useQuery<GroupMembership[]>({
@@ -526,9 +527,9 @@ const ContactsView = () => {
     }
 
     const groupData = groups.find(g => g.name === selectedGroup);
-    if (!groupData) return null;
+    console.log('Group data for header:', { selectedGroup, groupData }); // Debug log
 
-    console.log('Rendering group header with data:', groupData); // Add logging
+    if (!groupData) return null;
 
     return (
       <div className="flex items-center justify-center gap-2 mb-8 relative z-50">
@@ -603,27 +604,40 @@ const ContactsView = () => {
     }
   };
 
-  const handleEmojiSelect = async (emoji: { id: string, native: string }) => {
-    console.log('Selected emoji:', emoji); // Add logging to debug
+  const handleEmojiSelect = async (emoji: any) => { // Changed type to any to see full emoji object
+    console.log('Raw emoji object:', emoji); // Debug full emoji object
     
     const selectedGroupData = groups.find(g => g.name === selectedGroup);
     if (!selectedGroupData || selectedGroupData.id === 'home' || selectedGroupData.id === 'inner-orbit') {
+      console.log('Invalid group selection:', { selectedGroup, selectedGroupData });
       return;
     }
 
-    console.log('Updating emoji for group:', selectedGroupData); // Add logging
+    console.log('Updating emoji for group:', {
+      groupId: selectedGroupData.id,
+      groupName: selectedGroupData.name,
+      newEmoji: emoji.native || emoji.unified
+    });
 
     try {
-      const { error } = await supabase
+      // We'll use the native emoji character or the unified code
+      const emojiToUse = emoji.native || emoji.unified;
+      
+      const { data, error } = await supabase
         .from('contact_groups')
-        .update({ emoji: emoji.native })
-        .eq('id', selectedGroupData.id);
+        .update({ emoji: emojiToUse })
+        .eq('id', selectedGroupData.id)
+        .select(); // Add select() to get back the updated record
 
       if (error) throw error;
 
-      // Force an immediate refetch of the groups data
-      await queryClient.invalidateQueries({ queryKey: ['contact_groups', session?.user?.id] });
-      await queryClient.refetchQueries({ queryKey: ['contact_groups', session?.user?.id] });
+      console.log('Supabase update response:', data); // Debug log
+
+      // Force an immediate refetch
+      await queryClient.invalidateQueries({ 
+        queryKey: ['contact_groups', session?.user?.id],
+        exact: true 
+      });
       
       toast({
         title: "Success",
