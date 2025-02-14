@@ -317,14 +317,13 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           if (insertError) throw insertError;
         }
       } else if (isManualEntry) {
-        // Create new event for manual entry with proper date formatting
+        // Create new event for manual entry
         const { data: event, error: eventError } = await supabase
           .from('calendar_events')
           .insert({
             title: manualActivity,
             description,
-            start_time: manualDate?.toISOString() || new Date().toISOString(), // Ensure we have a string
-            end_time: manualDate?.toISOString() || new Date().toISOString(), // Using same time for end for manual entries
+            start_time: manualDate,
             location: manualLocation,
             user_id: session.user.id,
             feedback_sent: true
@@ -335,7 +334,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         if (eventError) throw eventError;
 
         // Add attendees
-        if (selectedContacts.length > 0 && event) {
+        if (selectedContacts.length > 0) {
           const newAttendees = selectedContacts.map(contact => ({
             event_id: event.id,
             contact_id: contact.id
