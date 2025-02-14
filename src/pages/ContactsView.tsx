@@ -1,7 +1,8 @@
+<lov-code>
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Search, ChevronUp, Plus, ArrowLeft, Trash, Smile } from "lucide-react";
+import { Search, ChevronUp, Plus, ArrowLeft, Trash, Smile, Pencil } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -75,6 +76,8 @@ const ContactsView = () => {
   const [showDeepSpace, setShowDeepSpace] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
+  const [isEditingGroupName, setIsEditingGroupName] = useState(false);
+  const [editedGroupName, setEditedGroupName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -527,7 +530,7 @@ const ContactsView = () => {
     }
 
     const groupData = groups.find(g => g.name === selectedGroup);
-    console.log('Group data for header:', { selectedGroup, groupData }); // Debug log
+    console.log('Group data for header:', { selectedGroup, groupData });
 
     if (!groupData) return null;
 
@@ -557,7 +560,23 @@ const ContactsView = () => {
             />
           </PopoverContent>
         </Popover>
-        <h2 className="text-2xl font-bold text-white">{selectedGroup}</h2>
+        
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl font-bold text-white">
+            {groupData.name}
+          </h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 text-white/70 hover:text-white hover:bg-purple-900/50"
+            onClick={() => {
+              setEditedGroupName(groupData.name);
+              setIsEditingGroupName(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     );
   };
@@ -791,124 +810,4 @@ const ContactsView = () => {
             </div>
           </div>
 
-          <div className="space-y-4 mb-16">
-            {!isDefaultGroup && selectedGroup !== "Home" && (
-              <div className="flex justify-center mb-4">
-                <Button
-                  variant="ghost"
-                  className="bg-red-900/50 border border-red-500/50 text-white hover:bg-red-800/50 flex items-center gap-2"
-                  onClick={() => setShowDeleteConfirmation(true)}
-                >
-                  <Trash className="h-4 w-4" />
-                  Delete Group
-                </Button>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant={selectedGroup === "Home" ? "default" : "outline"}
-                className={`cursor-pointer hover:bg-purple-800/50 text-sm ${
-                  selectedGroup === "Home"
-                    ? "bg-purple-600"
-                    : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
-                }`}
-                onClick={() => setSelectedGroup("Home")}
-              >
-                🏠 Home
-              </Badge>
-              <Badge
-                variant={selectedGroup === "Inner Orbit" ? "default" : "outline"}
-                className={`cursor-pointer hover:bg-purple-800/50 text-sm ${
-                  selectedGroup === "Inner Orbit"
-                    ? "bg-purple-600"
-                    : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
-                }`}
-                onClick={() => setSelectedGroup("Inner Orbit")}
-              >
-                ✨ Inner Orbit
-              </Badge>
-              <Badge
-                variant="outline"
-                className="cursor-pointer hover:bg-purple-800/50 bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50 text-sm"
-                onClick={() => setShowDeepSpace(true)}
-              >
-                🌌 Deep Space
-              </Badge>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-lg font-semibold text-white">
-                  Contact Groups ({getUserCreatedGroups().length})
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5"
-                  onClick={() => setIsGroupDialogOpen(true)}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {getUserCreatedGroups().map((group) => (
-                  <Badge
-                    key={group.id}
-                    variant={selectedGroup === group.name ? "default" : "outline"}
-                    className={`cursor-pointer hover:bg-purple-800/50 ${
-                      selectedGroup === group.name
-                        ? "bg-purple-600"
-                        : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"
-                    }`}
-                    onClick={() => setSelectedGroup(group.name)}
-                  >
-                    {group.emoji || "👥"} {group.name}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50"
-            onClick={() => navigate("/")}
-          >
-            <ChevronUp className="h-6 w-6" />
-          </Button>
-        </div>
-      </div>
-
-      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Group</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure? Deleting this group will remove all members from it.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Go back</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteGroup} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <GroupManagementDialog
-        open={isGroupDialogOpen}
-        onOpenChange={setIsGroupDialogOpen}
-        contacts={contacts}
-        onGroupCreated={() => {
-          queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
-          queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
-        }}
-      />
-    </div>
-  );
-};
-
-export default ContactsView;
+          <div className="space-y
