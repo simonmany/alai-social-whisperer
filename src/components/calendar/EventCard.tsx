@@ -1,6 +1,6 @@
 
 import { format } from "date-fns";
-import { Users } from "lucide-react";
+import { MapPin, Users, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import FeedbackDialog from "@/components/FeedbackDialog";
@@ -33,7 +33,9 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
 
   const handleSubmit = async (message: string) => {
     try {
+      // Send feedback to AI
       await generateChatResponse(`Here's my feedback about ${event.title}: ${message}`);
+      
       setShowFeedback(false);
     } catch (error) {
       console.error('Error sending feedback to AI:', error);
@@ -47,8 +49,10 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
 
   const handleCardClick = () => {
     if (eventDate > now) {
+      // Future event - open planning dialog
       setShowPlanning(true);
     } else {
+      // Past event - open feedback dialog
       setShowFeedback(true);
     }
   };
@@ -56,29 +60,46 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
   return (
     <>
       <div 
-        className="bg-white rounded-lg border shadow-sm p-4 cursor-pointer hover:bg-muted/50 transition-colors relative"
+        className="p-4 rounded-lg border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors"
         onClick={handleCardClick}
       >
-        <div>
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-medium">{event.title}</h3>
-            {event.feedback_sent !== undefined && eventDate < now && (
-              <Badge variant="secondary" className="ml-2">
-                Feedback
-              </Badge>
+        {event.feedback_sent !== undefined && eventDate < now && (
+          <div className="absolute top-2 right-2">
+            <Badge variant={event.feedback_sent ? "default" : "outline"} className="flex items-center gap-1">
+              <Check className={`h-3 w-3 ${event.feedback_sent ? "" : "opacity-50"}`} />
+              <span className="text-xs">Feedback</span>
+            </Badge>
+          </div>
+        )}
+        
+        <div className="space-y-2 pr-16">
+          <h3 className="font-medium text-sm truncate">{event.title}</h3>
+          
+          {event.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">{event.description}</p>
+          )}
+          
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(event.start_time), 'h:mm a')}
+            </p>
+
+            {event.location && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">{event.location}</span>
+              </div>
+            )}
+
+            {event.attendees && event.attendees.length > 0 && (
+              <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Users className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">
+                  {event.attendees.map(a => a.name).join(', ')}
+                </span>
+              </div>
             )}
           </div>
-          
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(event.start_time), 'h:mm A')}
-          </p>
-
-          {event.attendees && event.attendees.length > 0 && (
-            <div className="flex items-center gap-1.5 mt-2 text-sm text-muted-foreground">
-              <Users className="h-3.5 w-3.5" />
-              <span>{event.attendees.map(a => a.name).join(', ')}</span>
-            </div>
-          )}
         </div>
       </div>
 
@@ -99,6 +120,7 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
         defaultContacts={event.attendees?.map(a => ({ 
           id: a.id, 
           name: a.name,
+          // Add required Contact interface fields with default values
           email: null,
           created_at: new Date().toISOString(),
           user_id: '',

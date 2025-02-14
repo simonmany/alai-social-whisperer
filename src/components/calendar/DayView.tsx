@@ -2,7 +2,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EventCard } from "./EventCard";
 import { CalendarPrompts } from "@/components/CalendarPrompts";
-import { startOfDay, endOfDay, isWithinInterval, isPast, format } from "date-fns";
+import { startOfDay, endOfDay, isWithinInterval, isPast } from "date-fns";
 
 interface CalendarEvent {
   id: string;
@@ -34,28 +34,69 @@ const filterEventsForToday = (events: CalendarEvent[]) => {
   });
 };
 
+const groupEventsByTimeOfDay = (events: CalendarEvent[]) => {
+  const now = new Date();
+  const pastEvents = events.filter(e => isPast(new Date(e.start_time)));
+  const futureEvents = events.filter(e => !isPast(new Date(e.start_time)));
+
+  return {
+    past: pastEvents,
+    future: futureEvents
+  };
+};
+
 export const DayView = ({ events, onPrompt }: DayViewProps) => {
   const todayEvents = filterEventsForToday(events);
-  const now = new Date();
-  const day = format(now, 'EEEE (M/d)');
+  const { past, future } = groupEventsByTimeOfDay(todayEvents);
 
   return (
-    <div className="flex flex-col h-full">
-      <ScrollArea>
-        <div className="p-4">
-          <h2 className="font-medium text-lg mb-4">{day}</h2>
-          <div className="space-y-3">
-            {todayEvents.length === 0 ? (
-              <p className="text-muted-foreground">No events scheduled</p>
-            ) : (
-              todayEvents.map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))
-            )}
+    <div className="flex flex-col h-full w-full overflow-hidden">
+      <ScrollArea className="flex-1">
+        <div className="w-full">
+          <div className="space-y-4 py-4 px-4">
+            {/* Past Events */}
+            <div>
+              <h3 className="font-semibold text-muted-foreground mb-3">Past</h3>
+              {past.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No past events</p>
+              ) : (
+                <div className="space-y-3">
+                  {past.map((event) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Divider Line */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-[#8E9196]"></div>
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-background px-2 text-sm text-muted-foreground">
+                  Now
+                </span>
+              </div>
+            </div>
+
+            {/* Future Events */}
+            <div>
+              <h3 className="font-semibold text-muted-foreground mb-3">Upcoming</h3>
+              {future.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No upcoming events</p>
+              ) : (
+                <div className="space-y-3">
+                  {future.map((event) => (
+                    <EventCard key={event.id} event={event} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </ScrollArea>
-      <div className="mt-auto px-4 py-3 border-t bg-background">
+      <div className="px-4 py-3 border-t bg-background">
         <CalendarPrompts onPrompt={onPrompt} type="day" />
       </div>
     </div>
