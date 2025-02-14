@@ -1,4 +1,3 @@
-<lov-code>
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -816,4 +815,4 @@ const ContactsView = () => {
                   ))}
                   <Badge
                     variant="default"
-                    className="cursor-pointer bg-purple-600 hover:bg-purple-800/
+                    className="cursor-pointer bg-purple-600 hover:bg-purple-800/50 text
