@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Archive, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
+import { Button } from "@/components/ui/button";
 
 interface CatchUpFormProps {
   friendInput: string;
@@ -117,6 +118,16 @@ export const CatchUpForm = ({ friendInput, onChange, onSelect }: CatchUpFormProp
             </button>
           </div>
         </div>
+      )}
+
+      {selectedContact && onSelect && (
+        <Button 
+          className="w-full h-8 mt-2" 
+          size="sm"
+          onClick={() => onSelect(selectedContact)}
+        >
+          Add to event
+        </Button>
       )}
     </div>
   );
