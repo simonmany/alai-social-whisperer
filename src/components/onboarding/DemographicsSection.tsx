@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { ChatInput } from "@/components/ChatInput";
@@ -377,7 +376,6 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
             <ChatInput
               onSend={(value) => setOccupation(value)}
               placeholder="What do you do for work?"
-              showSendButton={false}
               initialValue={occupation}
             />
             <Button 
