@@ -215,8 +215,8 @@ const ContactsView = () => {
       return [...defaultGroups, ...data] as Group[];
     },
     enabled: !!session?.user?.id,
-    staleTime: 0, // Always treat data as stale
-    cacheTime: 0  // Don't cache the data
+    gcTime: 0,  // Replace cacheTime with gcTime
+    refetchInterval: 0  // Use refetchInterval instead of staleTime
   });
 
   const { data: groupMemberships = [] } = useQuery<GroupMembership[]>({
