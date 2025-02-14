@@ -88,7 +88,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     enabled: !!contactInput && !!session?.user?.id
   });
 
-  // Modified query to handle events without attendees
+  // Query to fetch specific event details when selectedEventId is provided
   const { data: eventDetails } = useQuery({
     queryKey: ['event-details', selectedEventId],
     queryFn: async () => {
@@ -98,7 +98,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         .from('calendar_events')
         .select(`
           *,
-          event_attendees!left (
+          event_attendees!inner (
             contacts!contact_id (
               id,
               name,
@@ -107,7 +107,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           )
         `)
         .eq('id', selectedEventId)
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
       
@@ -117,15 +117,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           title: event.title,
           date: new Date(event.start_time),
           location: event.location || "No location specified",
-          attendees: event.event_attendees
-            ? event.event_attendees
-                .filter((ea: any) => ea.contacts) // Filter out null attendees
-                .map((ea: any) => ({
-                  id: ea.contacts.id,
-                  name: ea.contacts.name,
-                  is_archived: ea.contacts.is_archived
-                }))
-            : []
+          attendees: event.event_attendees.map((ea: any) => ({
+            id: ea.contacts.id,
+            name: ea.contacts.name,
+            is_archived: ea.contacts.is_archived
+          }))
         };
 
         if (event.description) {
