@@ -527,7 +527,7 @@ const ContactsView = () => {
     if (!groupData) return null;
 
     return (
-      <div className="flex items-center justify-center gap-2 mb-8">
+      <div className="flex items-center justify-center gap-2 mb-8 relative z-50">
         <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
           <PopoverTrigger asChild>
             <Button 
@@ -761,7 +761,9 @@ const ContactsView = () => {
 
           <div className="flex-1 relative">
             {renderGroupHeader()}
-            {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
+            <div className="absolute inset-0 z-40">
+              {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
+            </div>
           </div>
 
           <div className="space-y-4 mb-16">
