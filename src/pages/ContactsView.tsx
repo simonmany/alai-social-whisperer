@@ -820,4 +820,42 @@ const ContactsView = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50 z-30"
+            onClick={() => setShowDeepSpace(false)}
+          >
+            <ChevronUp className="h-6 w-6" />
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-screen w-full overflow-hidden">
+      <div className="absolute inset-0">
+        {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
+      </div>
+      {renderGroupHeader()}
+      <GroupManagementDialog 
+        open={isGroupDialogOpen} 
+        onOpenChange={setIsGroupDialogOpen} 
+      />
+      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this group? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteGroup}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default ContactsView;
