@@ -1,4 +1,3 @@
-<lov-code>
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -780,34 +779,22 @@ const ContactsView = () => {
   }
 
   return (
-    <div className="fixed inset-0 overflow-hidden">
-      <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat" 
-        style={{ 
-          backgroundImage: 'url("/lovable-uploads/2d5625f4-eacc-494d-b391-4d338902ebb4.png")',
-          backgroundSize: 'cover'
-        }}
-      >
-        <div className="absolute inset-0 bg-black bg-opacity-50" />
+    <div className="relative h-screen w-full overflow-hidden">
+      <div className="absolute inset-0">
+        {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
       </div>
+      {renderGroupHeader()}
+      <GroupManagementDialog 
+        open={isGroupDialogOpen} 
+        onOpenChange={setIsGroupDialogOpen}
+        contacts={contacts}
+        onGroupCreated={() => {
+          queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+          queryClient.invalidateQueries({ queryKey: ['group_memberships'] });
+        }}
+      />
+    </div>
+  );
+};
 
-      <div className="container max-w-2xl mx-auto p-4 h-full relative z-10">
-        <div className="relative flex flex-col h-full">
-          <div className="relative mb-8">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search contacts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-black/50 border-purple-500/50 text-white"
-            />
-          </div>
-
-          <div className="flex-1 relative">
-            {renderGroupHeader()}
-            <div className="absolute inset-0 z-40">
-              {selectedGroup === "Home" ? renderHomeView() : renderGroupView()}
-            </div>
-          </div>
-
-          <div className="space-y
+export default ContactsView;
