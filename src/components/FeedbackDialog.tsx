@@ -16,7 +16,8 @@ import { CalendarIcon, Archive, ArrowLeft, UserPlus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { CatchUpForm } from "@/components/goals/CatchUpForm";
-import { ContactsDialog } from "@/components/ContactsDialog";
+import ContactsDialog from "@/components/ContactsDialog";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
