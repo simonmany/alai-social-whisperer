@@ -60,7 +60,7 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
   return (
     <>
       <div 
-        className="p-4 rounded-lg border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors"
+        className="p-4 rounded-lg border bg-card text-card-foreground relative cursor-pointer hover:bg-accent/50 transition-colors w-full overflow-hidden"
         onClick={handleCardClick}
       >
         {event.feedback_sent !== undefined && eventDate < now && (
@@ -72,11 +72,11 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
           </div>
         )}
         
-        <div className="space-y-2">
-          <h3 className="font-medium">{event.title}</h3>
+        <div className="space-y-2 pr-16">
+          <h3 className="font-medium truncate">{event.title}</h3>
           
           {event.description && (
-            <p className="text-sm text-muted-foreground">{event.description}</p>
+            <p className="text-sm text-muted-foreground line-clamp-2 break-words">{event.description}</p>
           )}
           
           <div className="flex flex-col gap-1.5">
@@ -86,15 +86,15 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
 
             {event.location && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <MapPin className="h-3.5 w-3.5" />
-                <span>{event.location}</span>
+                <MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">{event.location}</span>
               </div>
             )}
 
             {event.attendees && event.attendees.length > 0 && (
               <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Users className="h-3.5 w-3.5" />
-                <span>
+                <Users className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">
                   {event.attendees.map(a => a.name).join(', ')}
                 </span>
               </div>
@@ -129,4 +129,3 @@ export const EventCard = ({ event }: { event: CalendarEvent }) => {
     </>
   );
 };
-
