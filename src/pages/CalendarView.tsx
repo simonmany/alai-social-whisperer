@@ -186,7 +186,7 @@ const CalendarView = () => {
     <Sheet open={true}>
       <SheetContent
         side="left"
-        className="w-full sm:w-[540px] p-0 flex flex-col h-full"
+        className="w-full sm:w-[540px] p-0 flex flex-col h-full overflow-hidden"
         onPointerDownOutside={() => navigate("/")}
         showCloseButton={false}
       >
@@ -216,7 +216,7 @@ const CalendarView = () => {
             </div>
           )}
 
-          <Tabs defaultValue="day" className="flex-1 flex flex-col min-h-0">
+          <Tabs defaultValue="day" className="flex-1 flex flex-col min-h-0 w-full">
             <div className="px-4 pt-2">
               <TabsList className="w-full">
                 <TabsTrigger value="day" className="flex-1">
@@ -238,14 +238,14 @@ const CalendarView = () => {
                 </p>
               </div>
             ) : (
-              <div className="flex-1 min-h-0">
-                <TabsContent value="day" className="h-full m-0 p-0">
+              <div className="flex-1 min-h-0 w-full">
+                <TabsContent value="day" className="h-full m-0 p-0 w-full">
                   <DayView events={calendarData.events} onPrompt={handlePrompt} />
                 </TabsContent>
-                <TabsContent value="week" className="h-full m-0 p-0">
+                <TabsContent value="week" className="h-full m-0 p-0 w-full">
                   <WeekView events={calendarData.events} onPrompt={handlePrompt} />
                 </TabsContent>
-                <TabsContent value="month" className="h-full m-0 p-0">
+                <TabsContent value="month" className="h-full m-0 p-0 w-full">
                   <MonthView events={calendarData.events} onPrompt={handlePrompt} />
                 </TabsContent>
               </div>
