@@ -526,6 +526,8 @@ const ContactsView = () => {
     const groupData = groups.find(g => g.name === selectedGroup);
     if (!groupData) return null;
 
+    console.log('Rendering group header with data:', groupData); // Add logging
+
     return (
       <div className="flex items-center justify-center gap-2 mb-8 relative z-50">
         <Popover open={isEmojiPickerOpen} onOpenChange={setIsEmojiPickerOpen}>
@@ -599,11 +601,15 @@ const ContactsView = () => {
     }
   };
 
-  const handleEmojiSelect = async (emoji: { native: string }) => {
+  const handleEmojiSelect = async (emoji: { id: string, native: string }) => {
+    console.log('Selected emoji:', emoji); // Add logging to debug
+    
     const selectedGroupData = groups.find(g => g.name === selectedGroup);
     if (!selectedGroupData || selectedGroupData.id === 'home' || selectedGroupData.id === 'inner-orbit') {
       return;
     }
+
+    console.log('Updating emoji for group:', selectedGroupData); // Add logging
 
     try {
       const { error } = await supabase
@@ -613,12 +619,14 @@ const ContactsView = () => {
 
       if (error) throw error;
 
+      // Wait for the query to invalidate and refetch
+      await queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
+      
       toast({
         title: "Success",
         description: "Group emoji updated successfully",
       });
 
-      queryClient.invalidateQueries({ queryKey: ['contact_groups'] });
       setIsEmojiPickerOpen(false);
     } catch (error: any) {
       console.error('Error updating group emoji:', error);
@@ -688,7 +696,7 @@ const ContactsView = () => {
                     <Badge
                       key={group.id}
                       variant={selectedGroup === group.name ? "default" : "outline"}
-                      className={`cursor-pointer hover:bg-purple-800/50 ${
+                      className={`cursor-pointer hover:bg-purple-800/50 text-sm ${
                         selectedGroup === group.name
                           ? "bg-purple-600"
                           : "bg-purple-900/50 border-purple-500/50 text-purple-100"
