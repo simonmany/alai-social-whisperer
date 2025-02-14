@@ -16,7 +16,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { CatchUpForm } from "@/components/goals/CatchUpForm";
-import { generateChatResponse } from "@/utils/openai";
 import {
   Select,
   SelectContent,
@@ -62,55 +61,10 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [selectedContactIndex, setSelectedContactIndex] = useState<number>(-1);
   const [contactInput, setContactInput] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
   const [moodOptions] = useState([
     "fun", "chill", "deep", "productive", "nostalgic", "exciting", "meaningful"
   ]);
-
-  // Query to fetch past events needing feedback
-  const { data: pastEvents = [] } = useQuery({
-    queryKey: ['past-events-needing-feedback'],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select(`
-          *,
-          event_attendees!left (
-            contacts!contact_id (
-              id,
-              name,
-              is_archived
-            )
-          )
-        `)
-        .eq('user_id', session.user.id)
-        .eq('feedback_sent', false)
-        .lt('end_time', new Date().toISOString())
-        .order('start_time', { ascending: false });
-
-      if (error) throw error;
-
-      return data.map(event => ({
-        id: event.id,
-        title: event.title,
-        date: new Date(event.start_time),
-        location: event.location || "No location specified",
-        attendees: event.event_attendees
-          ? event.event_attendees
-              .filter((ea: any) => ea.contacts)
-              .map((ea: any) => ({
-                id: ea.contacts.id,
-                name: ea.contacts.name,
-                is_archived: ea.contacts.is_archived
-              }))
-          : []
-      }));
-    },
-    enabled: open && !selectedEventId
-  });
 
   // Query to fetch filtered contacts
   const { data: filteredContacts = [] } = useQuery({
@@ -134,7 +88,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     enabled: !!contactInput && !!session?.user?.id
   });
 
-  // Query to fetch event details
+  // Modified query to handle events without attendees
   const { data: eventDetails } = useQuery({
     queryKey: ['event-details', selectedEventId],
     queryFn: async () => {
@@ -191,30 +145,13 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     enabled: !!selectedEventId && open
   });
 
+  // Set selectedEvent when eventDetails changes
   useEffect(() => {
     if (eventDetails) {
       setSelectedEvent(eventDetails);
       setIsManualEntry(false);
     }
   }, [eventDetails]);
-
-  const handleSelectPastEvent = (event: Event) => {
-    setSelectedEvent(event);
-    setIsManualEntry(false);
-    setHangDescription("");
-    setSelectedMood("");
-  };
-
-  const handleStartManualEntry = () => {
-    setIsManualEntry(true);
-    setSelectedEvent({
-      id: crypto.randomUUID(),
-      title: "Manual Entry",
-      date: selectedDate,
-      location: "",
-      attendees: []
-    });
-  };
 
   const handleContactSelect = (contact: Contact) => {
     if (selectedEvent) {
@@ -248,84 +185,46 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
       }
 
       if (selectedEvent) {
-        if (isManualEntry) {
-          // Create new event for manual entry
-          const { data: newEvent, error: createError } = await supabase
-            .from('calendar_events')
-            .insert({
-              user_id: session.user.id,
-              title: "Manual Hang",
-              start_time: selectedDate,
-              end_time: selectedDate,
-              description,
-              location: selectedEvent.location,
-              feedback_sent: true
-            })
-            .select()
-            .single();
+        // Update event description and feedback status
+        const { error: eventError } = await supabase
+          .from('calendar_events')
+          .update({
+            description,
+            feedback_sent: true
+          })
+          .eq('id', selectedEvent.id);
 
-          if (createError) throw createError;
+        if (eventError) throw eventError;
 
-          // Insert attendees for manual entry
-          if (selectedEvent.attendees.length > 0) {
-            const newAttendees = selectedEvent.attendees.map(attendee => ({
-              event_id: newEvent.id,
-              contact_id: attendee.id
-            }));
+        // Update event attendees
+        const { error: attendeesError } = await supabase
+          .from('event_attendees')
+          .delete()
+          .eq('event_id', selectedEvent.id);
 
-            const { error: attendeesError } = await supabase
-              .from('event_attendees')
-              .insert(newAttendees);
+        if (attendeesError) throw attendeesError;
 
-            if (attendeesError) throw attendeesError;
-          }
-        } else {
-          // Update existing event
-          const { error: eventError } = await supabase
-            .from('calendar_events')
-            .update({
-              description,
-              feedback_sent: true
-            })
-            .eq('id', selectedEvent.id);
+        const newAttendees = selectedEvent.attendees.map(attendee => ({
+          event_id: selectedEvent.id,
+          contact_id: attendee.id
+        }));
 
-          if (eventError) throw eventError;
-
-          // Update event attendees
-          const { error: attendeesError } = await supabase
+        if (newAttendees.length > 0) {
+          const { error: insertError } = await supabase
             .from('event_attendees')
-            .delete()
-            .eq('event_id', selectedEvent.id);
+            .insert(newAttendees);
 
-          if (attendeesError) throw attendeesError;
-
-          const newAttendees = selectedEvent.attendees.map(attendee => ({
-            event_id: selectedEvent.id,
-            contact_id: attendee.id
-          }));
-
-          if (newAttendees.length > 0) {
-            const { error: insertError } = await supabase
-              .from('event_attendees')
-              .insert(newAttendees);
-
-            if (insertError) throw insertError;
-          }
+          if (insertError) throw insertError;
         }
-
-        // Send feedback to AI through chat
-        const feedbackMessage = `I just had a ${selectedMood || 'great'} hang with ${selectedEvent.attendees.map(a => a.name).join(', ')} at ${selectedEvent.location || 'somewhere'}. ${description}`;
-        
-        const aiResponse = await generateChatResponse(feedbackMessage, selectedEvent.attendees[0]);
-
-        toast({
-          title: "Success",
-          description: "Feedback submitted successfully",
-        });
-
-        onSubmit(description);
-        onOpenChange(false);
       }
+
+      toast({
+        title: "Success",
+        description: "Feedback submitted successfully",
+      });
+
+      onSubmit(description);
+      onOpenChange(false);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
@@ -345,89 +244,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           </DialogHeader>
           
           <div className="space-y-6 py-4">
-            {!selectedEvent && !selectedEventId && (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Recent hangs needing feedback:</h4>
-                  {pastEvents.length > 0 ? (
-                    <div className="space-y-2">
-                      {pastEvents.map((event) => (
-                        <button
-                          key={event.id}
-                          onClick={() => handleSelectPastEvent(event)}
-                          className="w-full p-3 text-left border rounded-lg hover:bg-accent transition-colors"
-                        >
-                          <div className="font-medium">{event.title}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {format(event.date, "EEEE, MMMM d 'at' h:mm a")}
-                          </div>
-                          {event.attendees.length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {event.attendees.map((attendee) => (
-                                <div
-                                  key={attendee.id}
-                                  className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                                >
-                                  <Avatar className="h-4 w-4">
-                                    <AvatarFallback className="text-[10px]">
-                                      {getInitials(attendee.name)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span>{attendee.name}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No recent events found needing feedback.</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <h4 className="text-sm font-medium">Or add something off the books:</h4>
-                  <div className="p-4 border rounded-lg space-y-4">
-                    <div className="grid gap-2">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium mb-1.5">When did you hang?</span>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "justify-start text-left font-normal",
-                                !selectedDate && "text-muted-foreground"
-                              )}
-                            >
-                              <CalendarIcon className="mr-2 h-4 w-4" />
-                              {selectedDate ? format(selectedDate, "PPP") : "Pick a date"}
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0">
-                            <Calendar
-                              mode="single"
-                              selected={selectedDate}
-                              onSelect={(date) => date && setSelectedDate(date)}
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                    </div>
-                    <Button
-                      className="w-full"
-                      variant="secondary"
-                      onClick={handleStartManualEntry}
-                    >
-                      Add Manual Entry
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {(selectedEvent || selectedEventId) && (
               <div className="space-y-4">
                 <div className="p-4 border rounded-lg bg-accent/5">
@@ -545,7 +361,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
               </div>
             )}
 
-            {(selectedEvent || selectedEventId) && (
+            {(selectedEvent || (selectedEventId)) && (
               <Button className="w-full" onClick={handleSubmit}>
                 Submit Feedback
               </Button>
