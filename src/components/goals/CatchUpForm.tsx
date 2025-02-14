@@ -6,13 +6,15 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Archive, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
+import { Button } from "@/components/ui/button";
 
 interface CatchUpFormProps {
   friendInput: string;
   onChange: (value: string) => void;
+  onSelect?: (contact: Contact) => void;
 }
 
-export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
+export const CatchUpForm = ({ friendInput, onChange, onSelect }: CatchUpFormProps) => {
   const [contactInput, setContactInput] = useState('');
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
@@ -59,9 +61,14 @@ export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
     onChange('');
   };
 
+  const handleSubmit = () => {
+    if (selectedContact && onSelect) {
+      onSelect(selectedContact);
+    }
+  };
+
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">Who would you like to catch up with?</p>
       <div className="relative">
         <Input
           placeholder="Type to search contacts..."
@@ -114,6 +121,16 @@ export const CatchUpForm = ({ friendInput, onChange }: CatchUpFormProps) => {
             </button>
           </div>
         </div>
+      )}
+
+      {selectedContact && (
+        <Button 
+          className="w-full h-8 mt-2" 
+          size="sm"
+          onClick={handleSubmit}
+        >
+          Add to event
+        </Button>
       )}
     </div>
   );

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Phone, Instagram, Linkedin, Twitter, Archive, Calendar } from "lucide-react";
+import { Phone, Instagram, Linkedin, Twitter, Archive, Calendar, Trash2 } from "lucide-react";
 import { Contact, ContactEvent } from "@/types/contacts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ import ContactGroupsManager from "@/components/ContactGroupsManager";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogHeader, AlertDialogTitle, AlertDialogCancel, AlertDialogAction, AlertDialogFooter } from "@/components/ui/alert-dialog";
 
 interface ContactCardProps extends Contact {
   meetingStory?: string;
@@ -33,6 +34,7 @@ export const ContactCard = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const getClosenessLabel = (value: number | undefined | null) => {
     if (value === undefined || value === null) return null;
@@ -97,6 +99,54 @@ export const ContactCard = ({
     }
   };
 
+  const handleDeleteContact = async () => {
+    if (!id) return;
+    
+    setIsUpdating(true);
+    try {
+      // First delete all group memberships
+      const { error: membershipError } = await supabase
+        .from('contact_group_memberships')
+        .delete()
+        .eq('contact_id', id);
+
+      if (membershipError) throw membershipError;
+
+      // Then delete all event attendees records
+      const { error: attendeeError } = await supabase
+        .from('event_attendees')
+        .delete()
+        .eq('contact_id', id);
+
+      if (attendeeError) throw attendeeError;
+
+      // Finally delete the contact
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Contact deleted",
+        description: `${name} has been permanently deleted.`,
+      });
+
+      // Invalidate queries to refresh the contacts list
+      queryClient.invalidateQueries({ queryKey: ['contacts'] });
+    } catch (error: any) {
+      toast({
+        title: "Error deleting contact",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdating(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   // Fetch past and upcoming events for this contact
   const { data: events = [] } = useQuery({
     queryKey: ['contact-events', id],
@@ -141,6 +191,16 @@ export const ContactCard = ({
 
   return (
     <Card className="w-full max-w-3xl mx-auto bg-black/60 shadow-xl relative border-purple-500/20 backdrop-blur-sm">
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowDeleteConfirm(true)}
+        disabled={isUpdating}
+        className="absolute -top-2 -left-2 z-50 flex items-center gap-1 shadow-xl backdrop-blur-sm border text-xs font-medium h-8 bg-red-950/60 border-red-500/20 text-red-200 hover:bg-red-900/60"
+      >
+        <Trash2 className="h-3 w-3" />
+        Delete
+      </Button>
       <Button
         variant="outline"
         size="sm"
@@ -301,6 +361,27 @@ export const ContactCard = ({
           </div>
         )}
       </CardContent>
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent className="bg-black/90 border-red-500/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Contact</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete {name}? This action cannot be undone and will remove them from all groups and events.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-black/60 border-purple-500/20 hover:bg-purple-900/20">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteContact}
+              className="bg-red-600/90 hover:bg-red-700/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 };

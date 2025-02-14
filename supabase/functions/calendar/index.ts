@@ -235,25 +235,41 @@ serve(async (req: Request) => {
     }
 
     // Transform events
-    const events = data.items.map((event: any) => {
-      // Parse dates to ensure they're valid timestamps and in UTC
+    const events = await Promise.all(data.items.map(async (event: any) => {
       const startTime = event.start?.dateTime || event.start?.date;
       const endTime = event.end?.dateTime || event.end?.date;
       
-      // Convert to UTC if not already
+      // Convert to UTC
       const startUTC = new Date(startTime);
       const endUTC = new Date(endTime);
+
+      // Check for existing event data - using maybeSingle() and left join
+      const { data: existingEvent } = await supabase
+        .from('calendar_events')
+        .select(`
+          description,
+          feedback_sent,
+          event_attendees!left (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('google_event_id', event.id)
+        .maybeSingle();
       
       return {
         user_id: user.id,
         google_event_id: event.id,
         title: event.summary || 'Untitled Event',
-        description: event.description || null,
-        start_time: startUTC.toISOString(), // This ensures UTC format
-        end_time: endUTC.toISOString(), // This ensures UTC format
+        description: existingEvent?.description || event.description || null,
+        start_time: startUTC.toISOString(),
+        end_time: endUTC.toISOString(),
+        feedback_sent: existingEvent?.feedback_sent || false,
         updated_at: new Date().toISOString()
       };
-    });
+    }));
 
     // Log the transformed events
     console.log('Transformed events:', {
@@ -261,17 +277,20 @@ serve(async (req: Request) => {
       firstEvent: events[0] ? {
         id: events[0].google_event_id,
         title: events[0].title,
-        start: events[0].start_time,
-        end: events[0].end_time
+        hasStart: !!events[0].start_time,
+        hasEnd: !!events[0].end_time
       } : null
     });
 
     // Only attempt database save if we have events
     if (events.length > 0) {
-      // Save to database
+      // Save to database using upsert
       const { error: dbError } = await supabase
         .from('calendar_events')
-        .upsert(events, { onConflict: 'google_event_id' });
+        .upsert(events, { 
+          onConflict: 'google_event_id',
+          ignoreDuplicates: false
+        });
 
       if (dbError) {
         console.error('Database error:', {
