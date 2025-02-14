@@ -6,7 +6,6 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Archive, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { Button } from "@/components/ui/button";
 
 interface CatchUpFormProps {
   friendInput: string;
@@ -54,17 +53,14 @@ export const CatchUpForm = ({ friendInput, onChange, onSelect }: CatchUpFormProp
     setSelectedContact(contact);
     onChange(contact.name);
     setContactInput('');
+    if (onSelect) {
+      onSelect(contact);
+    }
   };
 
   const handleRemoveContact = () => {
     setSelectedContact(null);
     onChange('');
-  };
-
-  const handleSubmit = () => {
-    if (selectedContact && onSelect) {
-      onSelect(selectedContact);
-    }
   };
 
   return (
@@ -121,16 +117,6 @@ export const CatchUpForm = ({ friendInput, onChange, onSelect }: CatchUpFormProp
             </button>
           </div>
         </div>
-      )}
-
-      {selectedContact && (
-        <Button 
-          className="w-full h-8 mt-2" 
-          size="sm"
-          onClick={handleSubmit}
-        >
-          Add to event
-        </Button>
       )}
     </div>
   );
