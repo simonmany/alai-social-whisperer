@@ -50,12 +50,12 @@ export const DayView = ({ events, onPrompt }: DayViewProps) => {
   const { past, future } = groupEventsByTimeOfDay(todayEvents);
 
   return (
-    <div className="flex flex-col h-full w-full overflow-hidden">
+    <div className="flex flex-col h-full w-full">
       <ScrollArea className="flex-1">
-        <div className="w-full">
-          <div className="space-y-4 py-4 px-4">
+        <div className="w-full max-w-full px-4">
+          <div className="space-y-4 py-4">
             {/* Past Events */}
-            <div>
+            <div className="w-full">
               <h3 className="font-semibold text-muted-foreground mb-3">Past</h3>
               {past.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No past events</p>
@@ -81,7 +81,7 @@ export const DayView = ({ events, onPrompt }: DayViewProps) => {
             </div>
 
             {/* Future Events */}
-            <div>
+            <div className="w-full">
               <h3 className="font-semibold text-muted-foreground mb-3">Upcoming</h3>
               {future.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No upcoming events</p>
