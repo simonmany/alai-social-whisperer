@@ -166,7 +166,7 @@ Your goal is to better understand the user's likes and dislikes across people, a
         .from('calendar_events')
         .select(`
           *,
-          event_attendees!inner (
+          event_attendees!left (
             contacts!contact_id (
               id,
               name
@@ -174,11 +174,25 @@ Your goal is to better understand the user's likes and dislikes across people, a
           )
         `)
         .eq('id', event_id)
-        .single();
+        .maybeSingle();
 
       if (eventError) {
         console.error('Error fetching event details:', eventError);
         throw eventError;
+      }
+
+      if (!eventDetails) {
+        console.error('Event not found:', event_id);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Event not found',
+            details: `Could not find event with ID: ${event_id}`
+          }),
+          { 
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
       }
 
       const attendees = eventDetails.event_attendees?.map((ea: any) => ea.contacts.name).join(', ');
