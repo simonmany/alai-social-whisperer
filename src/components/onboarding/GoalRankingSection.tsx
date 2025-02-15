@@ -97,9 +97,12 @@ export const GoalRankingSection = ({ goals, onComplete }: GoalRankingSectionProp
 
   return (
     <div className="space-y-8">
-      <div className="text-lg">
+      <div className="text-lg space-y-2">
         {hasPlayedText ? (
-          <div>Great. Which of these is most important to you, right now?</div>
+          <>
+            <div>Great. Which of these is most important to you, right now?</div>
+            <div className="text-muted-foreground text-sm">You can drag to reorder.</div>
+          </>
         ) : (
           <TypewriterText
             text="Great. Which of these is most important to you, right now?"
