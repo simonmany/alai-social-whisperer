@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +18,7 @@ import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
 import { SkillsRadar } from "@/components/profile/SkillsRadar";
+import { InterestsCard } from "@/components/profile/InterestsCard";
 import Autocomplete from 'react-google-autocomplete';
 
 interface ProfileProps {
@@ -490,6 +492,15 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                   {renderTimeframeSection('month', 'This Month')}
                 </CardContent>
               </Card>
+
+              <InterestsCard
+                currentInterests={["Reading", "Photography", "Hiking"]}
+                desiredInterests={["Rock Climbing", "Pottery"]}
+                foodPreferences={["Italian", "Japanese", "Mexican"]}
+                desiredFoodPreferences={["Thai", "Indian"]}
+                musicPreferences={["Jazz", "Classical"]}
+                desiredMusicPreferences={["Blues", "Electronic"]}
+              />
 
               <Button 
                 size="sm" 
