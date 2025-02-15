@@ -58,13 +58,13 @@ export const ChatContainer = ({
   // Filter out system messages (personality quiz prompts, morning/evening check-in prompts, and post-event prompts)
   const filteredMessages = messages.filter((message, index) => {
     // Check if current message is a personality quiz prompt
-    const isPersonalityPrompt = message.content.includes("Hey, I'm learning about") && 
+    const isPersonalityPrompt = message.content.includes("We are talking about") && 
                                message.content.includes("personality") &&
                                message.content.includes("Give a very brief");
     
     // Check if next message is an AI response to a personality quiz prompt
     const isPersonalityResponse = index > 0 &&
-                                 messages[index - 1].content.includes("Hey, I'm learning about") &&
+                                 messages[index - 1].content.includes("We are talking about") &&
                                  messages[index - 1].content.includes("personality") &&
                                  messages[index - 1].content.includes("Give a very brief") &&
                                  message.isAl;

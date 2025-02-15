@@ -6,7 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { TypewriterText } from "@/components/TypewriterText";
 import { cn } from "@/lib/utils";
-import { generateChatResponse } from "@/utils/openai";
+import { generatePersonalityAnalysis } from "@/utils/openai";
 
 interface Question {
   id: number;
@@ -111,9 +111,9 @@ export const PersonalityQuiz = ({
         prompt += `. In previous questions, they've shared: "${previousComments.join('", "')}"`;
       }
       
-      prompt += `. Give them a very brief (max 50 words), friendly and personal response that speaks directly to them about this aspect of their personality. Use "you" instead of third person.`;
+      prompt += `. Give them a very brief (max 50 words), friendly and personal response that speaks directly to them about this aspect of their personality.`;
       
-      const response = await generateChatResponse(prompt);
+      const response = await generatePersonalityAnalysis(prompt);
       setAiResponse(response);
     } catch (error) {
       console.error('Error getting AI response:', error);

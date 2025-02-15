@@ -11,7 +11,7 @@ import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestio
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
-import { generateChatResponse } from "@/utils/openai";
+import { generatePersonalityAnalysis } from "@/utils/openai";
 import { cn } from "@/lib/utils";
 import type { OnboardingState } from "@/types/onboarding";
 
@@ -156,10 +156,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     try {
       const question = questions[questionIndex];
       const responseType = value <= 40 ? question.leftLabel : value >= 80 ? question.rightLabel : "balanced";
-      let prompt = `Hey, I'm learning about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
+      let prompt = `We are talking about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
       
       if (comment.trim()) {
-        prompt += `. Also, the user said this in relation to the question: "${comment}"`;
+        prompt += `. Also, ${state.name} said this in relation to the question: "${comment}"`;
       }
       
       const previousComments = updatedComments.filter((_, index) => index < questionIndex);
@@ -179,8 +179,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         fullPrompt: prompt
       });
       
-      const aiResponse = await generateChatResponse(prompt);
-      setAiResponse(aiResponse.response);
+      const aiResponse = await generatePersonalityAnalysis(prompt);
+      setAiResponse(aiResponse);
     } catch (error) {
       console.error('Error getting AI response:', error);
       toast({
