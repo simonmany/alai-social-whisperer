@@ -175,12 +175,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     await queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
-  const handleGoalComplete = async (goalIndex: number) => {
+  const handleGoalComplete = async (targetGoal: Goal) => {
     if (!userData?.id || !profileData) return;
 
     const allGoals = [...(profileData.goals || [])];
-    const targetGoal = shortTermGoals[goalIndex];
     
+    // Find the exact goal in the full array by matching all properties
     const fullGoalIndex = allGoals.findIndex(goal => 
       goal.type === targetGoal.type &&
       goal.description === targetGoal.description &&
@@ -224,11 +224,10 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     }
   };
 
-  const handleDeleteGoal = async (goalIndex: number) => {
+  const handleDeleteGoal = async (targetGoal: Goal) => {
     if (!userData?.id || !profileData) return;
 
     const allGoals = [...(profileData.goals || [])];
-    const targetGoal = shortTermGoals[goalIndex];
     
     const updatedGoals = allGoals.filter(goal => 
       !(goal.type === targetGoal.type && 
@@ -403,13 +402,13 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
             </AlertDescription>
           </Alert>
         ) : (
-          timeframeGoals.map((goal: Goal, index: number) => {
+          timeframeGoals.map((goal: Goal) => {
             const goalKey = `${goal.timeframe}-${goal.type}-${goal.description}`;
             return (
               <div key={goalKey} className="mb-2 flex items-start gap-2">
                 <Checkbox
                   checked={goal.completed}
-                  onCheckedChange={() => handleGoalComplete(index)}
+                  onCheckedChange={() => handleGoalComplete(goal)}
                   className="mt-1"
                 />
                 <div className="flex-1">
@@ -424,7 +423,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => handleDeleteGoal(index)}
+                  onClick={() => handleDeleteGoal(goal)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
