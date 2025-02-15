@@ -235,8 +235,8 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const displayName = profileData?.display_name || userData?.user_metadata?.name || 'User';
   const avatarUrl = profileData?.avatar_url || userData?.user_metadata?.avatar_url;
   const username = profileData?.username || 
-                  userData?.user_metadata?.username || 
-                  displayName.toLowerCase().replace(/\s+/g, '');
+                  (userData?.user_metadata?.username as string) || 
+                  (typeof displayName === 'string' ? displayName.toLowerCase().replace(/\s+/g, '') : 'user');
 
   const handleGoalComplete = async (goalIndex: number) => {
     if (!userData?.id) return;
