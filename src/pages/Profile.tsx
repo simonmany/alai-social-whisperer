@@ -124,7 +124,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const avatarUrl = profileData?.avatar_url || userData?.user_metadata?.avatar_url;
   const username = profileData?.username || 
                   (userData?.user_metadata?.username as string) || 
-                  (displayName ? displayName.toLowerCase().replace(/\s+/g, '') : 'user');
+                  (displayName as string).toLowerCase().replace(/\s+/g, '');
 
   const handleGoalSubmit = async (message: string) => {
     if (onSend) {
@@ -161,7 +161,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
           city: address,
           utc_offset_minutes: offset
         })
-        .eq('id', userData.id);
+        .eq('id', userData?.id);
 
       if (error) throw error;
       
@@ -183,13 +183,10 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     }
   };
 
-  const goals = (profileData?.goals as unknown as Goal[]) || [];
-  const { missingTimeframes } = checkMissingGoals(goals);
-
   const handleGoalComplete = async (goalIndex: number) => {
     if (!userData?.id) return;
 
-    const updatedGoals = [...goals];
+    const updatedGoals = [...shortTermGoals];
     updatedGoals[goalIndex].completed = true;
 
     const { error } = await supabase
@@ -206,25 +203,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const handleDeleteGoal = async (goalIndex: number) => {
     if (!userData?.id || !profileData) return;
 
-    const currentGoals = Array.isArray(profileData.goals) ? [...profileData.goals] : [];
-    currentGoals.splice(goalIndex, 1);
-
-    const formattedGoals = currentGoals.map(goal => {
-      if (typeof goal === 'string') {
-        return {
-          type: "Connection",
-          description: goal.toLowerCase(),
-          timeframe: "today",
-          completed: false,
-          created_at: new Date().toISOString()
-        };
-      }
-      return goal;
-    });
+    const updatedGoals = [...shortTermGoals];
+    updatedGoals.splice(goalIndex, 1);
 
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: formattedGoals })
+      .update({ goals: updatedGoals })
       .eq('id', userData.id);
 
     if (!error) {
