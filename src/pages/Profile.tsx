@@ -313,7 +313,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   };
 
   const renderTimeframeSection = (timeframe: string, title: string) => {
-    const timeframeGoals = goals.filter((goal: Goal) => goal.timeframe === timeframe);
+    const timeframeGoals = shortTermGoals.filter((goal: Goal) => goal.timeframe === timeframe);
     const hasGoals = timeframeGoals.length > 0;
 
     const alertText = {
