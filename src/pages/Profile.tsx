@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -35,45 +35,53 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const fetchMapsKey = async () => {
+      if (isLocationDialogOpen && !mapsApiKey) {
+        try {
+          console.log("[Profile] Fetching Maps API key...");
+          const { data, error } = await supabase.functions.invoke('get-maps-key');
+          if (error) {
+            console.error('[Profile] Supabase function error:', error);
+            throw error;
+          }
+          if (!data?.apiKey) {
+            console.error('[Profile] No API key returned:', data);
+            throw new Error('No API key returned from function');
+          }
+          console.log("[Profile] Maps API key fetched successfully");
+          setMapsApiKey(data.apiKey);
+        } catch (error: any) {
+          console.error('[Profile] Error fetching Maps API key:', error);
+          toast({
+            title: "Error loading location selector",
+            description: "Please try refreshing the page",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    fetchMapsKey();
+  }, [isLocationDialogOpen, mapsApiKey, toast]);
+
   const { data: userData, isSuccess: isAuthReady } = useQuery({
     queryKey: ['auth-user'],
     queryFn: async () => {
-      console.log("Fetching auth user data...");
       const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        console.error("Error fetching auth user:", error);
-        throw error;
-      }
-      if (!user) {
-        console.error("No user found in auth response");
-        throw new Error('No user found');
-      }
-      console.log("Auth user data:", user);
+      if (error) throw error;
+      if (!user) throw new Error('No user found');
       return user;
     },
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
     retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile', userData?.id],
     queryFn: async () => {
-      console.log("Fetching profile data...");
-      console.log("Auth state:", { 
-        isReady: isAuthReady,
-        hasUserId: !!userData?.id, 
-        userId: userData?.id,
-        isOpen: open 
-      });
-
-      if (!userData?.id) {
-        console.error("No user ID available for profile fetch");
-        throw new Error('No user ID available');
-      }
-
-      console.log("Querying for user ID:", userData.id);
+      if (!userData?.id) throw new Error('No user ID available');
 
       const { data: profile, error } = await supabase
         .from('profiles')
@@ -108,69 +116,44 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         .eq('id', userData.id)
         .single();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        throw error;
-      }
-      
-      if (!profile) {
-        console.error("No profile found for user:", userData.id);
-        throw new Error('No profile found');
-      }
+      if (error) throw error;
+      if (!profile) throw new Error('No profile found');
 
-      const formattedProfile = {
+      return {
         ...profile,
-        hasGoogleCalendar: profile?.has_google_calendar || false,
-        googleTokenExpired: profile?.google_token_expired || false,
-        tokenExpiresAt: profile?.google_token_expires_at ? new Date(profile.google_token_expires_at) : null,
-        hasAccessToken: !!profile?.google_access_token,
-        hasRefreshToken: !!profile?.google_refresh_token,
-        hasValidTokens: profile?.has_google_calendar && !profile?.google_token_expired,
-        goals: (profile?.goals || []) as Goal[],
-        long_term_goals: (profile?.long_term_goals || []) as Goal[],
-        current_interests: (profile?.current_interests || []) as string[],
-        desired_interests: (profile?.desired_interests || []) as string[],
-        food_preferences: (profile?.food_preferences || []) as string[],
-        desired_food_preferences: (profile?.desired_food_preferences || []) as string[],
-        music_preferences: (profile?.music_preferences || []) as string[],
-        desired_music_preferences: (profile?.desired_music_preferences || []) as string[]
+        hasGoogleCalendar: profile.has_google_calendar || false,
+        googleTokenExpired: profile.google_token_expired || false,
+        tokenExpiresAt: profile.google_token_expires_at ? new Date(profile.google_token_expires_at) : null,
+        hasAccessToken: !!profile.google_access_token,
+        hasRefreshToken: !!profile.google_refresh_token,
+        hasValidTokens: profile.has_google_calendar && !profile.google_token_expired,
+        goals: (profile.goals || []) as Goal[],
+        long_term_goals: (profile.long_term_goals || []) as Goal[],
+        current_interests: (profile.current_interests || []) as string[],
+        desired_interests: (profile.desired_interests || []) as string[],
+        food_preferences: (profile.food_preferences || []) as string[],
+        desired_food_preferences: (profile.desired_food_preferences || []) as string[],
+        music_preferences: (profile.music_preferences || []) as string[],
+        desired_music_preferences: (profile.desired_music_preferences || []) as string[]
       };
-
-      console.log("Complete profile data:", formattedProfile);
-      return formattedProfile;
     },
     enabled: isAuthReady && !!userData?.id && open,
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
     retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  console.log("Final profileData being used:", profileData);
+  const shortTermGoals = (profileData?.goals || []).filter((goal: Goal) => 
+    ['today', 'week', 'month'].includes(goal.timeframe)
+  );
 
-  useQuery({
-    queryKey: ['maps-key'],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('get-maps-key');
-        if (error) throw error;
-        if (data?.apiKey) {
-          setMapsApiKey(data.apiKey);
-        }
-        return data;
-      } catch (error) {
-        console.error('Error fetching Maps API key:', error);
-        toast({
-          title: "Error loading location selector",
-          description: "Please try refreshing the page",
-          variant: "destructive",
-        });
-      }
-    },
-    enabled: open,
-    staleTime: Infinity,
-    gcTime: Infinity, // Renamed from cacheTime
-  });
+  const { missingTimeframes } = checkMissingGoals(shortTermGoals);
+
+  const displayName = profileData?.display_name || userData?.user_metadata?.name || 'User';
+  const avatarUrl = profileData?.avatar_url || userData?.user_metadata?.avatar_url;
+  const username = profileData?.username || 
+                  (userData?.user_metadata?.username as string) || 
+                  (displayName as string).toLowerCase().replace(/\s+/g, '');
 
   const handleGoalSubmit = async (message: string) => {
     if (onSend) {
@@ -192,56 +175,10 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     await queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
-  const handleLocationUpdate = async (place: any) => {
-    if (!place || typeof place !== 'object') return;
-
-    const address = place.formatted_address || place.name || '';
-    const offset = parseInt(place.utc_offset_minutes) || -240;
-
-    if (!address) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          city: address,
-          utc_offset_minutes: offset
-        })
-        .eq('id', userData.id);
-
-      if (error) throw error;
-      
-      setIsLocationDialogOpen(false);
-      
-      toast({
-        title: "Location Updated",
-        description: "Your location has been updated successfully",
-      });
-
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
-    } catch (error) {
-      console.error('Error updating location:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update location. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const goals = (profileData?.goals as unknown as Goal[]) || [];
-  const { missingTimeframes } = checkMissingGoals(goals);
-
-  const displayName = profileData?.display_name || userData?.user_metadata?.name || 'User';
-  const avatarUrl = profileData?.avatar_url || userData?.user_metadata?.avatar_url;
-  const username = profileData?.username || 
-                  (userData?.user_metadata?.username as string) || 
-                  (typeof displayName === 'string' ? displayName.toLowerCase().replace(/\s+/g, '') : 'user');
-
   const handleGoalComplete = async (goalIndex: number) => {
     if (!userData?.id) return;
 
-    const updatedGoals = [...goals];
+    const updatedGoals = [...shortTermGoals];
     updatedGoals[goalIndex].completed = true;
 
     const { error } = await supabase
@@ -258,25 +195,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const handleDeleteGoal = async (goalIndex: number) => {
     if (!userData?.id || !profileData) return;
 
-    const currentGoals = Array.isArray(profileData.goals) ? [...profileData.goals] : [];
-    currentGoals.splice(goalIndex, 1);
-
-    const formattedGoals = currentGoals.map(goal => {
-      if (typeof goal === 'string') {
-        return {
-          type: "Connection",
-          description: goal.toLowerCase(),
-          timeframe: "today",
-          completed: false,
-          created_at: new Date().toISOString()
-        };
-      }
-      return goal;
-    });
+    const updatedGoals = [...shortTermGoals];
+    updatedGoals.splice(goalIndex, 1);
 
     const { error } = await supabase
       .from('profiles')
-      .update({ goals: formattedGoals })
+      .update({ goals: updatedGoals })
       .eq('id', userData.id);
 
     if (!error) {
@@ -380,8 +304,45 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     }
   };
 
+  const handleLocationUpdate = async (place: any) => {
+    if (!place || typeof place !== 'object') return;
+
+    const address = place.formatted_address || place.name || '';
+    const offset = parseInt(place.utc_offset_minutes) || -240;
+
+    if (!address) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          city: address,
+          utc_offset_minutes: offset
+        })
+        .eq('id', userData?.id);
+
+      if (error) throw error;
+      
+      setIsLocationDialogOpen(false);
+      
+      toast({
+        title: "Location Updated",
+        description: "Your location has been updated successfully",
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+    } catch (error) {
+      console.error('Error updating location:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update location. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const renderTimeframeSection = (timeframe: string, title: string) => {
-    const timeframeGoals = goals.filter((goal: Goal) => goal.timeframe === timeframe);
+    const timeframeGoals = shortTermGoals.filter((goal: Goal) => goal.timeframe === timeframe);
     const hasGoals = timeframeGoals.length > 0;
 
     const alertText = {
