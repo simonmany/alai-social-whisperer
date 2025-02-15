@@ -175,28 +175,65 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     await queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
-  const handleGoalComplete = async (goalIndex: number) => {
-    if (!userData?.id) return;
+  const handleGoalComplete = async (targetGoal: Goal) => {
+    if (!userData?.id || !profileData) return;
 
-    const updatedGoals = [...shortTermGoals];
-    updatedGoals[goalIndex].completed = true;
+    const allGoals = [...(profileData.goals || [])];
+    
+    // Find the exact goal in the full array by matching all properties
+    const fullGoalIndex = allGoals.findIndex(goal => 
+      goal.type === targetGoal.type &&
+      goal.description === targetGoal.description &&
+      goal.timeframe === targetGoal.timeframe
+    );
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ goals: updatedGoals })
-      .eq('id', userData.id);
+    if (fullGoalIndex === -1) {
+      console.error('Goal not found in full goals array');
+      return;
+    }
 
-    if (!error) {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      setIsGoalsDialogOpen(true);
+    allGoals[fullGoalIndex] = {
+      ...allGoals[fullGoalIndex],
+      completed: !allGoals[fullGoalIndex].completed
+    };
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ goals: allGoals })
+        .eq('id', userData.id);
+
+      if (error) throw error;
+
+      queryClient.setQueryData(['profile', userData.id], (oldData: any) => ({
+        ...oldData,
+        goals: allGoals
+      }));
+
+      toast({
+        title: allGoals[fullGoalIndex].completed ? "Goal completed" : "Goal uncompleted",
+        description: allGoals[fullGoalIndex].type,
+      });
+    } catch (error) {
+      console.error('Error updating goal:', error);
+      toast({
+        title: "Error updating goal",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDeleteGoal = async (goalIndex: number) => {
+  const handleDeleteGoal = async (targetGoal: Goal) => {
     if (!userData?.id || !profileData) return;
 
-    const updatedGoals = [...shortTermGoals];
-    updatedGoals.splice(goalIndex, 1);
+    const allGoals = [...(profileData.goals || [])];
+    
+    const updatedGoals = allGoals.filter(goal => 
+      !(goal.type === targetGoal.type && 
+        goal.description === targetGoal.description && 
+        goal.timeframe === targetGoal.timeframe)
+    );
 
     const { error } = await supabase
       .from('profiles')
@@ -365,31 +402,34 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
             </AlertDescription>
           </Alert>
         ) : (
-          timeframeGoals.map((goal: Goal, index: number) => (
-            <div key={index} className="mb-2 flex items-start gap-2">
-              <Checkbox
-                checked={goal.completed}
-                onCheckedChange={() => handleGoalComplete(index)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
-                  {goal.type}
+          timeframeGoals.map((goal: Goal) => {
+            const goalKey = `${goal.timeframe}-${goal.type}-${goal.description}`;
+            return (
+              <div key={goalKey} className="mb-2 flex items-start gap-2">
+                <Checkbox
+                  checked={goal.completed}
+                  onCheckedChange={() => handleGoalComplete(goal)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                    {goal.type}
+                  </div>
+                  <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
+                    {goal.description}
+                  </div>
                 </div>
-                <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
-                  {goal.description}
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => handleDeleteGoal(goal)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => handleDeleteGoal(index)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     );
