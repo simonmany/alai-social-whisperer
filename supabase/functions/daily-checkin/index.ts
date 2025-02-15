@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
@@ -38,11 +39,11 @@ serve(async (req) => {
       throw new Error('Missing user_id in request');
     }
 
-    // Get user's profile for timezone
+    // Get user's profile for timezone and goals
     console.log('Fetching profile for user:', user_id);
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('id, display_name, city')
+      .select('id, display_name, city, goals')
       .eq('id', user_id)
       .single();
 
@@ -50,6 +51,11 @@ serve(async (req) => {
       console.error('Error fetching profile:', profileError);
       throw profileError;
     }
+
+    // Check for missing goals
+    const goals = profile.goals || [];
+    const hasEmptyGoals = goals.some((goal: any) => !goal.target || !goal.timeframe);
+    const missingGoalsPrompt = hasEmptyGoals ? "\n\nI notice you have some incomplete goals. Would you like to take a moment to set some specific targets for your social connections?" : "";
 
     // Get timezone from RPC function
     console.log('Getting timezone for city:', profile.city);
@@ -108,7 +114,7 @@ serve(async (req) => {
           events && events.length > 0 
             ? events.map(e => e.title).join(', ')
             : 'no scheduled events'
-        }. Summarize these events succinctly, and highlight any availabilities. Suggest potential activities to fill these availabilities, taking into account the user's interests, goals, and contacts.`;
+        }. Summarize these events succinctly, and highlight any availabilities. Suggest potential activities to fill these availabilities, taking into account the user's interests, goals, and contacts.${missingGoalsPrompt}`;
 
       } else {
         // For evening check-in, get both past and upcoming events for today
@@ -158,7 +164,7 @@ serve(async (req) => {
 
 Ask the user for their rose, bud, and thorn of the day.
 
-Your goal is to better understand the user's likes and dislikes across people, activities, etc.`;
+Your goal is to better understand the user's likes and dislikes across people, activities, etc.${missingGoalsPrompt}`;
       }
     } else if (type === 'post-event' && event_id && event_title) {
       // Get event details including attendees
@@ -166,7 +172,7 @@ Your goal is to better understand the user's likes and dislikes across people, a
         .from('calendar_events')
         .select(`
           *,
-          event_attendees!inner (
+          event_attendees!left (
             contacts!contact_id (
               id,
               name
@@ -174,17 +180,31 @@ Your goal is to better understand the user's likes and dislikes across people, a
           )
         `)
         .eq('id', event_id)
-        .single();
+        .maybeSingle();
 
       if (eventError) {
         console.error('Error fetching event details:', eventError);
         throw eventError;
       }
 
+      if (!eventDetails) {
+        console.error('Event not found:', event_id);
+        return new Response(
+          JSON.stringify({ 
+            error: 'Event not found',
+            details: `Could not find event with ID: ${event_id}`
+          }),
+          { 
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        );
+      }
+
       const attendees = eventDetails.event_attendees?.map((ea: any) => ea.contacts.name).join(', ');
       const location = eventDetails.location ? ` at ${eventDetails.location}` : '';
       
-      message = `The user just completed ${event_title}${attendees ? ` with ${attendees}` : ''}${location}. Ask them how it went, what they enjoyed about it, and whether they learned anything new about their friends. Try to understand their experience and preferences to provide better recommendations in the future.`;
+      message = `The user just completed ${event_title}${attendees ? ` with ${attendees}` : ''}${location}. Ask them how it went, what they enjoyed about it, and whether they learned anything new about their friends. Try to understand their experience and preferences to provide better recommendations in the future.${missingGoalsPrompt}`;
     }
 
     // Route through the chat function
