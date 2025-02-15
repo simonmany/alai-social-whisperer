@@ -50,7 +50,7 @@ const CalendarView = () => {
         // Get profile data with calendar tokens
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('google_access_token, has_google_calendar, google_token_expired')
+          .select('google_access_token, has_google_calendar, google_token_expired, utc_offset_minutes')
           .eq('id', session.user.id)
           .single();
 
@@ -58,6 +58,19 @@ const CalendarView = () => {
           console.error('Error fetching profile:', profileError);
           throw new Error('Failed to fetch user profile');
         }
+
+        // Function to convert UTC time to local time
+        const convertToLocalTime = (utcTime: string, offsetMinutes: number | null) => {
+          if (!offsetMinutes) return utcTime;
+          const date = new Date(utcTime);
+          // When converting from UTC to local, subtract the negative offset (effectively adding it)
+          // For example: if you're in PST (UTC-8):
+          // UTC: 10:00 PM UTC
+          // UTC offset: -480 minutes
+          // To get local: 10:00 PM - (-480 minutes) = 2:00 PM PST
+          const localDate = new Date(date.getTime() + (offsetMinutes * 60 * 1000));
+          return localDate.toISOString();
+        };
 
         // Calculate time window (30 days before and after today)
         const now = new Date();
@@ -123,13 +136,13 @@ const CalendarView = () => {
           throw new Error('Failed to fetch calendar events');
         }
 
-        // Transform database events to our format
+        // Transform database events to our format with local times
         const events: CalendarEvent[] = (dbEvents || []).map(event => ({
           id: event.id,
           title: event.title,
           description: event.description || undefined,
-          start_time: event.start_time,
-          end_time: event.end_time,
+          start_time: convertToLocalTime(event.start_time, profile?.utc_offset_minutes),
+          end_time: convertToLocalTime(event.end_time, profile?.utc_offset_minutes),
           location: event.location || undefined,
           google_event_id: event.google_event_id || undefined,
           feedback_sent: event.feedback_sent,

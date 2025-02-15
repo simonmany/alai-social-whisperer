@@ -234,14 +234,39 @@ serve(async (req: Request) => {
       );
     }
 
+    // Get user profile for UTC offset
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('utc_offset_minutes')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Error fetching profile:', profileError);
+      throw new Error('Failed to fetch profile');
+    }
+
+    // Function to convert local time to UTC
+    const convertToUTC = (localTime: string, offsetMinutes: number | null) => {
+      if (!offsetMinutes) return localTime;
+      const date = new Date(localTime);
+      // When converting from local to UTC, add the negative offset
+      // For example: if you're in PST (UTC-8):
+      // Local: 2:00 PM PST
+      // UTC offset: -480 minutes
+      // To get UTC: 2:00 PM + (-480 minutes) = 10:00 PM UTC
+      const utcDate = new Date(date.getTime() - (offsetMinutes * 60 * 1000));
+      return utcDate.toISOString();
+    };
+
     // Transform events
     const events = await Promise.all(data.items.map(async (event: any) => {
       const startTime = event.start?.dateTime || event.start?.date;
       const endTime = event.end?.dateTime || event.end?.date;
       
-      // Convert to UTC
-      const startUTC = new Date(startTime);
-      const endUTC = new Date(endTime);
+      // Convert local times to UTC
+      const startUTC = convertToUTC(startTime, profile?.utc_offset_minutes);
+      const endUTC = convertToUTC(endTime, profile?.utc_offset_minutes);
 
       // Check for existing event data - using maybeSingle() and left join
       const { data: existingEvent } = await supabase
@@ -264,8 +289,8 @@ serve(async (req: Request) => {
         google_event_id: event.id,
         title: event.summary || 'Untitled Event',
         description: existingEvent?.description || event.description || null,
-        start_time: startUTC.toISOString(),
-        end_time: endUTC.toISOString(),
+        start_time: startUTC,
+        end_time: endUTC,
         feedback_sent: existingEvent?.feedback_sent || false,
         updated_at: new Date().toISOString()
       };

@@ -390,6 +390,7 @@ export type Database = {
           has_google_calendar: boolean
           id: string
           languages: Json | null
+          long_term_goals: Json | null
           music_preferences: Json | null
           occupation: string | null
           onboarding_completed: boolean | null
@@ -428,6 +429,7 @@ export type Database = {
           has_google_calendar?: boolean
           id: string
           languages?: Json | null
+          long_term_goals?: Json | null
           music_preferences?: Json | null
           occupation?: string | null
           onboarding_completed?: boolean | null
@@ -466,6 +468,7 @@ export type Database = {
           has_google_calendar?: boolean
           id?: string
           languages?: Json | null
+          long_term_goals?: Json | null
           music_preferences?: Json | null
           occupation?: string | null
           onboarding_completed?: boolean | null
