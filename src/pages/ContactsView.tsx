@@ -1,4 +1,3 @@
-<lov-code>
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -21,15 +20,18 @@ import { AlertDialog, AlertDialogContent, AlertDialogDescription, AlertDialogFoo
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+
 interface Group {
   id: string;
   name: string;
   emoji?: string | null;
 }
+
 interface GroupMembership {
   contact_id: string;
   group_id: string;
 }
+
 interface ContactDrawerContent {
   lastHangout?: {
     image?: string;
@@ -43,14 +45,17 @@ interface ContactDrawerContent {
   }>;
   description?: string;
 }
+
 const getContactGradient = (contactId: string) => {
   const gradients = ['linear-gradient(225deg, #FFE29F 0%, #FFA99F 48%, #FF719A 100%)', 'linear-gradient(90deg, hsla(221, 45%, 73%, 1) 0%, hsla(220, 78%, 29%, 1) 100%)', 'linear-gradient(90deg, hsla(24, 100%, 83%, 1) 0%, hsla(341, 91%, 68%, 1) 100%)', 'linear-gradient(90deg, hsla(29, 92%, 70%, 1) 0%, hsla(0, 87%, 73%, 1) 100%)', 'linear-gradient(102.3deg, rgba(147,39,143,1) 5.9%, rgba(234,172,232,1) 64%, rgba(246,219,245,1) 89%)'];
   const index = parseInt(contactId.slice(-3), 16) % gradients.length;
   return gradients[index];
 };
+
 const getInitials = (name: string): string => {
   return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
 };
+
 const ContactsView = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
@@ -646,4 +651,42 @@ const ContactsView = () => {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-4">
-                <h3 className
+                <h3 className="text-lg font-semibold text-white">Contact Groups</h3>
+                <Button variant="ghost" size="icon" className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50" onClick={() => setIsGroupDialogOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {groups.map(group => <Badge key={group.id} variant={selectedGroup === group.name ? "default" : "outline"} className={`cursor-pointer hover:bg-purple-800/50 text-sm ${selectedGroup === group.name ? "bg-purple-600" : "bg-purple-900/50 border-purple-500/50 text-purple-100"}`} onClick={() => {
+                  setSelectedGroup(group.name);
+                }}>
+                  {group.emoji || "👥"} {group.name}
+                </Badge>)}
+              </div>
+            </div>
+          </div>
+
+          <Button 
+            variant="default" 
+            size="lg"
+            onClick={() => navigate("/")} 
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-purple-600 hover:bg-purple-700 text-white px-8 py-6 rounded-xl flex items-center gap-2 shadow-lg border border-purple-500/50 backdrop-blur-sm z-30"
+          >
+            <ChevronUp className="h-6 w-6" />
+            <span>Return to Chat</span>
+          </Button>
+        </div>
+      </div>
+
+      <GroupManagementDialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen} contacts={contacts} onGroupCreated={() => {
+        queryClient.invalidateQueries({
+          queryKey: ['contact_groups']
+        });
+        queryClient.invalidateQueries({
+          queryKey: ['group_memberships']
+        });
+      }} />
+    </div>;
+};
+
+export default ContactsView;
