@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,6 +92,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
           skill_reveler,
           display_name,
           goals,
+          current_interests,
+          desired_interests,
+          food_preferences,
+          desired_food_preferences,
+          music_preferences,
+          desired_music_preferences,
           utc_offset_minutes,
           onboarding_step,
           has_completed_tutorial,
@@ -123,7 +128,13 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         tokenExpiresAt: profile?.google_token_expires_at ? new Date(profile.google_token_expires_at) : null,
         hasAccessToken: !!profile?.google_access_token,
         hasRefreshToken: !!profile?.google_refresh_token,
-        hasValidTokens: profile?.has_google_calendar && !profile?.google_token_expired
+        hasValidTokens: profile?.has_google_calendar && !profile?.google_token_expired,
+        current_interests: profile?.current_interests || [],
+        desired_interests: profile?.desired_interests || [],
+        food_preferences: profile?.food_preferences || [],
+        desired_food_preferences: profile?.desired_food_preferences || [],
+        music_preferences: profile?.music_preferences || [],
+        desired_music_preferences: profile?.desired_music_preferences || []
       };
 
       console.log("Complete profile data:", formattedProfile);
@@ -494,12 +505,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
               </Card>
 
               <InterestsCard
-                currentInterests={["Reading", "Photography", "Hiking"]}
-                desiredInterests={["Rock Climbing", "Pottery"]}
-                foodPreferences={["Italian", "Japanese", "Mexican"]}
-                desiredFoodPreferences={["Thai", "Indian"]}
-                musicPreferences={["Jazz", "Classical"]}
-                desiredMusicPreferences={["Blues", "Electronic"]}
+                currentInterests={profileData?.current_interests}
+                desiredInterests={profileData?.desired_interests}
+                foodPreferences={profileData?.food_preferences}
+                desiredFoodPreferences={profileData?.desired_food_preferences}
+                musicPreferences={profileData?.music_preferences}
+                desiredMusicPreferences={profileData?.desired_music_preferences}
               />
 
               <Button 
