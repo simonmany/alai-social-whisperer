@@ -11,7 +11,7 @@ interface Message {
   content: string;
   isAl: boolean;
   contactInfo?: {
-    id: string; // Added required id field
+    id: string;
     name: string;
     phone?: string;
     instagram?: string;
@@ -55,7 +55,7 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
-  // Filter out system messages (personality quiz prompts and morning/evening check-in prompts)
+  // Filter out system messages (personality quiz prompts, morning/evening check-in prompts, and post-event prompts)
   const filteredMessages = messages.filter((message, index) => {
     // Check if current message is a personality quiz prompt
     const isPersonalityPrompt = message.content.includes("Hey, I'm learning about") && 
@@ -75,7 +75,15 @@ export const ChatContainer = ({
                            (message.content.includes("morning check-in") || 
                             message.content.includes("evening recap"));
 
-    return !isPersonalityPrompt && !isPersonalityResponse && !isCheckInPrompt;
+    // Check if message is a post-event system prompt
+    const isPostEventPrompt = !message.isAl &&
+                             message.content.includes("just completed") &&
+                             message.content.includes("Ask them how it went");
+
+    return !isPersonalityPrompt && 
+           !isPersonalityResponse && 
+           !isCheckInPrompt && 
+           !isPostEventPrompt;
   });
 
   useEffect(() => {
