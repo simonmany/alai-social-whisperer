@@ -176,19 +176,47 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   };
 
   const handleGoalComplete = async (goalIndex: number) => {
-    if (!userData?.id) return;
+    if (!userData?.id || !profileData) return;
 
-    const updatedGoals = [...shortTermGoals];
-    updatedGoals[goalIndex].completed = true;
+    const allGoals = [...(profileData.goals || [])];
+    const fullGoalIndex = allGoals.findIndex(goal => 
+      goal === shortTermGoals[goalIndex]
+    );
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ goals: updatedGoals })
-      .eq('id', userData.id);
+    if (fullGoalIndex === -1) {
+      console.error('Goal not found in full goals array');
+      return;
+    }
 
-    if (!error) {
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      setIsGoalsDialogOpen(true);
+    allGoals[fullGoalIndex] = {
+      ...allGoals[fullGoalIndex],
+      completed: !allGoals[fullGoalIndex].completed
+    };
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ goals: allGoals })
+        .eq('id', userData.id);
+
+      if (error) throw error;
+
+      queryClient.setQueryData(['profile', userData.id], (oldData: any) => ({
+        ...oldData,
+        goals: allGoals
+      }));
+
+      toast({
+        title: allGoals[fullGoalIndex].completed ? "Goal completed" : "Goal uncompleted",
+        description: allGoals[fullGoalIndex].type,
+      });
+    } catch (error) {
+      console.error('Error updating goal:', error);
+      toast({
+        title: "Error updating goal",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
