@@ -55,19 +55,8 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
-  // Filter out system messages (personality quiz prompts, morning/evening check-in prompts, and post-event prompts)
+  // Filter out system messages (morning/evening check-in prompts, and post-event prompts)
   const filteredMessages = messages.filter((message, index) => {
-    // Check if current message is a personality quiz prompt
-    const isPersonalityPrompt = message.content.includes("We are talking about") && 
-                               message.content.includes("personality") &&
-                               message.content.includes("Give a very brief");
-    
-    // Check if next message is an AI response to a personality quiz prompt
-    const isPersonalityResponse = index > 0 &&
-                                 messages[index - 1].content.includes("We are talking about") &&
-                                 messages[index - 1].content.includes("personality") &&
-                                 messages[index - 1].content.includes("Give a very brief") &&
-                                 message.isAl;
 
     // Check if message is a morning or evening check-in system prompt
     const isCheckInPrompt = !message.isAl && 
@@ -80,9 +69,7 @@ export const ChatContainer = ({
                              message.content.includes("just completed") &&
                              message.content.includes("Ask them how it went");
 
-    return !isPersonalityPrompt && 
-           !isPersonalityResponse && 
-           !isCheckInPrompt && 
+    return !isCheckInPrompt && 
            !isPostEventPrompt;
   });
 
