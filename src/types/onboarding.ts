@@ -1,4 +1,6 @@
 
+import { Goal } from "./goals";
+
 export interface OnboardingState {
   name?: string;
   goals?: Goal[];
