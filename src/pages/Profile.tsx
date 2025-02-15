@@ -179,8 +179,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     if (!userData?.id || !profileData) return;
 
     const allGoals = [...(profileData.goals || [])];
+    const targetGoal = shortTermGoals[goalIndex];
+    
     const fullGoalIndex = allGoals.findIndex(goal => 
-      goal === shortTermGoals[goalIndex]
+      goal.type === targetGoal.type &&
+      goal.description === targetGoal.description &&
+      goal.timeframe === targetGoal.timeframe
     );
 
     if (fullGoalIndex === -1) {
