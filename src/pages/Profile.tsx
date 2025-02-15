@@ -35,7 +35,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // First query to get auth user data with improved caching
   const { data: userData, isSuccess: isAuthReady } = useQuery({
     queryKey: ['auth-user'],
     queryFn: async () => {
@@ -58,7 +57,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
-  // Second query to get profile data with improved caching
   const { data: profileData, isLoading } = useQuery({
     queryKey: ['profile', userData?.id],
     queryFn: async () => {
@@ -77,7 +75,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
       console.log("Querying for user ID:", userData.id);
 
-      // Get profile data with all fields
       const { data: profile, error } = await supabase
         .from('profiles')
         .select(`
@@ -92,6 +89,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
           skill_reveler,
           display_name,
           goals,
+          long_term_goals,
           current_interests,
           desired_interests,
           food_preferences,
@@ -120,7 +118,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         throw new Error('No profile found');
       }
 
-      // Format profile data
       const formattedProfile = {
         ...profile,
         hasGoogleCalendar: profile?.has_google_calendar || false,
@@ -129,12 +126,14 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         hasAccessToken: !!profile?.google_access_token,
         hasRefreshToken: !!profile?.google_refresh_token,
         hasValidTokens: profile?.has_google_calendar && !profile?.google_token_expired,
-        current_interests: profile?.current_interests || [],
-        desired_interests: profile?.desired_interests || [],
-        food_preferences: profile?.food_preferences || [],
-        desired_food_preferences: profile?.desired_food_preferences || [],
-        music_preferences: profile?.music_preferences || [],
-        desired_music_preferences: profile?.desired_music_preferences || []
+        goals: (profile?.goals || []) as Goal[],
+        long_term_goals: (profile?.long_term_goals || []) as Goal[],
+        current_interests: (profile?.current_interests || []) as string[],
+        desired_interests: (profile?.desired_interests || []) as string[],
+        food_preferences: (profile?.food_preferences || []) as string[],
+        desired_food_preferences: (profile?.desired_food_preferences || []) as string[],
+        music_preferences: (profile?.music_preferences || []) as string[],
+        desired_music_preferences: (profile?.desired_music_preferences || []) as string[]
       };
 
       console.log("Complete profile data:", formattedProfile);
@@ -149,7 +148,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
   console.log("Final profileData being used:", profileData);
 
-  // Query to get Maps API key
   useQuery({
     queryKey: ['maps-key'],
     queryFn: async () => {
@@ -213,16 +211,13 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
 
       if (error) throw error;
       
-      // Close the location dialog after successful update
       setIsLocationDialogOpen(false);
       
-      // Show success toast
       toast({
         title: "Location Updated",
         description: "Your location has been updated successfully",
       });
 
-      // Refresh profile data
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
     } catch (error) {
       console.error('Error updating location:', error);
@@ -237,7 +232,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const goals = (profileData?.goals as unknown as Goal[]) || [];
   const { missingTimeframes } = checkMissingGoals(goals);
 
-  // Get the best available display name and avatar URL
   const displayName = profileData?.display_name || userData?.user_metadata?.name || 'User';
   const avatarUrl = profileData?.avatar_url || userData?.user_metadata?.avatar_url;
   const username = profileData?.username || 
