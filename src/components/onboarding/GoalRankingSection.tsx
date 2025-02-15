@@ -1,8 +1,15 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TypewriterText } from "@/components/TypewriterText";
-import { DragDropContext, Droppable, Draggable } from "@dnd-kit/core";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
@@ -13,22 +20,25 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Goal } from "@/types/goals";
 
-interface RankedGoal extends Goal {
-  rank: number;
-}
-
 interface GoalRankingSectionProps {
   goals: Goal[];
-  onComplete: (rankedGoals: RankedGoal[]) => void;
+  onComplete: (rankedGoals: Goal[]) => void;
 }
 
 export const GoalRankingSection = ({ goals, onComplete }: GoalRankingSectionProps) => {
   const [hasPlayedText, setHasPlayedText] = useState(false);
-  const [rankedGoals, setRankedGoals] = useState<RankedGoal[]>(() =>
+  const [rankedGoals, setRankedGoals] = useState<Goal[]>(() =>
     goals.map((goal, index) => ({
       ...goal,
       rank: index
     }))
+  );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
   const handleDragEnd = (event: any) => {
@@ -48,7 +58,7 @@ export const GoalRankingSection = ({ goals, onComplete }: GoalRankingSectionProp
     }
   };
 
-  const SortableItem = ({ goal }: { goal: RankedGoal }) => {
+  const SortableItem = ({ goal }: { goal: Goal }) => {
     const {
       attributes,
       listeners,
@@ -75,7 +85,7 @@ export const GoalRankingSection = ({ goals, onComplete }: GoalRankingSectionProp
         }`}
       >
         <div className="text-lg font-semibold text-primary w-8 h-8 flex items-center justify-center border rounded-full">
-          {goal.rank + 1}
+          {(goal.rank ?? 0) + 1}
         </div>
         <div className="flex-1">
           <div className="font-medium">{goal.type}</div>
@@ -101,7 +111,11 @@ export const GoalRankingSection = ({ goals, onComplete }: GoalRankingSectionProp
       </div>
 
       <div className="mt-8">
-        <DragDropContext onDragEnd={handleDragEnd}>
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
           <SortableContext
             items={rankedGoals.map(g => g.type)}
             strategy={verticalListSortingStrategy}
@@ -110,7 +124,7 @@ export const GoalRankingSection = ({ goals, onComplete }: GoalRankingSectionProp
               <SortableItem key={goal.type} goal={goal} />
             ))}
           </SortableContext>
-        </DragDropContext>
+        </DndContext>
       </div>
 
       <Button 

@@ -1,6 +1,7 @@
+
 export interface OnboardingState {
   name?: string;
-  goals?: string[];
+  goals?: Goal[];
   personalityTraits?: Record<string, number>;
   personalityComments?: string[];
   currentInterests?: string[];

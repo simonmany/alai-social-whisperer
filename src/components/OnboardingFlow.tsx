@@ -352,7 +352,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {step === 'goals' && (
           <GoalsSection 
             session={session} 
-            onComplete={(goals) => {
+            onComplete={(selectedGoals) => {
+              const goals: Goal[] = selectedGoals.map(type => ({
+                type,
+                description: "", // You might want to add descriptions here
+                timeframe: "long-term",
+                completed: false,
+                created_at: new Date().toISOString()
+              }));
+              
               setState(prev => ({ ...prev, goals }));
               if (goals.length > 1) {
                 setStep('goals-ranking');
@@ -360,7 +368,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 setStep('personality-intro');
               }
             }}
-            initialGoals={state.goals}
+            initialGoals={state.goals?.map(g => g.type)}
             userName={state.name}
           />
         )}
