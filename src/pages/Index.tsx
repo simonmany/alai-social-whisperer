@@ -157,11 +157,10 @@ const Index = () => {
     if (!session?.user.id) return;
     
     try {
-      const { data, error } = await supabase.functions.invoke('daily-checkin', {
-        body: { 
-          type: 'morning',
-          user_id: session.user.id
-        }
+      const { data, error } = await supabase.rpc('schedule_timezone_aware_checkin', {
+        user_id: session.user.id,
+        target_hour: 7,
+        checkin_type: 'morning'
       });
       
       if (error) throw error;
@@ -184,11 +183,10 @@ const Index = () => {
     if (!session?.user.id) return;
     
     try {
-      const { data, error } = await supabase.functions.invoke('daily-checkin', {
-        body: { 
-          type: 'evening',
-          user_id: session.user.id
-        }
+      const { data, error } = await supabase.rpc('schedule_timezone_aware_checkin', {
+        user_id: session.user.id,
+        target_hour: 22,
+        checkin_type: 'evening'
       });
       
       if (error) throw error;
