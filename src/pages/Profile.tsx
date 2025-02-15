@@ -227,8 +227,14 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const handleDeleteGoal = async (goalIndex: number) => {
     if (!userData?.id || !profileData) return;
 
-    const updatedGoals = [...shortTermGoals];
-    updatedGoals.splice(goalIndex, 1);
+    const allGoals = [...(profileData.goals || [])];
+    const targetGoal = shortTermGoals[goalIndex];
+    
+    const updatedGoals = allGoals.filter(goal => 
+      !(goal.type === targetGoal.type && 
+        goal.description === targetGoal.description && 
+        goal.timeframe === targetGoal.timeframe)
+    );
 
     const { error } = await supabase
       .from('profiles')
@@ -398,16 +404,12 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
           </Alert>
         ) : (
           timeframeGoals.map((goal: Goal, index: number) => {
-            const fullIndex = shortTermGoals.findIndex(g => 
-              g.type === goal.type &&
-              g.description === goal.description &&
-              g.timeframe === goal.timeframe
-            );
+            const goalKey = `${goal.timeframe}-${goal.type}-${goal.description}`;
             return (
-              <div key={index} className="mb-2 flex items-start gap-2">
+              <div key={goalKey} className="mb-2 flex items-start gap-2">
                 <Checkbox
                   checked={goal.completed}
-                  onCheckedChange={() => handleGoalComplete(fullIndex)}
+                  onCheckedChange={() => handleGoalComplete(index)}
                   className="mt-1"
                 />
                 <div className="flex-1">
@@ -422,7 +424,7 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                   variant="ghost"
                   size="icon"
                   className="h-6 w-6"
-                  onClick={() => handleDeleteGoal(fullIndex)}
+                  onClick={() => handleDeleteGoal(index)}
                 >
                   <X className="h-4 w-4" />
                 </Button>
