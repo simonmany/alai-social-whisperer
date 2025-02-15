@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -34,6 +34,36 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchMapsKey = async () => {
+      if (isLocationDialogOpen && !mapsApiKey) {
+        try {
+          console.log("[Profile] Fetching Maps API key...");
+          const { data, error } = await supabase.functions.invoke('get-maps-key');
+          if (error) {
+            console.error('[Profile] Supabase function error:', error);
+            throw error;
+          }
+          if (!data?.apiKey) {
+            console.error('[Profile] No API key returned:', data);
+            throw new Error('No API key returned from function');
+          }
+          console.log("[Profile] Maps API key fetched successfully");
+          setMapsApiKey(data.apiKey);
+        } catch (error: any) {
+          console.error('[Profile] Error fetching Maps API key:', error);
+          toast({
+            title: "Error loading location selector",
+            description: "Please try refreshing the page",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    fetchMapsKey();
+  }, [isLocationDialogOpen, mapsApiKey, toast]);
 
   const { data: userData, isSuccess: isAuthReady } = useQuery({
     queryKey: ['auth-user'],
@@ -113,7 +143,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     retry: 2,
   });
 
-  // Filter out long-term goals
   const shortTermGoals = (profileData?.goals || []).filter((goal: Goal) => 
     ['today', 'week', 'month'].includes(goal.timeframe)
   );
@@ -144,43 +173,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       avatar_url: newUrl
     }));
     await queryClient.invalidateQueries({ queryKey: ['profile'] });
-  };
-
-  const handleLocationUpdate = async (place: any) => {
-    if (!place || typeof place !== 'object') return;
-
-    const address = place.formatted_address || place.name || '';
-    const offset = parseInt(place.utc_offset_minutes) || -240;
-
-    if (!address) return;
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          city: address,
-          utc_offset_minutes: offset
-        })
-        .eq('id', userData?.id);
-
-      if (error) throw error;
-      
-      setIsLocationDialogOpen(false);
-      
-      toast({
-        title: "Location Updated",
-        description: "Your location has been updated successfully",
-      });
-
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
-    } catch (error) {
-      console.error('Error updating location:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update location. Please try again.",
-        variant: "destructive"
-      });
-    }
   };
 
   const handleGoalComplete = async (goalIndex: number) => {
