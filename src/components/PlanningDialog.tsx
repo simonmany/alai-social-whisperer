@@ -393,15 +393,20 @@ const PlanningDialog = ({
         // Create start date by combining selected date and time
         const startDate = new Date(selectedDate);
         startDate.setHours(hours, 0, 0, 0);
+        console.log('Start date:', startDate);
 
         // End time is 1 hour after start time
         const endDate = new Date(startDate);
         endDate.setHours(endDate.getHours() + 1);
 
-        // Convert local time to UTC by subtracting the offset
+        // Convert local time to UTC
+        // For example: if you're in PST (UTC-8):
+        // Local: 2:00 PM PST
+        // UTC offset: -480 minutes
+        // To get UTC: 2:00 PM - (-480 minutes) = 10:00 PM UTC
         if (utcOffsetMinutes !== null) {
-          const startUTC = new Date(startDate.getTime() + (utcOffsetMinutes * 60 * 1000));
-          const endUTC = new Date(endDate.getTime() + (utcOffsetMinutes * 60 * 1000));
+          const startUTC = new Date(startDate.getTime() - (utcOffsetMinutes * 60 * 1000));
+          const endUTC = new Date(endDate.getTime() - (utcOffsetMinutes * 60 * 1000));
           startDate.setTime(startUTC.getTime());
           endDate.setTime(endUTC.getTime());
         }

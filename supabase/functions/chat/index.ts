@@ -514,7 +514,7 @@ serve(async (req) => {
     // Function to convert UTC time to local time
     const convertToLocalTime = (utcTime: string) => {
       const date = new Date(utcTime);
-      const localDate = new Date(date.getTime() - (utcOffsetMinutes * 60 * 1000));
+      const localDate = new Date(date.getTime() + (utcOffsetMinutes * 60 * 1000));
       return localDate.toISOString();
     };
 
