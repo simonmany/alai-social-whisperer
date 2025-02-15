@@ -304,6 +304,43 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     }
   };
 
+  const handleLocationUpdate = async (place: any) => {
+    if (!place || typeof place !== 'object') return;
+
+    const address = place.formatted_address || place.name || '';
+    const offset = parseInt(place.utc_offset_minutes) || -240;
+
+    if (!address) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          city: address,
+          utc_offset_minutes: offset
+        })
+        .eq('id', userData?.id);
+
+      if (error) throw error;
+      
+      setIsLocationDialogOpen(false);
+      
+      toast({
+        title: "Location Updated",
+        description: "Your location has been updated successfully",
+      });
+
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+    } catch (error) {
+      console.error('Error updating location:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update location. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const renderTimeframeSection = (timeframe: string, title: string) => {
     const timeframeGoals = shortTermGoals.filter((goal: Goal) => goal.timeframe === timeframe);
     const hasGoals = timeframeGoals.length > 0;
