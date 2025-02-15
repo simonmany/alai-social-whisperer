@@ -397,31 +397,38 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
             </AlertDescription>
           </Alert>
         ) : (
-          timeframeGoals.map((goal: Goal, index: number) => (
-            <div key={index} className="mb-2 flex items-start gap-2">
-              <Checkbox
-                checked={goal.completed}
-                onCheckedChange={() => handleGoalComplete(index)}
-                className="mt-1"
-              />
-              <div className="flex-1">
-                <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
-                  {goal.type}
+          timeframeGoals.map((goal: Goal, index: number) => {
+            const fullIndex = shortTermGoals.findIndex(g => 
+              g.type === goal.type &&
+              g.description === goal.description &&
+              g.timeframe === goal.timeframe
+            );
+            return (
+              <div key={index} className="mb-2 flex items-start gap-2">
+                <Checkbox
+                  checked={goal.completed}
+                  onCheckedChange={() => handleGoalComplete(fullIndex)}
+                  className="mt-1"
+                />
+                <div className="flex-1">
+                  <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
+                    {goal.type}
+                  </div>
+                  <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
+                    {goal.description}
+                  </div>
                 </div>
-                <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
-                  {goal.description}
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => handleDeleteGoal(fullIndex)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                onClick={() => handleDeleteGoal(index)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     );
