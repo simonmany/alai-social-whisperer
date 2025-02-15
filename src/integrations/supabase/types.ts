@@ -397,6 +397,7 @@ export type Database = {
           onboarding_step: string | null
           personality_comments: string[] | null
           personality_traits: Json | null
+          phone_number: string | null
           relationship_status: string | null
           skill_aesthete: number | null
           skill_athlete: number | null
@@ -434,6 +435,7 @@ export type Database = {
           onboarding_step?: string | null
           personality_comments?: string[] | null
           personality_traits?: Json | null
+          phone_number?: string | null
           relationship_status?: string | null
           skill_aesthete?: number | null
           skill_athlete?: number | null
@@ -471,6 +473,7 @@ export type Database = {
           onboarding_step?: string | null
           personality_comments?: string[] | null
           personality_traits?: Json | null
+          phone_number?: string | null
           relationship_status?: string | null
           skill_aesthete?: number | null
           skill_athlete?: number | null
