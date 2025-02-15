@@ -1,3 +1,4 @@
+<lov-code>
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -645,52 +646,4 @@ const ContactsView = () => {
 
             <div className="space-y-2">
               <div className="flex items-center gap-2 mb-4">
-                <h3 className="text-lg font-semibold text-white">
-                  Contact Groups ({getUserCreatedGroups().length})
-                </h3>
-                <Button variant="ghost" size="icon" className="h-6 w-6 bg-purple-900/50 border-purple-500/50 text-white hover:bg-purple-800/50 -mt-0.5" onClick={() => setIsGroupDialogOpen(true)}>
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {getUserCreatedGroups().map(group => <Badge key={group.id} variant={selectedGroup === group.name ? "default" : "outline"} className={`cursor-pointer hover:bg-purple-800/50 ${selectedGroup === group.name ? "bg-purple-600" : "bg-purple-900/50 border-purple-400/50 text-purple-100 hover:border-purple-300/50"}`} onClick={() => setSelectedGroup(group.name)}>
-                    {group.emoji || "👥"} {group.name}
-                  </Badge>)}
-              </div>
-            </div>
-          </div>
-
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white hover:bg-purple-900/50 rounded-xl">
-            <ChevronUp className="h-6 w-6" />
-          </Button>
-        </div>
-      </div>
-
-      <AlertDialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Group</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure? Deleting this group will remove all members from it.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Go back</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteGroup} className="bg-red-600 hover:bg-red-700">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <GroupManagementDialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen} contacts={contacts} onGroupCreated={() => {
-      queryClient.invalidateQueries({
-        queryKey: ['contact_groups']
-      });
-      queryClient.invalidateQueries({
-        queryKey: ['group_memberships']
-      });
-    }} />
-    </div>;
-};
-export default ContactsView;
+                <h3 className
