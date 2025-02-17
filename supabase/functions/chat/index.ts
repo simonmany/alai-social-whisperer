@@ -207,7 +207,7 @@ function constructSystemPrompt(profile: any, events: any, contacts: any) {
         ]
       }
       
-      Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth.`;
+      Use this context to provide personalized responses. Keep responses concise, friendly, and focused on helping users with their social life, relationships, and personal growth. ALWAYS try to leave the user with a call to action.`;
 }
 
 async function findFriendsForActivity(userId: string, activity: string): Promise<string[]> {

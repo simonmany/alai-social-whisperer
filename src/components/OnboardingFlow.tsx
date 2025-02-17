@@ -5,15 +5,17 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
 import { BasicInfo } from "./onboarding/BasicInfo";
 import { GoalsSection } from "./onboarding/GoalsSection";
+import { GoalRankingSection } from "./onboarding/GoalRankingSection";
 import { DemographicsSection } from "./onboarding/DemographicsSection";
 import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
 import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
-import { generateChatResponse } from "@/utils/openai";
+import { generatePersonalityAnalysis } from "@/utils/openai";
 import { cn } from "@/lib/utils";
 import type { OnboardingState } from "@/types/onboarding";
+import type { Goal } from "@/types/goals";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -22,6 +24,7 @@ interface OnboardingFlowProps {
 type OnboardingStep = 
   | 'basic' 
   | 'goals' 
+  | 'goals-ranking'
   | 'personality-intro'
   | 'personality-q1'
   | 'personality-q2'
@@ -88,11 +91,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   
   const handleBack = () => {
     switch (step) {
-      case 'goals':
-        setStep('basic');
+      case 'goals-ranking':
+        setStep('goals');
         break;
       case 'personality-intro':
-        setStep('goals');
+        setStep('goals-ranking');
         break;
       case 'personality-q1':
         setStep('personality-intro');
@@ -120,6 +123,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleSkip = async () => {
     switch (step) {
+      case 'goals-ranking':
+        setStep('personality-intro');
+        break;
       case 'personality-q1':
       case 'personality-q2':
       case 'personality-q3':
@@ -156,10 +162,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     try {
       const question = questions[questionIndex];
       const responseType = value <= 40 ? question.leftLabel : value >= 80 ? question.rightLabel : "balanced";
-      let prompt = `Hey, I'm learning about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
+      let prompt = `We are talking about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
       
       if (comment.trim()) {
-        prompt += `. Also, the user said this in relation to the question: "${comment}"`;
+        prompt += `. Also, ${state.name} said this in relation to the question: "${comment}"`;
       }
       
       const previousComments = updatedComments.filter((_, index) => index < questionIndex);
@@ -179,8 +185,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         fullPrompt: prompt
       });
       
-      const aiResponse = await generateChatResponse(prompt);
-      setAiResponse(aiResponse.response);
+      const aiResponse = await generatePersonalityAnalysis(prompt);
+      setAiResponse(aiResponse);
     } catch (error) {
       console.error('Error getting AI response:', error);
       toast({
@@ -346,12 +352,57 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {step === 'goals' && (
           <GoalsSection 
             session={session} 
-            onComplete={(goals) => {
+            onComplete={(selectedGoals) => {
+              const goals: Goal[] = selectedGoals.map(type => ({
+                type,
+                description: "", // You might want to add descriptions here
+                timeframe: "long-term",
+                completed: false,
+                created_at: new Date().toISOString()
+              }));
+              
               setState(prev => ({ ...prev, goals }));
-              setStep('personality-intro');
+              if (goals.length > 1) {
+                setStep('goals-ranking');
+              } else {
+                setStep('personality-intro');
+              }
             }}
-            initialGoals={state.goals}
+            initialGoals={state.goals?.map(g => g.type)}
             userName={state.name}
+          />
+        )}
+
+        {step === 'goals-ranking' && state.goals && (
+          <GoalRankingSection
+            goals={state.goals}
+            onComplete={async (rankedGoals) => {
+              if (!session?.user?.id) return;
+
+              try {
+                const { error } = await supabase
+                  .from('profiles')
+                  .update({ 
+                    long_term_goals: rankedGoals
+                  })
+                  .eq('id', session.user.id);
+
+                if (error) throw error;
+
+                setState(prev => ({ 
+                  ...prev, 
+                  goals: rankedGoals 
+                }));
+                setStep('personality-intro');
+              } catch (error: any) {
+                console.error('Error updating ranked goals:', error);
+                toast({
+                  title: "Error saving goal rankings",
+                  description: error.message || "Please try again",
+                  variant: "destructive",
+                });
+              }
+            }}
           />
         )}
 
