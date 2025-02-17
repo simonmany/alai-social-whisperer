@@ -56,7 +56,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [isManualEntry, setIsManualEntry] = useState(false);
-  const [hangDescription, setHangDescription] = useState("");
+  const [description, setDescription] = useState("");
   const [selectedMood, setSelectedMood] = useState<string>("");
   const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>([]);
@@ -75,7 +75,6 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const [manualLocation, setManualLocation] = useState("");
   const [manualDate, setManualDate] = useState<Date | undefined>(undefined);
   const [manualTime, setManualTime] = useState<string>("");
-  const [manualNotes, setManualNotes] = useState("");
 
   const openContactDrawer = (index: number) => {
     setSelectedContactIndex(index);
@@ -91,11 +90,16 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
       const { data: event, error } = await supabase
         .from('calendar_events')
         .select(`
-          *,
-          event_attendees!inner (
-            contacts!contact_id (
+          id,
+          title,
+          start_time,
+          location,
+          description,
+          event_attendees (
+            contacts (
               id,
-              name
+              name,
+              is_archived
             )
           )
         `)
@@ -121,9 +125,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           const moodMatch = event.description.match(/Mood: (.*?)\./);
           if (moodMatch) {
             setSelectedMood(moodMatch[1]);
-            setHangDescription(event.description.replace(moodMatch[0], '').trim());
+            setDescription(event.description.replace(moodMatch[0], '').trim());
           } else {
-            setHangDescription(event.description);
+            setDescription(event.description);
           }
         }
 
@@ -142,6 +146,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
 
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const now = new Date();
 
       const { data, error } = await supabase
         .from('calendar_events')
@@ -151,16 +156,18 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           start_time,
           location,
           feedback_sent,
-          event_attendees!inner (
-            contacts!contact_id (
+          event_attendees (
+            contacts (
               id,
-              name
+              name,
+              is_archived
             )
           )
         `)
         .eq('user_id', session.user.id)
         .eq('feedback_sent', false)
         .gte('start_time', thirtyDaysAgo.toISOString())
+        .lte('start_time', now.toISOString())
         .order('start_time', { ascending: false })
         .limit(10);
 
@@ -235,7 +242,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     if (!open) {
       if (!selectedEventId) {
         setSelectedEvent(null);
-        setHangDescription("");
+        setDescription("");
         setSelectedMood("");
       }
     }
@@ -244,7 +251,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const handleBackClick = () => {
     if (!selectedEventId) {
       setSelectedEvent(null);
-      setHangDescription("");
+      setDescription("");
       setSelectedMood("");
     }
   };
@@ -275,13 +282,65 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     }
   };
 
+  const generateMessage = () => {
+    const hasDescription = description.trim() !== "";
+    const hasMood = selectedMood !== "";
+    const hasContacts = selectedContacts.length > 0;
+    const hasEvent = selectedEvent !== null;
+    const hasActivity = manualActivity.trim() !== "";
+
+    const formatContacts = (contacts: Contact[]) => {
+      if (contacts.length === 0) return "";
+      if (contacts.length === 1) return contacts[0].name;
+      if (contacts.length === 2) return `${contacts[0].name} and ${contacts[1].name}`;
+      const allButLast = contacts.slice(0, -1).map(c => c.name).join(", ");
+      return `${allButLast}, and ${contacts[contacts.length - 1].name}`;
+    };
+
+    // If we have a selected event, use that as the base context
+    if (hasEvent) {
+      const eventDate = format(selectedEvent.date, 'MMMM do');
+      const baseContext = `About our ${selectedEvent.title.toLowerCase()} on ${eventDate}`;
+      
+      if (!hasDescription && !hasMood) {
+        return `${baseContext} - I want to share how it went.`;
+      }
+
+      const moodPhrase = hasMood ? ` It was ${selectedMood}` : "";
+      const descriptionPhrase = hasDescription ? ` ${description}` : "";
+      
+      return `${baseContext} -${moodPhrase}.${descriptionPhrase}`;
+    }
+
+    // For manual entry
+    if (!hasDescription && !hasMood && !hasContacts && !hasActivity) {
+      return "I want to share feedback about a recent hangout!";
+    }
+
+    const activityPhrase = hasActivity ? `${manualActivity}` : "hung out";
+    const contactPhrase = hasContacts ? ` with ${formatContacts(selectedContacts)}` : "";
+    const moodPhrase = hasMood ? ` It was ${selectedMood}` : "";
+    const descriptionPhrase = hasDescription ? ` ${description}` : "";
+
+    if (!hasDescription && hasMood && hasContacts) {
+      return `I had a ${selectedMood} time ${contactPhrase} ${hasActivity ? `at ${activityPhrase}` : ""}!`;
+    }
+
+    if (hasDescription && !hasMood && !hasContacts) {
+      return `Here's what happened at ${activityPhrase}: ${description}`;
+    }
+
+    return `I ${activityPhrase}${contactPhrase}.${moodPhrase}.${descriptionPhrase}`;
+  };
+
   const handleSubmit = async () => {
+    const message = generateMessage();
     if (!session?.user?.id) return;
 
     try {
-      let description = hangDescription;
+      let eventDescription = description;
       if (selectedMood) {
-        description = `Mood: ${selectedMood}. ${description}`;
+        eventDescription = `Mood: ${selectedMood}. ${description}`;
       }
 
       if (selectedEvent) {
@@ -289,7 +348,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         const { error: eventError } = await supabase
           .from('calendar_events')
           .update({
-            description,
+            description: eventDescription,
             feedback_sent: true
           })
           .eq('id', selectedEvent.id);
@@ -322,9 +381,9 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           .from('calendar_events')
           .insert({
             title: manualActivity,
-            description,
-            start_time: manualDate?.toISOString() || new Date().toISOString(), // Ensure we have a string
-            end_time: manualDate?.toISOString() || new Date().toISOString(), // Using same time for end for manual entries
+            description: eventDescription,
+            start_time: manualDate?.toISOString() || new Date().toISOString(),
+            end_time: manualDate?.toISOString() || new Date().toISOString(),
             location: manualLocation,
             user_id: session.user.id,
             feedback_sent: true
@@ -349,18 +408,31 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         }
       }
 
+      // Clear all entry boxes
+      setDescription("");
+      setSelectedMood("");
+      setManualActivity("");
+      setSelectedContacts([]);
+      setContactInput("");
+      setSelectedEvent(null);
+      setIsManualEntry(false);
+      setManualDate(undefined);
+      setManualLocation("");
+      setManualTime("");
+      setShowActivitySuggestions(false);
+
       toast({
-        title: "Success",
+        title: "Success!",
         description: "Feedback submitted successfully",
       });
 
-      onSubmit(description);
+      onSubmit(message);
       onOpenChange(false);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
         title: "Error",
-        description: "Failed to submit feedback",
+        description: "Failed to submit feedback. Please try again.",
         variant: "destructive",
       });
     }
@@ -528,8 +600,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                         <div className="space-y-2">
                           <h4 className="text-sm font-medium">Add more details:</h4>
                           <Textarea
-                            value={hangDescription}
-                            onChange={(e) => setHangDescription(e.target.value)}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
                             placeholder="• What did you talk about?
 • How'd you feel about the activity?
 • Any memorable moments?"
@@ -728,8 +800,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium">Add more details:</h4>
                   <Textarea
-                    value={manualNotes}
-                    onChange={(e) => setManualNotes(e.target.value)}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                     placeholder="• What did you talk about?
 • How'd you feel about the activity?
 • Any memorable moments?"
@@ -739,7 +811,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
               </div>
             )}
 
-            {(selectedEvent || (isManualEntry && selectedContacts.length > 0 && manualActivity)) && (
+            {(selectedEvent || (isManualEntry && manualActivity)) && (
               <Button className="w-full" onClick={handleSubmit}>
                 Submit Feedback
               </Button>
