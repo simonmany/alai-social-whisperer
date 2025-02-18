@@ -25,6 +25,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
   const [showCompletionMessage, setShowCompletionMessage] = useState(false);
+  const [isUpdatingStep, setIsUpdatingStep] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -39,109 +40,133 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         .eq('id', session.user.id)
         .single();
       
-      if (error) throw error;
-      console.log('Profile data:', data);
+      if (error) {
+        console.error('Error fetching profile:', error);
+        toast({
+          title: "Error loading tutorial",
+          description: "Please refresh the page",
+          variant: "destructive",
+        });
+        throw error;
+      }
       return data;
     },
     enabled: !!session?.user?.id,
-    staleTime: 30000
+    staleTime: 30000,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000)
   });
-
-  useEffect(() => {
-    console.log('Tutorial step:', profile?.onboarding_step);
-    console.log('Profile data:', profile);
-    console.log('Is profile open?', isProfileOpen);
-  }, [profile, isProfileOpen]);
 
   useEffect(() => {
     if (profile?.onboarding_step === 'profileintro' && isProfileOpen) {
       console.log('Profile opened, transitioning to goalset');
-      
-      if (session?.user?.id) {
-        supabase
-          .from('profiles')
-          .update({ onboarding_step: 'goalset' })
-          .eq('id', session.user.id)
-          .then(({ error }) => {
-            if (error) console.error('Error updating onboarding step:', error);
-            else {
-              queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-            }
-          });
-      }
+      handleStepChange('goalset');
     }
-  }, [isProfileOpen, profile?.onboarding_step, session?.user?.id, queryClient]);
+  }, [isProfileOpen, profile?.onboarding_step]);
 
-  // Add effect to watch for goals changes
   useEffect(() => {
     if (profile?.onboarding_step === 'goalset' && profile.goals) {
       const goalsArray = profile.goals as (string | Goal)[];
       
-      // Check if there's at least one goal with timeframe
       const hasTimeframeGoal = goalsArray.some(goal => 
         typeof goal === 'object' && 'timeframe' in goal
       );
 
-      if (hasTimeframeGoal) {
+      if (hasTimeframeGoal && !isUpdatingStep) {
         handleStepChange('complete');
         setShowCompletionMessage(true);
-        setTimeout(() => {
-          setShowCompletionMessage(false);
-          onComplete();
-        }, 3000);
       }
     }
-  }, [profile?.goals, profile?.onboarding_step]);
+  }, [profile?.goals, profile?.onboarding_step, isUpdatingStep]);
+
+  // Handle completion message and cleanup
+  useEffect(() => {
+    if (showCompletionMessage) {
+      const completionTimeout = setTimeout(() => {
+        setShowCompletionMessage(false);
+        try {
+          onComplete();
+        } catch (error) {
+          console.error('Error in completion callback:', error);
+          toast({
+            title: "Error completing tutorial",
+            description: "Please refresh the page",
+            variant: "destructive",
+          });
+        }
+      }, 3000);
+
+      return () => {
+        clearTimeout(completionTimeout);
+        // Ensure tutorial is marked as complete even if user navigates away
+        if (session?.user?.id) {
+          supabase
+            .from('profiles')
+            .update({ has_completed_tutorial: true })
+            .eq('id', session.user.id);
+        }
+      };
+    }
+  }, [showCompletionMessage, session?.user?.id]);
 
   const updatePositions = () => {
+    // Add a safety check for the container
+    const container = document.body;
+    if (!container) return;
+
     if (profile?.onboarding_step === 'calendarintro') {
       const calendarButton = document.querySelector('[aria-label="Open calendar"]');
-      if (calendarButton) {
-        const rect = calendarButton.getBoundingClientRect();
-        setArrowPosition({ 
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 100
-        });
+      if (!calendarButton) {
+        // If button not found, skip to next step after delay
+        setTimeout(() => handleStepChange('contactsintro'), 1000);
+        return;
       }
+      const rect = calendarButton.getBoundingClientRect();
+      setArrowPosition({ 
+        top: rect.bottom + 10,
+        left: rect.left + rect.width / 2 - 20
+      });
+      setMessagePosition({
+        top: rect.bottom + 50,
+        left: rect.left - 100
+      });
     } else if (profile?.onboarding_step === 'contactsintro') {
       const contactsButton = document.querySelector('[aria-label="Open contacts"]');
-      if (contactsButton) {
-        const rect = contactsButton.getBoundingClientRect();
-        setArrowPosition({ 
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 100
-        });
+      if (!contactsButton) {
+        setTimeout(() => handleStepChange('profileintro'), 1000);
+        return;
       }
+      const rect = contactsButton.getBoundingClientRect();
+      setArrowPosition({ 
+        top: rect.bottom + 10,
+        left: rect.left + rect.width / 2 - 20
+      });
+      setMessagePosition({
+        top: rect.bottom + 50,
+        left: rect.left - 100
+      });
     } else if (profile?.onboarding_step === 'profileintro') {
       const profileButton = document.querySelector('[aria-label="Open profile"]');
-      if (profileButton) {
-        const rect = profileButton.getBoundingClientRect();
-        setArrowPosition({ 
-          top: rect.bottom + 10,
-          left: rect.left + rect.width / 2 - 20
-        });
-        setMessagePosition({
-          top: rect.bottom + 50,
-          left: rect.left - 200
-        });
+      if (!profileButton) {
+        setTimeout(() => handleStepChange('goalset'), 1000);
+        return;
       }
+      const rect = profileButton.getBoundingClientRect();
+      setArrowPosition({ 
+        top: rect.bottom + 10,
+        left: rect.left + rect.width / 2 - 20
+      });
+      setMessagePosition({
+        top: rect.bottom + 50,
+        left: rect.left - 200
+      });
     } else if (profile?.onboarding_step === 'goalset') {
-      // Find all clickable goal alerts (excluding the top warning message)
       const goalAlerts = Array.from(document.querySelectorAll('[role="alert"]')).filter(alert => {
-        // Check if the alert is clickable (wrapped in a button/has onClick)
         return alert.closest('div[role="alert"]')?.hasAttribute('onclick') || 
                alert.closest('div[role="alert"]')?.classList.contains('cursor-pointer');
       });
       
-      console.log('Found goal alerts:', goalAlerts.length);
+      if (goalAlerts.length === 0) return;
       
       const positions: { top: number; left: number }[] = [];
       
@@ -151,10 +176,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           top: rect.top + (rect.height / 2) - 20,
           left: rect.left - 60
         });
-        console.log('Alert position:', { top: rect.top, left: rect.left, height: rect.height });
       });
       
-      console.log('Goal arrow positions:', positions);
       setGoalArrowPositions(positions);
     }
   };
@@ -169,34 +192,60 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     return () => {
       window.removeEventListener('resize', updatePositions);
       clearTimeout(timeout);
+      
+      // If tutorial is interrupted, mark it as completed
+      if (session?.user?.id && profile?.onboarding_step && profile.onboarding_step !== 'complete') {
+        supabase
+          .from('profiles')
+          .update({ 
+            onboarding_step: 'complete',
+            has_completed_tutorial: true 
+          })
+          .eq('id', session.user.id);
+      }
     };
-  }, [profile?.onboarding_step, isProfileOpen]);
+  }, [profile?.onboarding_step, isProfileOpen, session?.user?.id]);
 
   const handleStepChange = async (newStep: TutorialStep) => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || isUpdatingStep) return;
 
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_step: newStep,
-          ...(newStep === 'complete' ? { has_completed_tutorial: true } : {})
-        })
-        .eq('id', session.user.id);
+    setIsUpdatingStep(true);
+    const retryCount = 3;
+    
+    for (let i = 0; i < retryCount; i++) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ 
+            onboarding_step: newStep,
+            ...(newStep === 'complete' ? { has_completed_tutorial: true } : {})
+          })
+          .eq('id', session.user.id);
 
-      if (error) {
-        console.error('Error updating onboarding step:', error);
-        toast({
-          title: "Error updating tutorial progress",
-          description: "Please try again",
-          variant: "destructive",
-        });
-      } else {
-        queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+        if (!error) {
+          queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+          setIsUpdatingStep(false);
+          return;
+        }
+        
+        // Only show error toast on final retry
+        if (i === retryCount - 1) {
+          toast({
+            title: "Error updating tutorial progress",
+            description: "Please try again or refresh the page",
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        console.error('Error updating step:', error);
       }
-    } catch (error) {
-      console.error('Error updating step:', error);
+      // Wait before retry
+      if (i < retryCount - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
     }
+    
+    setIsUpdatingStep(false);
   };
 
   const renderTutorialContent = () => {
