@@ -22,6 +22,9 @@ interface PlanningDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
   defaultContacts?: Contact[];
+  defaultActivity?: string;
+  defaultLocation?: string;
+  defaultDate?: Date;
 }
 
 const TIME_OPTIONS = [
@@ -35,14 +38,17 @@ const PlanningDialog = ({
   open,
   onOpenChange,
   onSubmit,
-  defaultContacts = []
+  defaultContacts = [],
+  defaultActivity = "",
+  defaultLocation = "",
+  defaultDate
 }: PlanningDialogProps) => {
   const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime'>("main");
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
   const [contactInput, setContactInput] = useState("");
-  const [activity, setActivity] = useState("");
-  const [location, setLocation] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [activity, setActivity] = useState(defaultActivity);
+  const [location, setLocation] = useState(defaultLocation);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>();
   const { toast } = useToast();
   const { session } = useAuth();
@@ -53,13 +59,13 @@ const PlanningDialog = ({
         setStep("main");
         setSelectedContacts(defaultContacts);
         setContactInput("");
-        setActivity("");
-        setLocation("");
-        setSelectedDate(undefined);
+        setActivity(defaultActivity);
+        setLocation(defaultLocation);
+        setSelectedDate(defaultDate);
         setSelectedTime(undefined);
       }, 100);
     }
-  }, [open, defaultContacts]);
+  }, [open, defaultContacts, defaultActivity, defaultLocation, defaultDate]);
 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['contacts'],
