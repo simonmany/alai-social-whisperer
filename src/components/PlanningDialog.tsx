@@ -229,9 +229,20 @@ const PlanningDialog = ({
   };
 
   const getNextButtonText = () => {
+    const currentStep = step;
+    
+    if (currentStep === 'contacts' && !isComplete.contacts) return "Next - who's coming?";
+    if (currentStep === 'activity' && !isComplete.activity) return "Next - what are we doing?";
+    if (currentStep === 'datetime' && !isComplete.datetime) return "Next - pick a time";
+    
+    // If we're on the last incomplete step and everything else is complete
+    if (allFieldsComplete) return "Review details";
+    
+    // Default next button text based on next incomplete step
     if (!isComplete.contacts) return "Next - who's coming?";
     if (!isComplete.activity) return "Next - what are we doing?";
     if (!isComplete.datetime) return "Next - pick a time";
+    
     return "Review details";
   };
 
@@ -292,15 +303,17 @@ const PlanningDialog = ({
   };
 
   const handleNextStep = () => {
-    const next = getNextStep();
-    if (next === 'main') {
+    if (allFieldsComplete) {
       setStep('main');
       toast({
         description: "Review your event details and click Create Event when ready",
       });
-    } else {
-      setStep(next);
+      return;
     }
+    
+    if (!isComplete.contacts) setStep('contacts');
+    else if (!isComplete.activity) setStep('activity');
+    else if (!isComplete.datetime) setStep('datetime');
   };
 
   const renderContactsStep = () => (
