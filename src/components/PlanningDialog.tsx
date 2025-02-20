@@ -51,17 +51,25 @@ const PlanningDialog = ({
     }
   }, [open, defaultContacts]);
 
-  const { data: contacts = [] } = useQuery({
+  const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       if (!session?.user?.id) return [];
+      
+      console.log("Fetching contacts for user:", session.user.id);
+      
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
         .eq('user_id', session.user.id)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching contacts:", error);
+        throw error;
+      }
+      
+      console.log("Fetched contacts:", data);
       
       return (data || []).map(contact => ({
         ...contact,
@@ -95,9 +103,14 @@ const PlanningDialog = ({
   };
 
   const handleSuggestContact = () => {
+    console.log("Current contacts:", contacts);
+    console.log("Selected contacts:", selectedContacts);
+    
     const availableContacts = contacts.filter(
       contact => !selectedContacts.some(selected => selected.id === contact.id)
     );
+    
+    console.log("Available contacts:", availableContacts);
 
     if (availableContacts.length === 0) {
       toast({
@@ -108,7 +121,10 @@ const PlanningDialog = ({
       return;
     }
 
-    const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
+    const randomIndex = Math.floor(Math.random() * availableContacts.length);
+    const randomContact = availableContacts[randomIndex];
+    console.log("Selected random contact:", randomContact);
+    
     addContact(randomContact);
   };
 
