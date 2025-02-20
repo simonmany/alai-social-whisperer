@@ -175,13 +175,74 @@ const PlanningDialog = ({
     return "Done";
   };
 
+  const handleSubmit = async () => {
+    if (!allFieldsComplete || !session?.user?.id) return;
+
+    try {
+      const [hours, minutes, period] = selectedTime!.match(/(\d+):(\d+) (AM|PM)/)!.slice(1);
+      let hour = parseInt(hours);
+      if (period === "PM" && hour !== 12) hour += 12;
+      if (period === "AM" && hour === 12) hour = 0;
+      
+      const startTime = new Date(selectedDate!);
+      startTime.setHours(hour, parseInt(minutes), 0, 0);
+
+      const endTime = new Date(startTime);
+      endTime.setHours(endTime.getHours() + 1);
+
+      const { data: eventData, error: eventError } = await supabase
+        .from('calendar_events')
+        .insert({
+          user_id: session.user.id,
+          title: activity,
+          location: location,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (eventError) throw eventError;
+
+      const attendeesToInsert = selectedContacts.map(contact => ({
+        event_id: eventData.id,
+        contact_id: contact.id
+      }));
+
+      const { error: attendeesError } = await supabase
+        .from('event_attendees')
+        .insert(attendeesToInsert);
+
+      if (attendeesError) throw attendeesError;
+
+      toast({
+        title: "Event created!",
+        description: `${activity} has been scheduled for ${format(startTime, 'EEE, MMM d')} at ${selectedTime}`,
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleNextStep = () => {
     const next = getNextStep();
     if (next === 'main') {
-      toast({
-        title: "Coming soon!",
-        description: "This feature is under development",
-      });
+      if (allFieldsComplete) {
+        handleSubmit();
+      } else {
+        toast({
+          title: "Please complete all fields",
+          description: "Fill in all the details to create your event",
+          variant: "destructive",
+        });
+      }
     } else {
       setStep(next);
     }
@@ -457,14 +518,10 @@ const PlanningDialog = ({
 
       <Button 
         className="w-full bg-black hover:bg-black/90 text-white"
-        onClick={() => {
-          toast({
-            title: "Coming soon!",
-            description: "This feature is under development",
-          });
-        }}
+        onClick={handleSubmit}
+        disabled={!allFieldsComplete}
       >
-        {allFieldsComplete ? "Submit" : "Figure it out for me"}
+        {allFieldsComplete ? "Create Event" : "Fill in all details"}
       </Button>
     </div>
   );
