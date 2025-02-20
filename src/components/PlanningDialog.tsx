@@ -430,21 +430,14 @@ const PlanningDialog = ({
               type="activities"
               placeholder="Type to search activities or add a new one..."
               minSelections={1}
-              initialSelections={activity ? [activity] : []}
               value={activity ? [activity] : []}
               onChange={(activities) => {
-                if (activities.length > 0) {
-                  setActivity(activities[0]);
-                } else {
-                  setActivity("");
-                }
+                console.log("Activity changed:", activities);
+                setActivity(activities[activities.length - 1] || "");
               }}
               onComplete={(activities) => {
-                if (activities.length > 0) {
-                  setActivity(activities[0]);
-                } else {
-                  setActivity("");
-                }
+                console.log("Activity completed:", activities);
+                setActivity(activities[activities.length - 1] || "");
               }}
             />
           </div>

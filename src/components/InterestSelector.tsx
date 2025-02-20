@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,6 @@ interface InterestSelectorProps {
   onComplete: (selectedInterests: string[]) => void;
   placeholder?: string;
   minSelections?: number;
-  initialSelections?: string[];
   type?: 'activities' | 'food' | 'music';
   value?: string[];
   onChange?: (selections: string[]) => void;
@@ -25,28 +23,14 @@ export const InterestSelector = ({
   onComplete, 
   placeholder = "Type to search or add new activities...",
   minSelections = 1,
-  initialSelections = [],
   type = 'activities',
-  value,
+  value = [],
   onChange
 }: InterestSelectorProps) => {
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedItems, setSelectedItems] = useState<string[]>(initialSelections);
   const { toast } = useToast();
-
-  // Update internal state when value prop changes
-  useEffect(() => {
-    if (value !== undefined) {
-      setSelectedItems(value);
-    }
-  }, [value]);
-
-  // Update internal state when initialSelections changes
-  useEffect(() => {
-    setSelectedItems(initialSelections);
-  }, [initialSelections]);
 
   const getTableName = () => {
     switch (type) {
@@ -59,7 +43,6 @@ export const InterestSelector = ({
     }
   };
 
-  // Fetch items on mount and when type changes
   useEffect(() => {
     const fetchItems = async () => {
       const { data, error } = await supabase
@@ -82,7 +65,6 @@ export const InterestSelector = ({
     fetchItems();
   }, [type, toast]);
 
-  // Filter items when search term changes
   useEffect(() => {
     if (searchTerm) {
       const filtered = items.filter(item =>
@@ -95,11 +77,10 @@ export const InterestSelector = ({
   }, [searchTerm, items]);
 
   const handleItemSelect = (itemName: string) => {
-    const newSelectedItems = selectedItems.includes(itemName)
-      ? selectedItems.filter(name => name !== itemName)
-      : [...selectedItems, itemName];
+    const newSelectedItems = value.includes(itemName)
+      ? value.filter(name => name !== itemName)
+      : [...value, itemName];
     
-    setSelectedItems(newSelectedItems);
     onChange?.(newSelectedItems);
     onComplete(newSelectedItems);
     setSearchTerm("");
@@ -171,17 +152,15 @@ export const InterestSelector = ({
         );
 
         if (existingItem) {
-          if (!selectedItems.includes(existingItem.name)) {
-            const newSelectedItems = [...selectedItems, existingItem.name];
-            setSelectedItems(newSelectedItems);
+          if (!value.includes(existingItem.name)) {
+            const newSelectedItems = [...value, existingItem.name];
             onChange?.(newSelectedItems);
             onComplete(newSelectedItems);
           }
         } else {
           const newItem = await createNewItem(itemName);
           if (newItem) {
-            const newSelectedItems = [...selectedItems, newItem.name];
-            setSelectedItems(newSelectedItems);
+            const newSelectedItems = [...value, newItem.name];
             onChange?.(newSelectedItems);
             onComplete(newSelectedItems);
           }
@@ -218,7 +197,7 @@ export const InterestSelector = ({
       )}
 
       <div className="flex flex-wrap gap-2">
-        {selectedItems.map((item) => (
+        {value.map((item) => (
           <Button
             key={item}
             variant="secondary"
