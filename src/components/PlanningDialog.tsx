@@ -229,11 +229,13 @@ const PlanningDialog = ({
     return 'main';
   };
 
-  const getNextButtonText = () => {
-    if (!isComplete.contacts) return "Next - who's coming?";
-    if (!isComplete.activity) return "Next - what are we doing?";
-    if (!isComplete.datetime) return "Next - pick a time";
-    return "Done";
+  const handleNextStep = () => {
+    setStep('main');
+    if (!allFieldsComplete) {
+      toast({
+        description: "Review your event details and click Create Event when ready",
+      });
+    }
   };
 
   const handleSubmit = async () => {
@@ -289,22 +291,6 @@ const PlanningDialog = ({
         description: "Failed to create event. Please try again.",
         variant: "destructive",
       });
-    }
-  };
-
-  const handleNextStep = () => {
-    const next = getNextStep();
-    if (next === 'main') {
-      if (allFieldsComplete) {
-        handleSubmit();
-      } else {
-        setStep('main');
-        toast({
-          description: "Review your event details and click Create Event when ready",
-        });
-      }
-    } else {
-      setStep(next);
     }
   };
 
