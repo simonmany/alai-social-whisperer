@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,8 @@ interface InterestSelectorProps {
   minSelections?: number;
   initialSelections?: string[];
   type?: 'activities' | 'food' | 'music';
+  value?: string[];
+  onChange?: (selections: string[]) => void;
 }
 
 export const InterestSelector = ({ 
@@ -23,13 +26,27 @@ export const InterestSelector = ({
   placeholder = "Type to search or add new activities...",
   minSelections = 1,
   initialSelections = [],
-  type = 'activities'
+  type = 'activities',
+  value,
+  onChange
 }: InterestSelectorProps) => {
   const [items, setItems] = useState<Item[]>([]);
   const [filteredItems, setFilteredItems] = useState<Item[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedItems, setSelectedItems] = useState<string[]>(initialSelections);
   const { toast } = useToast();
+
+  // Update internal state when value prop changes
+  useEffect(() => {
+    if (value !== undefined) {
+      setSelectedItems(value);
+    }
+  }, [value]);
+
+  // Update internal state when initialSelections changes
+  useEffect(() => {
+    setSelectedItems(initialSelections);
+  }, [initialSelections]);
 
   const getTableName = () => {
     switch (type) {
@@ -83,6 +100,7 @@ export const InterestSelector = ({
       : [...selectedItems, itemName];
     
     setSelectedItems(newSelectedItems);
+    onChange?.(newSelectedItems);
     onComplete(newSelectedItems);
     setSearchTerm("");
     setFilteredItems([]);
@@ -156,6 +174,7 @@ export const InterestSelector = ({
           if (!selectedItems.includes(existingItem.name)) {
             const newSelectedItems = [...selectedItems, existingItem.name];
             setSelectedItems(newSelectedItems);
+            onChange?.(newSelectedItems);
             onComplete(newSelectedItems);
           }
         } else {
@@ -163,6 +182,7 @@ export const InterestSelector = ({
           if (newItem) {
             const newSelectedItems = [...selectedItems, newItem.name];
             setSelectedItems(newSelectedItems);
+            onChange?.(newSelectedItems);
             onComplete(newSelectedItems);
           }
         }
