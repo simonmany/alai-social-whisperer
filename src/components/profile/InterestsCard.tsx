@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity } from "lucide-react";
 
@@ -8,6 +9,7 @@ interface InterestsCardProps {
   desiredFoodPreferences?: string[];
   musicPreferences?: string[];
   desiredMusicPreferences?: string[];
+  onUpdate?: (currentInterests: string[], desiredInterests: string[]) => Promise<void>;
 }
 
 export const InterestsCard = ({
@@ -17,6 +19,7 @@ export const InterestsCard = ({
   desiredFoodPreferences = [],
   musicPreferences = [],
   desiredMusicPreferences = [],
+  onUpdate,
 }: InterestsCardProps) => {
   const renderInterestSection = (title: string, interests: string[]) => {
     if (!interests.length) return null;

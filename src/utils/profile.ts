@@ -1,3 +1,4 @@
+
 export const formatProfileData = (profile: any, session: any) => {
   if (!profile) return null;
 
@@ -13,7 +14,8 @@ export const formatProfileData = (profile: any, session: any) => {
     hasAccessToken: !!profile.google_access_token,
     hasRefreshToken: !!profile.google_refresh_token,
     updatedAt: profile.updated_at,
-    provider: session?.user?.app_metadata?.provider
+    provider: session?.user?.app_metadata?.provider,
+    catchUpContacts: profile.catch_up_contacts || []
   };
 
   // Check if calendar is properly connected and tokens are valid
@@ -36,7 +38,8 @@ export const getProfileWithAuth = async (supabase: any, userId: string) => {
           google_refresh_token,
           google_token_expires_at,
           has_google_calendar,
-          google_token_expired
+          google_token_expired,
+          catch_up_contacts
         `)
         .eq('id', userId)
         .single(),
@@ -60,7 +63,8 @@ export const getProfileWithAuth = async (supabase: any, userId: string) => {
       hasAccessToken: !!profileResult.data.google_access_token,
       hasRefreshToken: !!profileResult.data.google_refresh_token,
       tokenExpiresAt: profileResult.data.google_token_expires_at,
-      provider: sessionResult.data.session?.user?.app_metadata?.provider
+      provider: sessionResult.data.session?.user?.app_metadata?.provider,
+      catchUpContacts: profileResult.data.catch_up_contacts
     });
 
     return formatProfileData(profileResult.data, sessionResult.data.session);

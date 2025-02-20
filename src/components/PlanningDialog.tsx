@@ -1,267 +1,123 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Utensils, Palette, MapPin, PartyPopper, Plane, CalendarIcon, Bot, ArrowLeft, Archive } from "lucide-react";
+import { X, Users, Calendar as CalendarIcon, MapPin, Bot, ArrowLeft, Archive, Shuffle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import Autocomplete from 'react-google-autocomplete';
+import { useAuth } from "@/hooks/use-auth";
+import { InterestSelector } from "@/components/InterestSelector";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format, addDays } from "date-fns";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
-import { Drawer, DrawerContent } from "@/components/ui/drawer";
-import { ContactCard } from "@/components/ContactCard";
+import { Check } from "lucide-react";
 
 interface PlanningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
+  defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
-  defaultContacts?: Contact[];
 }
 
-type ActivityCategory = "Food / Drinks" | "Recreation" | "Arts" | "A Party!" | "A Trip" | null;
+const TIME_OPTIONS = [
+  "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM",
+  "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM", "7:00 PM", "7:30 PM",
+  "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM", "10:00 PM"
+];
 
-const PlanningDialog = ({ 
-  open, 
-  onOpenChange, 
+const PlanningDialog = ({
+  open,
+  onOpenChange,
   onSubmit,
-  defaultActivity,
-  defaultLocation,
-  defaultDate,
-  defaultContacts = []
+  defaultContacts = [],
+  defaultActivity = "",
+  defaultLocation = "",
+  defaultDate
 }: PlanningDialogProps) => {
-  const [activity, setActivity] = useState(defaultActivity || "");
-  const [selectedCategory, setSelectedCategory] = useState<ActivityCategory>(null);
-  const [showCustomSpot, setShowCustomSpot] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
-  const [selectedTime, setSelectedTime] = useState<string>();
+  const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime'>("main");
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
   const [contactInput, setContactInput] = useState("");
-  const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
-  const [utcOffsetMinutes, setUtcOffsetMinutes] = useState<number | null>(null);
+  const [activity, setActivity] = useState(defaultActivity);
+  const [location, setLocation] = useState(defaultLocation);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
+  const [selectedTime, setSelectedTime] = useState<string>();
   const { toast } = useToast();
   const { session } = useAuth();
-  const [isContactDrawerOpen, setIsContactDrawerOpen] = useState(false);
-  const [selectedContactIndex, setSelectedContactIndex] = useState<number>(-1);
-
-  const timeSlots = Array.from({ length: 17 }, (_, i) => {
-    const hour = i + 7;
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour > 12 ? hour - 12 : hour;
-    return `${displayHour}:00 ${period}`;
-  });
 
   useEffect(() => {
-    const fetchMapsKey = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('get-maps-key');
-        if (error) {
-          console.error('Supabase function error:', error);
-          throw error;
-        }
-        if (!data?.apiKey) {
-          console.error('No API key returned:', data);
-          throw new Error('No API key returned from function');
-        }
-        setMapsApiKey(data.apiKey);
-      } catch (error: any) {
-        console.error('Error fetching Maps API key:', error);
-        toast({
-          title: "Error loading location selector",
-          description: "Please try refreshing the page",
-          variant: "destructive",
-        });
-      }
-    };
-
-    if (selectedCategory === "A Trip") {
-      fetchMapsKey();
+    if (!open) {
+      setTimeout(() => {
+        setStep("main");
+        setSelectedContacts(defaultContacts);
+        setContactInput("");
+        setActivity(defaultActivity);
+        setLocation(defaultLocation);
+        setSelectedDate(defaultDate);
+        setSelectedTime(undefined);
+      }, 100);
     }
-  }, [selectedCategory, toast]);
+  }, [open, defaultContacts, defaultActivity, defaultLocation, defaultDate]);
 
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      if (!session?.user?.id) return;
-      
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('utc_offset_minutes')
-        .eq('id', session.user.id)
-        .single();
-        
-      if (error) {
-        console.error('Error fetching user profile:', error);
-        return;
+  const { data: contacts = [], isLoading } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      if (!session?.user?.id) {
+        console.log("No user session found");
+        return [];
       }
       
-      setUtcOffsetMinutes(profile?.utc_offset_minutes || -240);
-    };
-
-    fetchUserProfile();
-  }, [session?.user?.id]);
-
-  const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts', contactInput],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
+      console.log("Fetching contacts for user:", session.user.id);
+      
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
         .eq('user_id', session.user.id)
-        .ilike('name', `%${contactInput}%`)
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching contacts:", error);
+        throw error;
+      }
       
-      // Transform JSON fields to ensure they're arrays
+      console.log("Fetched contacts:", data);
       return (data || []).map(contact => ({
         ...contact,
         interests: Array.isArray(contact.interests) ? contact.interests : [],
       })) as Contact[];
     },
-    enabled: !!session?.user?.id && contactInput.length > 0
+    enabled: !!session?.user?.id
   });
 
-  const { data: foodItems } = useQuery({
-    queryKey: ['food_items'],
+  const { data: activities = [] } = useQuery({
+    queryKey: ['activities'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('food_items')
-        .select('name');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: selectedCategory === "Food / Drinks"
-  });
-
-  const { data: recreationItems } = useQuery({
-    queryKey: ['recreation_activities'],
-    queryFn: async () => {
+      console.log("Fetching activities");
       const { data, error } = await supabase
         .from('activities')
-        .select('name')
-        .eq('category', 'Recreation');
-      if (error) throw error;
+        .select('*');
+      
+      if (error) {
+        console.error("Error fetching activities:", error);
+        throw error;
+      }
+      
+      console.log("Fetched activities:", data);
       return data || [];
-    },
-    enabled: selectedCategory === "Recreation"
+    }
   });
-
-  const { data: artsItems } = useQuery({
-    queryKey: ['arts_activities'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('activities')
-        .select('name')
-        .eq('category', 'Arts');
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: selectedCategory === "Arts"
-  });
-
-  const getFilteredSuggestions = () => {
-    if (!activity.trim() || selectedCategory === "A Trip" || selectedCategory === "A Party!") return [];
-
-    let suggestions: { name: string }[] = [];
-    switch (selectedCategory) {
-      case "Food / Drinks":
-        suggestions = foodItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase()) &&
-          item.name.toLowerCase() !== activity.toLowerCase()
-        ).slice(0, 5) || [];
-        break;
-      case "Recreation":
-        suggestions = recreationItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase()) &&
-          item.name.toLowerCase() !== activity.toLowerCase()
-        ).slice(0, 5) || [];
-        break;
-      case "Arts":
-        suggestions = artsItems?.filter(item => 
-          item.name.toLowerCase().includes(activity.toLowerCase()) &&
-          item.name.toLowerCase() !== activity.toLowerCase()
-        ).slice(0, 5) || [];
-        break;
-    }
-    return suggestions;
-  };
-
-  const handleAiPickActivity = () => {
-    const categories = [
-      { type: "Food / Drinks", items: foodItems },
-      { type: "Recreation", items: recreationItems },
-      { type: "Arts", items: artsItems }
-    ].filter(category => category.items && category.items.length > 0);
-
-    if (categories.length === 0) {
-      toast({
-        title: "No activities available",
-        description: "Please try again later",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-    const randomItem = randomCategory.items[Math.floor(Math.random() * randomCategory.items.length)];
-    
-    handleCategorySelect(randomCategory.type as ActivityCategory);
-    setActivity(randomItem.name);
-  };
-
-  const handleAiPickContact = () => {
-    if (!contacts || contacts.length === 0) {
-      toast({
-        title: "No contacts available",
-        description: "Add some contacts first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const availableContacts = contacts.filter(
-      contact => !selectedContacts.some(selected => selected.id === contact.id)
-    );
-
-    if (availableContacts.length === 0) {
-      toast({
-        title: "All contacts already selected",
-        description: "Try removing some contacts first",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
-    setSelectedContacts([...selectedContacts, randomContact]);
-  };
-
-  const handleAiPickDateTime = () => {
-    const today = new Date();
-    const randomDays = Math.floor(Math.random() * 30);
-    const randomDate = addDays(today, randomDays);
-    
-    const randomHour = Math.floor(Math.random() * 17) + 7; // 7 AM to 11 PM
-    const period = randomHour >= 12 ? 'PM' : 'AM';
-    const displayHour = randomHour > 12 ? randomHour - 12 : randomHour;
-    const randomTime = `${displayHour}:00 ${period}`;
-
-    setSelectedDate(randomDate);
-    setSelectedTime(randomTime);
-  };
 
   const filteredContacts = contacts.filter(contact => 
-    !selectedContacts.some(selected => selected.id === contact.id)
+    !selectedContacts.some(selected => selected.id === contact.id) &&
+    (contactInput === "" || contact.name.toLowerCase().includes(contactInput.toLowerCase()))
   );
 
   const getInitials = (name: string) => {
@@ -274,608 +130,529 @@ const PlanningDialog = ({
   };
 
   const addContact = (contact: Contact) => {
-    setSelectedContacts([...selectedContacts, contact]);
+    setSelectedContacts(prev => [...prev, contact]);
     setContactInput("");
   };
 
   const removeContact = (contactToRemove: Contact) => {
-    setSelectedContacts(selectedContacts.filter(c => c.id !== contactToRemove.id));
+    setSelectedContacts(prev => prev.filter(c => c.id !== contactToRemove.id));
   };
 
-  const handleCategorySelect = (category: ActivityCategory) => {
-    setSelectedCategory(category);
-    if (category === "A Party!" || category === "A Trip") {
-      setShowCustomSpot(true);
+  const handleSuggestContact = () => {
+    console.log("handleSuggestContact called");
+    console.log("Current contacts state:", contacts);
+    console.log("Current selectedContacts state:", selectedContacts);
+    
+    if (isLoading) {
+      console.log("Contacts are still loading");
+      toast({
+        title: "Loading contacts",
+        description: "Please wait while we load your contacts",
+      });
+      return;
+    }
+
+    if (!contacts || contacts.length === 0) {
+      console.log("No contacts found in database");
+      toast({
+        title: "No contacts found",
+        description: "Add some contacts first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const availableContacts = contacts.filter(
+      contact => !selectedContacts.some(selected => selected.id === contact.id)
+    );
+
+    console.log("Available contacts after filtering:", availableContacts);
+
+    if (availableContacts.length === 0) {
+      console.log("No available contacts to suggest");
+      toast({
+        title: "No more contacts available",
+        description: "All contacts have been selected",
+        variant: "destructive",
+      });
     } else {
-      setShowCustomSpot(false);
+      const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
+      console.log("Selected random contact:", randomContact);
+      addContact(randomContact);
     }
-    setActivity("");
   };
 
-  const handleCategoryDeselect = () => {
-    setSelectedCategory(null);
-    setShowCustomSpot(false);
-    setActivity("");
+  const handleRandomActivity = () => {
+    console.log("handleRandomActivity called");
+    console.log("Current activities state:", activities);
+    
+    if (!activities || activities.length === 0) {
+      console.log("No activities found in database");
+      toast({
+        title: "No activities found",
+        description: "Add some activities first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+    console.log("Selected random activity:", randomActivity);
+    setActivity(randomActivity.name);
+
+    toast({
+      title: "Activity selected!",
+      description: randomActivity.name,
+    });
   };
 
-  const handleBackFromCustomSpot = () => {
-    setShowCustomSpot(false);
-    setActivity("");
+  const handleRandomDateTime = () => {
+    const daysToAdd = Math.floor(Math.random() * 7) + 1;
+    const randomDate = addDays(new Date(), daysToAdd);
+    
+    const randomTimeIndex = Math.floor(Math.random() * TIME_OPTIONS.length);
+    const randomTime = TIME_OPTIONS[randomTimeIndex];
+
+    setSelectedDate(randomDate);
+    setSelectedTime(randomTime);
+
+    toast({
+      title: "Random time selected!",
+      description: `${format(randomDate, 'EEE, MMM d')} at ${randomTime}`,
+    });
   };
 
-  const generateMessage = () => {
-    const hasActivity = activity.trim() !== "";
-    const hasContacts = selectedContacts.length > 0;
-    const hasDateTime = selectedDate && selectedTime;
+  const getNextStep = () => {
+    if (!isComplete.contacts) return 'contacts';
+    if (!isComplete.activity) return 'activity';
+    if (!isComplete.datetime) return 'datetime';
+    return 'main';
+  };
 
-    const formatContacts = (contacts: Contact[]) => {
-      if (contacts.length === 0) return "";
-      if (contacts.length === 1) return contacts[0].name;
-      if (contacts.length === 2) return `${contacts[0].name} and ${contacts[1].name}`;
-      const allButLast = contacts.slice(0, -1).map(c => c.name).join(", ");
-      return `${allButLast}, and ${contacts[contacts.length - 1].name}`;
-    };
-
-    const formatActivity = () => {
-      switch (selectedCategory) {
-        case "Food / Drinks":
-          return `get ${activity.toLowerCase()}`;
-        case "Recreation":
-          return activity.toLowerCase();
-        case "Arts":
-          return `go to ${activity.toLowerCase()}`;
-        case "A Party!":
-          return `have a party at ${activity}`;
-        case "A Trip":
-          return `take a trip to ${activity}`;
-        default:
-          return activity.toLowerCase();
-      }
-    };
-
-    if (!hasActivity && !hasContacts && !hasDateTime) {
-      return "Help me plan something fun!";
-    }
-
-    if (hasActivity && !hasContacts && !hasDateTime) {
-      return `I want to ${formatActivity()}. Can you help me find some people and a good time?`;
-    }
-
-    if (!hasActivity && hasContacts && !hasDateTime) {
-      const contactNames = formatContacts(selectedContacts);
-      return `I'd like to plan something with ${contactNames}. What should we do?`;
-    }
-
-    if (!hasActivity && !hasContacts && hasDateTime) {
-      const formattedDate = format(selectedDate, 'MMMM do');
-      return `I'm free on ${formattedDate} at ${selectedTime}. What should I do?`;
-    }
-
-    if (hasActivity && hasContacts && !hasDateTime) {
-      const contactNames = formatContacts(selectedContacts);
-      return `I want to ${formatActivity()} with ${contactNames}. When would be a good time?`;
-    }
-
-    if (hasActivity && !hasContacts && hasDateTime) {
-      const formattedDate = format(selectedDate, 'MMMM do');
-      return `I want to ${formatActivity()} on ${formattedDate} at ${selectedTime}. Who should I invite?`;
-    }
-
-    if (!hasActivity && hasContacts && hasDateTime) {
-      const contactNames = formatContacts(selectedContacts);
-      const formattedDate = format(selectedDate, 'MMMM do');
-      return `I'm meeting with ${contactNames} on ${formattedDate} at ${selectedTime}. What should we do?`;
-    }
-
-    const contactNames = formatContacts(selectedContacts);
-    const formattedDate = format(selectedDate, 'MMMM do');
-    return `I want to ${formatActivity()} with ${contactNames} on ${formattedDate} at ${selectedTime}. Can you help make this happen?`;
+  const getNextButtonText = () => {
+    const currentStep = step;
+    
+    if (currentStep === 'contacts' && !isComplete.contacts) return "Next - who's coming?";
+    if (currentStep === 'activity' && !isComplete.activity) return "Next - what are we doing?";
+    if (currentStep === 'datetime' && !isComplete.datetime) return "Next - pick a time";
+    
+    // If we're on the last incomplete step and everything else is complete
+    if (allFieldsComplete) return "Review details";
+    
+    // Default next button text based on next incomplete step
+    if (!isComplete.contacts) return "Next - who's coming?";
+    if (!isComplete.activity) return "Next - what are we doing?";
+    if (!isComplete.datetime) return "Next - pick a time";
+    
+    return "Review details";
   };
 
   const handleSubmit = async () => {
-    const message = generateMessage();
+    if (!allFieldsComplete || !session?.user?.id) return;
+
+    try {
+      const [hours, minutes, period] = selectedTime!.match(/(\d+):(\d+) (AM|PM)/)!.slice(1);
+      let hour = parseInt(hours);
+      if (period === "PM" && hour !== 12) hour += 12;
+      if (period === "AM" && hour === 12) hour = 0;
+      
+      const startTime = new Date(selectedDate!);
+      startTime.setHours(hour, parseInt(minutes), 0, 0);
+
+      const endTime = new Date(startTime);
+      endTime.setHours(endTime.getHours() + 1);
+
+      const { data: eventData, error: eventError } = await supabase
+        .from('calendar_events')
+        .insert({
+          user_id: session.user.id,
+          title: activity,
+          location: location,
+          start_time: startTime.toISOString(),
+          end_time: endTime.toISOString(),
+        })
+        .select()
+        .single();
+
+      if (eventError) throw eventError;
+
+      const attendeesToInsert = selectedContacts.map(contact => ({
+        event_id: eventData.id,
+        contact_id: contact.id
+      }));
+
+      const { error: attendeesError } = await supabase
+        .from('event_attendees')
+        .insert(attendeesToInsert);
+
+      if (attendeesError) throw attendeesError;
+
+      toast({
+        title: "Event created!",
+        description: `${activity} has been scheduled for ${format(startTime, 'EEE, MMM d')} at ${selectedTime}`,
+      });
+
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "Error",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleNextStep = () => {
+    if (allFieldsComplete) {
+      setStep('main');
+      toast({
+        description: "Review your event details and click Create Event when ready",
+      });
+      return;
+    }
     
-    // Only create calendar event if we have all required fields
-    if (selectedDate && selectedTime && activity) {
-      try {
-        // Parse the time string to get hours and minutes
-        const [hour, period] = selectedTime.split(' ');
-        const [hourStr] = hour.split(':');
-        let hours = parseInt(hourStr);
-        
-        // Convert to 24-hour format
-        if (period === 'PM' && hours !== 12) {
-          hours += 12;
-        } else if (period === 'AM' && hours === 12) {
-          hours = 0;
-        }
-
-        // Create start date by combining selected date and time
-        const startDate = new Date(selectedDate);
-        startDate.setHours(hours, 0, 0, 0);
-        console.log('Start date:', startDate);
-
-        // End time is 1 hour after start time
-        const endDate = new Date(startDate);
-        endDate.setHours(endDate.getHours() + 1);
-
-        // Convert local time to UTC
-        // For example: if you're in PST (UTC-8):
-        // Local: 2:00 PM PST
-        // UTC offset: -480 minutes
-        // To get UTC: 2:00 PM - (-480 minutes) = 10:00 PM UTC
-        if (utcOffsetMinutes !== null) {
-          const startUTC = new Date(startDate.getTime() - (utcOffsetMinutes * 60 * 1000));
-          const endUTC = new Date(endDate.getTime() - (utcOffsetMinutes * 60 * 1000));
-          startDate.setTime(startUTC.getTime());
-          endDate.setTime(endUTC.getTime());
-        }
-
-        // Get the current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('No authenticated user');
-
-        // Create the calendar event with UTC times
-        const { data: eventData, error: eventError } = await supabase
-          .from('calendar_events')
-          .insert({
-            user_id: user.id,
-            title: activity,
-            start_time: startDate.toISOString(),
-            end_time: endDate.toISOString(),
-          })
-          .select()
-          .single();
-
-        if (eventError || !eventData) {
-          console.error('Error creating calendar event:', eventError);
-          toast({
-            title: "Error creating event",
-            description: "Failed to create calendar event. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        // If there are selected contacts, create event attendees
-        if (selectedContacts.length > 0) {
-          const { error: attendeesError } = await supabase
-            .from('event_attendees')
-            .insert(
-              selectedContacts.map(contact => ({
-                event_id: eventData.id,
-                contact_id: contact.id
-              }))
-            );
-
-          if (attendeesError) {
-            console.error('Error creating event attendees:', attendeesError);
-            // Don't block the event creation if attendee association fails
-            toast({
-              title: "Warning",
-              description: "Event created but failed to associate some attendees.",
-              variant: "destructive",
-            });
-          }
-        }
-
-        toast({
-          title: "Success",
-          description: "Event created successfully!",
-        });
-      } catch (error) {
-        console.error('Error in handleSubmit:', error);
-        toast({
-          title: "Error",
-          description: "Failed to create event. Please try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    onSubmit(message);
-    setActivity("");
-    setSelectedCategory(null);
-    setShowCustomSpot(false);
-    setSelectedContacts([]);
-    setSelectedDate(undefined);
-    setSelectedTime(undefined);
-    onOpenChange(false);
+    if (!isComplete.contacts) setStep('contacts');
+    else if (!isComplete.activity) setStep('activity');
+    else if (!isComplete.datetime) setStep('datetime');
   };
 
-  const openContactDrawer = (index: number) => {
-    setSelectedContactIndex(index);
-    setIsContactDrawerOpen(true);
+  const renderContactsStep = () => (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => setStep('main')}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            console.log("Suggest someone button clicked");
+            handleSuggestContact();
+          }}
+          className="text-sm gap-2"
+        >
+          <Bot className="h-4 w-4" />
+          Suggest someone
+        </Button>
+      </div>
+
+      <Input
+        placeholder="Search contacts..."
+        value={contactInput}
+        onChange={(e) => setContactInput(e.target.value)}
+        className="h-9"
+      />
+
+      {contactInput && filteredContacts.length > 0 && (
+        <div className="border rounded-md divide-y">
+          {filteredContacts.map((contact) => (
+            <div
+              key={contact.id}
+              className="p-2 hover:bg-accent flex items-center justify-between cursor-pointer"
+              onClick={() => addContact(contact)}
+            >
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
+                </Avatar>
+                <span className="text-sm">{contact.name}</span>
+              </div>
+              {contact.is_archived && (
+                <Archive className="h-4 w-4 text-muted-foreground" />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selectedContacts.length > 0 && (
+        <div className="space-y-2">
+          <div className="text-sm font-medium">Selected contacts:</div>
+          <div className="flex flex-wrap gap-2">
+            {selectedContacts.map((contact) => (
+              <div
+                key={contact.id}
+                className="flex items-center gap-1 bg-secondary px-2 py-1 rounded-full text-xs"
+              >
+                <Avatar className="h-4 w-4">
+                  <AvatarFallback className="text-[10px]">{getInitials(contact.name)}</AvatarFallback>
+                </Avatar>
+                <span>{contact.name}</span>
+                <button
+                  onClick={() => removeContact(contact)}
+                  className="hover:text-destructive"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleNextStep}
+          disabled={selectedContacts.length === 0}
+        >
+          {getNextButtonText()}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderActivityStep = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => setStep('main')}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            console.log("Suggest activity button clicked");
+            handleRandomActivity();
+          }}
+          className="text-sm gap-2"
+        >
+          <Shuffle className="h-4 w-4" />
+          Suggest activity
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <Label className="text-base font-medium">What are we doing?</Label>
+          <div className="mt-2">
+            <InterestSelector
+              type="activities"
+              placeholder="Type to search activities or add a new one..."
+              minSelections={1}
+              value={activity ? [activity] : []}
+              onChange={(activities) => {
+                console.log("Activity changed:", activities);
+                setActivity(activities[activities.length - 1] || "");
+              }}
+              onComplete={(activities) => {
+                console.log("Activity completed:", activities);
+                setActivity(activities[activities.length - 1] || "");
+              }}
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Label className="text-base font-medium">Where are we going? (Optional)</Label>
+          <div className="mt-2">
+            <Input
+              placeholder="Enter location..."
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleNextStep}
+          disabled={!activity}
+        >
+          {getNextButtonText()}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderDateTimeStep = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => setStep('main')}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRandomDateTime}
+          className="text-sm gap-2"
+        >
+          <Shuffle className="h-4 w-4" />
+          Suggest time
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <Label className="text-base font-medium">What day?</Label>
+          <div className="mt-2">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border w-full"
+              disabled={(date) => date < new Date()}
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Label className="text-base font-medium">What time?</Label>
+          <div className="mt-2">
+            <Select value={selectedTime} onValueChange={setSelectedTime}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a time" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_OPTIONS.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={handleNextStep}
+          disabled={!selectedDate || !selectedTime}
+        >
+          {getNextButtonText()}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderMainStep = () => (
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <Button
+          variant="outline"
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+            isComplete.contacts ? 'border-2 border-purple-300 hover:border-purple-400' : ''
+          }`}
+          onClick={() => setStep('contacts')}
+        >
+          <div className="flex items-center gap-3 w-full">
+            <Users className="h-5 w-5 shrink-0" />
+            <div className="flex-1">
+              <div className="font-medium mb-0.5">Who's coming?</div>
+              {selectedContacts.length > 0 ? (
+                <div className="text-sm text-muted-foreground">
+                  {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''} selected
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Select contacts to invite</div>
+              )}
+            </div>
+            {isComplete.contacts && (
+              <Check className="h-5 w-5 text-purple-500 ml-2 shrink-0" />
+            )}
+          </div>
+        </Button>
+
+        <Button
+          variant="outline"
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+            isComplete.activity ? 'border-2 border-purple-300 hover:border-purple-400' : ''
+          }`}
+          onClick={() => setStep('activity')}
+        >
+          <div className="flex items-center gap-3 w-full">
+            <MapPin className="h-5 w-5 shrink-0" />
+            <div className="flex-1">
+              <div className="font-medium mb-0.5">What's the activity, and where?</div>
+              {activity ? (
+                <div className="text-sm text-muted-foreground">
+                  {activity} {location ? `at ${location}` : "(Location TBD)"}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Choose an activity and location</div>
+              )}
+            </div>
+            {isComplete.activity && (
+              <Check className="h-5 w-5 text-purple-500 ml-2 shrink-0" />
+            )}
+          </div>
+        </Button>
+
+        <Button
+          variant="outline"
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+            isComplete.datetime ? 'border-2 border-purple-300 hover:border-purple-400' : ''
+          }`}
+          onClick={() => setStep('datetime')}
+        >
+          <div className="flex items-center gap-3 w-full">
+            <CalendarIcon className="h-5 w-5 shrink-0" />
+            <div className="flex-1">
+              <div className="font-medium mb-0.5">When's it happening?</div>
+              {selectedDate && selectedTime ? (
+                <div className="text-sm text-muted-foreground">
+                  {format(selectedDate, 'EEE, MMM d')} at {selectedTime}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">Pick a date and time</div>
+              )}
+            </div>
+            {isComplete.datetime && (
+              <Check className="h-5 w-5 text-purple-500 ml-2 shrink-0" />
+            )}
+          </div>
+        </Button>
+      </div>
+
+      <Button 
+        className="w-full bg-black hover:bg-black/90 text-white"
+        onClick={handleSubmit}
+        disabled={!allFieldsComplete}
+      >
+        {allFieldsComplete ? "Create Event" : "Fill in all details"}
+      </Button>
+    </div>
+  );
+
+  const isComplete = {
+    contacts: selectedContacts.length > 0,
+    activity: !!activity,
+    datetime: !!selectedDate && !!selectedTime
   };
 
-  useEffect(() => {
-    if (open && defaultActivity) {
-      const determineCategory = async () => {
-        // Try to match with food items
-        const { data: foodMatch } = await supabase
-          .from('food_items')
-          .select('name')
-          .ilike('name', `%${defaultActivity}%`)
-          .limit(1);
-
-        if (foodMatch && foodMatch.length > 0) {
-          setSelectedCategory("Food / Drinks");
-          setActivity(defaultActivity);
-          return;
-        }
-
-        // Try to match with recreation activities
-        const { data: recreationMatch } = await supabase
-          .from('activities')
-          .select('name')
-          .eq('category', 'Recreation')
-          .ilike('name', `%${defaultActivity}%`)
-          .limit(1);
-
-        if (recreationMatch && recreationMatch.length > 0) {
-          setSelectedCategory("Recreation");
-          setActivity(defaultActivity);
-          return;
-        }
-
-        // Try to match with arts activities
-        const { data: artsMatch } = await supabase
-          .from('activities')
-          .select('name')
-          .eq('category', 'Arts')
-          .ilike('name', `%${defaultActivity}%`)
-          .limit(1);
-
-        if (artsMatch && artsMatch.length > 0) {
-          setSelectedCategory("Arts");
-          setActivity(defaultActivity);
-          return;
-        }
-
-        // If no matches found but we have a location, treat it as a custom spot
-        if (defaultLocation) {
-          setShowCustomSpot(true);
-          setActivity(defaultLocation);
-        } else {
-          // If no matches and no location, set as custom activity
-          setShowCustomSpot(true);
-          setActivity(defaultActivity);
-        }
-      };
-
-      determineCategory();
-    }
-  }, [open, defaultActivity, defaultLocation]);
+  const allFieldsComplete = isComplete.contacts && isComplete.activity && isComplete.datetime;
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[425px] overflow-visible">
-          <DialogHeader className="p-0">
-            <div className="flex items-center gap-2">
-              <DialogTitle className="text-lg">Plan a Hang</DialogTitle>
-              {selectedCategory && (
-                <>
-                  <span className="text-muted-foreground">·</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {selectedCategory}
-                    </span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-6 w-6" 
-                      onClick={handleCategoryDeselect}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </DialogHeader>
-          <div className="flex flex-col gap-3 mt-4">
-            {!selectedCategory ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-medium">Little Plans</h3>
-                  <Button 
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs gap-1.5"
-                    onClick={handleAiPickActivity}
-                  >
-                    <Bot className="h-3.5 w-3.5" />
-                    Have Al pick
-                  </Button>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleCategorySelect("Food / Drinks")}
-                    className="flex flex-col gap-1 h-auto py-2 px-2"
-                  >
-                    <Utensils className="h-4 w-4" />
-                    <span className="text-xs">Food / Drinks</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleCategorySelect("Recreation")}
-                    className="flex flex-col gap-1 h-auto py-2 px-2"
-                  >
-                    <MapPin className="h-4 w-4" />
-                    <span className="text-xs">Recreation</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleCategorySelect("Arts")}
-                    className="flex flex-col gap-1 h-auto py-2 px-2"
-                  >
-                    <Palette className="h-4 w-4" />
-                    <span className="text-xs">Arts</span>
-                  </Button>
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium mb-2">Big Plans</h3>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleCategorySelect("A Party!")}
-                      className="flex flex-col gap-1 h-auto py-2"
-                    >
-                      <PartyPopper className="h-4 w-4" />
-                      <span className="text-xs">A Party!</span>
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => handleCategorySelect("A Trip")}
-                      className="flex flex-col gap-1 h-auto py-2"
-                    >
-                      <Plane className="h-4 w-4" />
-                      <span className="text-xs">A Trip</span>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {selectedCategory === "A Party!" && (
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Nice! Where's the party at?
-                  </div>
-                )}
-                {selectedCategory === "A Trip" && (
-                  <div className="text-sm text-muted-foreground mb-2">
-                    Nice! Where are we going?
-                  </div>
-                )}
-                {!showCustomSpot ? (
-                  <>
-                    <div className="relative">
-                      <Input
-                        placeholder={`Search ${selectedCategory} suggestions...`}
-                        value={activity}
-                        onChange={(e) => setActivity(e.target.value)}
-                        className="h-8"
-                      />
-                      {activity && !selectedCategory?.includes("A ") && getFilteredSuggestions().length > 0 && (
-                        <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
-                          {getFilteredSuggestions().map((item) => (
-                            <div
-                              key={item.name}
-                              className="px-2 py-1 hover:bg-accent cursor-pointer"
-                              onClick={() => {
-                                setActivity(item.name);
-                                setContactInput("");
-                              }}
-                            >
-                              <span className="text-sm">{item.name}</span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      className="w-full h-8 text-sm"
-                      onClick={() => setShowCustomSpot(true)}
-                    >
-                      I have a spot in mind
-                    </Button>
-                  </>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={handleBackFromCustomSpot}
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </Button>
-                      {selectedCategory === "A Trip" && mapsApiKey ? (
-                        <Autocomplete
-                          apiKey={mapsApiKey}
-                          onPlaceSelected={(place: any) => {
-                            if (place && typeof place === 'object') {
-                              const address = place.formatted_address || place.name || '';
-                              if (address) {
-                                setActivity(address);
-                              }
-                            }
-                          }}
-                          className="w-full px-3 h-8 bg-background border border-input rounded-md text-sm"
-                          placeholder="Enter your destination..."
-                        />
-                      ) : (
-                        <Input
-                          placeholder={selectedCategory === "A Trip" ? "Loading location selector..." : "Enter your spot!"}
-                          value={activity}
-                          onChange={(e) => setActivity(e.target.value)}
-                          className="h-8"
-                        />
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Invite some people</label>
-                <Button 
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1.5"
-                  onClick={handleAiPickContact}
-                >
-                  <Bot className="h-3.5 w-3.5" />
-                  Have Al pick
-                </Button>
-              </div>
-              <div className="relative">
-                <Input
-                  placeholder="Type to search contacts..."
-                  value={contactInput}
-                  onChange={(e) => setContactInput(e.target.value)}
-                  className="h-8"
-                />
-                {contactInput && filteredContacts.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-background border rounded-md shadow-lg max-h-[120px] overflow-y-auto">
-                    {filteredContacts.map((contact) => (
-                      <div
-                        key={contact.id}
-                        className="px-2 py-1 hover:bg-accent cursor-pointer flex items-center gap-2 justify-between"
-                        onClick={() => addContact(contact)}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className="text-xs">{getInitials(contact.name)}</AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm">{contact.name}</span>
-                        </div>
-                        {contact.is_archived && (
-                          <Archive className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Let's plan your next hang</DialogTitle>
+        </DialogHeader>
 
-              {selectedContacts.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {selectedContacts.map((contact, index) => (
-                    <div
-                      key={contact.id}
-                      className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs cursor-pointer"
-                      onClick={() => openContactDrawer(index)}
-                    >
-                      <Avatar className="h-4 w-4">
-                        <AvatarFallback className="text-[10px]">
-                          {getInitials(contact.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span>{contact.name}</span>
-                      {contact.is_archived && (
-                        <Archive className="h-3 w-3 text-muted-foreground" />
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedContacts(prev => 
-                            prev.filter(c => c.id !== contact.id)
-                          );
-                        }}
-                        className="hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium">Select a date and time</label>
-                <Button 
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs gap-1.5"
-                  onClick={handleAiPickDateTime}
-                >
-                  <Bot className="h-3.5 w-3.5" />
-                  Have Al pick
-                </Button>
-              </div>
-              <div className="flex gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "justify-start text-left font-normal h-8 text-sm flex-1",
-                        !selectedDate && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {selectedDate ? format(selectedDate, "PPP") : <span>Pick a date</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-auto p-0" 
-                    align="start" 
-                    side="bottom"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="cursor-pointer hover:cursor-pointer">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={setSelectedDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </div>
-                  </PopoverContent>
-                </Popover>
-
-                <Select value={selectedTime} onValueChange={setSelectedTime}>
-                  <SelectTrigger className="h-8 text-sm w-[130px]">
-                    <SelectValue placeholder="Pick a time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timeSlots.map((time) => (
-                      <SelectItem key={time} value={time} className="text-sm">
-                        {time}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Button onClick={handleSubmit} className="w-full h-8">
-              Submit
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Drawer open={isContactDrawerOpen} onOpenChange={setIsContactDrawerOpen}>
-        <DrawerContent>
-          <div className="mx-auto w-full max-w-sm p-4">
-            {selectedContactIndex >= 0 && selectedContacts[selectedContactIndex] && (
-              <ContactCard {...selectedContacts[selectedContactIndex]} />
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
-    </>
+        {step === 'main' && renderMainStep()}
+        {step === 'contacts' && renderContactsStep()}
+        {step === 'activity' && renderActivityStep()}
+        {step === 'datetime' && renderDateTimeStep()}
+      </DialogContent>
+    </Dialog>
   );
 };
 

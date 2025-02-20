@@ -236,7 +236,6 @@ const Index = () => {
       try {
         console.log('Loading chat history for user:', session.user.id);
         
-        // Get the start of the current day in UTC
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
         
@@ -275,7 +274,6 @@ const Index = () => {
       }
     };
 
-    // Set up real-time subscription for new messages
     const setupMessagesSubscription = () => {
       if (!session?.user.id) return;
 
@@ -381,11 +379,9 @@ const Index = () => {
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
-      // Verify the message is from our popup
       if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
         console.log("Received success message from popup");
         try {
-          // Force a session refresh
           const { data: { session }, error } = await supabase.auth.refreshSession();
           if (error) throw error;
           
@@ -471,13 +467,12 @@ const Index = () => {
         options: {
           data: {
             username,
-            avatar_url: null, // Initialize avatar_url as null
+            avatar_url: null,
           },
         },
       });
 
       if (error) {
-        // Parse the error message from the response body if it exists
         let errorBody: any = {};
         try {
           errorBody = error.message ? JSON.parse(error.message) : {};
@@ -500,7 +495,6 @@ const Index = () => {
             throw signInError;
           }
 
-          // After successful sign in, update the profile with Google data if available
           if (signInData.user?.app_metadata?.provider === 'google') {
             const { user_metadata } = signInData.user;
             await supabase
@@ -528,7 +522,6 @@ const Index = () => {
         description: "Please check your email to confirm your account.",
       });
       
-      // Auto-navigate if email confirmation is disabled in Supabase
       if (data.user && !data.user.confirmed_at) {
         navigate("/");
       }
@@ -561,7 +554,6 @@ const Index = () => {
         throw error;
       }
 
-      // After successful sign in, update the profile with Google data if available
       if (data.user?.app_metadata?.provider === 'google') {
         const { user_metadata } = data.user;
         await supabase
@@ -840,7 +832,6 @@ const Index = () => {
       <Profile 
         open={isProfileOpen} 
         onOpenChange={setIsProfileOpen}
-        onSend={handleSend}
       />
       <PlanningDialog 
         open={isPlanningOpen} 

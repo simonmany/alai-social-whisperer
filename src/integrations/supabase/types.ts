@@ -373,6 +373,7 @@ export type Database = {
         Row: {
           age: number | null
           avatar_url: string | null
+          catch_up_contacts: string[] | null
           city: string | null
           current_interests: Json | null
           desired_food_preferences: Json | null
@@ -412,6 +413,7 @@ export type Database = {
         Insert: {
           age?: number | null
           avatar_url?: string | null
+          catch_up_contacts?: string[] | null
           city?: string | null
           current_interests?: Json | null
           desired_food_preferences?: Json | null
@@ -451,6 +453,7 @@ export type Database = {
         Update: {
           age?: number | null
           avatar_url?: string | null
+          catch_up_contacts?: string[] | null
           city?: string | null
           current_interests?: Json | null
           desired_food_preferences?: Json | null
