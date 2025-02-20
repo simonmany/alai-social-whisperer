@@ -298,10 +298,9 @@ const PlanningDialog = ({
       if (allFieldsComplete) {
         handleSubmit();
       } else {
+        setStep('main');
         toast({
-          title: "Please complete all fields",
-          description: "Fill in all the details to create your event",
-          variant: "destructive",
+          description: "Review your event details and click Create Event when ready",
         });
       }
     } else {
@@ -392,7 +391,7 @@ const PlanningDialog = ({
           onClick={handleNextStep}
           disabled={selectedContacts.length === 0}
         >
-          {getNextButtonText()}
+          Done
         </Button>
       </div>
     </div>
@@ -462,7 +461,7 @@ const PlanningDialog = ({
           onClick={handleNextStep}
           disabled={!activity}
         >
-          {getNextButtonText()}
+          Done
         </Button>
       </div>
     </div>
@@ -529,7 +528,7 @@ const PlanningDialog = ({
           onClick={handleNextStep}
           disabled={!selectedDate || !selectedTime}
         >
-          {getNextButtonText()}
+          Done
         </Button>
       </div>
     </div>
