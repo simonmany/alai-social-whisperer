@@ -295,15 +295,10 @@ const PlanningDialog = ({
   const handleNextStep = () => {
     const next = getNextStep();
     if (next === 'main') {
-      if (allFieldsComplete) {
-        handleSubmit();
-      } else {
-        toast({
-          title: "Please complete all fields",
-          description: "Fill in all the details to create your event",
-          variant: "destructive",
-        });
-      }
+      setStep('main');
+      toast({
+        description: "Review your event details and click Create Event when ready",
+      });
     } else {
       setStep(next);
     }
