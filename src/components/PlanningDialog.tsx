@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -53,7 +52,12 @@ const PlanningDialog = ({
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
-      if (!session?.user?.id) return [];
+      if (!session?.user?.id) {
+        console.log("No user session found");
+        return [];
+      }
+      
+      console.log("Fetching contacts for user:", session.user.id);
       
       const { data, error } = await supabase
         .from('contacts')
@@ -66,6 +70,7 @@ const PlanningDialog = ({
         throw error;
       }
       
+      console.log("Fetched contacts:", data);
       return (data || []).map(contact => ({
         ...contact,
         interests: Array.isArray(contact.interests) ? contact.interests : [],
@@ -98,11 +103,12 @@ const PlanningDialog = ({
   };
 
   const handleSuggestContact = () => {
-    console.log("Current contacts:", contacts);
-    console.log("Selected contacts:", selectedContacts);
+    console.log("handleSuggestContact called");
+    console.log("Current contacts state:", contacts);
+    console.log("Current selectedContacts state:", selectedContacts);
     
-    // If contacts is not loaded yet, show a loading message
     if (isLoading) {
+      console.log("Contacts are still loading");
       toast({
         title: "Loading contacts",
         description: "Please wait while we load your contacts",
@@ -110,8 +116,8 @@ const PlanningDialog = ({
       return;
     }
 
-    // If no contacts exist at all, show a different message
-    if (contacts.length === 0) {
+    if (!contacts || contacts.length === 0) {
+      console.log("No contacts found in database");
       toast({
         title: "No contacts found",
         description: "Add some contacts first",
@@ -124,9 +130,10 @@ const PlanningDialog = ({
       contact => !selectedContacts.some(selected => selected.id === contact.id)
     );
 
-    console.log("Available contacts:", availableContacts);
+    console.log("Available contacts after filtering:", availableContacts);
 
     if (availableContacts.length === 0) {
+      console.log("No available contacts to suggest");
       toast({
         title: "No more contacts available",
         description: "All contacts have been selected",
@@ -160,7 +167,10 @@ const PlanningDialog = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleSuggestContact}
+          onClick={() => {
+            console.log("Suggest someone button clicked");
+            handleSuggestContact();
+          }}
           className="text-sm gap-2"
         >
           <Bot className="h-4 w-4" />
