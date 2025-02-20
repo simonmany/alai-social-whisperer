@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -36,14 +37,17 @@ const PlanningDialog = ({
   const { toast } = useToast();
   const { session } = useAuth();
 
+  // Reset state only when dialog opens/closes
   useEffect(() => {
-    if (open) {
-      setStep("main");
-      setSelectedContacts(defaultContacts);
-      setContactInput("");
-      setActivity("");
-      setSelectedDate(undefined);
-      setSelectedTime(undefined);
+    if (!open) {
+      setTimeout(() => {
+        setStep("main");
+        setSelectedContacts(defaultContacts);
+        setContactInput("");
+        setActivity("");
+        setSelectedDate(undefined);
+        setSelectedTime(undefined);
+      }, 100); // Small delay to ensure dialog is closed first
     }
   }, [open, defaultContacts]);
 
