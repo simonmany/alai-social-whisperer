@@ -589,7 +589,16 @@ const PlanningDialog = ({
               <div className="font-medium mb-0.5">Who's coming?</div>
               {selectedContacts.length > 0 ? (
                 <div className="text-sm text-muted-foreground">
-                  {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''} selected
+                  {selectedContacts.length <= 5 ? (
+                    selectedContacts.map((contact, index) => (
+                      <span key={contact.id}>
+                        {contact.name}
+                        {index < selectedContacts.length - 1 ? ', ' : ''}
+                      </span>
+                    ))
+                  ) : (
+                    `${selectedContacts.length} contacts selected`
+                  )}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">Select contacts to invite</div>
