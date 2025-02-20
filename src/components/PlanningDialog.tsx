@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Users, Calendar as CalendarIcon, MapPin, Bot, ArrowLeft, Archive } from "lucide-react";
+import { X, Users, Calendar as CalendarIcon, MapPin, Bot, ArrowLeft, Archive, Shuffle } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -15,15 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format } from "date-fns";
+import { format, addDays } from "date-fns";
 
 interface PlanningDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
-  defaultActivity?: string;
-  defaultLocation?: string;
-  defaultDate?: Date;
   defaultContacts?: Contact[];
 }
 
@@ -94,6 +91,18 @@ const PlanningDialog = ({
     enabled: !!session?.user?.id
   });
 
+  const { data: activities = [] } = useQuery({
+    queryKey: ['activities'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('activities')
+        .select('*');
+      
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const filteredContacts = contacts.filter(contact => 
     !selectedContacts.some(selected => selected.id === contact.id) &&
     (contactInput === "" || contact.name.toLowerCase().includes(contactInput.toLowerCase()))
@@ -159,6 +168,36 @@ const PlanningDialog = ({
       console.log("Selected random contact:", randomContact);
       addContact(randomContact);
     }
+  };
+
+  const handleRandomActivity = () => {
+    if (!activities || activities.length === 0) {
+      toast({
+        title: "No activities found",
+        description: "Add some activities first",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+    setActivity(randomActivity.name);
+  };
+
+  const handleRandomDateTime = () => {
+    const daysToAdd = Math.floor(Math.random() * 7) + 1;
+    const randomDate = addDays(new Date(), daysToAdd);
+    
+    const randomTimeIndex = Math.floor(Math.random() * TIME_OPTIONS.length);
+    const randomTime = TIME_OPTIONS[randomTimeIndex];
+
+    setSelectedDate(randomDate);
+    setSelectedTime(randomTime);
+
+    toast({
+      title: "Random time selected!",
+      description: `${format(randomDate, 'EEE, MMM d')} at ${randomTime}`,
+    });
   };
 
   const getNextStep = () => {
@@ -339,13 +378,22 @@ const PlanningDialog = ({
 
   const renderActivityStep = () => (
     <div className="space-y-6">
-      <div className="flex items-center">
+      <div className="flex items-center justify-between">
         <Button 
           variant="ghost" 
           size="icon"
           onClick={() => setStep('main')}
         >
           <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRandomActivity}
+          className="text-sm gap-2"
+        >
+          <Shuffle className="h-4 w-4" />
+          Suggest activity
         </Button>
       </div>
 
@@ -396,13 +444,22 @@ const PlanningDialog = ({
 
   const renderDateTimeStep = () => (
     <div className="space-y-6">
-      <div className="flex items-center">
+      <div className="flex items-center justify-between">
         <Button 
           variant="ghost" 
           size="icon"
           onClick={() => setStep('main')}
         >
           <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleRandomDateTime}
+          className="text-sm gap-2"
+        >
+          <Shuffle className="h-4 w-4" />
+          Suggest time
         </Button>
       </div>
 
