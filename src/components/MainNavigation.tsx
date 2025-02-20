@@ -53,7 +53,8 @@ export const MainNavigation = ({
           google_refresh_token,
           google_token_expires_at,
           has_google_calendar,
-          google_token_expired
+          google_token_expired,
+          catch_up_contacts
         `)
         .eq('id', session.user.id)
         .single();
@@ -68,7 +69,8 @@ export const MainNavigation = ({
         tokenExpiresAt: profileData?.google_token_expires_at ? new Date(profileData.google_token_expires_at) : null,
         hasAccessToken: !!profileData?.google_access_token,
         hasRefreshToken: !!profileData?.google_refresh_token,
-        hasValidTokens: profileData?.has_google_calendar && !profileData?.google_token_expired
+        hasValidTokens: profileData?.has_google_calendar && !profileData?.google_token_expired,
+        catchUpContacts: profileData?.catch_up_contacts || []
       };
     },
     enabled: !!session?.user?.id,
