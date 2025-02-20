@@ -307,8 +307,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
               {!isLoading && (
                 <InterestsCard
-                  currentInterests={profileData?.currentInterests ?? []}
-                  desiredInterests={profileData?.desiredInterests ?? []}
+                  currentInterests={profileData?.currentInterests}
+                  desiredInterests={profileData?.desiredInterests}
                   onUpdate={handleInterestsUpdate}
                 />
               )}
