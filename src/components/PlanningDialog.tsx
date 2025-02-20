@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Users, Calendar, MapPin, Bot, ArrowLeft, Archive } from "lucide-react";
+import { X, Users, Calendar as CalendarIcon, MapPin, Bot, ArrowLeft, Archive } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,9 @@ import { useAuth } from "@/hooks/use-auth";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format } from "date-fns";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -23,6 +26,13 @@ interface PlanningDialogProps {
   defaultDate?: Date;
   defaultContacts?: Contact[];
 }
+
+const TIME_OPTIONS = [
+  "8:00 AM", "8:30 AM", "9:00 AM", "9:30 AM", "10:00 AM", "10:30 AM", "11:00 AM", "11:30 AM",
+  "12:00 PM", "12:30 PM", "1:00 PM", "1:30 PM", "2:00 PM", "2:30 PM", "3:00 PM", "3:30 PM",
+  "4:00 PM", "4:30 PM", "5:00 PM", "5:30 PM", "6:00 PM", "6:30 PM", "7:00 PM", "7:30 PM",
+  "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM", "10:00 PM"
+];
 
 const PlanningDialog = ({
   open,
@@ -297,6 +307,64 @@ const PlanningDialog = ({
     </div>
   );
 
+  const renderDateTimeStep = () => (
+    <div className="space-y-6">
+      <div className="flex items-center">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => setStep('main')}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <Label className="text-base font-medium">What day?</Label>
+          <div className="mt-2">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border w-full"
+              disabled={(date) => date < new Date()}
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Label className="text-base font-medium">What time?</Label>
+          <div className="mt-2">
+            <Select value={selectedTime} onValueChange={setSelectedTime}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a time" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_OPTIONS.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={() => setStep('main')}
+          disabled={!selectedDate || !selectedTime}
+        >
+          Done
+        </Button>
+      </div>
+    </div>
+  );
+
   const renderMainStep = () => (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -346,12 +414,12 @@ const PlanningDialog = ({
           onClick={() => setStep('datetime')}
         >
           <div className="flex items-center gap-3">
-            <Calendar className="h-5 w-5 shrink-0" />
+            <CalendarIcon className="h-5 w-5 shrink-0" />
             <div className="flex-1">
               <div className="font-medium mb-0.5">When's it happening?</div>
               {selectedDate && selectedTime ? (
                 <div className="text-sm text-muted-foreground">
-                  {selectedDate.toLocaleDateString()} at {selectedTime}
+                  {format(selectedDate, 'EEE, MMM d')} at {selectedTime}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">Pick a date and time</div>
@@ -393,6 +461,7 @@ const PlanningDialog = ({
         {step === 'main' && renderMainStep()}
         {step === 'contacts' && renderContactsStep()}
         {step === 'activity' && renderActivityStep()}
+        {step === 'datetime' && renderDateTimeStep()}
       </DialogContent>
     </Dialog>
   );
