@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,7 +54,7 @@ export const ChatInput = ({
         onChange={handleChange}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
-        className="flex-1 min-h-[44px] resize-none"
+        className="flex-1 min-h-[44px] resize-none text-lg"
       />
       {showSendButton && (
         <Button type="submit" size="icon">
