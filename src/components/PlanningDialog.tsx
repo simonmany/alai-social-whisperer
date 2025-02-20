@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -37,7 +36,6 @@ const PlanningDialog = ({
   const { toast } = useToast();
   const { session } = useAuth();
 
-  // Reset state only when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setTimeout(() => {
@@ -47,7 +45,7 @@ const PlanningDialog = ({
         setActivity("");
         setSelectedDate(undefined);
         setSelectedTime(undefined);
-      }, 100); // Small delay to ensure dialog is closed first
+      }, 100);
     }
   }, [open, defaultContacts]);
 
@@ -103,29 +101,20 @@ const PlanningDialog = ({
   };
 
   const handleSuggestContact = () => {
-    console.log("Current contacts:", contacts);
-    console.log("Selected contacts:", selectedContacts);
-    
-    const availableContacts = contacts.filter(
+    const unselectedContacts = contacts.filter(
       contact => !selectedContacts.some(selected => selected.id === contact.id)
     );
-    
-    console.log("Available contacts:", availableContacts);
 
-    if (availableContacts.length === 0) {
+    if (unselectedContacts.length > 0) {
+      const randomContact = unselectedContacts[Math.floor(Math.random() * unselectedContacts.length)];
+      addContact(randomContact);
+    } else {
       toast({
         title: "No contacts available",
         description: "Add some contacts first or remove selected ones",
         variant: "destructive",
       });
-      return;
     }
-
-    const randomIndex = Math.floor(Math.random() * availableContacts.length);
-    const randomContact = availableContacts[randomIndex];
-    console.log("Selected random contact:", randomContact);
-    
-    addContact(randomContact);
   };
 
   const isComplete = {
