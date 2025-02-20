@@ -6,9 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { REDIRECT_URL } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Goal } from "@/types/goals";
-import { checkMissingGoals } from "@/utils/goalUtils";
-import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { APP_CONSTANTS } from '../utils/constants';
 import { useAuth } from "@/components/AuthProvider";
@@ -35,7 +32,6 @@ export const MainNavigation = ({
     queryFn: async () => {
       if (!session?.user?.id) throw new Error('No session found');
       
-      // Get profile data with all fields
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select(`
@@ -65,8 +61,7 @@ export const MainNavigation = ({
       if (error) throw error;
       if (!profileData) throw new Error('No profile found');
 
-      // Format profile data
-      const formattedProfile = {
+      return {
         ...profileData,
         hasGoogleCalendar: profileData?.has_google_calendar || false,
         googleTokenExpired: profileData?.google_token_expired || false,
@@ -75,12 +70,10 @@ export const MainNavigation = ({
         hasRefreshToken: !!profileData?.google_refresh_token,
         hasValidTokens: profileData?.has_google_calendar && !profileData?.google_token_expired
       };
-
-      return formattedProfile;
     },
     enabled: !!session?.user?.id,
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
-    gcTime: 1000 * 60 * 30, // Keep data in cache for 30 minutes
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
@@ -100,11 +93,8 @@ export const MainNavigation = ({
     }
   }, [profile, isCalendarConnected, toast]);
 
-  const { count: missingGoalsCount } = checkMissingGoals(profile?.goals as Goal[]);
-
   const handleSignOut = async () => {
     try {
-      // Clear profile data before signing out
       queryClient.setQueryData(['profile'], null);
       setIsCalendarConnected(false);
 
@@ -155,14 +145,6 @@ export const MainNavigation = ({
             aria-label="Open profile"
           >
             <UserRound className="h-5 w-5" />
-            {missingGoalsCount > 0 && (
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full"
-              >
-                {missingGoalsCount}
-              </Badge>
-            )}
           </Button>
         </div>
       </div>
