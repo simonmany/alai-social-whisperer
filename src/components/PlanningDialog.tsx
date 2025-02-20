@@ -52,14 +52,13 @@ const PlanningDialog = ({
   }, [open, defaultContacts]);
 
   const { data: contacts = [] } = useQuery({
-    queryKey: ['contacts', contactInput],
+    queryKey: ['contacts'],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
         .eq('user_id', session.user.id)
-        .ilike('name', `%${contactInput}%`)
         .order('name');
 
       if (error) throw error;
@@ -69,11 +68,12 @@ const PlanningDialog = ({
         interests: Array.isArray(contact.interests) ? contact.interests : [],
       })) as Contact[];
     },
-    enabled: !!session?.user?.id && contactInput.length > 0
+    enabled: !!session?.user?.id
   });
 
   const filteredContacts = contacts.filter(contact => 
-    !selectedContacts.some(selected => selected.id === contact.id)
+    !selectedContacts.some(selected => selected.id === contact.id) &&
+    (contactInput === "" || contact.name.toLowerCase().includes(contactInput.toLowerCase()))
   );
 
   const getInitials = (name: string) => {
