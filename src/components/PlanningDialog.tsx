@@ -100,11 +100,17 @@ const PlanningDialog = ({
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
     queryFn: async () => {
+      console.log("Fetching activities");
       const { data, error } = await supabase
         .from('activities')
         .select('*');
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching activities:", error);
+        throw error;
+      }
+      
+      console.log("Fetched activities:", data);
       return data || [];
     }
   });
@@ -177,7 +183,11 @@ const PlanningDialog = ({
   };
 
   const handleRandomActivity = () => {
+    console.log("handleRandomActivity called");
+    console.log("Current activities state:", activities);
+    
     if (!activities || activities.length === 0) {
+      console.log("No activities found in database");
       toast({
         title: "No activities found",
         description: "Add some activities first",
@@ -187,7 +197,13 @@ const PlanningDialog = ({
     }
 
     const randomActivity = activities[Math.floor(Math.random() * activities.length)];
+    console.log("Selected random activity:", randomActivity);
     setActivity(randomActivity.name);
+
+    toast({
+      title: "Activity selected!",
+      description: randomActivity.name,
+    });
   };
 
   const handleRandomDateTime = () => {
@@ -395,7 +411,10 @@ const PlanningDialog = ({
         <Button
           variant="ghost"
           size="sm"
-          onClick={handleRandomActivity}
+          onClick={() => {
+            console.log("Suggest activity button clicked");
+            handleRandomActivity();
+          }}
           className="text-sm gap-2"
         >
           <Shuffle className="h-4 w-4" />
