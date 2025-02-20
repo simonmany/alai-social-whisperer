@@ -161,6 +161,32 @@ const PlanningDialog = ({
     }
   };
 
+  const getNextStep = () => {
+    if (!isComplete.contacts) return 'contacts';
+    if (!isComplete.activity) return 'activity';
+    if (!isComplete.datetime) return 'datetime';
+    return 'main';
+  };
+
+  const getNextButtonText = () => {
+    if (!isComplete.contacts) return "Next - who's coming?";
+    if (!isComplete.activity) return "Next - what are we doing?";
+    if (!isComplete.datetime) return "Next - pick a time";
+    return "Done";
+  };
+
+  const handleNextStep = () => {
+    const next = getNextStep();
+    if (next === 'main') {
+      toast({
+        title: "Coming soon!",
+        description: "This feature is under development",
+      });
+    } else {
+      setStep(next);
+    }
+  };
+
   const renderContactsStep = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -241,10 +267,10 @@ const PlanningDialog = ({
 
       <div className="flex justify-end">
         <Button 
-          onClick={() => setStep('main')}
+          onClick={handleNextStep}
           disabled={selectedContacts.length === 0}
         >
-          Done
+          {getNextButtonText()}
         </Button>
       </div>
     </div>
@@ -298,10 +324,10 @@ const PlanningDialog = ({
 
       <div className="flex justify-end">
         <Button 
-          onClick={() => setStep('main')}
+          onClick={handleNextStep}
           disabled={!activity || !location}
         >
-          Done
+          {getNextButtonText()}
         </Button>
       </div>
     </div>
@@ -356,10 +382,10 @@ const PlanningDialog = ({
 
       <div className="flex justify-end">
         <Button 
-          onClick={() => setStep('main')}
+          onClick={handleNextStep}
           disabled={!selectedDate || !selectedTime}
         >
-          Done
+          {getNextButtonText()}
         </Button>
       </div>
     </div>
