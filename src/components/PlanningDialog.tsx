@@ -446,7 +446,7 @@ const PlanningDialog = ({
         <Separator />
 
         <div>
-          <Label className="text-base font-medium">Where are we going?</Label>
+          <Label className="text-base font-medium">Where are we going? (Optional)</Label>
           <div className="mt-2">
             <Input
               placeholder="Enter location..."
@@ -460,7 +460,7 @@ const PlanningDialog = ({
       <div className="flex justify-end">
         <Button 
           onClick={handleNextStep}
-          disabled={!activity || !location}
+          disabled={!activity}
         >
           {getNextButtonText()}
         </Button>
@@ -567,9 +567,9 @@ const PlanningDialog = ({
             <MapPin className="h-5 w-5 shrink-0" />
             <div className="flex-1">
               <div className="font-medium mb-0.5">What's the activity, and where?</div>
-              {activity && location ? (
+              {activity ? (
                 <div className="text-sm text-muted-foreground">
-                  {activity} at {location}
+                  {activity} {location ? `at ${location}` : "(Location TBD)"}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">Choose an activity and location</div>
@@ -611,7 +611,7 @@ const PlanningDialog = ({
 
   const isComplete = {
     contacts: selectedContacts.length > 0,
-    activity: !!activity && !!location,
+    activity: !!activity,
     datetime: !!selectedDate && !!selectedTime
   };
 
