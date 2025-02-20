@@ -549,7 +549,7 @@ const PlanningDialog = ({
         <Button
           variant="outline"
           className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
-            isComplete.contacts ? 'border-[#D6BCFA] hover:border-[#D6BCFA]' : ''
+            isComplete.contacts ? 'border-2 border-purple-300 hover:border-purple-400' : ''
           }`}
           onClick={() => setStep('contacts')}
         >
@@ -566,7 +566,7 @@ const PlanningDialog = ({
               )}
             </div>
             {isComplete.contacts && (
-              <Check className="h-4 w-4 text-[#7E69AB] ml-2 shrink-0" />
+              <Check className="h-5 w-5 text-purple-500 ml-2 shrink-0" />
             )}
           </div>
         </Button>
@@ -574,7 +574,7 @@ const PlanningDialog = ({
         <Button
           variant="outline"
           className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
-            isComplete.activity ? 'border-[#D6BCFA] hover:border-[#D6BCFA]' : ''
+            isComplete.activity ? 'border-2 border-purple-300 hover:border-purple-400' : ''
           }`}
           onClick={() => setStep('activity')}
         >
@@ -591,7 +591,7 @@ const PlanningDialog = ({
               )}
             </div>
             {isComplete.activity && (
-              <Check className="h-4 w-4 text-[#7E69AB] ml-2 shrink-0" />
+              <Check className="h-5 w-5 text-purple-500 ml-2 shrink-0" />
             )}
           </div>
         </Button>
@@ -599,7 +599,7 @@ const PlanningDialog = ({
         <Button
           variant="outline"
           className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
-            isComplete.datetime ? 'border-[#D6BCFA] hover:border-[#D6BCFA]' : ''
+            isComplete.datetime ? 'border-2 border-purple-300 hover:border-purple-400' : ''
           }`}
           onClick={() => setStep('datetime')}
         >
@@ -616,7 +616,7 @@ const PlanningDialog = ({
               )}
             </div>
             {isComplete.datetime && (
-              <Check className="h-4 w-4 text-[#7E69AB] ml-2 shrink-0" />
+              <Check className="h-5 w-5 text-purple-500 ml-2 shrink-0" />
             )}
           </div>
         </Button>
