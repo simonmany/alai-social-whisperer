@@ -1,69 +1,30 @@
-import { useState, useEffect } from "react";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, MessageCircle, Settings, Share2, Target, X } from "lucide-react";
+import { LogOut, Settings, Share2 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import GoalsDialog from "@/components/GoalsDialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Goal } from "@/types/goals";
-import { checkMissingGoals } from "@/utils/goalUtils";
-import { AvatarUpload } from "@/components/AvatarUpload";
 import { Skeleton } from "@/components/ui/skeleton";
-import { StatsCard } from "@/components/profile/StatsCard";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
-import { SkillsRadar } from "@/components/profile/SkillsRadar";
-import { InterestsCard } from "@/components/profile/InterestsCard";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import Autocomplete from 'react-google-autocomplete';
 
 interface ProfileProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSend?: (message: string) => void;
 }
 
-const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
-  const [isGoalsDialogOpen, setIsGoalsDialogOpen] = useState(false);
+const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const [showIntegrations, setShowIntegrations] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
-
-  useEffect(() => {
-    const fetchMapsKey = async () => {
-      if (isLocationDialogOpen && !mapsApiKey) {
-        try {
-          console.log("[Profile] Fetching Maps API key...");
-          const { data, error } = await supabase.functions.invoke('get-maps-key');
-          if (error) {
-            console.error('[Profile] Supabase function error:', error);
-            throw error;
-          }
-          if (!data?.apiKey) {
-            console.error('[Profile] No API key returned:', data);
-            throw new Error('No API key returned from function');
-          }
-          console.log("[Profile] Maps API key fetched successfully");
-          setMapsApiKey(data.apiKey);
-        } catch (error: any) {
-          console.error('[Profile] Error fetching Maps API key:', error);
-          toast({
-            title: "Error loading location selector",
-            description: "Please try refreshing the page",
-            variant: "destructive",
-          });
-        }
-      }
-    };
-
-    fetchMapsKey();
-  }, [isLocationDialogOpen, mapsApiKey, toast]);
 
   const { data: userData, isSuccess: isAuthReady } = useQuery({
     queryKey: ['auth-user'],
@@ -90,23 +51,8 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
           username,
           avatar_url,
           city,
-          skill_gourmand,
-          skill_aesthete,
-          skill_traveler,
-          skill_athlete,
-          skill_reveler,
           display_name,
-          goals,
-          long_term_goals,
-          current_interests,
-          desired_interests,
-          food_preferences,
-          desired_food_preferences,
-          music_preferences,
-          desired_music_preferences,
           utc_offset_minutes,
-          onboarding_step,
-          has_completed_tutorial,
           google_access_token,
           google_refresh_token,
           google_token_expires_at,
@@ -127,14 +73,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
         hasAccessToken: !!profile.google_access_token,
         hasRefreshToken: !!profile.google_refresh_token,
         hasValidTokens: profile.has_google_calendar && !profile.google_token_expired,
-        goals: (profile.goals || []) as Goal[],
-        long_term_goals: (profile.long_term_goals || []) as Goal[],
-        current_interests: (profile.current_interests || []) as string[],
-        desired_interests: (profile.desired_interests || []) as string[],
-        food_preferences: (profile.food_preferences || []) as string[],
-        desired_food_preferences: (profile.desired_food_preferences || []) as string[],
-        music_preferences: (profile.music_preferences || []) as string[],
-        desired_music_preferences: (profile.desired_music_preferences || []) as string[]
       };
     },
     enabled: isAuthReady && !!userData?.id && open,
@@ -143,29 +81,11 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     retry: 2,
   });
 
-  const shortTermGoals = (profileData?.goals || []).filter((goal: Goal) => 
-    ['today', 'week', 'month'].includes(goal.timeframe)
-  );
-
-  const { missingTimeframes } = checkMissingGoals(shortTermGoals);
-
   const displayName = profileData?.display_name || userData?.user_metadata?.name || 'User';
   const avatarUrl = profileData?.avatar_url || userData?.user_metadata?.avatar_url;
   const username = profileData?.username || 
                   (userData?.user_metadata?.username as string) || 
                   (displayName as string).toLowerCase().replace(/\s+/g, '');
-
-  const handleGoalSubmit = async (message: string) => {
-    if (onSend) {
-      onSend(message);
-      setIsGoalsDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-      toast({
-        title: "Goal added",
-        description: "Your new goal has been set successfully",
-      });
-    }
-  };
 
   const handleAvatarUpdate = async (newUrl: string) => {
     queryClient.setQueryData(['profile'], (oldData: any) => ({
@@ -173,108 +93,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
       avatar_url: newUrl
     }));
     await queryClient.invalidateQueries({ queryKey: ['profile'] });
-  };
-
-  const handleGoalComplete = async (targetGoal: Goal) => {
-    if (!userData?.id || !profileData) return;
-
-    const allGoals = [...(profileData.goals || [])];
-    
-    // Find the exact goal in the full array by matching all properties
-    const fullGoalIndex = allGoals.findIndex(goal => 
-      goal.type === targetGoal.type &&
-      goal.description === targetGoal.description &&
-      goal.timeframe === targetGoal.timeframe
-    );
-
-    if (fullGoalIndex === -1) {
-      console.error('Goal not found in full goals array');
-      return;
-    }
-
-    allGoals[fullGoalIndex] = {
-      ...allGoals[fullGoalIndex],
-      completed: !allGoals[fullGoalIndex].completed
-    };
-
-    try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ goals: allGoals })
-        .eq('id', userData.id);
-
-      if (error) throw error;
-
-      queryClient.setQueryData(['profile', userData.id], (oldData: any) => ({
-        ...oldData,
-        goals: allGoals
-      }));
-
-      toast({
-        title: allGoals[fullGoalIndex].completed ? "Goal completed" : "Goal uncompleted",
-        description: allGoals[fullGoalIndex].type,
-      });
-    } catch (error) {
-      console.error('Error updating goal:', error);
-      toast({
-        title: "Error updating goal",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteGoal = async (targetGoal: Goal) => {
-    if (!userData?.id || !profileData) return;
-
-    const allGoals = [...(profileData.goals || [])];
-    
-    const updatedGoals = allGoals.filter(goal => 
-      !(goal.type === targetGoal.type && 
-        goal.description === targetGoal.description && 
-        goal.timeframe === targetGoal.timeframe)
-    );
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ goals: updatedGoals })
-      .eq('id', userData.id);
-
-    if (!error) {
-      toast({
-        title: "Goal deleted",
-        description: "Your goal has been removed successfully",
-      });
-      queryClient.invalidateQueries({ queryKey: ['profile', userData.id] });
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to delete goal. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleNewGoal = () => {
-    onOpenChange(false);
-    setIsGoalsDialogOpen(true);
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account",
-      });
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      toast({
-        title: "Error signing out",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleGoogleCalendarConnect = async () => {
@@ -378,61 +196,21 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
     }
   };
 
-  const renderTimeframeSection = (timeframe: string, title: string) => {
-    const timeframeGoals = shortTermGoals.filter((goal: Goal) => goal.timeframe === timeframe);
-    const hasGoals = timeframeGoals.length > 0;
-
-    const alertText = {
-      today: "Set Daily Goal",
-      week: "Set Weekly Goal",
-      month: "Set Monthly Goal"
-    }[timeframe];
-
-    return (
-      <div>
-        <h3 className="text-sm font-bold text-primary mb-2">{title}</h3>
-        {!hasGoals ? (
-          <Alert 
-            variant="destructive" 
-            className="mb-2 cursor-pointer hover:bg-destructive/90 transition-colors py-2"
-            onClick={handleNewGoal}
-          >
-            <AlertDescription className="text-sm">
-              {alertText}
-            </AlertDescription>
-          </Alert>
-        ) : (
-          timeframeGoals.map((goal: Goal) => {
-            const goalKey = `${goal.timeframe}-${goal.type}-${goal.description}`;
-            return (
-              <div key={goalKey} className="mb-2 flex items-start gap-2">
-                <Checkbox
-                  checked={goal.completed}
-                  onCheckedChange={() => handleGoalComplete(goal)}
-                  className="mt-1"
-                />
-                <div className="flex-1">
-                  <div className={`text-sm font-medium ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>
-                    {goal.type}
-                  </div>
-                  <div className={`text-xs text-muted-foreground ${goal.completed ? 'line-through' : ''}`}>
-                    {goal.description}
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => handleDeleteGoal(goal)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            );
-          })
-        )}
-      </div>
-    );
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been logged out of your account",
+      });
+    } catch (error: any) {
+      console.error('Error signing out:', error);
+      toast({
+        title: "Error signing out",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -485,50 +263,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
                 </div>
               </div>
 
-              <Card>
-                <CardHeader className="pb-1 pt-4">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <Target className="h-5 w-5" />
-                    Goals
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3 pt-0">
-                  {renderTimeframeSection('today', 'Today')}
-                  {renderTimeframeSection('week', 'This Week')}
-                  {renderTimeframeSection('month', 'This Month')}
-                </CardContent>
-              </Card>
-
-              <InterestsCard
-                currentInterests={profileData?.current_interests}
-                desiredInterests={profileData?.desired_interests}
-                foodPreferences={profileData?.food_preferences}
-                desiredFoodPreferences={profileData?.desired_food_preferences}
-                musicPreferences={profileData?.music_preferences}
-                desiredMusicPreferences={profileData?.desired_music_preferences}
-              />
-
-              <Button 
-                size="sm" 
-                className="w-full gap-2"
-                onClick={handleNewGoal}
-              >
-                <MessageCircle className="h-4 w-4" />
-                Set a new goal
-              </Button>
-
-              <SkillsRadar
-                skills={{
-                  gourmand: profileData?.skill_gourmand ?? 0,
-                  aesthete: profileData?.skill_aesthete ?? 0,
-                  traveler: profileData?.skill_traveler ?? 0,
-                  athlete: profileData?.skill_athlete ?? 0,
-                  reveler: profileData?.skill_reveler ?? 0,
-                }}
-              />
-
-              <StatsCard />
-
               <div className="flex flex-col gap-2">
                 <Button variant="outline" className="w-full justify-start gap-2">
                   <Settings className="h-4 w-4" />
@@ -555,12 +289,6 @@ const Profile = ({ open, onOpenChange, onSend }: ProfileProps) => {
           )}
         </SheetContent>
       </Sheet>
-
-      <GoalsDialog
-        open={isGoalsDialogOpen}
-        onOpenChange={setIsGoalsDialogOpen}
-        onSubmit={handleGoalSubmit}
-      />
 
       <Dialog open={isLocationDialogOpen} onOpenChange={setIsLocationDialogOpen}>
         <DialogContent>
