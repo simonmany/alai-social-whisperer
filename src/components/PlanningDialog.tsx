@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -54,8 +55,6 @@ const PlanningDialog = ({
     queryFn: async () => {
       if (!session?.user?.id) return [];
       
-      console.log("Fetching contacts for user:", session.user.id);
-      
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
@@ -66,8 +65,6 @@ const PlanningDialog = ({
         console.error("Error fetching contacts:", error);
         throw error;
       }
-      
-      console.log("Fetched contacts:", data);
       
       return (data || []).map(contact => ({
         ...contact,
@@ -101,18 +98,43 @@ const PlanningDialog = ({
   };
 
   const handleSuggestContact = () => {
+    console.log("Current contacts:", contacts);
+    console.log("Selected contacts:", selectedContacts);
+    
+    // If contacts is not loaded yet, show a loading message
+    if (isLoading) {
+      toast({
+        title: "Loading contacts",
+        description: "Please wait while we load your contacts",
+      });
+      return;
+    }
+
+    // If no contacts exist at all, show a different message
+    if (contacts.length === 0) {
+      toast({
+        title: "No contacts found",
+        description: "Add some contacts first",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const availableContacts = contacts.filter(
       contact => !selectedContacts.some(selected => selected.id === contact.id)
     );
 
+    console.log("Available contacts:", availableContacts);
+
     if (availableContacts.length === 0) {
       toast({
-        title: "No contacts available",
-        description: "Add some contacts first or remove selected ones",
+        title: "No more contacts available",
+        description: "All contacts have been selected",
         variant: "destructive",
       });
     } else {
       const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
+      console.log("Selected random contact:", randomContact);
       addContact(randomContact);
     }
   };
