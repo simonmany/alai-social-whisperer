@@ -101,19 +101,19 @@ const PlanningDialog = ({
   };
 
   const handleSuggestContact = () => {
-    const unselectedContacts = contacts.filter(
+    const availableContacts = contacts.filter(
       contact => !selectedContacts.some(selected => selected.id === contact.id)
     );
 
-    if (unselectedContacts.length > 0) {
-      const randomContact = unselectedContacts[Math.floor(Math.random() * unselectedContacts.length)];
-      addContact(randomContact);
-    } else {
+    if (availableContacts.length === 0) {
       toast({
         title: "No contacts available",
         description: "Add some contacts first or remove selected ones",
         variant: "destructive",
       });
+    } else {
+      const randomContact = availableContacts[Math.floor(Math.random() * availableContacts.length)];
+      addContact(randomContact);
     }
   };
 
