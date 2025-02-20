@@ -10,6 +10,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { InterestSelector } from "@/components/InterestSelector";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -31,6 +34,7 @@ const PlanningDialog = ({
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
   const [contactInput, setContactInput] = useState("");
   const [activity, setActivity] = useState("");
+  const [location, setLocation] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
   const { toast } = useToast();
@@ -43,6 +47,7 @@ const PlanningDialog = ({
         setSelectedContacts(defaultContacts);
         setContactInput("");
         setActivity("");
+        setLocation("");
         setSelectedDate(undefined);
         setSelectedTime(undefined);
       }, 100);
@@ -146,14 +151,6 @@ const PlanningDialog = ({
     }
   };
 
-  const isComplete = {
-    contacts: selectedContacts.length > 0,
-    activity: !!activity,
-    datetime: !!selectedDate && !!selectedTime
-  };
-
-  const allFieldsComplete = isComplete.contacts && isComplete.activity && isComplete.datetime;
-
   const renderContactsStep = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -243,6 +240,63 @@ const PlanningDialog = ({
     </div>
   );
 
+  const renderActivityStep = () => (
+    <div className="space-y-6">
+      <div className="flex items-center">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => setStep('main')}
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <Label className="text-base font-medium">What are we doing?</Label>
+          <div className="mt-2">
+            <InterestSelector
+              type="activities"
+              placeholder="Type to search activities or add a new one..."
+              minSelections={1}
+              initialSelections={activity ? [activity] : []}
+              onComplete={(activities) => {
+                if (activities.length > 0) {
+                  setActivity(activities[0]);
+                } else {
+                  setActivity("");
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <Label className="text-base font-medium">Where are we going?</Label>
+          <div className="mt-2">
+            <Input
+              placeholder="Enter location..."
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex justify-end">
+        <Button 
+          onClick={() => setStep('main')}
+          disabled={!activity || !location}
+        >
+          Done
+        </Button>
+      </div>
+    </div>
+  );
+
   const renderMainStep = () => (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -275,10 +329,12 @@ const PlanningDialog = ({
             <MapPin className="h-5 w-5 shrink-0" />
             <div className="flex-1">
               <div className="font-medium mb-0.5">What's the activity, and where?</div>
-              {activity ? (
-                <div className="text-sm text-muted-foreground">{activity}</div>
+              {activity && location ? (
+                <div className="text-sm text-muted-foreground">
+                  {activity} at {location}
+                </div>
               ) : (
-                <div className="text-sm text-muted-foreground">Choose an activity</div>
+                <div className="text-sm text-muted-foreground">Choose an activity and location</div>
               )}
             </div>
           </div>
@@ -319,6 +375,14 @@ const PlanningDialog = ({
     </div>
   );
 
+  const isComplete = {
+    contacts: selectedContacts.length > 0,
+    activity: !!activity && !!location,
+    datetime: !!selectedDate && !!selectedTime
+  };
+
+  const allFieldsComplete = isComplete.contacts && isComplete.activity && isComplete.datetime;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
@@ -328,6 +392,7 @@ const PlanningDialog = ({
 
         {step === 'main' && renderMainStep()}
         {step === 'contacts' && renderContactsStep()}
+        {step === 'activity' && renderActivityStep()}
       </DialogContent>
     </Dialog>
   );
