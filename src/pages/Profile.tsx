@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
 import { AvatarUpload } from "@/components/AvatarUpload";
+import { InterestsCard } from "@/components/profile/InterestsCard";
 import Autocomplete from 'react-google-autocomplete';
 
 interface ProfileProps {
@@ -52,6 +53,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
           avatar_url,
           city,
           display_name,
+          current_interests,
+          desired_interests,
           utc_offset_minutes,
           google_access_token,
           google_refresh_token,
@@ -67,6 +70,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
       return {
         ...profile,
+        currentInterests: profile.current_interests || [],
+        desiredInterests: profile.desired_interests || [],
         hasGoogleCalendar: profile.has_google_calendar || false,
         googleTokenExpired: profile.google_token_expired || false,
         tokenExpiresAt: profile.google_token_expires_at ? new Date(profile.google_token_expires_at) : null,
@@ -93,6 +98,36 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       avatar_url: newUrl
     }));
     await queryClient.invalidateQueries({ queryKey: ['profile'] });
+  };
+
+  const handleInterestsUpdate = async (currentInterests: string[], desiredInterests: string[]) => {
+    if (!userData?.id) return;
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          current_interests: currentInterests,
+          desired_interests: desiredInterests,
+        })
+        .eq('id', userData.id);
+
+      if (error) throw error;
+
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      
+      toast({
+        title: "Interests Updated",
+        description: "Your interests have been updated successfully",
+      });
+    } catch (error) {
+      console.error('Error updating interests:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update interests. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleGoogleCalendarConnect = async () => {
@@ -223,7 +258,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
               isConnectingCalendar={isConnectingCalendar}
             />
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-6">
               <div className="flex flex-col items-center space-y-2">
                 {isLoading ? (
                   <Skeleton className="h-24 w-24 rounded-full" />
@@ -262,6 +297,14 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                   )}
                 </div>
               </div>
+
+              {!isLoading && (
+                <InterestsCard
+                  currentInterests={profileData?.currentInterests || []}
+                  desiredInterests={profileData?.desiredInterests || []}
+                  onUpdate={handleInterestsUpdate}
+                />
+              )}
 
               <div className="flex flex-col gap-2">
                 <Button variant="outline" className="w-full justify-start gap-2">
