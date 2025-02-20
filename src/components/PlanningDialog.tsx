@@ -233,7 +233,7 @@ const PlanningDialog = ({
     if (!isComplete.contacts) return "Next - who's coming?";
     if (!isComplete.activity) return "Next - what are we doing?";
     if (!isComplete.datetime) return "Next - pick a time";
-    return "Done";
+    return "Review details";
   };
 
   const handleSubmit = async () => {
