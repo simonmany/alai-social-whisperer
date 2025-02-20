@@ -317,6 +317,36 @@ const PlanningDialog = ({
     else if (!isComplete.datetime) setStep('datetime');
   };
 
+  const handleFigureItOut = async () => {
+    toast({
+      description: "Let me help you fill out the remaining details!"
+    });
+
+    if (!isComplete.contacts) {
+      console.log("Suggesting contact...");
+      handleSuggestContact();
+    }
+
+    if (!isComplete.activity) {
+      console.log("Suggesting activity...");
+      handleRandomActivity();
+    }
+
+    if (!isComplete.datetime) {
+      console.log("Suggesting date and time...");
+      handleRandomDateTime();
+    }
+
+    // Wait a brief moment before checking if everything is complete
+    setTimeout(() => {
+      if (allFieldsComplete) {
+        toast({
+          description: "All set! Review the details and create your event.",
+        });
+      }
+    }, 500);
+  };
+
   const renderContactsStep = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -559,7 +589,16 @@ const PlanningDialog = ({
               <div className="font-medium mb-0.5">Who's coming?</div>
               {selectedContacts.length > 0 ? (
                 <div className="text-sm text-muted-foreground">
-                  {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''} selected
+                  {selectedContacts.length <= 5 ? (
+                    selectedContacts.map((contact, index) => (
+                      <span key={contact.id}>
+                        {contact.name}
+                        {index < selectedContacts.length - 1 ? ', ' : ''}
+                      </span>
+                    ))
+                  ) : (
+                    `${selectedContacts.length} contacts selected`
+                  )}
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">Select contacts to invite</div>
@@ -624,10 +663,9 @@ const PlanningDialog = ({
 
       <Button 
         className="w-full bg-black hover:bg-black/90 text-white"
-        onClick={handleSubmit}
-        disabled={!allFieldsComplete}
+        onClick={allFieldsComplete ? handleSubmit : handleFigureItOut}
       >
-        {allFieldsComplete ? "Create Event" : "Fill in all details"}
+        {allFieldsComplete ? "Create Event" : "Figure it out for me"}
       </Button>
     </div>
   );
