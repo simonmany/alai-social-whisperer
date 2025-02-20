@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, addDays } from "date-fns";
+import { Check } from "lucide-react";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -547,10 +548,12 @@ const PlanningDialog = ({
       <div className="space-y-4">
         <Button
           variant="outline"
-          className="w-full justify-start text-left h-auto py-4 px-6"
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+            isComplete.contacts ? 'border-[#D6BCFA] hover:border-[#D6BCFA]' : ''
+          }`}
           onClick={() => setStep('contacts')}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full">
             <Users className="h-5 w-5 shrink-0" />
             <div className="flex-1">
               <div className="font-medium mb-0.5">Who's coming?</div>
@@ -562,15 +565,20 @@ const PlanningDialog = ({
                 <div className="text-sm text-muted-foreground">Select contacts to invite</div>
               )}
             </div>
+            {isComplete.contacts && (
+              <Check className="h-4 w-4 text-[#7E69AB] ml-2 shrink-0" />
+            )}
           </div>
         </Button>
 
         <Button
           variant="outline"
-          className="w-full justify-start text-left h-auto py-4 px-6"
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+            isComplete.activity ? 'border-[#D6BCFA] hover:border-[#D6BCFA]' : ''
+          }`}
           onClick={() => setStep('activity')}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full">
             <MapPin className="h-5 w-5 shrink-0" />
             <div className="flex-1">
               <div className="font-medium mb-0.5">What's the activity, and where?</div>
@@ -582,15 +590,20 @@ const PlanningDialog = ({
                 <div className="text-sm text-muted-foreground">Choose an activity and location</div>
               )}
             </div>
+            {isComplete.activity && (
+              <Check className="h-4 w-4 text-[#7E69AB] ml-2 shrink-0" />
+            )}
           </div>
         </Button>
 
         <Button
           variant="outline"
-          className="w-full justify-start text-left h-auto py-4 px-6"
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+            isComplete.datetime ? 'border-[#D6BCFA] hover:border-[#D6BCFA]' : ''
+          }`}
           onClick={() => setStep('datetime')}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 w-full">
             <CalendarIcon className="h-5 w-5 shrink-0" />
             <div className="flex-1">
               <div className="font-medium mb-0.5">When's it happening?</div>
@@ -602,6 +615,9 @@ const PlanningDialog = ({
                 <div className="text-sm text-muted-foreground">Pick a date and time</div>
               )}
             </div>
+            {isComplete.datetime && (
+              <Check className="h-4 w-4 text-[#7E69AB] ml-2 shrink-0" />
+            )}
           </div>
         </Button>
       </div>
