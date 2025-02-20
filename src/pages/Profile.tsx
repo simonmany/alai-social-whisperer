@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -68,10 +67,18 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       if (error) throw error;
       if (!profile) throw new Error('No profile found');
 
+      const currentInterests = Array.isArray(profile.current_interests) 
+        ? profile.current_interests.filter((item): item is string => typeof item === 'string')
+        : [];
+      
+      const desiredInterests = Array.isArray(profile.desired_interests)
+        ? profile.desired_interests.filter((item): item is string => typeof item === 'string')
+        : [];
+
       return {
         ...profile,
-        currentInterests: profile.current_interests || [],
-        desiredInterests: profile.desired_interests || [],
+        currentInterests,
+        desiredInterests,
         hasGoogleCalendar: profile.has_google_calendar || false,
         googleTokenExpired: profile.google_token_expired || false,
         tokenExpiresAt: profile.google_token_expires_at ? new Date(profile.google_token_expires_at) : null,
@@ -300,8 +307,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
               {!isLoading && (
                 <InterestsCard
-                  currentInterests={profileData?.currentInterests || []}
-                  desiredInterests={profileData?.desiredInterests || []}
+                  currentInterests={profileData?.currentInterests ?? []}
+                  desiredInterests={profileData?.desiredInterests ?? []}
                   onUpdate={handleInterestsUpdate}
                 />
               )}
