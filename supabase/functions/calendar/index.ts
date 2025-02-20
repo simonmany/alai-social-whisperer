@@ -217,8 +217,8 @@ serve(async (req: Request) => {
       firstItem: data.items?.[0] ? {
         id: data.items[0].id,
         summary: data.items[0].summary,
-        hasStart: !!data.items[0].start,
-        hasEnd: !!data.items[0].end
+        startTime: data.items[0].start,
+        endTime: data.items[0].end
       } : null
     });
 
@@ -247,16 +247,9 @@ serve(async (req: Request) => {
     }
 
     // Function to convert local time to UTC
-    const convertToUTC = (localTime: string, offsetMinutes: number | null) => {
-      if (!offsetMinutes) return localTime;
+    const convertToUTC = (localTime: string) => {
       const date = new Date(localTime);
-      // When converting from local to UTC, add the negative offset
-      // For example: if you're in PST (UTC-8):
-      // Local: 2:00 PM PST
-      // UTC offset: -480 minutes
-      // To get UTC: 2:00 PM + (-480 minutes) = 10:00 PM UTC
-      const utcDate = new Date(date.getTime() - (offsetMinutes * 60 * 1000));
-      return utcDate.toISOString();
+      return date.toISOString();
     };
 
     // Transform events
@@ -265,8 +258,8 @@ serve(async (req: Request) => {
       const endTime = event.end?.dateTime || event.end?.date;
       
       // Convert local times to UTC
-      const startUTC = convertToUTC(startTime, profile?.utc_offset_minutes);
-      const endUTC = convertToUTC(endTime, profile?.utc_offset_minutes);
+      const startUTC = convertToUTC(startTime);
+      const endUTC = convertToUTC(endTime);
 
       // Check for existing event data - using maybeSingle() and left join
       const { data: existingEvent } = await supabase
@@ -302,8 +295,8 @@ serve(async (req: Request) => {
       firstEvent: events[0] ? {
         id: events[0].google_event_id,
         title: events[0].title,
-        hasStart: !!events[0].start_time,
-        hasEnd: !!events[0].end_time
+        startTime: events[0].start_time,
+        endTime: events[0].end_time
       } : null
     });
 
