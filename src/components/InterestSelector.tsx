@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,6 +184,7 @@ export const InterestSelector = ({
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder={placeholder}
         className="text-xl font-cormorant"
+        onKeyDown={handleInputKeyDown}
       />
       
       {filteredItems.length > 0 && (
@@ -219,7 +221,7 @@ export const InterestSelector = ({
           <p className="text-xl font-cormorant text-gray-500">
             {value.length} selected (minimum {minSelections})
           </p>
-          <Button onClick={handleSubmit}>Continue</Button>
+          <Button onClick={handleSubmit} className="text-xl font-cormorant">Continue</Button>
         </div>
       )}
     </div>

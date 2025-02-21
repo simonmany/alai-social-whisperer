@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
@@ -66,6 +67,7 @@ export const GoalsSection = ({ onComplete, initialGoals, userName }: GoalsSectio
                 setIntroCompleted(true);
                 setShowGoalsText(true);
               }}
+              className="text-xl font-cormorant"
             />
           )}
         </div>
@@ -80,6 +82,7 @@ export const GoalsSection = ({ onComplete, initialGoals, userName }: GoalsSectio
             delay={250}
             typingSpeed={25}
             onComplete={() => setShowOptions(true)}
+            className="text-xl font-cormorant"
           />
         )}
       </div>
@@ -93,7 +96,7 @@ export const GoalsSection = ({ onComplete, initialGoals, userName }: GoalsSectio
             key={goal}
             variant={selectedGoals.includes(goal) ? "default" : "outline"}
             onClick={() => handleGoalToggle(goal)}
-            className="transition-colors text-xl font-cormorant"
+            className="text-xl font-cormorant transition-colors"
           >
             {goal}
           </Button>
@@ -103,7 +106,7 @@ export const GoalsSection = ({ onComplete, initialGoals, userName }: GoalsSectio
       <Button 
         onClick={handleGoalsSubmit}
         className={cn(
-          "w-full transition-opacity duration-500",
+          "w-full text-xl font-cormorant transition-opacity duration-500",
           showOptions ? "opacity-100" : "opacity-0"
         )}
       >
