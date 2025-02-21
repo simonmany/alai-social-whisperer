@@ -88,7 +88,7 @@ export const GoalsSection = ({ onComplete, initialGoals, userName }: GoalsSectio
       </div>
       
       <div className={cn(
-        "flex flex-wrap gap-2 transition-opacity duration-500",
+        "flex flex-col space-y-2 transition-opacity duration-500",
         showOptions ? "opacity-100" : "opacity-0"
       )}>
         {goals.map((goal) => (
@@ -96,7 +96,7 @@ export const GoalsSection = ({ onComplete, initialGoals, userName }: GoalsSectio
             key={goal}
             variant={selectedGoals.includes(goal) ? "default" : "outline"}
             onClick={() => handleGoalToggle(goal)}
-            className="text-xl font-cormorant transition-colors"
+            className="text-xl font-cormorant transition-colors w-full justify-start"
           >
             {goal}
           </Button>
