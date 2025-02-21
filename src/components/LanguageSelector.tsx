@@ -93,7 +93,7 @@ export const LanguageSelector = ({
             <Button
               key={language.id}
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start text-xl font-cormorant"
               onClick={() => handleLanguageSelect(language.name)}
             >
               {language.name}
@@ -108,7 +108,7 @@ export const LanguageSelector = ({
             key={language}
             variant="secondary"
             onClick={() => handleLanguageSelect(language)}
-            className="group"
+            className="group text-xl font-cormorant"
           >
             {language}
             <span className="ml-2 opacity-0 group-hover:opacity-100">×</span>
@@ -118,7 +118,7 @@ export const LanguageSelector = ({
 
       {selectedLanguages.length > 0 && (
         <div className="flex justify-between items-center">
-          <p className="text-sm text-gray-500">
+          <p className="text-xl font-cormorant text-gray-500">
             {selectedLanguages.length} selected (minimum {minSelections})
           </p>
           <Button onClick={handleSubmit}>Continue</Button>

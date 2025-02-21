@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +28,6 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   ];
 
   useEffect(() => {
-    // If we're on the name input screen, show the input after a short delay
     if (currentScreen === screens.length - 1) {
       const timer = setTimeout(() => {
         setShowInput(true);
@@ -100,7 +100,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
     <div className="space-y-8">
       {screens.map((text, index) => (
         index <= currentScreen && (
-          <div key={index} className="text-lg">
+          <div key={index} className="text-xl font-cormorant">
             {completedScreens.includes(index) ? (
               <div>{text}</div>
             ) : (
@@ -152,7 +152,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
             onComplete={() => {}}
             delay={250}
             typingSpeed={25}
-            className="text-left text-lg"
+            className="text-left text-xl font-cormorant"
           />
           <div className="space-y-4">
             <Input
