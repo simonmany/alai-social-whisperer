@@ -253,26 +253,26 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   }) => {
     if (!session?.user?.id) return;
 
-    const baseContact = {
+    const createContact = (attendee: { id: string; name: string }): Contact => ({
+      id: attendee.id,
+      name: attendee.name,
       user_id: session.user.id,
-      interests: [],
+      interests: [] as string[],
       is_archived: false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       closeness: 0.5
-    } as const;
+    });
 
-    setSelectedEvent({
+    const event: Event = {
       id: eventData.id,
       title: eventData.title,
       date: eventData.date,
       location: eventData.location,
-      attendees: eventData.attendees.map(attendee => ({
-        ...baseContact,
-        id: attendee.id,
-        name: attendee.name,
-      }))
-    });
+      attendees: eventData.attendees.map(createContact)
+    };
+
+    setSelectedEvent(event);
   };
 
   const handleContactSelect = (contact: Contact) => {
