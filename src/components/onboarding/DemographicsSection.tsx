@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { ChatInput } from "@/components/ChatInput";
@@ -208,7 +209,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     <div className="space-y-4">
       {step === 'age' && (
         <>
-          <div className="text-lg space-y-4">
+          <div className="text-xl font-cormorant space-y-4">
             {!hasPlayedIntro ? (
               <TypewriterText
                 text="Together, we're gonna make sure you spend time doing more of what you already love - and explore new things, too."
@@ -261,7 +262,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'city' && (
         <>
-          <div className="text-lg">
+          <div className="text-xl font-cormorant">
             <TypewriterText
               text="Where do you live?"
               delay={250}
@@ -294,7 +295,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
                 />
               </div>
             ) : (
-              <div className="text-sm text-gray-500">Loading location selector...</div>
+              <div className="text-xl font-cormorant text-gray-500">Loading location selector...</div>
             )}
             <Button 
               onClick={handleCitySubmit}
@@ -309,7 +310,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'languages' && (
         <>
-          <div className="text-lg">
+          <div className="text-xl font-cormorant">
             <TypewriterText
               text="What languages do you speak?"
               delay={250}
@@ -322,7 +323,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'relationship' && (
         <>
-          <div className="text-lg">
+          <div className="text-xl font-cormorant">
             <TypewriterText
               text="What's your relationship status?"
               delay={250}
@@ -335,7 +336,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
                 key={status}
                 variant="outline"
                 onClick={() => handleRelationshipSubmit(status)}
-                className="transition-colors"
+                className="transition-colors text-xl font-cormorant"
               >
                 {status}
               </Button>
@@ -346,7 +347,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'gender' && (
         <>
-          <div className="text-lg">
+          <div className="text-xl font-cormorant">
             <TypewriterText
               text="What's your gender?"
               delay={250}
@@ -359,7 +360,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
                 key={gender}
                 variant="outline"
                 onClick={() => handleGenderSubmit(gender)}
-                className="transition-colors"
+                className="transition-colors text-xl font-cormorant"
               >
                 {gender}
               </Button>
@@ -370,7 +371,7 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
 
       {step === 'occupation' && (
         <>
-          <div className="text-lg">
+          <div className="text-xl font-cormorant">
             <TypewriterText
               text="What do you do for work?"
               delay={250}

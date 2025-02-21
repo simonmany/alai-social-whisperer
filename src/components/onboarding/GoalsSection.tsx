@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
@@ -7,13 +8,12 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface GoalsSectionProps {
-  session: any;
   onComplete: (goals: string[]) => void;
   initialGoals?: string[];
   userName?: string;
 }
 
-export const GoalsSection = ({ session, onComplete, initialGoals, userName }: GoalsSectionProps) => {
+export const GoalsSection = ({ onComplete, initialGoals, userName }: GoalsSectionProps) => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals || []);
   const [introCompleted, setIntroCompleted] = useState(false);
   const [showGoalsText, setShowGoalsText] = useState(false);
@@ -50,26 +50,13 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
       return;
     }
 
-    try {
-      await supabase
-        .from('profiles')
-        .update({ goals: selectedGoals })
-        .eq('id', session?.user.id);
-
-      onComplete(selectedGoals);
-    } catch (error: any) {
-      toast({
-        title: "Error saving goals",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
+    onComplete(selectedGoals);
   };
 
   return (
     <div className="space-y-4">
       {userName && (
-        <div className="text-lg font-medium mb-6">
+        <div className="text-xl font-cormorant mb-6">
           {introCompleted ? (
             <div>{`Nice to meet you, ${capitalizedName}!`}</div>
           ) : (
@@ -86,7 +73,7 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
         </div>
       )}
       
-      <div className="text-lg">
+      <div className="text-xl font-cormorant">
         {showOptions ? (
           <div>Next, let's talk about your goals. Which of these are you interested in? You can choose multiple.</div>
         ) : showGoalsText && (
@@ -108,7 +95,7 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
             key={goal}
             variant={selectedGoals.includes(goal) ? "default" : "outline"}
             onClick={() => handleGoalToggle(goal)}
-            className="transition-colors"
+            className="transition-colors text-xl font-cormorant"
           >
             {goal}
           </Button>
