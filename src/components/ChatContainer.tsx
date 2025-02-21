@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -10,6 +9,7 @@ import { cn } from "@/lib/utils";
 interface Message {
   content: string;
   isAl: boolean;
+  is_secret?: boolean;
   contactInfo?: {
     id: string;
     name: string;
@@ -87,60 +87,64 @@ export const ChatContainer = ({
         className="flex-1 flex flex-col overflow-y-auto space-y-4 mb-4"
         onScroll={handleScroll}
       >
-        {filteredMessages.map((message, index) => (
-          <ChatMessage
-            key={index}
-            content={message.content}
-            isAl={message.isAl}
-            animate={index === filteredMessages.length - 1}
-            contacts={message.contactInfo ? [message.contactInfo] : undefined}
-          />
-        ))}
-        {isLoading && (
-          <div className="self-start text-sm text-gray-500 animate-pulse">
-            Al is typing...
+        <div className="flex flex-col gap-3 pb-4">
+          {filteredMessages
+            .filter(message => !message.is_secret)
+            .map((message, index) => (
+              <ChatMessage
+                key={index}
+                content={message.content}
+                isAl={message.isAl}
+                animate={index === filteredMessages.length - 1}
+                contacts={message.contactInfo ? [message.contactInfo] : undefined}
+              />
+            ))}
+          {isLoading && (
+            <div className="self-start text-sm text-gray-500 animate-pulse">
+              Al is typing...
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+        
+        {showScrollButton && (
+          <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
+              onClick={scrollToBottom}
+            >
+              <ChevronDown className="h-6 w-6" />
+            </Button>
           </div>
         )}
-        <div ref={messagesEndRef} />
-      </div>
-      
-      {showScrollButton && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2">
-          <Button
-            variant="outline"
-            size="icon"
-            className="rounded-full shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground"
-            onClick={scrollToBottom}
-          >
-            <ChevronDown className="h-6 w-6" />
-          </Button>
-        </div>
-      )}
-      
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
-          <div className="flex gap-2 flex-wrap">
-            <SuggestedPrompt
-              text="plan a future hang"
-              onClick={() => onSuggestedPrompt("plan me a hang")}
-            />
-            <SuggestedPrompt
-              text="talk about past hang"
-              onClick={() => onSuggestedPrompt("talk about a hang")}
-            />
-            <SuggestedPrompt
-              text="Set a new goal"
-              onClick={() => onSuggestedPrompt("Set a new goal")}
-            />
-            <SuggestedPrompt
-              text="add a new contact"
-              onClick={() => onSuggestedPrompt("add a new contact")}
-            />
+        
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
+            <div className="flex gap-2 flex-wrap">
+              <SuggestedPrompt
+                text="plan a future hang"
+                onClick={() => onSuggestedPrompt("plan me a hang")}
+              />
+              <SuggestedPrompt
+                text="talk about past hang"
+                onClick={() => onSuggestedPrompt("talk about a hang")}
+              />
+              <SuggestedPrompt
+                text="Set a new goal"
+                onClick={() => onSuggestedPrompt("Set a new goal")}
+              />
+              <SuggestedPrompt
+                text="add a new contact"
+                onClick={() => onSuggestedPrompt("add a new contact")}
+              />
+            </div>
           </div>
+          <ChatInput onSend={onSend} />
+          {children}
         </div>
-        <ChatInput onSend={onSend} />
-        {children}
       </div>
     </div>
   );
