@@ -97,23 +97,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case 'goals-ranking':
         setStep('goals');
         break;
-      case 'personality-intro':
-        setStep('goals-ranking');
-        break;
-      case 'personality-q1':
-        setStep('personality-intro');
-        break;
-      case 'personality-q2':
-        setStep('personality-q1');
-        break;
-      case 'personality-q3':
-        setStep('personality-q2');
-        break;
-      case 'personality-q4':
-        setStep('personality-q3');
-        break;
       case 'interests':
-        setStep('personality-q4');
+        setStep('goals-ranking');
         break;
       case 'future-interests':
         setStep('interests');
@@ -127,19 +112,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const handleSkip = async () => {
     switch (step) {
       case 'goals-ranking':
-        setStep('personality-intro');
-        break;
-      case 'personality-q1':
-      case 'personality-q2':
-      case 'personality-q3':
-      case 'personality-q4':
-        const nextSteps: Record<string, OnboardingStep> = {
-          'personality-q1': 'personality-q2',
-          'personality-q2': 'personality-q3',
-          'personality-q3': 'personality-q4',
-          'personality-q4': 'interests'
-        };
-        setStep(nextSteps[step]);
+        setStep('interests');
         break;
       case 'interests':
         setStep('future-interests');
@@ -210,7 +183,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const showBackButton = step !== 'basic';
-  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
+  const showSkipButton = ['interests', 'future-interests'].includes(step);
   const currentQuestionIndex = step.startsWith('personality-q') 
     ? parseInt(step.charAt(step.length - 1)) - 1 
     : -1;
@@ -358,7 +331,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             onComplete={(selectedGoals) => {
               const goals: Goal[] = selectedGoals.map(type => ({
                 type,
-                description: "", // You might want to add descriptions here
+                description: "",
                 timeframe: "long-term",
                 completed: false,
                 created_at: new Date().toISOString()
@@ -368,7 +341,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               if (goals.length > 1) {
                 setStep('goals-ranking');
               } else {
-                setStep('personality-intro');
+                setStep('interests');
               }
             }}
             initialGoals={state.goals?.map(g => g.type)}
@@ -396,7 +369,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   ...prev, 
                   goals: rankedGoals 
                 }));
-                setStep('personality-intro');
+                setStep('interests');
               } catch (error: any) {
                 console.error('Error updating ranked goals:', error);
                 toast({
@@ -407,31 +380,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               }
             }}
           />
-        )}
-
-        {step === 'personality-intro' && (
-          <PersonalityIntro
-            userName={state.name}
-            onStart={() => setStep('personality-q1')}
-          />
-        )}
-
-        {currentQuestionIndex >= 0 && (
-          <>
-            <div className="h-1 w-full bg-gray-200 rounded">
-              <div
-                className="h-1 bg-primary rounded transition-all duration-300"
-                style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
-              />
-            </div>
-            <PersonalityQuestion
-              question={questions[currentQuestionIndex]}
-              initialValue={state.personalityTraits?.[questions[currentQuestionIndex].id]}
-              aiResponse={aiResponse}
-              isLoadingAi={isLoadingAi}
-              onAnswer={(value, comment) => handlePersonalityAnswer(currentQuestionIndex, value, comment)}
-            />
-          </>
         )}
 
         {step === 'interests' && (
