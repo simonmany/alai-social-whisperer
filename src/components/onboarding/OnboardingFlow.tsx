@@ -1,15 +1,14 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
-import { BasicInfo } from "./BasicInfo";
-import { GoalsSection } from "./GoalsSection";
-import { GoalRankingSection } from "./GoalRankingSection";
-import { DemographicsSection } from "./DemographicsSection";
-import { PersonalityIntro } from "./personality/PersonalityIntro";
-import { PersonalityQuestion } from "./personality/PersonalityQuestion";
+import { BasicInfo } from "./onboarding/BasicInfo";
+import { GoalsSection } from "./onboarding/GoalsSection";
+import { GoalRankingSection } from "./onboarding/GoalRankingSection";
+import { DemographicsSection } from "./onboarding/DemographicsSection";
+import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
+import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
@@ -17,6 +16,10 @@ import { generatePersonalityAnalysis } from "@/utils/openai";
 import { cn } from "@/lib/utils";
 import type { OnboardingState } from "@/types/onboarding";
 import type { Goal } from "@/types/goals";
+
+interface OnboardingFlowProps {
+  onComplete: () => void;
+}
 
 type OnboardingStep = 
   | 'basic' 
@@ -31,13 +34,9 @@ type OnboardingStep =
   | 'future-interests'
   | 'demographics';
 
-interface OnboardingFlowProps {
-  onComplete: () => void;
-}
-
 interface AIPreferencesResponse {
   response: string;
-  contacts?: any[];
+  contacts?: any[]; // Adding this in case it's needed based on the response shape
 }
 
 const questions = [
@@ -89,13 +88,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showFutureActivities, setShowFutureActivities] = useState(false);
   const [showFutureFood, setShowFutureFood] = useState(false);
   const [showFutureMusic, setShowFutureMusic] = useState(false);
-
-  const showBackButton = step !== 'basic';
-  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
-  const currentQuestionIndex = step.startsWith('personality-q') 
-    ? parseInt(step.charAt(step.length - 1)) - 1 
-    : -1;
-
+  
   const handleBack = () => {
     switch (step) {
       case 'goals':
@@ -216,6 +209,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     setStep(nextSteps[questionIndex]);
   };
 
+  const showBackButton = step !== 'basic';
+  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
+  const currentQuestionIndex = step.startsWith('personality-q') 
+    ? parseInt(step.charAt(step.length - 1)) - 1 
+    : -1;
+
   const handleInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
     setState(prev => {
       const newState = { ...prev };
@@ -321,13 +320,20 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         {showBackButton && (
-          <Button variant="ghost" onClick={handleBack}>
+          <Button
+            variant="ghost"
+            onClick={handleBack}
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
         )}
         {showSkipButton && (
-          <Button variant="ghost" onClick={handleSkip} className="ml-auto">
+          <Button
+            variant="ghost"
+            onClick={handleSkip}
+            className="ml-auto"
+          >
             Skip
             <SkipForward className="ml-2 h-4 w-4" />
           </Button>
@@ -351,7 +357,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             onComplete={(selectedGoals) => {
               const goals: Goal[] = selectedGoals.map(type => ({
                 type,
-                description: "",
+                description: "", // You might want to add descriptions here
                 timeframe: "long-term",
                 completed: false,
                 created_at: new Date().toISOString()
