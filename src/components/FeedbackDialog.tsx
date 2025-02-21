@@ -249,11 +249,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     title: string; 
     date: Date; 
     location: string; 
-    attendees: { id: string; name: string; }[] 
+    attendees: Array<{ id: string; name: string; }>;
   }) => {
     if (!session?.user?.id) return;
 
-    const updatedEvent: Event = {
+    const updatedEvent = {
       id: eventData.id,
       title: eventData.title,
       date: eventData.date,
@@ -263,9 +263,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         name: attendee.name,
         user_id: session.user.id,
         interests: [],
-        is_archived: false
+        is_archived: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       } as Contact))
-    };
+    } satisfies Event;
 
     setSelectedEvent(updatedEvent);
   };

@@ -109,7 +109,7 @@ export function SuggestionDialog({
     
     const contactNames = Array.isArray(response.contacts) 
       ? response.contacts
-          .filter((contact): contact is NonNullable<typeof contact> => 
+          .filter((contact): contact is NonNullable<(typeof response.contacts)[number]> => 
             contact !== null && contact !== undefined
           )
           .map(contact => {
