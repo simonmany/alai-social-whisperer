@@ -275,6 +275,44 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     setSelectedEvent(event);
   };
 
+  const createEvent = (event: { 
+    id: string; 
+    title: string; 
+    date: Date; 
+    location: string; 
+    attendees: { id: string; name: string; }[]; 
+  }): Event => {
+    if (!session?.user?.id) throw new Error("User must be logged in");
+
+    return {
+      id: event.id,
+      title: event.title,
+      date: event.date,
+      location: event.location,
+      attendees: event.attendees.map(attendee => ({
+        id: attendee.id,
+        name: attendee.name,
+        user_id: session.user.id,
+        interests: [] as string[],
+        is_archived: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        closeness: 0.5
+      }))
+    };
+  };
+
+  const handleRecentEventSelect = (event: { 
+    id: string; 
+    title: string; 
+    date: Date; 
+    location: string; 
+    attendees: Array<{ id: string; name: string; }>; 
+  }) => {
+    if (!session?.user?.id) return;
+    setSelectedEvent(createEvent(event));
+  };
+
   const handleContactSelect = (contact: Contact) => {
     if (selectedEvent) {
       const isAlreadyAttendee = selectedEvent.attendees.some(a => a.id === contact.id);
