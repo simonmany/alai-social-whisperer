@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Users, Calendar as CalendarIcon, MapPin, Bot, ArrowLeft, Archive, Shuffle } from "lucide-react";
+import { X, Users, Calendar as CalendarIcon, MapPin, Bot, ArrowLeft, Archive, Shuffle, UserPlus } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, addDays } from "date-fns";
 import { Check } from "lucide-react";
+import ContactsDialog from "@/components/ContactsDialog";
+import { SuggestionDialog } from "./SuggestionDialog";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -34,6 +36,16 @@ const TIME_OPTIONS = [
   "8:00 PM", "8:30 PM", "9:00 PM", "9:30 PM", "10:00 PM"
 ];
 
+interface AIResponse {
+  text?: string;
+  contacts?: string[];
+  activity?: string;
+  datetime?: {
+    date: string;
+    time: string;
+  };
+}
+
 const PlanningDialog = ({
   open,
   onOpenChange,
@@ -50,6 +62,9 @@ const PlanningDialog = ({
   const [location, setLocation] = useState(defaultLocation);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>();
+  const [showNewContactDialog, setShowNewContactDialog] = useState(false);
+  const [showSuggestionDialog, setShowSuggestionDialog] = useState(false);
+  const [suggestionMessage, setSuggestionMessage] = useState("");
   const { toast } = useToast();
   const { session } = useAuth();
 
@@ -63,6 +78,8 @@ const PlanningDialog = ({
         setLocation(defaultLocation);
         setSelectedDate(defaultDate);
         setSelectedTime(undefined);
+        setShowNewContactDialog(false);
+        setShowSuggestionDialog(false);
       }, 100);
     }
   }, [open, defaultContacts, defaultActivity, defaultLocation, defaultDate]);
@@ -318,33 +335,114 @@ const PlanningDialog = ({
   };
 
   const handleFigureItOut = async () => {
-    toast({
-      description: "Let me help you fill out the remaining details!"
-    });
-
-    if (!isComplete.contacts) {
-      console.log("Suggesting contact...");
-      handleSuggestContact();
-    }
-
-    if (!isComplete.activity) {
-      console.log("Suggesting activity...");
-      handleRandomActivity();
-    }
-
-    if (!isComplete.datetime) {
-      console.log("Suggesting date and time...");
-      handleRandomDateTime();
-    }
-
-    // Wait a brief moment before checking if everything is complete
-    setTimeout(() => {
-      if (allFieldsComplete) {
-        toast({
-          description: "All set! Review the details and create your event.",
-        });
+    // Build context message about the current state of the event
+    let contextMessage = "I'm planning an event.";
+    
+    if (selectedContacts.length > 0) {
+      const contactsInfo = selectedContacts.map(c => ({
+        name: c.name,
+        interests: c.interests,
+        relationship: c.relationship
+      }));
+      contextMessage += `\nAttendees: ${selectedContacts.map(c => c.name).join(', ')}`;
+      if (contactsInfo.some(c => c.interests?.length)) {
+        contextMessage += `\nTheir interests include: ${contactsInfo
+          .filter(c => c.interests?.length)
+          .map(c => `${c.name}: ${c.interests?.join(', ')}`)
+          .join('; ')}`;
       }
-    }, 500);
+    }
+    
+    if (activity) {
+      contextMessage += `\nActivity: ${activity}`;
+    }
+    
+    if (location) {
+      contextMessage += `\nLocation: ${location}`;
+    }
+    
+    if (selectedDate) {
+      contextMessage += `\nDate: ${format(selectedDate, 'EEE, MMM d')}`;
+    }
+    
+    if (selectedTime) {
+      contextMessage += `\nTime: ${selectedTime}`;
+    }
+
+    // Add what we need suggestions for
+    contextMessage += "\n\nBased on this information, please suggest:";
+    if (!isComplete.contacts) {
+      contextMessage += "\n- Who else should be invited based on the current plan and why";
+    }
+    if (!isComplete.activity) {
+      contextMessage += "\n- What activity would be good for this group and why";
+    }
+    if (!isComplete.datetime) {
+      contextMessage += "\n- When would be a good time for this event and why";
+    }
+    contextMessage += "\n\nAlways provide a conversational response explaining your suggestions. Additionally, format the suggestions at the end as JSON with these fields: contacts (array of names), activity (string), datetime (object with date and time fields using the 12 hour clock). Only include fields that are not already filled.";
+
+    setSuggestionMessage(contextMessage);
+    setShowSuggestionDialog(true);
+  };
+
+  const handleSuggestionReceived = (response: AIResponse) => {
+    try {
+      if (!isComplete.contacts && response.contacts) {
+        // For each contact name in the response, find the matching contact in the contacts list
+        const newContacts = response.contacts
+          .map(name => contacts.find(c => c.name.toLowerCase() === name.toLowerCase()))
+          .filter((contact): contact is Contact => contact !== undefined);
+
+        // Filter out duplicates and add to selected contacts
+        setSelectedContacts(prev => [
+          ...prev,
+          ...newContacts.filter(c => !prev.some(p => p.id === c.id))
+        ]);
+      }
+      
+      if (!isComplete.activity && response.activity) {
+        setActivity(response.activity);
+      }
+      
+      if (!isComplete.datetime && response.datetime) {
+        console.log('datetime', response.datetime)
+        if (response.datetime.date) {
+          const date = new Date(response.datetime.date);
+          if (!isNaN(date.getTime())) {
+            setSelectedDate(date);
+          }
+        }
+        if (response.datetime.time) {
+          const validTime = TIME_OPTIONS.find(t => 
+            t.toLowerCase() === response.datetime.time.toLowerCase()
+          );
+          if (validTime) {
+            setSelectedTime(validTime);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error processing AI suggestion:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process AI suggestions. Using random suggestions instead.",
+        variant: "destructive",
+      });
+      
+      // Fallback to random suggestions
+      if (!isComplete.contacts) handleSuggestContact();
+      if (!isComplete.activity) handleRandomActivity();
+      if (!isComplete.datetime) handleRandomDateTime();
+    }
+  };
+
+  const handleNewContactSubmit = (message: string, contact: Contact) => {
+    setSelectedContacts(prev => [...prev, contact]);
+    setShowNewContactDialog(false);
+    toast({
+      description: "Contact added and included in the event!"
+    });
   };
 
   const renderContactsStep = () => (
@@ -357,18 +455,32 @@ const PlanningDialog = ({
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            console.log("Suggest someone button clicked");
-            handleSuggestContact();
-          }}
-          className="text-sm gap-2"
-        >
-          <Bot className="h-4 w-4" />
-          Suggest someone
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => {
+              e.preventDefault();
+              setShowNewContactDialog(true);
+            }}
+            className="text-sm gap-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            New contact
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              console.log("Suggest someone button clicked");
+              handleSuggestContact();
+            }}
+            className="text-sm gap-2"
+          >
+            <Bot className="h-4 w-4" />
+            Suggest someone
+          </Button>
+        </div>
       </div>
 
       <Input
@@ -433,6 +545,15 @@ const PlanningDialog = ({
           {getNextButtonText()}
         </Button>
       </div>
+
+      {showNewContactDialog && session?.user?.id && (
+        <ContactsDialog
+          open={showNewContactDialog}
+          onOpenChange={setShowNewContactDialog}
+          onSubmit={handleNewContactSubmit}
+          userId={session.user.id}
+        />
+      )}
     </div>
   );
 
@@ -690,6 +811,23 @@ const PlanningDialog = ({
         {step === 'activity' && renderActivityStep()}
         {step === 'datetime' && renderDateTimeStep()}
       </DialogContent>
+      {showSuggestionDialog && (
+        <SuggestionDialog
+          open={showSuggestionDialog}
+          onOpenChange={setShowSuggestionDialog}
+          title="Let me help you plan this!"
+          message={suggestionMessage}
+          contactInfo={selectedContacts.length === 0 ? contacts
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 20)
+            .map(contact => ({
+              name: contact.name,
+              relationship: contact.relationship,
+              interests: contact.interests,
+            })) : undefined}
+          onSuggestionReceived={handleSuggestionReceived}
+        />
+      )}
     </Dialog>
   );
 };

@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-interface ContactInfo {
+export interface ContactInfo {
   name: string;
   phone?: string;
   instagram?: string;
@@ -10,7 +10,7 @@ interface ContactInfo {
   relationship?: string;
 }
 
-export const generateChatResponse = async (message: string, contactInfo?: ContactInfo) => {
+export const generateChatResponse = async (message: string, contactInfo?: ContactInfo[], secretMessage?: boolean) => {
   try {
     const session = await supabase.auth.getSession();
     const userId = session.data.session?.user.id;
@@ -20,7 +20,7 @@ export const generateChatResponse = async (message: string, contactInfo?: Contac
     }
 
     const { data, error } = await supabase.functions.invoke('chat', {
-      body: { message, userId, contactInfo }
+      body: { message, userId, contactInfo, secretMessage }
     });
 
     if (error) {
@@ -28,7 +28,7 @@ export const generateChatResponse = async (message: string, contactInfo?: Contac
       throw new Error(error.message || "Failed to generate response");
     }
 
-    if (!data || !data.response) {
+    if (!data || !data.full_response) {
       console.error("Invalid response format:", data);
       throw new Error("Invalid response from chat function");
     }

@@ -343,6 +343,9 @@ async function searchContactsByNames(userId: string, names: string[]) {
 }
 
 async function upsertContacts(userId: string, contacts: Contact[]) {
+  if (contacts.length === 0) {
+    return [];
+  }
   const { data, error } = await supabase
     .from('contacts')
     .upsert(contacts.map(contact => ({
@@ -452,7 +455,7 @@ serve(async (req) => {
   }
 
   try {
-    const { message, userId, contactInfo } = await req.json();
+    const { message, userId, contactInfo, secretMessage } = await req.json();
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
 
     if (!openAIApiKey) {
@@ -466,7 +469,12 @@ serve(async (req) => {
     const { error: userMessageError } = await supabase
     .from('chat_history')
     .insert([
-      { user_id: userId, message, is_ai: false }
+      {
+        user_id: userId,
+        message,
+        is_ai: false,
+        is_secret: secretMessage === true,
+      }
     ]);
 
     if (userMessageError) {
@@ -548,7 +556,7 @@ serve(async (req) => {
       .limit(10);
 
     // Extract names from the message and get their contact info
-    let mentionedContacts = contactInfo ? [contactInfo] : [];
+    let mentionedContacts = contactInfo ? contactInfo : [];
     if (!contactInfo) {
       const names = await extractNamesFromText(message);
       if (names.length > 0) { 
@@ -649,7 +657,15 @@ serve(async (req) => {
     console.log('parsed response', parsedResponse)
 
     let contacts = mentionedContacts;
-    if (parsedResponse.contacts && Array.isArray(parsedResponse.contacts) && parsedResponse.contacts.length > 0) {
+    if (parsedResponse.contacts && 
+        Array.isArray(parsedResponse.contacts) && 
+        parsedResponse.contacts.length > 0 &&
+        parsedResponse.contacts.every(contact => 
+          typeof contact === 'object' && 
+          contact !== null && 
+          'name' in contact && 
+          typeof contact.name === 'string'
+        )) {
       contacts = await mergeContacts(mentionedContacts, parsedResponse.contacts);
       await upsertContacts(userId, contacts);
     }
@@ -677,20 +693,28 @@ serve(async (req) => {
       }
     }
 
-    const { error: aiMessageError } = await supabase
-      .from('chat_history')
-      .insert([
-        { user_id: userId, message: parsedResponse.text, is_ai: true }
-      ]);
+    if (parsedResponse.text) {
+      const { error: aiMessageError } = await supabase
+        .from('chat_history')
+        .insert([
+          {
+            user_id: userId,
+            message: parsedResponse.text,
+            is_ai: true,
+            is_secret: secretMessage === true,
+          }
+        ]);
 
-    if (aiMessageError) {
-      console.error('Error storing AI message:', aiMessageError);
-      throw aiMessageError;
+      if (aiMessageError) {
+        console.error('Error storing AI message:', aiMessageError);
+        throw aiMessageError;
+      }
     }
 
     return new Response(JSON.stringify({ 
       response: parsedResponse.text,
-      contacts: contacts
+      contacts: contacts,
+      full_response: parsedResponse,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

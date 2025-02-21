@@ -257,6 +257,7 @@ const Index = () => {
           const historyMessages = data.map(msg => ({
             content: msg.message,
             isAl: msg.is_ai,
+            is_secret: msg.is_secret
           }));
           console.log('Setting messages:', historyMessages);
           setMessages(historyMessages);
@@ -583,7 +584,7 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      const response = await generateChatResponse(message, contactInfo);
+      const response = await generateChatResponse(message, contactInfo ? [contactInfo] : undefined);
     } catch (error: any) {
       console.error('Error generating response:', error);
       toast({
