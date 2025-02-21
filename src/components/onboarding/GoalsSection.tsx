@@ -1,92 +1,129 @@
-
-import { useState, useCallback } from "react";
-import { TypewriterText } from "@/components/TypewriterText";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ChatMessage } from "@/components/ChatMessage";
+import { TypewriterText } from "@/components/TypewriterText";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface GoalsSectionProps {
-  userName?: string;
-  onComplete: (selectedGoals: string[]) => void;
+  session: any;
+  onComplete: (goals: string[]) => void;
   initialGoals?: string[];
+  userName?: string;
 }
 
-export const GoalsSection = ({ userName = "", onComplete, initialGoals = [] }: GoalsSectionProps) => {
-  const [showGoals, setShowGoals] = useState(false);
-  const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals);
+export const GoalsSection = ({ session, onComplete, initialGoals, userName }: GoalsSectionProps) => {
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals || []);
   const [introCompleted, setIntroCompleted] = useState(false);
+  const [showGoalsText, setShowGoalsText] = useState(false);
+  const [showOptions, setShowOptions] = useState(false);
+  const { toast } = useToast();
 
   const goals = [
-    "Meet new people",
-    "Try new experiences",
-    "Catch up with old friends",
-    "Find love",
-    "Make existing friendships stronger",
-    "Improve social skills",
-    "Get out more",
+    "Stay in touch and reconnect",
+    "Make new friends",
+    "Try new activities",
+    "Go on dates and find love",
+    "Network professionally"
   ];
 
-  const handleGoalSelect = (goal: string) => {
-    setSelectedGoals(prev => {
-      if (prev.includes(goal)) {
-        return prev.filter(g => g !== goal);
-      }
-      return [...prev, goal];
-    });
+  const capitalizedName = userName 
+    ? userName.charAt(0).toUpperCase() + userName.slice(1) 
+    : '';
+
+  const handleGoalToggle = (goal: string) => {
+    setSelectedGoals(prev => 
+      prev.includes(goal) 
+        ? prev.filter(g => g !== goal)
+        : [...prev, goal]
+    );
   };
 
-  const handleComplete = useCallback(() => {
-    if (selectedGoals.length === 0) return;
-    onComplete(selectedGoals);
-  }, [selectedGoals, onComplete]);
+  const handleGoalsSubmit = async () => {
+    if (selectedGoals.length === 0) {
+      toast({
+        title: "Please select at least one goal",
+        description: "This will help me assist you better",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ goals: selectedGoals })
+        .eq('id', session?.user.id);
+
+      onComplete(selectedGoals);
+    } catch (error: any) {
+      toast({
+        title: "Error saving goals",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="space-y-8">
-      <div className="text-xl font-cormorant">
-        {introCompleted ? (
-          <div>What are your main goals for the upcoming months, {userName}?</div>
-        ) : (
+    <div className="space-y-4">
+      {userName && (
+        <div className="text-lg font-medium mb-6">
+          {introCompleted ? (
+            <div>{`Nice to meet you, ${capitalizedName}!`}</div>
+          ) : (
+            <TypewriterText
+              text={`Nice to meet you, ${capitalizedName}!`}
+              delay={0}
+              typingSpeed={25}
+              onComplete={() => {
+                setIntroCompleted(true);
+                setShowGoalsText(true);
+              }}
+            />
+          )}
+        </div>
+      )}
+      
+      <div className="text-lg">
+        {showOptions ? (
+          <div>Next, let's talk about your goals. Which of these are you interested in? You can choose multiple.</div>
+        ) : showGoalsText && (
           <TypewriterText
-            text={`What are your main goals for the upcoming months${userName ? `, ${userName}` : ''}?`}
-            onComplete={() => {
-              setIntroCompleted(true);
-              setShowGoals(true);
-            }}
+            text="Next, let's talk about your goals. Which of these are you interested in? You can choose multiple."
             delay={250}
             typingSpeed={25}
+            onComplete={() => setShowOptions(true)}
           />
         )}
       </div>
-
+      
       <div className={cn(
-        "space-y-4 transition-all duration-500",
-        showGoals ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+        "flex flex-wrap gap-2 transition-opacity duration-500",
+        showOptions ? "opacity-100" : "opacity-0"
       )}>
-        <div className="text-xl font-cormorant">Select all that apply:</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {goals.map((goal) => (
-            <Button
-              key={goal}
-              variant={selectedGoals.includes(goal) ? "default" : "outline"}
-              className={cn(
-                "justify-start text-left text-xl font-cormorant normal-case",
-                selectedGoals.includes(goal) ? "bg-primary" : ""
-              )}
-              onClick={() => handleGoalSelect(goal)}
-            >
-              {goal}
-            </Button>
-          ))}
-        </div>
-
-        {selectedGoals.length > 0 && (
-          <Button 
-            onClick={handleComplete}
-            className="w-full mt-4"
+        {goals.map((goal) => (
+          <Button
+            key={goal}
+            variant={selectedGoals.includes(goal) ? "default" : "outline"}
+            onClick={() => handleGoalToggle(goal)}
+            className="transition-colors"
           >
-            Continue
+            {goal}
           </Button>
-        )}
+        ))}
       </div>
+      
+      <Button 
+        onClick={handleGoalsSubmit}
+        className={cn(
+          "w-full transition-opacity duration-500",
+          showOptions ? "opacity-100" : "opacity-0"
+        )}
+      >
+        Continue
+      </Button>
     </div>
   );
 };
