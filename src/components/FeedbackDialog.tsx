@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -474,6 +474,94 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     </div>
   );
 
+  // Add query to fetch contacts
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', session?.user?.id)
+        .order('name');
+      
+      if (error) throw error;
+      return data as Contact[];
+    },
+    enabled: !!session?.user?.id
+  });
+
+  // Add query to fetch recent events
+  const { data: recentEvents = [] } = useQuery({
+    queryKey: ['recent-events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          id,
+          title,
+          start_time,
+          location,
+          event_attendees (
+            contacts (
+              id,
+              name,
+              is_archived
+            )
+          )
+        `)
+        .eq('user_id', session?.user?.id)
+        .eq('feedback_sent', false)
+        .order('start_time', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      return data.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        date: new Date(event.start_time),
+        location: event.location || "No location specified",
+        attendees: event.event_attendees?.map((ea: any) => ({
+          id: ea.contacts.id,
+          name: ea.contacts.name
+        })) || []
+      }));
+    },
+    enabled: !!session?.user?.id && !selectedEventId
+  });
+
+  // Filter contacts based on input
+  const filteredContacts = useMemo(() => {
+    if (!contactInput) return [];
+    const searchTerm = contactInput.toLowerCase();
+    return contacts.filter(contact => 
+      contact.name.toLowerCase().includes(searchTerm)
+    );
+  }, [contacts, contactInput]);
+
+  // Activity suggestions
+  const activitySuggestions = useMemo(() => {
+    const suggestions = [
+      { name: "Coffee Chat", category: "Social" },
+      { name: "Lunch Meeting", category: "Social" },
+      { name: "Dinner", category: "Social" },
+      { name: "Movie Night", category: "Entertainment" },
+      { name: "Game Night", category: "Entertainment" },
+      { name: "Workout Session", category: "Fitness" },
+      { name: "Study Group", category: "Education" },
+      { name: "Virtual Hangout", category: "Social" },
+      { name: "Walking", category: "Fitness" },
+      { name: "Birthday Party", category: "Celebration" }
+    ];
+
+    if (!manualActivity) return suggestions;
+    
+    const searchTerm = manualActivity.toLowerCase();
+    return suggestions.filter(activity =>
+      activity.name.toLowerCase().includes(searchTerm)
+    );
+  }, [manualActivity]);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -568,7 +656,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                                   </Avatar>
                                   <span>{attendee.name}</span>
                                   {attendee.is_archived && (
-                                    <Archive className="h-3 w-3 text-muted-foreground" />
+                                    <Archive className="h-4 w-4 text-muted-foreground" />
                                   )}
                                   <button
                                     onClick={(e) => {
