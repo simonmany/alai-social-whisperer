@@ -3,17 +3,17 @@ import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
+import { BasicInfo } from "./onboarding/BasicInfo";
+import { GoalsSection } from "./onboarding/GoalsSection";
+import { GoalRankingSection } from "./onboarding/GoalRankingSection";
+import { DemographicsSection } from "./onboarding/DemographicsSection";
+import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
+import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
+import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
 import { generatePersonalityAnalysis } from "@/utils/openai";
 import { cn } from "@/lib/utils";
-import { BasicInfo } from "../onboarding/BasicInfo";
-import { GoalsSection } from "../onboarding/GoalsSection";
-import { GoalRankingSection } from "../onboarding/GoalRankingSection";
-import { DemographicsSection } from "../onboarding/DemographicsSection";
-import { PersonalityIntro } from "../onboarding/personality/PersonalityIntro";
-import { PersonalityQuestion } from "../onboarding/personality/PersonalityQuestion";
-import { InterestSelector } from "@/components/InterestSelector";
 import type { OnboardingState } from "@/types/onboarding";
 import type { Goal } from "@/types/goals";
 
@@ -97,23 +97,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case 'goals-ranking':
         setStep('goals');
         break;
-      case 'personality-intro':
-        setStep('goals-ranking');
-        break;
-      case 'personality-q1':
-        setStep('personality-intro');
-        break;
-      case 'personality-q2':
-        setStep('personality-q1');
-        break;
-      case 'personality-q3':
-        setStep('personality-q2');
-        break;
-      case 'personality-q4':
-        setStep('personality-q3');
-        break;
       case 'interests':
-        setStep('personality-q4');
+        setStep('goals-ranking');
         break;
       case 'future-interests':
         setStep('interests');
@@ -127,19 +112,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const handleSkip = async () => {
     switch (step) {
       case 'goals-ranking':
-        setStep('personality-intro');
-        break;
-      case 'personality-q1':
-      case 'personality-q2':
-      case 'personality-q3':
-      case 'personality-q4':
-        const nextSteps: Record<string, OnboardingStep> = {
-          'personality-q1': 'personality-q2',
-          'personality-q2': 'personality-q3',
-          'personality-q3': 'personality-q4',
-          'personality-q4': 'interests'
-        };
-        setStep(nextSteps[step]);
+        setStep('interests');
         break;
       case 'interests':
         setStep('future-interests');
@@ -210,7 +183,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const showBackButton = step !== 'basic';
-  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
+  const showSkipButton = ['interests', 'future-interests'].includes(step);
   const currentQuestionIndex = step.startsWith('personality-q') 
     ? parseInt(step.charAt(step.length - 1)) - 1 
     : -1;
