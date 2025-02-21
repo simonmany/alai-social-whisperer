@@ -16,8 +16,8 @@ export const PersonalityIntro = ({ userName = "there", onStart }: PersonalityInt
   const [secondTextCompleted, setSecondTextCompleted] = useState(false);
 
   return (
-    <div className="space-y-6">
-      <div className="text-3xl">
+    <div className="space-y-4">
+      <div className="text-2xl">
         {firstTextCompleted ? (
           <div>Nice! I'm looking forward to helping you achieve your goals.</div>
         ) : (
@@ -31,7 +31,7 @@ export const PersonalityIntro = ({ userName = "there", onStart }: PersonalityInt
           />
         )}
       </div>
-      <div className="text-2xl">
+      <div className="text-xl">
         {secondTextCompleted ? (
           <div>To help me get to know you better, I've got a few quick questions for you. This shouldn't take more than a minute:</div>
         ) : showSecondText && (
@@ -49,7 +49,7 @@ export const PersonalityIntro = ({ userName = "there", onStart }: PersonalityInt
         "transition-opacity duration-500",
         showButton ? "opacity-100" : "opacity-0"
       )}>
-        <Button onClick={onStart} className="w-full text-xl py-6">
+        <Button onClick={onStart} className="w-full text-lg">
           Start Quiz
         </Button>
       </div>
