@@ -17,10 +17,6 @@ import { cn } from "@/lib/utils";
 import type { OnboardingState } from "@/types/onboarding";
 import type { Goal } from "@/types/goals";
 
-interface OnboardingFlowProps {
-  onComplete: () => void;
-}
-
 type OnboardingStep = 
   | 'basic' 
   | 'goals' 
@@ -34,37 +30,14 @@ type OnboardingStep =
   | 'future-interests'
   | 'demographics';
 
-interface AIPreferencesResponse {
-  response: string;
-  contacts?: any[]; // Adding this in case it's needed based on the response shape
+interface OnboardingFlowProps {
+  onComplete: () => void;
 }
 
-const questions = [
-  {
-    id: 1,
-    text: "Do you consider yourself an introvert or an extrovert?",
-    leftLabel: "introvert",
-    rightLabel: "extrovert",
-  },
-  {
-    id: 2,
-    text: "Are you typically quiet or talkative in social settings?",
-    leftLabel: "Quality over quantity",
-    rightLabel: "adept conversationalist",
-  },
-  {
-    id: 3,
-    text: "Do you prefer to hang out with people one on one or in groups?",
-    leftLabel: "Love a duet",
-    rightLabel: "love an orchestra",
-  },
-  {
-    id: 4,
-    text: "Do you prefer to plan ahead or be spontaneous?",
-    leftLabel: "I live by my calendar",
-    rightLabel: "What's a calendar?",
-  },
-];
+interface AIPreferencesResponse {
+  response: string;
+  contacts?: any[];
+}
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<OnboardingStep>('basic');
@@ -88,7 +61,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showFutureActivities, setShowFutureActivities] = useState(false);
   const [showFutureFood, setShowFutureFood] = useState(false);
   const [showFutureMusic, setShowFutureMusic] = useState(false);
-  
+
+  const showBackButton = step !== 'basic';
+  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
+  const currentQuestionIndex = step.startsWith('personality-q') 
+    ? parseInt(step.charAt(step.length - 1)) - 1 
+    : -1;
+
   const handleBack = () => {
     switch (step) {
       case 'goals':
@@ -209,12 +188,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     setStep(nextSteps[questionIndex]);
   };
 
-  const showBackButton = step !== 'basic';
-  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
-  const currentQuestionIndex = step.startsWith('personality-q') 
-    ? parseInt(step.charAt(step.length - 1)) - 1 
-    : -1;
-
   const handleInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
     setState(prev => {
       const newState = { ...prev };
@@ -320,20 +293,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         {showBackButton && (
-          <Button
-            variant="ghost"
-            onClick={handleBack}
-          >
+          <Button variant="ghost" onClick={handleBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
         )}
         {showSkipButton && (
-          <Button
-            variant="ghost"
-            onClick={handleSkip}
-            className="ml-auto"
-          >
+          <Button variant="ghost" onClick={handleSkip} className="ml-auto">
             Skip
             <SkipForward className="ml-2 h-4 w-4" />
           </Button>
@@ -357,7 +323,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             onComplete={(selectedGoals) => {
               const goals: Goal[] = selectedGoals.map(type => ({
                 type,
-                description: "", // You might want to add descriptions here
+                description: "",
                 timeframe: "long-term",
                 completed: false,
                 created_at: new Date().toISOString()
