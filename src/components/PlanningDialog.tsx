@@ -65,6 +65,7 @@ const PlanningDialog = ({
         setLocation(defaultLocation);
         setSelectedDate(defaultDate);
         setSelectedTime(undefined);
+        setShowNewContactDialog(false);
       }, 100);
     }
   }, [open, defaultContacts, defaultActivity, defaultLocation, defaultDate]);
@@ -349,6 +350,14 @@ const PlanningDialog = ({
     }, 500);
   };
 
+  const handleNewContactSubmit = (_message: string, contact: Contact) => {
+    setSelectedContacts(prev => [...prev, contact]);
+    setShowNewContactDialog(false);
+    toast({
+      description: "Contact added and included in the event!"
+    });
+  };
+
   const renderContactsStep = () => (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -363,7 +372,10 @@ const PlanningDialog = ({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowNewContactDialog(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              setShowNewContactDialog(true);
+            }}
             className="text-sm gap-2"
           >
             <UserPlus className="h-4 w-4" />
