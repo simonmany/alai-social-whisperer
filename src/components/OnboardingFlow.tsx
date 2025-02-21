@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -59,8 +60,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         if (data) {
           setStep(data.onboarding_step as OnboardingStep || 'splash');
-          if (data.personality_traits) setPersonalityTraits(data.personality_traits);
-          if (data.personality_comments) setPersonalityComments(data.personality_comments);
+          if (data.personality_traits) {
+            // Ensure personality_traits is properly typed as Record<string, number>
+            const traits = typeof data.personality_traits === 'object' ? data.personality_traits : {};
+            setPersonalityTraits(traits as Record<string, number>);
+          }
+          if (data.personality_comments) {
+            setPersonalityComments(Array.isArray(data.personality_comments) ? data.personality_comments : []);
+          }
         }
       } catch (error) {
         console.error('Error loading onboarding state:', error);
