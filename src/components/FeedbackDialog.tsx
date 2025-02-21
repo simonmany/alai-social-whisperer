@@ -244,16 +244,10 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     }
   };
 
-  const handleEventSelect = (eventData: { 
-    id: string; 
-    title: string; 
-    date: Date; 
-    location: string; 
-    attendees: Array<{ id: string; name: string; }>; 
-  }) => {
-    if (!session?.user?.id) return;
-
-    const createContact = (attendee: { id: string; name: string }): Contact => ({
+  const createContact = (attendee: { id: string; name: string }): Contact => {
+    if (!session?.user?.id) throw new Error("User must be logged in");
+    
+    return {
       id: attendee.id,
       name: attendee.name,
       user_id: session.user.id,
@@ -262,47 +256,28 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       closeness: 0.5
-    });
+    };
+  };
 
-    const event: Event = {
+  const createEvent = (eventData: { 
+    id: string; 
+    title: string; 
+    date: Date; 
+    location: string; 
+    attendees: Array<{ id: string; name: string; }>; 
+  }): Event => {
+    if (!session?.user?.id) throw new Error("User must be logged in");
+
+    return {
       id: eventData.id,
       title: eventData.title,
       date: eventData.date,
       location: eventData.location,
       attendees: eventData.attendees.map(createContact)
     };
-
-    setSelectedEvent(event);
   };
 
-  const createEvent = (event: { 
-    id: string; 
-    title: string; 
-    date: Date; 
-    location: string; 
-    attendees: { id: string; name: string; }[]; 
-  }): Event => {
-    if (!session?.user?.id) throw new Error("User must be logged in");
-
-    return {
-      id: event.id,
-      title: event.title,
-      date: event.date,
-      location: event.location,
-      attendees: event.attendees.map(attendee => ({
-        id: attendee.id,
-        name: attendee.name,
-        user_id: session.user.id,
-        interests: [] as string[],
-        is_archived: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        closeness: 0.5
-      }))
-    };
-  };
-
-  const handleRecentEventSelect = (event: { 
+  const handleEventSelect = (eventData: { 
     id: string; 
     title: string; 
     date: Date; 
@@ -310,7 +285,18 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     attendees: Array<{ id: string; name: string; }>; 
   }) => {
     if (!session?.user?.id) return;
-    setSelectedEvent(createEvent(event));
+    setSelectedEvent(createEvent(eventData));
+  };
+
+  const handleRecentEventSelect = (eventData: { 
+    id: string; 
+    title: string; 
+    date: Date; 
+    location: string; 
+    attendees: Array<{ id: string; name: string; }>; 
+  }) => {
+    if (!session?.user?.id) return;
+    setSelectedEvent(createEvent(eventData));
   };
 
   const handleContactSelect = (contact: Contact) => {
