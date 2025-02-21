@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -69,28 +68,24 @@ export function SuggestionDialog({
     fetchSuggestion();
   };
 
-  // Start fetching as soon as dialog opens
   if (open && !isLoading && !currentResponse) {
     fetchSuggestion();
   }
 
   const formatDateTime = (dateStr: string, timeStr: string) => {
     try {
-      // First, ensure we have a valid date string
       const date = new Date(dateStr);
       if (!isValid(date)) {
         console.error("Invalid date:", dateStr);
         return "Invalid date";
       }
 
-      // Parse the time string (assuming it's in 12-hour format)
       const timeParts = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
       if (!timeParts) {
         console.error("Invalid time format:", timeStr);
         return format(date, 'EEE, MMM d');
       }
 
-      // Create a date object with both date and time
       const formattedDate = parse(
         `${format(date, 'yyyy-MM-dd')} ${timeStr}`,
         'yyyy-MM-dd hh:mm a',
@@ -111,10 +106,15 @@ export function SuggestionDialog({
 
   const renderResponse = (response: AIResponse) => {
     if (!response) return null;
-    if (Array.isArray(response.contacts) && response.contacts.length > 0 && typeof response.contacts[0] === 'object') {
-      console.log('Contacts', response.contacts)
-      response.contacts = response.contacts.map(contact => contact.name);
-    }
+    
+    const contactNames = Array.isArray(response.contacts) 
+      ? response.contacts.map(contact => {
+          if (typeof contact === 'object' && contact !== null) {
+            return contact.name || String(contact);
+          }
+          return String(contact);
+        })
+      : [];
 
     return (
       <div className="space-y-4 text-sm">
@@ -124,11 +124,11 @@ export function SuggestionDialog({
         
         <div className="rounded-lg bg-muted p-4 space-y-2">
           <h3 className="font-medium">Suggested Plan:</h3>
-          {response.contacts && response.contacts.length > 0 && (
+          {contactNames.length > 0 && (
             <div>
               <p className="font-semibold">Suggested Attendees:</p>
               <p>
-                {response.contacts.join(', ')}
+                {contactNames.join(', ')}
               </p>
             </div>
           )}
