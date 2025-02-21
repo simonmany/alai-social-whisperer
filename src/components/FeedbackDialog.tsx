@@ -83,7 +83,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const { data: eventDetails } = useQuery({
     queryKey: ['event-details', selectedEventId],
     queryFn: async () => {
-      if (!selectedEventId) return null;
+      if (!selectedEventId || !session?.user?.id) return null;
 
       const { data: event, error } = await supabase
         .from('calendar_events')
@@ -107,14 +107,20 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
       if (error) throw error;
       
       if (event) {
-        const formattedEvent = {
+        const formattedEvent: Event = {
           id: event.id,
           title: event.title,
           date: new Date(event.start_time),
           location: event.location || "No location specified",
           attendees: event.event_attendees.map((ea: any) => ({
             id: ea.contacts.id,
-            name: ea.contacts.name
+            name: ea.contacts.name,
+            user_id: session.user.id,
+            interests: [],
+            is_archived: ea.contacts.is_archived ?? false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            closeness: 0.5
           }))
         };
 
@@ -135,106 +141,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     enabled: !!selectedEventId && open
   });
 
-  const { data: recentEvents = [] } = useQuery({
-    queryKey: ['recent-events-without-feedback'],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const now = new Date();
-
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select(`
-          id,
-          title,
-          start_time,
-          location,
-          feedback_sent,
-          event_attendees (
-            contacts (
-              id,
-              name,
-              is_archived
-            )
-          )
-        `)
-        .eq('user_id', session.user.id)
-        .eq('feedback_sent', false)
-        .gte('start_time', thirtyDaysAgo.toISOString())
-        .lte('start_time', now.toISOString())
-        .order('start_time', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('Error fetching recent events:', error);
-        return [];
-      }
-
-      return data.map(event => ({
-        id: event.id,
-        title: event.title,
-        date: new Date(event.start_time),
-        location: event.location || "No location specified",
-        attendees: event.event_attendees.map((ea: any) => ({
-          id: ea.contacts.id,
-          name: ea.contacts.name
-        }))
-      }));
-    },
-    enabled: open && !selectedEventId
-  });
-
-  const { data: filteredContacts = [] } = useQuery({
-    queryKey: ['filtered-contacts', contactInput],
-    queryFn: async () => {
-      if (!session?.user?.id || !contactInput) return [];
-
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .ilike('name', `%${contactInput}%`)
-        .order('name');
-
-      if (error) throw error;
-      return data.map(contact => ({
-        ...contact,
-        interests: Array.isArray(contact.interests) ? contact.interests : [],
-      })) as Contact[];
-    },
-    enabled: !!contactInput && !!session?.user?.id
-  });
-
-  const { data: activitySuggestions = [] } = useQuery({
-    queryKey: ['activity-suggestions', manualActivity],
-    queryFn: async () => {
-      if (!manualActivity) return [];
-
-      const { data, error } = await supabase
-        .from('activities')
-        .select('name, category')
-        .ilike('name', `%${manualActivity}%`)
-        .limit(5);
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!manualActivity && isManualEntry
-  });
-
   useEffect(() => {
     if (eventDetails) {
       setSelectedEvent(eventDetails);
       setIsManualEntry(false);
     }
   }, [eventDetails]);
-
-  useEffect(() => {
-    if (!open) {
-      setShowNewContactDialog(false);
-    }
-  }, [open]);
 
   const handleBackClick = () => {
     if (!selectedEventId) {
@@ -285,7 +197,25 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     attendees: Array<{ id: string; name: string; }>; 
   }) => {
     if (!session?.user?.id) return;
-    setSelectedEvent(createEvent(eventData));
+    
+    const event: Event = {
+      id: eventData.id,
+      title: eventData.title,
+      date: eventData.date,
+      location: eventData.location,
+      attendees: eventData.attendees.map(attendee => ({
+        id: attendee.id,
+        name: attendee.name,
+        user_id: session.user.id,
+        interests: [],
+        is_archived: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        closeness: 0.5
+      }))
+    };
+    
+    setSelectedEvent(event);
   };
 
   const handleRecentEventSelect = (eventData: { 
@@ -681,7 +611,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="• What did you talk about?
-��� How'd you feel about the activity?
+• How'd you feel about the activity?
 • Any memorable moments?"
                             className="min-h-[100px]"
                           />
