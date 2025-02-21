@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,33 @@ interface AIPreferencesResponse {
   response: string;
   contacts?: any[];
 }
+
+const questions = [
+  {
+    id: 1,
+    text: "Do you consider yourself an introvert or an extrovert?",
+    leftLabel: "introvert",
+    rightLabel: "extrovert",
+  },
+  {
+    id: 2,
+    text: "Are you typically quiet or talkative in social settings?",
+    leftLabel: "Quality over quantity",
+    rightLabel: "adept conversationalist",
+  },
+  {
+    id: 3,
+    text: "Do you prefer to hang out with people one on one or in groups?",
+    leftLabel: "Love a duet",
+    rightLabel: "love an orchestra",
+  },
+  {
+    id: 4,
+    text: "Do you prefer to plan ahead or be spontaneous?",
+    leftLabel: "I live by my calendar",
+    rightLabel: "What's a calendar?",
+  },
+];
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<OnboardingStep>('basic');
