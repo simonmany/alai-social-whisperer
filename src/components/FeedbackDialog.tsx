@@ -244,12 +244,21 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     }
   };
 
-  const handleEventSelect = (event: Event) => {
+  const handleEventSelect = (event: { 
+    id: string; 
+    title: string; 
+    date: Date; 
+    location: string; 
+    attendees: { id: string; name: string; }[] 
+  }) => {
     const updatedEvent: Event = {
       ...event,
       attendees: event.attendees.map(attendee => ({
-        ...attendee,
-        user_id: session?.user?.id || '', // Add required user_id
+        id: attendee.id,
+        name: attendee.name,
+        user_id: session?.user?.id || '',
+        interests: [],
+        is_archived: false
       }))
     };
     setSelectedEvent(updatedEvent);

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -93,13 +94,16 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
       if (data) {
         const processedData: Contact = {
           ...data,
-          interests: Array.isArray(data.interests) ? data.interests : []
+          interests: Array.isArray(data.interests) 
+            ? data.interests.map(i => String(i)) // Convert each interest to string
+            : []
         };
         onSubmit(message, processedData);
       }
 
       onOpenChange(false);
       
+      // Reset form fields
       setName("");
       setPhone("");
       setInstagram("");

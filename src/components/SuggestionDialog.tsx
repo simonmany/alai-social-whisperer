@@ -109,11 +109,11 @@ export function SuggestionDialog({
     
     const contactNames = Array.isArray(response.contacts) 
       ? response.contacts.map(contact => {
-          if (typeof contact === 'object' && contact !== null) {
-            return contact.name || String(contact);
+          if (typeof contact === 'object' && contact !== null && 'name' in contact) {
+            return contact.name;
           }
           return String(contact);
-        })
+        }).filter(Boolean)
       : [];
 
     return (
@@ -127,9 +127,7 @@ export function SuggestionDialog({
           {contactNames.length > 0 && (
             <div>
               <p className="font-semibold">Suggested Attendees:</p>
-              <p>
-                {contactNames.join(', ')}
-              </p>
+              <p>{contactNames.join(', ')}</p>
             </div>
           )}
           {response.activity && (
