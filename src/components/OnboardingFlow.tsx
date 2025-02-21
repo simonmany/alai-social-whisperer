@@ -91,6 +91,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   
   const handleBack = () => {
     switch (step) {
+      case 'goals':
+        setStep('basic');
+        break;
       case 'goals-ranking':
         setStep('goals');
         break;
