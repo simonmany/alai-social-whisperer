@@ -3,12 +3,12 @@ import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
-import { BasicInfo } from "./onboarding/BasicInfo";
-import { GoalsSection } from "./onboarding/GoalsSection";
-import { GoalRankingSection } from "./onboarding/GoalRankingSection";
-import { DemographicsSection } from "./onboarding/DemographicsSection";
-import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
-import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
+import { BasicInfo } from "./BasicInfo";
+import { GoalsSection } from "./GoalsSection";
+import { GoalRankingSection } from "./GoalRankingSection";
+import { DemographicsSection } from "./DemographicsSection";
+import { PersonalityIntro } from "./personality/PersonalityIntro";
+import { PersonalityQuestion } from "./personality/PersonalityQuestion";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
@@ -358,7 +358,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             onComplete={(selectedGoals) => {
               const goals: Goal[] = selectedGoals.map(type => ({
                 type,
-                description: "", // You might want to add descriptions here
+                description: "",
                 timeframe: "long-term",
                 completed: false,
                 created_at: new Date().toISOString()
