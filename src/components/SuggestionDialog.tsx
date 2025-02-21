@@ -75,6 +75,10 @@ export function SuggestionDialog({
 
   const renderResponse = (response: AIResponse) => {
     if (!response) return null;
+    if (Array.isArray(response.contacts) && response.contacts.length > 0 && typeof response.contacts[0] === 'object') {
+      console.log('Contacts', response.contacts)
+      response.contacts = response.contacts.map(contact => contact.name);
+    }
 
     return (
       <div className="space-y-4 text-sm">

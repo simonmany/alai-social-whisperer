@@ -380,7 +380,7 @@ const PlanningDialog = ({
     if (!isComplete.datetime) {
       contextMessage += "\n- When would be a good time for this event and why";
     }
-    contextMessage += "\n\nPlease explain your suggestions and provide a conversational response. Also format the actual suggestions at the end as JSON with these fields: contacts (array of names), activity (string), datetime (object with date and time fields using the 12 hour clock). Only include fields that are not already filled.";
+    contextMessage += "\n\nAlways provide a conversational response explaining your suggestions. Additionally, format the suggestions at the end as JSON with these fields: contacts (array of names), activity (string), datetime (object with date and time fields using the 12 hour clock). Only include fields that are not already filled.";
 
     setSuggestionMessage(contextMessage);
     setShowSuggestionDialog(true);
