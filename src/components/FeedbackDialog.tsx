@@ -63,6 +63,11 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const [selectedContactIndex, setSelectedContactIndex] = useState<number>(-1);
   const [contactInput, setContactInput] = useState("");
   const [showNewContactDialog, setShowNewContactDialog] = useState(false);
+  const [manualActivity, setManualActivity] = useState("");
+  const [manualDate, setManualDate] = useState<Date>();
+  const [manualLocation, setManualLocation] = useState("");
+  const [manualTime, setManualTime] = useState<string>("");
+  const [showActivitySuggestions, setShowActivitySuggestions] = useState(false);
 
   const [moodOptions] = useState([
     "fun", "chill", "deep", "productive", "nostalgic", "exciting", "meaningful"
@@ -412,6 +417,22 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
         variant: "destructive",
       });
     }
+  };
+
+  const handleNewContactSubmit = (message: string, contact: Contact) => {
+    if (selectedEvent) {
+      setSelectedEvent({
+        ...selectedEvent,
+        attendees: [...selectedEvent.attendees, contact]
+      });
+    } else {
+      setSelectedContacts(prev => [...prev, contact]);
+    }
+    setShowNewContactDialog(false);
+    setContactInput("");
+    toast({
+      description: "Contact added and included in the event!"
+    });
   };
 
   const renderContactSearch = () => (

@@ -350,7 +350,7 @@ const PlanningDialog = ({
     }, 500);
   };
 
-  const handleNewContactSubmit = (_message: string, contact: Contact) => {
+  const handleNewContactSubmit = (message: string, contact: Contact) => {
     setSelectedContacts(prev => [...prev, contact]);
     setShowNewContactDialog(false);
     toast({
