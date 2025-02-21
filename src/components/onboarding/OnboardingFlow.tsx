@@ -354,11 +354,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'goals' && (
           <GoalsSection 
-            session={session} 
             onComplete={(selectedGoals) => {
               const goals: Goal[] = selectedGoals.map(type => ({
                 type,
-                description: "",
+                description: "", // You might want to add descriptions here
                 timeframe: "long-term",
                 completed: false,
                 created_at: new Date().toISOString()
@@ -438,7 +437,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <div className="space-y-8">
             <div>
               {hasPlayedLine1 ? (
-                <div className="text-xl font-cormorant">{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
+                <div>{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
               ) : (
                 <TypewriterText
                   key="line1"
@@ -446,13 +445,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   delay={250}
                   typingSpeed={25}
                   onComplete={() => setHasPlayedLine1(true)}
-                  className="text-xl font-cormorant"
                 />
               )}
 
               {hasPlayedLine1 && (
                 hasPlayedLine2 ? (
-                  <div className="text-xl font-cormorant">Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to.</div>
+                  <div>Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to.</div>
                 ) : (
                   <TypewriterText
                     key="line2"
@@ -460,14 +458,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     delay={250}
                     typingSpeed={25}
                     onComplete={() => setHasPlayedLine2(true)}
-                    className="text-xl font-cormorant"
                   />
                 )
               )}
 
               {hasPlayedLine2 && (
                 hasPlayedLine3 ? (
-                  <div className="text-xl font-cormorant">This'll help me recommend things you love.</div>
+                  <div>This'll help me recommend things you love.</div>
                 ) : (
                   <TypewriterText
                     key="line3"
@@ -480,54 +477,51 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       setTimeout(() => setShowFood(true), 500);
                       setTimeout(() => setShowMusic(true), 1000);
                     }}
-                    className="text-xl font-cormorant"
                   />
                 )
               )}
             </div>
 
-            <div>
-              <div className="transition-opacity duration-500" style={{ opacity: showActivities ? 1 : 0 }}>
-                <h3 className="text-xl font-cormorant mb-4">Activities & Hobbies</h3>
-                <InterestSelector
-                  type="activities"
-                  onComplete={handleInterestComplete('activities')}
-                  placeholder="Type to search activities..."
-                  minSelections={1}
-                  value={state.currentInterests}
-                  onChange={(selections) => {
-                    setState(prev => ({ ...prev, currentInterests: selections }));
-                  }}
-                />
-              </div>
+            <div className="transition-opacity duration-500" style={{ opacity: showActivities ? 1 : 0 }}>
+              <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+              <InterestSelector
+                type="activities"
+                onComplete={handleInterestComplete('activities')}
+                placeholder="Type to search activities..."
+                minSelections={1}
+                value={state.currentInterests}
+                onChange={(selections) => {
+                  setState(prev => ({ ...prev, currentInterests: selections }));
+                }}
+              />
+            </div>
 
-              <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFood ? 1 : 0 }}>
-                <h3 className="text-xl font-cormorant mb-4">Food Preferences</h3>
-                <InterestSelector
-                  type="food"
-                  onComplete={handleInterestComplete('food')}
-                  placeholder="Type your favorite cuisines and dishes..."
-                  minSelections={1}
-                  value={state.foodPreferences}
-                  onChange={(selections) => {
-                    setState(prev => ({ ...prev, foodPreferences: selections }));
-                  }}
-                />
-              </div>
+            <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFood ? 1 : 0 }}>
+              <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+              <InterestSelector
+                type="food"
+                onComplete={handleInterestComplete('food')}
+                placeholder="Type your favorite cuisines and dishes..."
+                minSelections={1}
+                value={state.foodPreferences}
+                onChange={(selections) => {
+                  setState(prev => ({ ...prev, foodPreferences: selections }));
+                }}
+              />
+            </div>
 
-              <div className="transition-opacity duration-500 mt-8" style={{ opacity: showMusic ? 1 : 0 }}>
-                <h3 className="text-xl font-cormorant mb-4">Music Preferences</h3>
-                <InterestSelector
-                  type="music"
-                  onComplete={handleInterestComplete('music')}
-                  placeholder="Type your favorite music genres..."
-                  minSelections={1}
-                  value={state.musicPreferences}
-                  onChange={(selections) => {
-                    setState(prev => ({ ...prev, musicPreferences: selections }));
-                  }}
-                />
-              </div>
+            <div className="transition-opacity duration-500 mt-8" style={{ opacity: showMusic ? 1 : 0 }}>
+              <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+              <InterestSelector
+                type="music"
+                onComplete={handleInterestComplete('music')}
+                placeholder="Type your favorite music genres..."
+                minSelections={1}
+                value={state.musicPreferences}
+                onChange={(selections) => {
+                  setState(prev => ({ ...prev, musicPreferences: selections }));
+                }}
+              />
             </div>
 
             {canProceedToNextSection('current') && (
@@ -546,12 +540,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <div className="space-y-8">
             <div>
               {isLoadingPreferencesAi ? (
-                <div className="text-xl font-cormorant mb-8">
+                <div className="text-lg mb-8">
                   <div className="animate-pulse">Thinking about your interests...</div>
                 </div>
               ) : aiPreferencesResponse ? (
                 <div className="space-y-8">
-                  <div className="text-xl font-cormorant bg-primary/5 p-6 rounded-lg">
+                  <div className="text-lg bg-primary/5 p-6 rounded-lg">
                     {hasPlayedTypewriter ? (
                       <div>
                         {typeof aiPreferencesResponse === 'string' 
@@ -567,11 +561,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         delay={250}
                         typingSpeed={25}
                         onComplete={() => setHasPlayedTypewriter(true)}
-                        className="text-xl font-cormorant"
                       />
                     )}
                   </div>
-                  <div className="text-xl font-cormorant mb-16">
+                  <div className="text-lg mb-16">
                     {hasPlayedFollowUp ? (
                       <div dangerouslySetInnerHTML={{ 
                         __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -583,17 +576,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         delay={250}
                         typingSpeed={25}
                         onComplete={handleFollowUpComplete}
-                        className="text-xl font-cormorant"
                       />
                     )}
                   </div>
                 </div>
               ) : (
                 <div className="space-y-8">
-                  <div className="text-xl font-cormorant">
+                  <div className="text-lg">
                     <div>No worries - you can always tell me about your interests later.</div>
                   </div>
-                  <div className="text-xl font-cormorant mb-16">
+                  <div className="text-lg mb-16">
                     {hasPlayedFollowUp ? (
                       <div dangerouslySetInnerHTML={{ 
                         __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
@@ -605,7 +597,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                         delay={250}
                         typingSpeed={25}
                         onComplete={handleFollowUpComplete}
-                        className="text-xl font-cormorant"
                       />
                     )}
                   </div>
@@ -614,7 +605,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
               <div>
                 <div className="transition-opacity duration-500" style={{ opacity: showFutureActivities ? 1 : 0 }}>
-                  <h3 className="text-xl font-cormorant mb-4">Activities & Hobbies</h3>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
                     type="activities"
                     onComplete={handleFutureInterestComplete('activities')}
@@ -628,7 +619,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </div>
 
                 <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureFood ? 1 : 0 }}>
-                  <h3 className="text-xl font-cormorant mb-4">Food Preferences</h3>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
                     type="food"
                     onComplete={handleFutureInterestComplete('food')}
@@ -642,7 +633,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 </div>
 
                 <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureMusic ? 1 : 0 }}>
-                  <h3 className="text-xl font-cormorant mb-4">Music Preferences</h3>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
                     type="music"
                     onComplete={handleFutureInterestComplete('music')}
