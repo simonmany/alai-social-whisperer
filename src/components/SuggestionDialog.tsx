@@ -108,12 +108,16 @@ export function SuggestionDialog({
     if (!response) return null;
     
     const contactNames = Array.isArray(response.contacts) 
-      ? response.contacts.map(contact => {
-          if (typeof contact === 'object' && contact !== null && 'name' in contact) {
-            return contact.name;
-          }
-          return String(contact);
-        }).filter(Boolean)
+      ? response.contacts
+          .filter((contact): contact is NonNullable<typeof contact> => 
+            contact !== null && contact !== undefined
+          )
+          .map(contact => {
+            if (typeof contact === 'object' && 'name' in contact) {
+              return contact.name;
+            }
+            return String(contact);
+          })
       : [];
 
     return (
