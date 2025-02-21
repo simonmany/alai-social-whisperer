@@ -1,9 +1,10 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, ThumbsUp, RefreshCw } from "lucide-react";
 import { generateChatResponse, ContactInfo } from "@/utils/openai";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { Contact } from "@/types/contacts";
 
 interface AIResponse {
@@ -73,6 +74,41 @@ export function SuggestionDialog({
     fetchSuggestion();
   }
 
+  const formatDateTime = (dateStr: string, timeStr: string) => {
+    try {
+      // First, ensure we have a valid date string
+      const date = new Date(dateStr);
+      if (!isValid(date)) {
+        console.error("Invalid date:", dateStr);
+        return "Invalid date";
+      }
+
+      // Parse the time string (assuming it's in 12-hour format)
+      const timeParts = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+      if (!timeParts) {
+        console.error("Invalid time format:", timeStr);
+        return format(date, 'EEE, MMM d');
+      }
+
+      // Create a date object with both date and time
+      const formattedDate = parse(
+        `${format(date, 'yyyy-MM-dd')} ${timeStr}`,
+        'yyyy-MM-dd hh:mm a',
+        new Date()
+      );
+
+      if (!isValid(formattedDate)) {
+        console.error("Invalid datetime combination:", dateStr, timeStr);
+        return format(date, 'EEE, MMM d');
+      }
+
+      return `${format(date, 'EEE, MMM d')} at ${timeStr}`;
+    } catch (error) {
+      console.error("Error formatting date/time:", error);
+      return "Invalid date/time";
+    }
+  };
+
   const renderResponse = (response: AIResponse) => {
     if (!response) return null;
     if (Array.isArray(response.contacts) && response.contacts.length > 0 && typeof response.contacts[0] === 'object') {
@@ -105,7 +141,7 @@ export function SuggestionDialog({
           {response.datetime && (
             <div>
               <span className="font-medium">When: </span>
-              {format(new Date(response.datetime.date), 'EEE, MMM d')} at {response.datetime.time}
+              {formatDateTime(response.datetime.date, response.datetime.time)}
             </div>
           )}
         </div>

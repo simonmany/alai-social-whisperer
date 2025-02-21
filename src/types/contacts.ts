@@ -1,31 +1,22 @@
+
 export interface Contact {
   id: string;
   name: string;
-  email?: string | null;
   phone?: string;
+  email?: string;
+  location?: string;
+  relationship?: string;
+  interests?: string[];
+  notes?: string;
+  last_contact?: string;
+  contact_frequency?: number;
+  user_id: string;
+  created_at?: string;
+  updated_at?: string;
+  is_archived?: boolean;
+  custom_fields?: Record<string, any>;
+  meetingStory?: string;
   instagram?: string;
   linkedin?: string;
   twitter?: string;
-  meeting_story?: string;
-  relationship?: string;
-  closeness?: number;
-  interests?: string[];
-  is_archived?: boolean;
-  created_at?: string;
-  user_id?: string;
-  photo?: string | null;
-}
-
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string | null;
-  start_time: string;
-  end_time: string;
-  google_event_id?: string | null;
-  location?: string | null;
-}
-
-export interface ContactEvent extends CalendarEvent {
-  attendees?: Contact[];
 }

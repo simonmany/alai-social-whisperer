@@ -85,6 +85,7 @@ export type Database = {
           id: string
           is_ai: boolean
           is_onboarding_message: boolean | null
+          is_secret: boolean | null
           message: string
           morning_checkin: boolean | null
           user_id: string
@@ -95,6 +96,7 @@ export type Database = {
           id?: string
           is_ai?: boolean
           is_onboarding_message?: boolean | null
+          is_secret?: boolean | null
           message: string
           morning_checkin?: boolean | null
           user_id: string
@@ -105,6 +107,7 @@ export type Database = {
           id?: string
           is_ai?: boolean
           is_onboarding_message?: boolean | null
+          is_secret?: boolean | null
           message?: string
           morning_checkin?: boolean | null
           user_id?: string
