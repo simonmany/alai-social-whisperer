@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
-import { X, Users, Calendar as CalendarIcon, MapPin, Bot, ArrowLeft, Archive, Shuffle } from "lucide-react";
+import { X, Users, Calendar as CalendarIcon, MapPin, Bot, ArrowLeft, Archive, Shuffle, UserPlus } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, addDays } from "date-fns";
 import { Check } from "lucide-react";
+import ContactsDialog from "@/components/ContactsDialog";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -50,6 +51,7 @@ const PlanningDialog = ({
   const [location, setLocation] = useState(defaultLocation);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>();
+  const [showNewContactDialog, setShowNewContactDialog] = useState(false);
   const { toast } = useToast();
   const { session } = useAuth();
 
@@ -357,18 +359,29 @@ const PlanningDialog = ({
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            console.log("Suggest someone button clicked");
-            handleSuggestContact();
-          }}
-          className="text-sm gap-2"
-        >
-          <Bot className="h-4 w-4" />
-          Suggest someone
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowNewContactDialog(true)}
+            className="text-sm gap-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            New contact
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              console.log("Suggest someone button clicked");
+              handleSuggestContact();
+            }}
+            className="text-sm gap-2"
+          >
+            <Bot className="h-4 w-4" />
+            Suggest someone
+          </Button>
+        </div>
       </div>
 
       <Input
@@ -433,6 +446,15 @@ const PlanningDialog = ({
           {getNextButtonText()}
         </Button>
       </div>
+
+      {showNewContactDialog && session?.user?.id && (
+        <ContactsDialog
+          open={showNewContactDialog}
+          onOpenChange={setShowNewContactDialog}
+          onSubmit={handleNewContactSubmit}
+          userId={session.user.id}
+        />
+      )}
     </div>
   );
 
