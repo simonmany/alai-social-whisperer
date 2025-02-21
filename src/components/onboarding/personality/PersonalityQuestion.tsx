@@ -29,7 +29,6 @@ export const PersonalityQuestion = ({
   const [showContent, setShowContent] = useState(false);
   const [questionTextCompleted, setQuestionTextCompleted] = useState(false);
 
-  // Reset selected value when question changes
   useEffect(() => {
     setSelectedValue(null);
     setCurrentComment("");
@@ -40,7 +39,7 @@ export const PersonalityQuestion = ({
   const handleNext = () => {
     if (selectedValue !== null) {
       onAnswer(selectedValue, currentComment);
-      setCurrentComment(""); // Clear comment after submitting
+      setCurrentComment("");
     }
   };
 
@@ -66,16 +65,16 @@ export const PersonalityQuestion = ({
     <div className="space-y-8">
       <div className="space-y-4">
         {aiResponse && (
-          <div className="bg-primary/10 p-4 rounded-lg mb-4">
+          <div className="bg-primary/10 p-4 rounded-lg mb-4 text-xl">
             <TypewriterText text={aiResponse} delay={0} />
           </div>
         )}
         {isLoadingAi ? (
-          <div className="text-sm text-gray-500 animate-pulse">
+          <div className="text-lg text-gray-500 animate-pulse">
             Analyzing your response...
           </div>
         ) : (
-          <div className="text-lg">
+          <div className="text-2xl">
             {questionTextCompleted ? (
               <div>{question.text}</div>
             ) : (
@@ -97,7 +96,7 @@ export const PersonalityQuestion = ({
           "transition-opacity duration-500"
         )}>
           <div className="space-y-4">
-            <div className="flex justify-between text-sm text-gray-500">
+            <div className="flex justify-between text-lg text-gray-500">
               <span>{question.leftLabel}</span>
               <span>{question.rightLabel}</span>
             </div>
@@ -125,7 +124,7 @@ export const PersonalityQuestion = ({
           {selectedValue && (
             <Button 
               onClick={handleNext}
-              className="w-full"
+              className="w-full text-lg"
               disabled={isLoadingAi}
             >
               Next
