@@ -249,27 +249,30 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     title: string; 
     date: Date; 
     location: string; 
-    attendees: Array<{ id: string; name: string; }>;
+    attendees: Array<{ id: string; name: string; }>; 
   }) => {
     if (!session?.user?.id) return;
 
-    const updatedEvent = {
+    const baseContact = {
+      user_id: session.user.id,
+      interests: [],
+      is_archived: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      closeness: 0.5
+    } as const;
+
+    setSelectedEvent({
       id: eventData.id,
       title: eventData.title,
       date: eventData.date,
       location: eventData.location,
       attendees: eventData.attendees.map(attendee => ({
+        ...baseContact,
         id: attendee.id,
         name: attendee.name,
-        user_id: session.user.id,
-        interests: [],
-        is_archived: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      } as Contact))
-    } satisfies Event;
-
-    setSelectedEvent(updatedEvent);
+      }))
+    });
   };
 
   const handleContactSelect = (contact: Contact) => {
@@ -654,7 +657,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="• What did you talk about?
-• How'd you feel about the activity?
+��� How'd you feel about the activity?
 • Any memorable moments?"
                             className="min-h-[100px]"
                           />

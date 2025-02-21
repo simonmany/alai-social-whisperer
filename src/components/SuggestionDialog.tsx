@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { Contact } from "@/types/contacts";
 
 interface AIResponse {
   text?: string;
-  contacts?: string[];
+  contacts?: (string | { name: string } | null)[];
   activity?: string;
   datetime?: {
     date: string;
@@ -109,14 +110,14 @@ export function SuggestionDialog({
     
     const contactNames = Array.isArray(response.contacts) 
       ? response.contacts
-          .filter((contact): contact is NonNullable<(typeof response.contacts)[number]> => 
+          .filter((contact): contact is string | { name: string } => 
             contact !== null && contact !== undefined
           )
           .map(contact => {
             if (typeof contact === 'object' && 'name' in contact) {
               return contact.name;
             }
-            return String(contact);
+            return contact;
           })
       : [];
 
