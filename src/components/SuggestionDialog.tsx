@@ -42,8 +42,8 @@ export function SuggestionDialog({
       setIsLoading(true);
       const data = await generateChatResponse(message, contactInfo, true);
 
-      if (data.full_response) {
-        setCurrentResponse(data.full_response);
+      if (data.response) {
+        setCurrentResponse(data.response);
       } else {
         throw new Error("No response received");
       }

@@ -10,6 +10,12 @@ export interface ContactInfo {
   relationship?: string;
 }
 
+enum ConversationType {
+  CHAT = 'CHAT',
+  HANG_PLANNER = 'HANG_PLANNER',
+  PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER'
+}
+
 export const generateChatResponse = async (message: string, contactInfo?: ContactInfo[], secretMessage?: boolean) => {
   try {
     const session = await supabase.auth.getSession();
@@ -20,7 +26,7 @@ export const generateChatResponse = async (message: string, contactInfo?: Contac
     }
 
     const { data, error } = await supabase.functions.invoke('chat', {
-      body: { message, userId, contactInfo, secretMessage }
+      body: { message, userId, contactInfo, secretMessage, conversationType: ConversationType.CHAT }
     });
 
     if (error) {
@@ -28,7 +34,7 @@ export const generateChatResponse = async (message: string, contactInfo?: Contac
       throw new Error(error.message || "Failed to generate response");
     }
 
-    if (!data || !data.full_response) {
+    if (!data) {
       console.error("Invalid response format:", data);
       throw new Error("Invalid response from chat function");
     }
