@@ -182,6 +182,7 @@ export const InterestSelector = ({
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder={placeholder}
+        className="text-xl font-cormorant"
       />
       
       {filteredItems.length > 0 && (
