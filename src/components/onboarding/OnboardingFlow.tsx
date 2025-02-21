@@ -23,13 +23,6 @@ interface OnboardingFlowProps {
 
 type OnboardingStep = 
   | 'basic' 
-  | 'goals' 
-  | 'goals-ranking'
-  | 'personality-intro'
-  | 'personality-q1'
-  | 'personality-q2'
-  | 'personality-q3'
-  | 'personality-q4'
   | 'interests'
   | 'future-interests'
   | 'demographics';
@@ -91,14 +84,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   
   const handleBack = () => {
     switch (step) {
-      case 'goals':
-        setStep('basic');
-        break;
-      case 'goals-ranking':
-        setStep('goals');
-        break;
       case 'interests':
-        setStep('goals-ranking');
+        setStep('basic');
         break;
       case 'future-interests':
         setStep('interests');
@@ -111,9 +98,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleSkip = async () => {
     switch (step) {
-      case 'goals-ranking':
-        setStep('interests');
-        break;
       case 'interests':
         setStep('future-interests');
         break;
@@ -121,65 +105,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         setStep('demographics');
         break;
     }
-  };
-
-  const handlePersonalityAnswer = async (questionIndex: number, value: number, comment: string) => {
-    const updatedTraits = { ...state.personalityTraits, [questions[questionIndex].id]: value };
-    const updatedComments = [...(state.personalityComments || [])];
-    updatedComments[questionIndex] = comment;
-
-    setState(prev => ({
-      ...prev,
-      personalityTraits: updatedTraits,
-      personalityComments: updatedComments
-    }));
-
-    setIsLoadingAi(true);
-    try {
-      const question = questions[questionIndex];
-      const responseType = value <= 40 ? question.leftLabel : value >= 80 ? question.rightLabel : "balanced";
-      let prompt = `We are talking about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
-      
-      if (comment.trim()) {
-        prompt += `. Also, ${state.name} said this in relation to the question: "${comment}"`;
-      }
-      
-      const previousComments = updatedComments.filter((_, index) => index < questionIndex);
-      if (previousComments.length > 0) {
-        prompt += `. In previous questions, they've mentioned: "${previousComments.join('", "')}"`;
-      }
-      
-      prompt += `. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
-
-      console.log('Personality Quiz - Model Input:', {
-        questionIndex,
-        questionText: question.text,
-        selectedValue: value,
-        responseType,
-        userComment: comment,
-        previousComments,
-        fullPrompt: prompt
-      });
-      
-      const aiResponse = await generatePersonalityAnalysis(prompt);
-      setAiResponse(aiResponse);
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      toast({
-        title: "Error getting AI response",
-        description: "Please try again",
-        variant: "destructive",
-      });
-    }
-    setIsLoadingAi(false);
-
-    const nextSteps: Record<number, OnboardingStep> = {
-      0: 'personality-q2',
-      1: 'personality-q3',
-      2: 'personality-q4',
-      3: 'interests'
-    };
-    setStep(nextSteps[questionIndex]);
   };
 
   const showBackButton = step !== 'basic';
@@ -319,65 +244,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             session={session} 
             onComplete={(name) => {
               setState(prev => ({ ...prev, name }));
-              setStep('goals');
+              setStep('interests');  // Changed from 'goals' to 'interests'
             }}
             initialName={state.name}
-          />
-        )}
-
-        {step === 'goals' && (
-          <GoalsSection 
-            onComplete={(selectedGoals) => {
-              const goals: Goal[] = selectedGoals.map(type => ({
-                type,
-                description: "",
-                timeframe: "long-term",
-                completed: false,
-                created_at: new Date().toISOString()
-              }));
-              
-              setState(prev => ({ ...prev, goals }));
-              if (goals.length > 1) {
-                setStep('goals-ranking');
-              } else {
-                setStep('interests');
-              }
-            }}
-            initialGoals={state.goals?.map(g => g.type)}
-            userName={state.name}
-          />
-        )}
-
-        {step === 'goals-ranking' && state.goals && (
-          <GoalRankingSection
-            goals={state.goals}
-            onComplete={async (rankedGoals) => {
-              if (!session?.user?.id) return;
-
-              try {
-                const { error } = await supabase
-                  .from('profiles')
-                  .update({ 
-                    long_term_goals: rankedGoals
-                  })
-                  .eq('id', session.user.id);
-
-                if (error) throw error;
-
-                setState(prev => ({ 
-                  ...prev, 
-                  goals: rankedGoals 
-                }));
-                setStep('interests');
-              } catch (error: any) {
-                console.error('Error updating ranked goals:', error);
-                toast({
-                  title: "Error saving goal rankings",
-                  description: error.message || "Please try again",
-                  variant: "destructive",
-                });
-              }
-            }}
           />
         )}
 
