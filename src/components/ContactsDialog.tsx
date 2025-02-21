@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -51,27 +50,25 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
         meetingStory: meetingStory,
         relationship: relationship,
         is_archived: false,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        interests: [] // Initialize with empty array
       };
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      // First, try to fetch all contacts with similar names to avoid duplicates
       const { data: existingContacts } = await supabase
         .from('contacts')
         .select('name')
         .ilike('name', `%${name}%`)
         .eq('user_id', user.id);
 
-      // Check if we might be creating a duplicate
       if (existingContacts && existingContacts.some(contact => 
         contact.name.toLowerCase() === name.toLowerCase()
       )) {
         console.log('Found potential duplicate contact:', name);
       }
 
-      // Insert contact into database
       const { data, error } = await supabase
         .from('contacts')
         .insert([newContact])
@@ -83,7 +80,6 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
         throw new Error(`Error inserting contact: ${error.message}`);
       }
 
-      // Generate message for chat
       let contactsString = "";
       if (phone) contactsString += `📱 ${phone} `;
       if (instagram) contactsString += `📸 @${instagram} `;
@@ -94,10 +90,16 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
         contactsString ? `Their contacts are ${contactsString.trim()}.` : ""
       } They are... ${relationship}`;
 
-      onSubmit(message, data);
+      if (data) {
+        const processedData: Contact = {
+          ...data,
+          interests: Array.isArray(data.interests) ? data.interests : []
+        };
+        onSubmit(message, processedData);
+      }
+
       onOpenChange(false);
       
-      // Reset form
       setName("");
       setPhone("");
       setInstagram("");

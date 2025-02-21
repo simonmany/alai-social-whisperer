@@ -33,7 +33,7 @@ interface Event {
   title: string;
   date: Date;
   location: string;
-  attendees: EventAttendee[];
+  attendees: Contact[];
 }
 
 interface FeedbackDialogProps {
@@ -245,7 +245,14 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   };
 
   const handleEventSelect = (event: Event) => {
-    setSelectedEvent(event);
+    const updatedEvent: Event = {
+      ...event,
+      attendees: event.attendees.map(attendee => ({
+        ...attendee,
+        user_id: session?.user?.id || '', // Add required user_id
+      }))
+    };
+    setSelectedEvent(updatedEvent);
   };
 
   const handleContactSelect = (contact: Contact) => {
