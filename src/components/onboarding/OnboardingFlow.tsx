@@ -1,14 +1,13 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
-import { BasicInfo } from "./onboarding/BasicInfo";
-import { GoalsSection } from "./onboarding/GoalsSection";
-import { GoalRankingSection } from "./onboarding/GoalRankingSection";
-import { DemographicsSection } from "./onboarding/DemographicsSection";
-import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
-import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
+import { BasicInfo } from "./BasicInfo";
+import { DemographicsSection } from "./DemographicsSection";
+import { PersonalityIntro } from "./personality/PersonalityIntro";
+import { PersonalityQuestion } from "./personality/PersonalityQuestion";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
@@ -26,38 +25,6 @@ type OnboardingStep =
   | 'interests'
   | 'future-interests'
   | 'demographics';
-
-interface AIPreferencesResponse {
-  response: string;
-  contacts?: any[]; // Adding this in case it's needed based on the response shape
-}
-
-const questions = [
-  {
-    id: 1,
-    text: "Do you consider yourself an introvert or an extrovert?",
-    leftLabel: "introvert",
-    rightLabel: "extrovert",
-  },
-  {
-    id: 2,
-    text: "Are you typically quiet or talkative in social settings?",
-    leftLabel: "Quality over quantity",
-    rightLabel: "adept conversationalist",
-  },
-  {
-    id: 3,
-    text: "Do you prefer to hang out with people one on one or in groups?",
-    leftLabel: "Love a duet",
-    rightLabel: "love an orchestra",
-  },
-  {
-    id: 4,
-    text: "Do you prefer to plan ahead or be spontaneous?",
-    leftLabel: "I live by my calendar",
-    rightLabel: "What's a calendar?",
-  },
-];
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<OnboardingStep>('basic');
@@ -81,7 +48,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showFutureActivities, setShowFutureActivities] = useState(false);
   const [showFutureFood, setShowFutureFood] = useState(false);
   const [showFutureMusic, setShowFutureMusic] = useState(false);
-  
+
   const handleBack = () => {
     switch (step) {
       case 'interests':
@@ -107,11 +74,58 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const handleProceedToFutureInterests = async () => {
+    if (canProceedToNextSection('current')) {
+      setIsAnalyzingInterests(true);
+      setIsLoadingPreferencesAi(true);
+      console.log('Starting AI analysis of preferences:', {
+        activities: state.currentInterests,
+        food: state.foodPreferences,
+        music: state.musicPreferences
+      });
+
+      try {
+        const { data, error } = await supabase.functions.invoke('analyze-preferences', {
+          body: {
+            activities: state.currentInterests || [],
+            food: state.foodPreferences || [],
+            music: state.musicPreferences || [],
+            userId: session?.user.id
+          }
+        });
+
+        if (error) throw error;
+        if (!data.response) {
+          throw new Error('No response received from AI analysis');
+        }
+
+        setAiPreferencesResponse(data.response);
+        
+      } catch (error: any) {
+        console.error('Error getting AI response:', error);
+        toast({
+          title: "Error getting AI response",
+          description: error.message || "Please try again",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingPreferencesAi(false);
+        setIsAnalyzingInterests(false);
+        setStep('future-interests');
+      }
+    }
+  };
+
+  const canProceedToNextSection = (section: 'current' | 'future') => {
+    if (section === 'current') {
+      return !!(state.currentInterests?.length || state.foodPreferences?.length || state.musicPreferences?.length);
+    } else {
+      return !!(state.desiredInterests?.length || state.desiredFoodPreferences?.length || state.desiredMusicPreferences?.length);
+    }
+  };
+
   const showBackButton = step !== 'basic';
   const showSkipButton = ['interests', 'future-interests'].includes(step);
-  const currentQuestionIndex = step.startsWith('personality-q') 
-    ? parseInt(step.charAt(step.length - 1)) - 1 
-    : -1;
 
   const handleInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
     setState(prev => {
@@ -149,64 +163,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     });
   };
 
-  const canProceedToNextSection = (section: 'current' | 'future') => {
-    if (section === 'current') {
-      return !!(state.currentInterests?.length || state.foodPreferences?.length || state.musicPreferences?.length);
-    } else {
-      return !!(state.desiredInterests?.length || state.desiredFoodPreferences?.length || state.desiredMusicPreferences?.length);
-    }
-  };
-
-  const handleProceedToFutureInterests = async () => {
-    if (canProceedToNextSection('current')) {
-      setIsAnalyzingInterests(true);
-      setIsLoadingPreferencesAi(true);
-      console.log('Starting AI analysis of preferences:', {
-        activities: state.currentInterests,
-        food: state.foodPreferences,
-        music: state.musicPreferences
-      });
-
-      try {
-        const { data, error } = await supabase.functions.invoke('analyze-preferences', {
-          body: {
-            activities: state.currentInterests || [],
-            food: state.foodPreferences || [],
-            music: state.musicPreferences || [],
-            userId: session?.user.id
-          }
-        });
-
-        console.log('Received response from analyze-preferences:', data);
-
-        if (error) {
-          console.error('Error from analyze-preferences:', error);
-          throw error;
-        }
-
-        if (!data.response) {
-          console.error('No response received from analyze-preferences');
-          throw new Error('No response received from AI analysis');
-        }
-
-        console.log('Setting AI response:', data.response);
-        setAiPreferencesResponse(data.response);
-        
-      } catch (error: any) {
-        console.error('Error getting AI response:', error);
-        toast({
-          title: "Error getting AI response",
-          description: error.message || "Please try again",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingPreferencesAi(false);
-        setIsAnalyzingInterests(false);
-        setStep('future-interests');
-      }
-    }
-  };
-
   const handleFollowUpComplete = () => {
     setHasPlayedFollowUp(true);
     setShowFutureActivities(true);
@@ -218,20 +174,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         {showBackButton && (
-          <Button
-            variant="ghost"
-            onClick={handleBack}
-          >
+          <Button variant="ghost" onClick={handleBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
         )}
         {showSkipButton && (
-          <Button
-            variant="ghost"
-            onClick={handleSkip}
-            className="ml-auto"
-          >
+          <Button variant="ghost" onClick={handleSkip} className="ml-auto">
             Skip
             <SkipForward className="ml-2 h-4 w-4" />
           </Button>
@@ -244,7 +193,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             session={session} 
             onComplete={(name) => {
               setState(prev => ({ ...prev, name }));
-              setStep('interests');  // Changed from 'goals' to 'interests'
+              setStep('interests');
             }}
             initialName={state.name}
           />
@@ -274,22 +223,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
                     delay={250}
                     typingSpeed={25}
-                    onComplete={() => setHasPlayedLine2(true)}
-                  />
-                )
-              )}
-
-              {hasPlayedLine2 && (
-                hasPlayedLine3 ? (
-                  <div>This'll help me recommend things you love.</div>
-                ) : (
-                  <TypewriterText
-                    key="line3"
-                    text="This'll help me recommend things you love."
-                    delay={250}
-                    typingSpeed={25}
                     onComplete={() => {
-                      setHasPlayedLine3(true);
+                      setHasPlayedLine2(true);
                       setShowActivities(true);
                       setTimeout(() => setShowFood(true), 500);
                       setTimeout(() => setShowMusic(true), 1000);
@@ -297,48 +232,66 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                 )
               )}
-            </div>
 
-            <div className="transition-opacity duration-500" style={{ opacity: showActivities ? 1 : 0 }}>
-              <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
-              <InterestSelector
-                type="activities"
-                onComplete={handleInterestComplete('activities')}
-                placeholder="Type to search activities..."
-                minSelections={1}
-                value={state.currentInterests}
-                onChange={(selections) => {
-                  setState(prev => ({ ...prev, currentInterests: selections }));
-                }}
-              />
-            </div>
+              <div className={cn(
+                "space-y-8 mt-8",
+                showActivities ? "opacity-100" : "opacity-0",
+                "transition-opacity duration-500"
+              )}>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                  <InterestSelector
+                    type="activities"
+                    onComplete={handleInterestComplete('activities')}
+                    placeholder="Type to search activities..."
+                    minSelections={1}
+                    value={state.currentInterests}
+                    onChange={(selections) => {
+                      setState(prev => ({ ...prev, currentInterests: selections }));
+                    }}
+                  />
+                </div>
+              </div>
 
-            <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFood ? 1 : 0 }}>
-              <h3 className="text-base font-medium mb-4">Food Preferences</h3>
-              <InterestSelector
-                type="food"
-                onComplete={handleInterestComplete('food')}
-                placeholder="Type your favorite cuisines and dishes..."
-                minSelections={1}
-                value={state.foodPreferences}
-                onChange={(selections) => {
-                  setState(prev => ({ ...prev, foodPreferences: selections }));
-                }}
-              />
-            </div>
+              <div className={cn(
+                "space-y-8 mt-8",
+                showFood ? "opacity-100" : "opacity-0",
+                "transition-opacity duration-500"
+              )}>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                  <InterestSelector
+                    type="food"
+                    onComplete={handleInterestComplete('food')}
+                    placeholder="Type your favorite cuisines and dishes..."
+                    minSelections={1}
+                    value={state.foodPreferences}
+                    onChange={(selections) => {
+                      setState(prev => ({ ...prev, foodPreferences: selections }));
+                    }}
+                  />
+                </div>
+              </div>
 
-            <div className="transition-opacity duration-500 mt-8" style={{ opacity: showMusic ? 1 : 0 }}>
-              <h3 className="text-base font-medium mb-4">Music Preferences</h3>
-              <InterestSelector
-                type="music"
-                onComplete={handleInterestComplete('music')}
-                placeholder="Type your favorite music genres..."
-                minSelections={1}
-                value={state.musicPreferences}
-                onChange={(selections) => {
-                  setState(prev => ({ ...prev, musicPreferences: selections }));
-                }}
-              />
+              <div className={cn(
+                "space-y-8 mt-8",
+                showMusic ? "opacity-100" : "opacity-0",
+                "transition-opacity duration-500"
+              )}>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                  <InterestSelector
+                    type="music"
+                    onComplete={handleInterestComplete('music')}
+                    placeholder="Type your favorite music genres..."
+                    minSelections={1}
+                    value={state.musicPreferences}
+                    onChange={(selections) => {
+                      setState(prev => ({ ...prev, musicPreferences: selections }));
+                    }}
+                  />
+                </div>
+              </div>
             </div>
 
             {canProceedToNextSection('current') && (
@@ -355,10 +308,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'future-interests' && (
           <div className="space-y-8">
-            <div>
+            <div className="space-y-8">
               {isLoadingPreferencesAi ? (
-                <div className="text-lg mb-8">
-                  <div className="animate-pulse">Thinking about your interests...</div>
+                <div className="text-lg animate-pulse">
+                  Thinking about your interests...
                 </div>
               ) : aiPreferencesResponse ? (
                 <div className="space-y-8">
@@ -397,31 +350,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     )}
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-8">
-                  <div className="text-lg">
-                    <div>No worries - you can always tell me about your interests later.</div>
-                  </div>
-                  <div className="text-lg mb-16">
-                    {hasPlayedFollowUp ? (
-                      <div dangerouslySetInnerHTML={{ 
-                        __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                      }} />
-                    ) : (
-                      <TypewriterText
-                        key="followup"
-                        text={followUpText}
-                        delay={250}
-                        typingSpeed={25}
-                        onComplete={handleFollowUpComplete}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
+              ) : null}
 
               <div>
-                <div className="transition-opacity duration-500" style={{ opacity: showFutureActivities ? 1 : 0 }}>
+                <div className={cn(
+                  "transition-opacity duration-500",
+                  showFutureActivities ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
                     type="activities"
@@ -435,7 +370,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                 </div>
 
-                <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureFood ? 1 : 0 }}>
+                <div className={cn(
+                  "transition-opacity duration-500 mt-8",
+                  showFutureFood ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
                     type="food"
@@ -449,7 +387,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                 </div>
 
-                <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureMusic ? 1 : 0 }}>
+                <div className={cn(
+                  "transition-opacity duration-500 mt-8",
+                  showFutureMusic ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
                     type="music"
