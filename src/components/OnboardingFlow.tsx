@@ -207,7 +207,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         {step === 'contacts' && (
           <div className="space-y-8">
             {hasPlayedLine1 ? (
-              <div className="text-lg">{`Nice to meet you, ${capitalizeFirstLetter(state.name)}.`}</div>
+              <div className="text-xl">{`Nice to meet you, ${capitalizeFirstLetter(state.name)}.`}</div>
             ) : (
               <TypewriterText
                 key="line1"
@@ -215,26 +215,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 delay={250}
                 typingSpeed={25}
                 onComplete={() => setHasPlayedLine1(true)}
+                className="text-xl"
               />
             )}
 
             {hasPlayedLine1 && (
-              hasPlayedLine2 ? (
-                <div className="text-lg">Let's get to know each other.</div>
-              ) : (
-                <TypewriterText
-                  key="line2"
-                  text="Let's get to know each other."
-                  delay={250}
-                  typingSpeed={25}
-                  onComplete={() => setHasPlayedLine2(true)}
-                />
-              )
-            )}
-
-            {hasPlayedLine2 && (
               hasPlayedLine3 ? (
-                <div className="text-lg">
+                <div className="text-xl">
                   My goal is to help you be intentional about your relationships. That includes:
                   <ul className="list-none space-y-2 mt-4 ml-4">
                     <li>- best friends</li>
@@ -253,13 +240,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   delay={250}
                   typingSpeed={25}
                   onComplete={() => setHasPlayedLine3(true)}
+                  className="text-xl"
                 />
               )
             )}
 
             {hasPlayedLine3 && (
               hasPlayedLine4 ? (
-                <div className="text-lg">It's a lot to process - that's why I'm here.</div>
+                <div className="text-xl">It's a lot to process - that's why I'm here.</div>
               ) : (
                 <TypewriterText
                   key="line4"
@@ -267,13 +255,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   delay={250}
                   typingSpeed={25}
                   onComplete={() => setHasPlayedLine4(true)}
+                  className="text-xl"
                 />
               )
             )}
 
             {hasPlayedLine4 && (
               hasPlayedLine5 ? (
-                <div className="text-lg">Connect your contacts to get started - I'll never share your info with anyone else.</div>
+                <div className="text-xl">Connect your contacts to get started - I'll never share your info with anyone else.</div>
               ) : (
                 <TypewriterText
                   key="line5"
@@ -281,6 +270,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   delay={250}
                   typingSpeed={25}
                   onComplete={() => setHasPlayedLine5(true)}
+                  className="text-xl"
                 />
               )
             )}
