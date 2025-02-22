@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -28,593 +29,66 @@ interface Message {
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isPlanningOpen, setIsPlanningOpen] = useState(false);
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const [isGoalsOpen, setIsGoalsOpen] = useState(false);
-  const [isContactsOpen, setIsContactsOpen] = useState(false);
-  const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
-  const [selectedActivity, setSelectedActivity] = useState<string>("");
-
-  const [tutorialComplete, setTutorialComplete] = useState(false);
-  const [showProfileButton, setShowProfileButton] = useState(false);
-  const isMobile = useIsMobile();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
   const { session } = useAuth();
+  const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const handleStartTutorial = async () => {
-    if (!session?.user.id) return;
-
-    try {
-      if (showOnboarding) {
-        await supabase
-          .from('profiles')
-          .update({ 
-            onboarding_completed: true,
-            onboarding_step: 'splash',
-            has_completed_tutorial: false
-          })
-          .eq('id', session.user.id);
-
-        setShowOnboarding(false);
-      } else {
-        await supabase
-          .from('profiles')
-          .update({ 
-            onboarding_step: 'splash',
-            has_completed_tutorial: false
-          })
-          .eq('id', session.user.id);
-      }
-
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('display_name, catch_up_contacts')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      let contactData = null;
-      let contactName = '';
-      if (profileData?.catch_up_contacts?.[0]) {
-        const { data: contact, error: contactError } = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('id', profileData.catch_up_contacts[0])
-          .single();
-
-        if (!contactError && contact) {
-          contactName = contact.name;
-          contactData = contact;
-        }
-      }
-
-      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
-
-      // Clear existing chat history for the tutorial
-      await supabase
-        .from('chat_history')
-        .delete()
-        .eq('user_id', session.user.id)
-        .eq('is_onboarding_message', true);
-
-      // Insert the new welcome message
-      await supabase
-        .from('chat_history')
-        .insert([{
-          message: welcomeMessage,
-          is_ai: true,
-          user_id: session.user.id,
-          is_onboarding_message: true
-        }]);
-      
-      setTutorialComplete(false);
-      setShowProfileButton(false);
-      setMessages([
-        { content: welcomeMessage, isAl: true },
-        { 
-          content: "Let's go!", 
-          isAl: false, 
-          is_secret: true,
-          contactInfo: contactData || undefined
-        }
-      ]);
-      
-      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-      
-      toast({
-        title: "Tutorial started",
-        description: "Follow the instructions to learn how to use the app!",
-      });
-    } catch (error: any) {
-      console.error('Error starting tutorial:', error);
-      toast({
-        title: "Error starting tutorial",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleSkipOnboarding = async () => {
-    if (!session?.user.id) return;
-
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: true,
-          has_completed_tutorial: true,
-          onboarding_step: 'complete'
-        })
-        .eq('id', session.user.id);
-
-      setShowOnboarding(false);
-      setTutorialComplete(true);
-      setShowProfileButton(false);
-      
-      toast({
-        title: "Onboarding skipped",
-        description: "You can restart onboarding using the button in the bottom left",
-      });
-    } catch (error: any) {
-      console.error('Error skipping onboarding:', error);
-      toast({
-        title: "Error skipping onboarding",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleTestMorningCheckin = async () => {
-    if (!session?.user.id) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('daily-checkin', {
-        body: { 
-          type: 'morning',
-          user_id: session.user.id
-        }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Morning check-in triggered",
-        description: "The morning check-in function has been executed.",
-      });
-    } catch (error: any) {
-      console.error('Error triggering morning check-in:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to trigger morning check-in",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleTestEveningCheckin = async () => {
-    if (!session?.user.id) return;
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('daily-checkin', {
-        body: { 
-          type: 'evening',
-          user_id: session.user.id
-        }
-      });
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Evening check-in triggered",
-        description: "The evening check-in function has been executed.",
-      });
-    } catch (error: any) {
-      console.error('Error triggering evening check-in:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to trigger evening check-in",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleTestCompletedEvents = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('check-events');
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Completed events check triggered",
-        description: data?.events_processed 
-          ? `Processed ${data.events_processed} events between ${new Date(data.time_window.start).toLocaleString()} and ${new Date(data.time_window.end).toLocaleString()}`
-          : "No events found in the specified time window",
-      });
-    } catch (error: any) {
-      console.error('Error checking completed events:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to check completed events",
-        variant: "destructive",
-      });
-    }
-  };
-
-  useEffect(() => {
-    const loadChatHistory = async () => {
-      if (!session?.user.id) return;
-
-      try {
-        console.log('Loading chat history for user:', session.user.id);
-        
-        const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-        
-        const { data, error } = await supabase
-          .from('chat_history')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .gte('created_at', startOfDay)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching chat history:', error);
-          throw error;
-        }
-
-        console.log('Received chat history:', data);
-
-        if (data && data.length > 0) {
-          const historyMessages = data.map(msg => ({
-            content: msg.message,
-            isAl: msg.is_ai,
-            is_secret: msg.is_secret
-          }));
-          console.log('Setting messages:', historyMessages);
-          setMessages(historyMessages);
-        } else {
-          console.log('No chat history found, setting initial message');
-          setMessages([{ 
-            content: "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?", 
-            isAl: true 
-          }]);
-        }
-      } catch (error: any) {
-        console.error('Error loading chat history:', error);
-        toast({
-          title: "Error loading chat history",
-          description: error.message || "Please try refreshing the page",
-          variant: "destructive",
-        });
-      }
-    };
-
-    const setupMessagesSubscription = () => {
-      if (!session?.user.id) return;
-
-      console.log('Setting up real-time messages subscription');
-      
-      const channel = supabase
-        .channel('schema-db-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'chat_history',
-            filter: `user_id=eq.${session.user.id}`
-          },
-          (payload) => {
-            console.log('New message received:', payload);
-            const newMessage = {
-              content: payload.new.message,
-              isAl: payload.new.is_ai,
-              is_secret: payload.new.is_secret,
-              contacts: payload.new.contact_info
-            };
-            setMessages(prev => [...prev, newMessage]);
-          }
-        )
-        .subscribe();
-
-      return () => {
-        console.log('Cleaning up messages subscription');
-        supabase.removeChannel(channel);
-      };
-    };
-
-    loadChatHistory();
-    const cleanup = setupMessagesSubscription();
-
-    return () => {
-      if (cleanup) cleanup();
-    };
-  }, [session?.user.id, toast]);
-
-  useEffect(() => {
-    const checkTutorialStatus = async () => {
-      if (!session?.user.id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('has_completed_tutorial, onboarding_completed, onboarding_step')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) throw error;
-
-        console.log('Tutorial status check:', {
-          hasCompletedTutorial: data.has_completed_tutorial,
-          onboardingCompleted: data.onboarding_completed,
-          onboardingStep: data.onboarding_step
-        });
-
-        setTutorialComplete(!!data.has_completed_tutorial);
-        setShowOnboarding(!data.onboarding_completed);
-        
-        setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
-      } catch (error) {
-        console.error('Error checking tutorial status:', error);
-      }
-    };
-
-    checkTutorialStatus();
-  }, [session?.user.id]);
-
+  // Load initial state
   useEffect(() => {
     const checkOnboardingStatus = async () => {
-      if (!session?.user.id) return;
+      if (!session?.user?.id) return;
 
       try {
-        const { data, error } = await supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('onboarding_completed')
           .eq('id', session.user.id)
           .single();
 
-        if (error) throw error;
-
-        setShowOnboarding(!data.onboarding_completed);
+        setShowOnboarding(!profile?.onboarding_completed);
       } catch (error) {
         console.error('Error checking onboarding status:', error);
       }
     };
 
     checkOnboardingStatus();
-  }, [session?.user.id]);
+  }, [session?.user?.id]);
 
+  // Load chat history
   useEffect(() => {
-    const state = location.state as { prompt?: string };
-    if (state?.prompt) {
-      handleSend(state.prompt);
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.state]);
+    const loadChatHistory = async () => {
+      if (!session?.user?.id) return;
 
-  useEffect(() => {
-    const handleMessage = async (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
-      if (event.data?.type === 'GOOGLE_SIGN_IN_SUCCESS') {
-        console.log("Received success message from popup");
-        try {
-          const { data: { session }, error } = await supabase.auth.refreshSession();
-          if (error) throw error;
-          
-          if (session) {
-            console.log("Session refreshed successfully, navigating to home");
-            navigate("/");
-          } else {
-            throw new Error("No session after refresh");
-          }
-        } catch (error: any) {
-          console.error("Error refreshing session:", error);
-          toast({
-            title: "Error signing in",
-            description: error.message,
-            variant: "destructive",
-          });
+      try {
+        const { data: messages } = await supabase
+          .from('chat_history')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: true });
+
+        if (messages) {
+          setMessages(messages.map(msg => ({
+            content: msg.message,
+            isAl: msg.is_ai,
+            is_secret: msg.is_secret
+          })));
         }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
       }
     };
 
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [navigate, toast]);
+    loadChatHistory();
+  }, [session?.user?.id]);
 
-  const validatePassword = (password: string) => {
-    if (password.length < 6) {
-      setPasswordError("Password must be at least 6 characters long");
-      return false;
-    }
-    setPasswordError("");
-    return true;
-  };
-  
-  const handleGoogleSignIn = async () => {
-    try {
-      setIsLoading(true);
-      console.log("Starting Google Calendar connection...");
-
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          scopes: 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile',
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          redirectTo: `${APP_CONSTANTS.SITE_URL}/auth/callback`
-        }
-      });
-      
-      if (error) throw error;
-      
-      supabase.functions.invoke('store_auth', {
-        body: { name: data }
-      });
-
-    } catch (error: any) {
-      console.error("Google auth error:", error);
-      toast({
-        title: "Error signing in with Google",
-        description: error.message,
-        variant: "destructive",
-      });
-      setIsLoading(false);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validatePassword(password)) {
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            avatar_url: null,
-          },
-        },
-      });
-
-      if (error) {
-        let errorBody: any = {};
-        try {
-          errorBody = error.message ? JSON.parse(error.message) : {};
-        } catch (parseError) {
-          console.error("Error parsing error message:", parseError);
-        }
-
-        const isUserExists = error.status === 422 || 
-                              errorBody?.code === "user_already_exists" ||
-                              error.message.includes("User already registered");
-
-        if (isUserExists) {
-          console.log("User already exists, attempting sign in");
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (signInError) {
-            throw signInError;
-          }
-
-          if (signInData.user?.app_metadata?.provider === 'google') {
-            const { user_metadata } = signInData.user;
-            await supabase
-              .from('profiles')
-              .update({
-                avatar_url: user_metadata.avatar_url,
-                display_name: user_metadata.full_name,
-              })
-              .eq('id', signInData.user.id);
-          }
-
-          toast({
-            title: "Welcome back!",
-            description: "You've been signed in with your existing account.",
-          });
-          navigate("/");
-          return;
-        }
-        throw error;
-      }
-
-      setShowEmailConfirmation(true);
-      toast({
-        title: "Success!",
-        description: "Please check your email to confirm your account.",
-      });
-      
-      if (data.user && !data.user.confirmed_at) {
-        navigate("/");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        if (error.message.includes("Email not confirmed")) {
-          setShowEmailConfirmation(true);
-          throw new Error("Please confirm your email before signing in. Check your inbox for the confirmation link.");
-        }
-        throw error;
-      }
-
-      if (data.user?.app_metadata?.provider === 'google') {
-        const { user_metadata } = data.user;
-        await supabase
-          .from('profiles')
-          .update({
-            avatar_url: user_metadata.avatar_url,
-            display_name: user_metadata.full_name,
-          })
-          .eq('id', data.user.id);
-      }
-      
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSend = async (message: string, contactInfo?: Contact) => {
+  const handleSend = async (message: string) => {
     if (!message.trim()) return;
-
     setIsLoading(true);
 
     try {
-      const response = await generateChatResponse(message, contactInfo ? [contactInfo] : undefined);
+      const response = await generateChatResponse(message);
     } catch (error: any) {
       console.error('Error generating response:', error);
       toast({
@@ -627,206 +101,25 @@ const Index = () => {
     }
   };
 
-  const handlePlanSubmit = (message: string) => {
-    handleSend(message);
-    setIsPlanningOpen(false);
+  const handleSuggestedPrompt = (prompt: string) => {
+    handleSend(prompt);
   };
 
-  const handleGoalSubmit = (message: string) => {
-    handleSend(message);
-    setIsGoalsOpen(false);
+  const handleOnboardingComplete = () => {
+    console.log('Setting showOnboarding to false');
+    setShowOnboarding(false);
     queryClient.invalidateQueries({ queryKey: ['profile'] });
   };
 
-  const handleSuggestedPrompt = (prompt: string) => {
-    if (prompt === "plan me a hang") {
-      setIsPlanningOpen(true);
-    } else if (prompt === "talk about a hang") {
-      setIsFeedbackOpen(true);
-    } else if (prompt === "Set a new goal") {
-      setIsGoalsOpen(true);
-    } else if (prompt === "add a new contact") {
-      setIsContactsOpen(true);
-    } else {
-      handleSend(prompt);
-    }
-  };
-
-  const handleTutorialComplete = () => {
-    setTutorialComplete(true);
-  };
-
-  const handleRestartOnboarding = async () => {
-    if (!session?.user.id) return;
-
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: false,
-          has_completed_tutorial: false,
-          onboarding_step: 'initial',
-          personality_traits: {},
-          personality_comments: [],
-          current_interests: [],
-          desired_interests: [],
-          goals: [],
-          display_name: null,
-          age: null,
-          city: null,
-          languages: [],
-          relationship_status: null,
-          gender: null,
-          occupation: null
-        })
-        .eq('id', session.user.id);
-
-      setShowOnboarding(true);
-      setTutorialComplete(false);
-      setShowProfileButton(false);
-      
-      toast({
-        title: "Onboarding restarted",
-        description: "Let's start fresh!",
-      });
-    } catch (error: any) {
-      console.error('Error restarting onboarding:', error);
-      toast({
-        title: "Error restarting onboarding",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const parseContactInfo = (message: string) => {
-    const nameMatch = message.match(/I met (.+?) (?:at|\.)/);
-    const meetingMatch = message.match(/at (.+?)\./);
-    const contactsMatch = message.match(/Their contacts are (.+?)\./);
-    const relationshipMatch = message.match(/They are\.\.\. (.+)$/);
-
-    if (!nameMatch) return undefined;
-
-    const contacts = contactsMatch?.[1] || "";
-    const contactInfo = {
-      name: nameMatch[1],
-      meetingStory: meetingMatch?.[1],
-      relationship: relationshipMatch?.[1],
-    };
-
-    const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
-    const instagram = contacts.match(/📸 @([^💼🐦\s]+)/)?.[1]?.trim();
-    const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
-    const twitter = contacts.match(/🐦 @([^\s]+)/)?.[1]?.trim();
-
-    if (!phone || !instagram || !linkedin || !twitter) return undefined;
-    // If the user did not provide any other information, let the LLM take care of it
-
-    return {
-      ...contactInfo,
-      phone,
-      instagram,
-      linkedin,
-      twitter,
-    };
-  };
-
-  const handleOnboardingComplete = async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('display_name, catch_up_contacts')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      let contactData = null;
-      let contactName = '';
-      if (profileData?.catch_up_contacts?.[0]) {
-        const { data: contact, error: contactError } = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('id', profileData.catch_up_contacts[0])
-          .single();
-
-        if (!contactError && contact) {
-          contactName = contact.name;
-          contactData = contact;
-        }
-      }
-
-      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
-
-      await supabase
-        .from('chat_history')
-        .insert([{
-          message: welcomeMessage,
-          is_ai: true,
-          user_id: session.user.id,
-          is_onboarding_message: true
-        }]);
-      
-      setTutorialComplete(false);
-      setShowProfileButton(false);
-      setMessages([
-        { content: welcomeMessage, isAl: true },
-        { 
-          content: "Let's go!", 
-          isAl: false, 
-          is_secret: true,
-          contactInfo: contactData || undefined
-        }
-      ]);
-      
-      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-    } catch (error: any) {
-      console.error('Error completing onboarding:', error);
-      toast({
-        title: "Error completing onboarding",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleTutorialAction = async () => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.contactInfo) {
-      setSelectedContact(lastMessage.contactInfo);
-      
-      if (lastMessage.contactInfo.interests && lastMessage.contactInfo.interests.length > 0) {
-        const randomInterest = lastMessage.contactInfo.interests[
-          Math.floor(Math.random() * lastMessage.contactInfo.interests.length)
-        ];
-        setSelectedActivity(randomInterest);
-      }
-    }
-
-    await supabase
-      .from('chat_history')
-      .insert([{
-        message: "Let's go!",
-        is_ai: false,
-        user_id: session?.user?.id,
-        is_onboarding_message: true
-      }]);
-
-    setIsPlanningOpen(true);
-  };
+  if (!session) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container max-w-2xl py-4">
-          <MainNavigation
-            isConnectingCalendar={isConnectingCalendar}
-            setIsConnectingCalendar={setIsConnectingCalendar}
-            onProfileOpen={() => setIsProfileOpen(true)}
-            onGoogleSignIn={handleGoogleSignIn}
-          />
+          <MainNavigation />
         </div>
       </div>
 
@@ -839,98 +132,11 @@ const Index = () => {
             isLoading={isLoading}
             onSend={handleSend}
             onSuggestedPrompt={handleSuggestedPrompt}
-            onTutorialAction={handleTutorialAction}
           >
             <></>
           </ChatContainer>
         )}
       </div>
-
-      <div className="fixed bottom-4 left-4 flex flex-col gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleStartTutorial}
-        >
-          <Play className="h-4 w-4" />
-          Start Tutorial
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleSkipOnboarding}
-        >
-          Skip Onboarding (Dev Only)
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleRestartOnboarding}
-        >
-          <Redo className="h-4 w-4" />
-          Restart Onboarding
-        </Button>
-        
-        <div className="h-px bg-border my-2" />
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestMorningCheckin}
-        >
-          <Play className="h-4 w-4" />
-          Test Morning Check-in
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestEveningCheckin}
-        >
-          <Play className="h-4 w-4" />
-          Test Evening Check-in
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestCompletedEvents}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Test Completed Events
-        </Button>
-      </div>
-
-      <Profile 
-        open={isProfileOpen} 
-        onOpenChange={setIsProfileOpen}
-      />
-      <PlanningDialog 
-        open={isPlanningOpen}
-        onOpenChange={setIsPlanningOpen}
-        onSubmit={handlePlanSubmit}
-        defaultContacts={selectedContact ? [selectedContact] : []}
-        defaultActivity={selectedActivity}
-      />
-      <FeedbackDialog
-        open={isFeedbackOpen}
-        onOpenChange={setIsFeedbackOpen}
-        onSubmit={handleSend}
-      />
-      <GoalsDialog
-        open={isGoalsOpen}
-        onOpenChange={setIsGoalsOpen}
-        onSubmit={handleGoalSubmit}
-      />
-      <ContactsDialog
-        open={isContactsOpen}
-        onOpenChange={setIsContactsOpen}
-        onSubmit={handleSend}
-        userId={session?.user.id}
-      />
     </div>
   );
 };
