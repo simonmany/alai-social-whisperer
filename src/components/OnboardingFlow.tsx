@@ -123,7 +123,24 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleProceedToFutureInterests = async () => {
     if (canProceedToNextSection('current')) {
-      setStep('demographics');
+      try {
+        await supabase
+          .from('profiles')
+          .update({ 
+            onboarding_completed: true,
+            onboarding_started_at: new Date().toISOString()
+          })
+          .eq('id', session?.user.id);
+
+        onComplete();
+      } catch (error: any) {
+        console.error('Error completing onboarding:', error);
+        toast({
+          title: "Error completing onboarding",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -582,7 +599,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 className="w-full mt-8"
                 disabled={isAnalyzingInterests}
               >
-                {isAnalyzingInterests ? "Analyzing your interests..." : "Next"}
+                {isAnalyzingInterests ? "Analyzing your interests..." : "Finish"}
               </Button>
             )}
           </div>
