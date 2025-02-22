@@ -99,13 +99,13 @@ const Index = () => {
       setShowProfileButton(false);
       
       toast({
-        title: "Tutorial started",
+        title: "Tutorial restarted",
         description: "Follow the instructions to learn how to use the app!",
       });
     } catch (error: any) {
       console.error('Error starting tutorial:', error);
       toast({
-        title: "Error starting tutorial",
+        title: "Error restarting tutorial",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -779,7 +779,7 @@ const Index = () => {
           onClick={handleStartTutorial}
         >
           <Play className="h-4 w-4" />
-          Start Tutorial
+          Restart Tutorial
         </Button>
         <Button
           variant="outline"
