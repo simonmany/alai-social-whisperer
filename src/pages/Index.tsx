@@ -103,6 +103,14 @@ const Index = () => {
 
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
 
+      // Clear existing chat history for the tutorial
+      await supabase
+        .from('chat_history')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('is_onboarding_message', true);
+
+      // Insert the new welcome message
       await supabase
         .from('chat_history')
         .insert([{
