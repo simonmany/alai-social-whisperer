@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -67,8 +66,6 @@ const Index = () => {
           .eq('id', session.user.id);
 
         setShowOnboarding(false);
-        setTutorialComplete(false);
-        setShowProfileButton(false);
       } else {
         await supabase
           .from('profiles')
@@ -77,10 +74,53 @@ const Index = () => {
             has_completed_tutorial: false
           })
           .eq('id', session.user.id);
-
-        setTutorialComplete(false);
-        setShowProfileButton(false);
       }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('display_name, catch_up_contacts')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      let contactData = null;
+      let contactName = '';
+      if (profileData?.catch_up_contacts?.[0]) {
+        const { data: contact, error: contactError } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('id', profileData.catch_up_contacts[0])
+          .single();
+
+        if (!contactError && contact) {
+          contactName = contact.name;
+          contactData = contact;
+        }
+      }
+
+      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
+
+      await supabase
+        .from('chat_history')
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
+      
+      setTutorialComplete(false);
+      setShowProfileButton(false);
+      setMessages([
+        { content: welcomeMessage, isAl: true },
+        { 
+          content: "Let's go!", 
+          isAl: false, 
+          is_secret: true,
+          contactInfo: contactData || undefined
+        }
+      ]);
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
@@ -693,8 +733,8 @@ const Index = () => {
 
       if (profileError) throw profileError;
 
-      let contactName = '';
       let contactData = null;
+      let contactName = '';
       if (profileData?.catch_up_contacts?.[0]) {
         const { data: contact, error: contactError } = await supabase
           .from('contacts')
@@ -718,16 +758,9 @@ const Index = () => {
           user_id: session.user.id,
           is_onboarding_message: true
         }]);
-
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: true,
-          onboarding_step: 'complete'
-        })
-        .eq('id', session.user.id);
-
-      setShowOnboarding(false);
+      
+      setTutorialComplete(false);
+      setShowProfileButton(false);
       setMessages([
         { content: welcomeMessage, isAl: true },
         { 
