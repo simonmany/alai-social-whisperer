@@ -212,6 +212,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       setShowOtherPeopleInput(true);
       setPriorityLine3(true);
+      setPriorityPerson(priorityPerson.trim());
     } catch (error: any) {
       toast({
         title: "Error adding contact",
@@ -384,19 +385,21 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           <div className="space-y-8">
             {priorityLine1 ? (
               <div className="text-xl">
-                I'm all about helping you see the people you want to see. Over time, I'll get better at predicting this, but we've only just met -
+                I'm all about helping you see the people you want to see.
+                <br />
+                Over time, I'll get better at predicting this, but we've only just met -
               </div>
             ) : (
               <TypewriterText
                 key="priority1"
-                text="I'm all about helping you see the people you want to see. Over time, I'll get better at predicting this, but we've only just met -"
+                text="I'm all about helping you see the people you want to see.\nOver time, I'll get better at predicting this, but we've only just met -"
                 delay={250}
                 typingSpeed={25}
                 onComplete={() => {
                   setPriorityLine1(true);
                   setPriorityLine2(true);
                 }}
-                className="text-xl"
+                className="text-xl whitespace-pre-line"
               />
             )}
 
@@ -424,16 +427,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       onChange={(e) => setPriorityPerson(e.target.value)}
                       placeholder="Enter name"
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === 'Enter' && !showOtherPeopleInput) {
                           e.preventDefault();
                           handlePriorityPersonSubmit();
                         }
                       }}
+                      disabled={showOtherPeopleInput}
                     />
                     <Button 
                       onClick={handlePriorityPersonSubmit}
                       className="w-full"
-                      disabled={!priorityPerson.trim() || isSubmitting}
+                      disabled={!priorityPerson.trim() || isSubmitting || showOtherPeopleInput}
                     >
                       Submit
                     </Button>
