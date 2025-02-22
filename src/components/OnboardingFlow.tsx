@@ -111,13 +111,27 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handleSkip = async () => {
-    switch (step) {
-      case 'interests':
-        setStep('future-interests');
-        break;
-      case 'future-interests':
-        setStep('demographics');
-        break;
+    if (!session?.user?.id) return;
+    
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_started_at: new Date().toISOString(),
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
+        })
+        .eq('id', session?.user.id);
+
+      onComplete();
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
