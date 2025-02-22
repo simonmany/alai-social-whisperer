@@ -59,7 +59,6 @@ const Index = () => {
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
-  // Check onboarding status
   useEffect(() => {
     const checkOnboardingStatus = async () => {
       if (!session?.user?.id) return;
@@ -83,7 +82,6 @@ const Index = () => {
     checkOnboardingStatus();
   }, [session?.user?.id]);
 
-  // Load chat history
   useEffect(() => {
     const loadChatHistory = async () => {
       if (!session?.user?.id) return;
@@ -130,7 +128,6 @@ const Index = () => {
       setShowOnboarding(false);
       queryClient.invalidateQueries({ queryKey: ['profile'] });
 
-      // Get profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('display_name, catch_up_contacts')
@@ -139,7 +136,6 @@ const Index = () => {
 
       if (profileError) throw profileError;
 
-      // Get contact data if available
       let contactData = null;
       let contactName = '';
       if (profileData?.catch_up_contacts?.[0]) {
@@ -155,20 +151,26 @@ const Index = () => {
         }
       }
 
-      // Create welcome message
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
 
-      // Insert welcome message
-      await supabase
+      const { data: existingMessages } = await supabase
         .from('chat_history')
-        .insert([{
-          message: welcomeMessage,
-          is_ai: true,
-          user_id: session.user.id,
-          is_onboarding_message: true
-        }]);
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('is_onboarding_message', true)
+        .single();
+
+      if (!existingMessages) {
+        await supabase
+          .from('chat_history')
+          .insert([{
+            message: welcomeMessage,
+            is_ai: true,
+            user_id: session.user.id,
+            is_onboarding_message: true
+          }]);
+      }
       
-      // Update local state
       setTutorialComplete(false);
       setShowProfileButton(false);
       setMessages([
@@ -246,25 +248,37 @@ const Index = () => {
 
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
 
-      // Clear existing chat history for the tutorial
-      await supabase
+      const { data: existingMessages } = await supabase
         .from('chat_history')
-        .delete()
+        .select('*')
         .eq('user_id', session.user.id)
-        .eq('is_onboarding_message', true);
+        .eq('is_onboarding_message', true)
+        .single();
 
-      // Insert the new welcome message
-      await supabase
-        .from('chat_history')
-        .insert([{
-          message: welcomeMessage,
-          is_ai: true,
-          user_id: session.user.id,
-          is_onboarding_message: true
-        }]);
+      if (!existingMessages) {
+        await supabase
+          .from('chat_history')
+          .insert([{
+            message: welcomeMessage,
+            is_ai: true,
+            user_id: session.user.id,
+            is_onboarding_message: true
+          }]);
+      }
       
       setTutorialComplete(false);
       setShowProfileButton(false);
+
+      if (contactData) {
+        setSelectedContact(contactData);
+        if (contactData.interests && contactData.interests.length > 0) {
+          const randomInterest = contactData.interests[
+            Math.floor(Math.random() * contactData.interests.length)
+          ];
+          setSelectedActivity(randomInterest);
+        }
+      }
+
       setMessages([
         { content: welcomeMessage, isAl: true },
         { 
@@ -469,7 +483,7 @@ const Index = () => {
     };
 
     checkTutorialStatus();
-  }, [session?.user.id]);
+  }, [session?.user?.id]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
