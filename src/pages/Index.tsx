@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import OnboardingFlow from "@/components/OnboardingFlow";
-import ChatContainer from "@/components/ChatContainer";
+import { ChatContainer } from "@/components/ChatContainer";
 
 const Index = () => {
   const { session } = useAuth();
