@@ -1,7 +1,6 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from '@supabase/supabase-js';
-import { ConversationType, ChatAgentOptions } from '../chat/types.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -41,7 +40,6 @@ serve(async (req) => {
     }
 
     let message = '';
-    let conversationType = ConversationType.CHAT;
 
     switch (type) {
       case 'morning':
@@ -64,12 +62,12 @@ serve(async (req) => {
 
     console.log('Calling chat function with message:', message);
 
-    // Call the chat function
+    // Call the chat function with explicit string type
     const chatResponse = await supabaseClient.functions.invoke('chat', {
       body: {
         message,
         userId: user_id,
-        conversationType,
+        conversationType: 'CHAT',
         isSystemMessage: true
       }
     });
