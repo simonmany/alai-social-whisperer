@@ -54,8 +54,6 @@ export const ChatContainer = ({
     scrollToBottom();
   }, [messages]);
 
-  const showTutorialAction = messages.length === 1 && messages[0].isAl;
-
   return (
     <div className={cn(
       "relative flex flex-col h-full min-h-[calc(100vh-12rem)]",
@@ -67,27 +65,35 @@ export const ChatContainer = ({
         onScroll={handleScroll}
       >
         <div className="flex flex-col gap-3 pb-4">
-          {messages
-            .filter(message => !message.is_secret)
-            .map((message, index) => (
-              <ChatMessage
-                key={index}
-                content={message.content}
-                isAl={message.isAl}
-                animate={index === messages.length - 1}
-                contacts={message.contactInfo ? [message.contactInfo] : undefined}
-              />
-            ))}
-          {showTutorialAction && onTutorialAction && (
-            <div className="self-end">
-              <Button
-                onClick={onTutorialAction}
-                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg text-lg"
-              >
-                Let's go!
-              </Button>
-            </div>
-          )}
+          {messages.map((message, index) => {
+            if (message.is_secret && message.content === "Let's go!" && onTutorialAction) {
+              return (
+                <div key={index} className="self-end">
+                  <Button
+                    onClick={onTutorialAction}
+                    className="bg-primary text-primary-foreground px-6 py-2 rounded-lg text-lg"
+                  >
+                    Let's go!
+                  </Button>
+                </div>
+              );
+            }
+            
+            if (!message.is_secret) {
+              return (
+                <ChatMessage
+                  key={index}
+                  content={message.content}
+                  isAl={message.isAl}
+                  animate={index === messages.length - 1}
+                  contacts={message.contactInfo ? [message.contactInfo] : undefined}
+                />
+              );
+            }
+            
+            return null;
+          })}
+          
           {isLoading && (
             <div className="self-start text-sm text-gray-500 animate-pulse">
               Al is typing...
