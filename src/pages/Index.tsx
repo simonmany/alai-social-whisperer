@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -237,8 +238,11 @@ const Index = () => {
           console.log('Setting messages:', historyMessages);
           setMessages(historyMessages);
         } else {
-          console.log('No chat history found, setting welcome message');
-          setMessages([{ content: WELCOME_MESSAGE, isAl: true }]);
+          console.log('No chat history found, setting initial message');
+          setMessages([{ 
+            content: "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?", 
+            isAl: true 
+          }]);
         }
       } catch (error: any) {
         console.error('Error loading chat history:', error);
