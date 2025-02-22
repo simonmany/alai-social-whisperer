@@ -16,41 +16,14 @@ import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { REDIRECT_URL } from "@/integrations/supabase/client";
-import { Separator } from "@/components/ui/separator";
-import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
+import { Contact } from "@/types/contacts";
 
 interface Message {
   content: string;
   isAl: boolean;
   is_secret?: boolean;
-  contacts?: {
-    name: string;
-    phone?: string;
-    instagram?: string;
-    linkedin?: string;
-    twitter?: string;
-    meetingStory?: string;
-    relationship?: string;
-  }[];
+  contactInfo?: Contact;
 }
-
-interface Contact {
-  name: string;
-  phone?: string;
-  instagram?: string;
-  linkedin?: string;
-  twitter?: string;
-  meetingStory?: string;
-  relationship?: string;
-  photo?: string;
-}
-
-const WELCOME_MESSAGE = "Hi! I'm Al, your social life assistant. How can I help you today?";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -704,28 +677,63 @@ const Index = () => {
   };
 
   const handleOnboardingComplete = async () => {
-    if (!session?.user.id) return;
+    if (!session?.user?.id) return;
 
     try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('display_name, catch_up_contacts')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      let contactName = '';
+      let contactData = null;
+      if (profileData?.catch_up_contacts?.[0]) {
+        const { data: contact, error: contactError } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('id', profileData.catch_up_contacts[0])
+          .single();
+
+        if (!contactError && contact) {
+          contactName = contact.name;
+          contactData = contact;
+        }
+      }
+
+      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
+
+      await supabase
+        .from('chat_history')
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
+
       await supabase
         .from('profiles')
         .update({ 
           onboarding_completed: true,
-          onboarding_step: 'splash',
-          has_completed_tutorial: false
+          onboarding_step: 'complete'
         })
         .eq('id', session.user.id);
 
       setShowOnboarding(false);
-      setTutorialComplete(false);
-      setShowProfileButton(false);
+      setMessages([
+        { content: welcomeMessage, isAl: true },
+        { 
+          content: "Let's go!", 
+          isAl: false, 
+          is_secret: true,
+          contactInfo: contactData || undefined
+        }
+      ]);
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-      
-      toast({
-        title: "Onboarding completed",
-        description: "Let's get started with the tutorial!",
-      });
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
       toast({
@@ -734,6 +742,19 @@ const Index = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleTutorialAction = async () => {
+    await supabase
+      .from('chat_history')
+      .insert([{
+        message: "Let's go!",
+        is_ai: false,
+        user_id: session?.user?.id,
+        is_onboarding_message: true
+      }]);
+
+    setIsPlanningOpen(true);
   };
 
   return (
@@ -753,24 +774,15 @@ const Index = () => {
         {showOnboarding ? (
           <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : (
-          <>
-            {!tutorialComplete && (
-              <TutorialOverlay 
-                onComplete={handleTutorialComplete} 
-                isProfileOpen={isProfileOpen}
-                key={isProfileOpen ? 'profile-open' : 'profile-closed'}
-              />
-            )}
-            <ChatContainer
-              messages={messages}
-              isLoading={isLoading}
-              onSend={handleSend}
-              onSuggestedPrompt={handleSuggestedPrompt}
-              disabled={!tutorialComplete}
-            >
-              <></>
-            </ChatContainer>
-          </>
+          <ChatContainer
+            messages={messages}
+            isLoading={isLoading}
+            onSend={handleSend}
+            onSuggestedPrompt={handleSuggestedPrompt}
+            onTutorialAction={handleTutorialAction}
+          >
+            <></>
+          </ChatContainer>
         )}
       </div>
 

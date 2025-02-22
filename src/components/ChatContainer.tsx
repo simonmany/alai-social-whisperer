@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -19,6 +20,7 @@ interface ChatContainerProps {
   isLoading: boolean;
   onSend: (content: string) => void;
   onSuggestedPrompt: (prompt: string) => void;
+  onTutorialAction?: () => void;
   disabled?: boolean;
   children: React.ReactNode;
 }
@@ -28,6 +30,7 @@ export const ChatContainer = ({
   isLoading,
   onSend,
   onSuggestedPrompt,
+  onTutorialAction,
   disabled = false,
   children,
 }: ChatContainerProps) => {
@@ -47,23 +50,11 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
-  const filteredMessages = messages.filter((message, index) => {
-    const isCheckInPrompt = !message.isAl && 
-                           message.content.includes("You're doing the") && 
-                           (message.content.includes("morning check-in") || 
-                            message.content.includes("evening recap"));
-
-    const isPostEventPrompt = !message.isAl &&
-                             message.content.includes("just completed") &&
-                             message.content.includes("Ask them how it went");
-
-    return !isCheckInPrompt && 
-           !isPostEventPrompt;
-  });
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const showTutorialAction = messages.length === 1 && messages[0].isAl;
 
   return (
     <div className={cn(
@@ -76,17 +67,27 @@ export const ChatContainer = ({
         onScroll={handleScroll}
       >
         <div className="flex flex-col gap-3 pb-4">
-          {filteredMessages
+          {messages
             .filter(message => !message.is_secret)
             .map((message, index) => (
               <ChatMessage
                 key={index}
                 content={message.content}
                 isAl={message.isAl}
-                animate={index === filteredMessages.length - 1}
+                animate={index === messages.length - 1}
                 contacts={message.contactInfo ? [message.contactInfo] : undefined}
               />
             ))}
+          {showTutorialAction && onTutorialAction && (
+            <div className="self-end">
+              <Button
+                onClick={onTutorialAction}
+                className="bg-primary text-primary-foreground px-6 py-2 rounded-lg text-lg"
+              >
+                Let's go!
+              </Button>
+            </div>
+          )}
           {isLoading && (
             <div className="self-start text-sm text-gray-500 animate-pulse">
               Al is typing...
