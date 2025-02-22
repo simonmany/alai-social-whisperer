@@ -57,6 +57,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [priorityLine2, setPriorityLine2] = useState(false);
   const [priorityLine3, setPriorityLine3] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
 
   const handleBack = () => {
     switch (step) {
@@ -213,6 +214,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       setShowOtherPeopleInput(true);
       setPriorityLine3(true);
       setPriorityPerson(priorityPerson.trim());
+      setHasSubmittedOnce(true);
     } catch (error: any) {
       toast({
         title: "Error adding contact",
@@ -427,19 +429,19 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       onChange={(e) => setPriorityPerson(e.target.value)}
                       placeholder="Enter name"
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !showOtherPeopleInput) {
+                        if (e.key === 'Enter') {
                           e.preventDefault();
                           handlePriorityPersonSubmit();
                         }
                       }}
-                      disabled={showOtherPeopleInput}
                     />
                     <Button 
                       onClick={handlePriorityPersonSubmit}
                       className="w-full"
-                      disabled={!priorityPerson.trim() || isSubmitting || showOtherPeopleInput}
+                      disabled={!priorityPerson.trim() || isSubmitting}
+                      variant={hasSubmittedOnce ? "outline" : "default"}
                     >
-                      Submit
+                      {hasSubmittedOnce ? "Update" : "Submit"}
                     </Button>
                   </div>
                 )}
