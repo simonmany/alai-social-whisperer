@@ -756,8 +756,9 @@ const Index = () => {
           <>
             {!tutorialComplete && (
               <TutorialOverlay 
-                onComplete={handleTutorialComplete} 
+                onComplete={handleTutorialComplete}
                 isProfileOpen={isProfileOpen}
+                onPlanningOpen={() => setIsPlanningOpen(true)}
                 key={isProfileOpen ? 'profile-open' : 'profile-closed'}
               />
             )}
@@ -836,10 +837,11 @@ const Index = () => {
         open={isProfileOpen} 
         onOpenChange={setIsProfileOpen}
       />
-      <PlanningDialog 
-        open={isPlanningOpen} 
+      <PlanningDialog
+        open={isPlanningOpen}
         onOpenChange={setIsPlanningOpen}
         onSubmit={handlePlanSubmit}
+        defaultContact={profile?.catch_up_contacts?.[0]}
       />
       <FeedbackDialog
         open={isFeedbackOpen}
