@@ -397,16 +397,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 text="I'm all about helping you see the people you want to see."
                 delay={250}
                 typingSpeed={25}
-                onComplete={() => {
-                  setHasPlayedIntroLine(true);
-                  setHasPlayedPredictionLine(true);
-                }}
+                onComplete={() => setHasPlayedIntroLine(true)}
                 className="text-xl"
               />
             )}
 
-            {hasPlayedPredictionLine && (
-              hasPlayedLine1 ? (
+            {hasPlayedIntroLine && (
+              hasPlayedPredictionLine ? (
                 <div className="text-xl">
                   Over time, I'll get better at predicting this, but we've only just met -
                 </div>
@@ -417,6 +414,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   delay={250}
                   typingSpeed={25}
                   onComplete={() => {
+                    setHasPlayedPredictionLine(true);
                     setPriorityLine1(true);
                     setPriorityLine2(true);
                   }}
