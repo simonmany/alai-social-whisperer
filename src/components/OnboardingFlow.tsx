@@ -152,17 +152,35 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleFinishOnboarding = async () => {
     if (!session?.user?.id) return;
-
+    
     try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: true,
-          onboarding_started_at: new Date().toISOString(),
-          onboarding_step: 'splash',
-          has_completed_tutorial: false
-        })
-        .eq('id', session.user.id);
+      if (state.currentInterests?.length) {
+        await supabase
+          .from('profiles')
+          .update({ 
+            current_interests: state.currentInterests,
+            onboarding_completed: true,
+            onboarding_started_at: new Date().toISOString(),
+            onboarding_step: 'splash',
+            has_completed_tutorial: false
+          })
+          .eq('id', session.user.id);
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('catch_up_contacts')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profile?.catch_up_contacts?.[0]) {
+          await supabase
+            .from('contacts')
+            .update({ 
+              interests: state.currentInterests 
+            })
+            .eq('id', profile.catch_up_contacts[0]);
+        }
+      }
 
       const { data: profileData } = await supabase
         .from('profiles')
@@ -170,18 +188,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .eq('id', session.user.id)
         .single();
 
-      let contactData = null;
       let contactName = '';
       if (profileData?.catch_up_contacts?.[0]) {
         const { data: contact } = await supabase
           .from('contacts')
-          .select('*')
+          .select('name')
           .eq('id', profileData.catch_up_contacts[0])
           .single();
 
         if (contact) {
           contactName = contact.name;
-          contactData = contact;
         }
       }
 
@@ -783,32 +799,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <div>
                 <InterestSelector
                   type="activities"
-                  onComplete={async (selections) => {
-                    if (session?.user?.id) {
-                      await supabase
-                        .from('profiles')
-                        .update({ 
-                          current_interests: selections 
-                        })
-                        .eq('id', session.user.id);
-                      
-                      const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('catch_up_contacts')
-                        .eq('id', session.user.id)
-                        .single();
-                      
-                      if (profile?.catch_up_contacts?.[0]) {
-                        await supabase
-                          .from('contacts')
-                          .update({ 
-                            interests: selections 
-                          })
-                          .eq('id', profile.catch_up_contacts[0]);
-                      }
-                    }
-                    
+                  onComplete={(selections) => {
                     handleInterestComplete('activities')(selections);
+                    setState(prev => ({ ...prev, currentInterests: selections }));
                   }}
                   placeholder="Type to search activities..."
                   minSelections={1}
