@@ -76,7 +76,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   useEffect(() => {
     const fetchPriorityPerson = async () => {
-      if (session?.user?.id) {
+      if (!session?.user?.id) return;
+
+      try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('catch_up_contacts')
@@ -92,13 +94,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
           if (contact) {
             setPriorityPersonName(contact.name);
+            setPriorityPerson(contact.name);
           }
         }
+      } catch (error) {
+        console.error('Error fetching priority person:', error);
       }
     };
 
     fetchPriorityPerson();
-  }, [session?.user?.id]);
+  }, [session?.user?.id, step]);
 
   const handleBack = () => {
     switch (step) {
@@ -249,6 +254,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
       if (profileError) throw profileError;
 
+      setPriorityPersonName(contact.name);
       setShowOtherPeopleInput(true);
       setPriorityLine3(true);
       setPriorityPerson(priorityPerson.trim());
@@ -844,3 +850,5 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     </div>
   );
 };
+
+export default OnboardingFlow;
