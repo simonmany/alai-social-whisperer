@@ -6,20 +6,17 @@ import { ContactsCombobox } from "@/components/ContactsCombobox";
 import { ActivitySelector } from "@/components/ActivitySelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/components/AuthProvider";
-import { Contact } from "@/types/contacts";
-
-interface PlanningDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (message: string) => void;
-  defaultContact?: string;
-}
+import { Contact, PlanningDialogProps } from "@/types/contacts";
 
 const PlanningDialog = ({
   open,
   onOpenChange,
   onSubmit,
-  defaultContact
+  defaultContact,
+  defaultContacts,
+  defaultActivity,
+  defaultLocation,
+  defaultDate
 }: PlanningDialogProps) => {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<string>("");
@@ -51,9 +48,17 @@ const PlanningDialog = ({
     };
 
     if (open) {
-      loadDefaultContact();
+      if (defaultContacts && defaultContacts.length > 0) {
+        setSelectedContact(defaultContacts[0]);
+      } else {
+        loadDefaultContact();
+      }
+      
+      if (defaultActivity) {
+        setSelectedActivity(defaultActivity);
+      }
     }
-  }, [open, defaultContact, session?.user?.id]);
+  }, [open, defaultContact, defaultContacts, defaultActivity, session?.user?.id]);
 
   const handleSubmit = () => {
     if (!selectedContact) {
