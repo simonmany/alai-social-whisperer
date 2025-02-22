@@ -363,14 +363,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             {hasPlayedLine5 && (
               <div className="flex flex-col space-y-4 mt-8">
                 <Button 
-                  onClick={() => setStep('interests')}
+                  onClick={() => setStep('priority-people')}
                   className="w-full"
                 >
                   Connect Contacts
                 </Button>
                 <Button 
                   variant="outline"
-                  onClick={() => setStep('interests')}
+                  onClick={() => setStep('priority-people')}
                   className="w-full"
                 >
                   Not Now
