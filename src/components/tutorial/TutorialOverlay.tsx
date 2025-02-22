@@ -190,7 +190,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         left: rect.left - 200
       });
     } else if (profile?.onboarding_step === 'goalset') {
-      const goalAlerts = Array.from(document.querySelectorAll('[role="alert"]')).filter(alert => {
+      const goalAlerts = Array.from(document.querySelectorAll('[role="alert"]')).filter((alert) => {
         return alert.closest('div[role="alert"]')?.hasAttribute('onclick') || 
                alert.closest('div[role="alert"]')?.classList.contains('cursor-pointer');
       });
@@ -273,6 +273,30 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     setIsUpdatingStep(false);
   };
 
+  const handleStart = async () => {
+    if (session?.user?.id) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ 
+            onboarding_step: 'complete',
+            has_completed_tutorial: true 
+          })
+          .eq('id', session.user.id);
+        
+        setShowCompletionMessage(false);
+        onComplete();
+      } catch (error) {
+        console.error('Error completing tutorial:', error);
+        toast({
+          title: "Error completing tutorial",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   const renderTutorialContent = () => {
     if (isProfileLoading || !profile) {
       return null;
@@ -334,6 +358,16 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                   <div className="text-lg">Ready to get started?</div>
                 )}
               </div>
+
+              {hasPlayedLine3 && (
+                <Button 
+                  onClick={handleStart}
+                  className="w-full mt-4"
+                  size="lg"
+                >
+                  Let's get started
+                </Button>
+              )}
             </div>
           </div>
         </div>
