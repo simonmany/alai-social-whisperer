@@ -81,9 +81,19 @@ const Index = () => {
     if (!session?.user.id) return;
 
     try {
-      console.log('Starting tutorial...');
+      console.log('Starting tutorial reset process...');
       
-      await supabase
+      const { data: currentProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('onboarding_step, has_completed_tutorial, onboarding_completed')
+        .eq('id', session.user.id)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      console.log('Current profile state:', currentProfile);
+
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
           onboarding_step: 'splash',
@@ -92,18 +102,24 @@ const Index = () => {
         })
         .eq('id', session.user.id);
       
-      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      if (updateError) throw updateError;
       
+      console.log('Profile updated, invalidating queries...');
+      await queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      
+      console.log('Setting local state...');
       setShowOnboarding(false);
       setTutorialComplete(false);
       setShowProfileButton(false);
+      
+      console.log('Tutorial reset complete');
       
       toast({
         title: "Tutorial restarted",
         description: "Follow the instructions to learn how to use the app!",
       });
     } catch (error: any) {
-      console.error('Error starting tutorial:', error);
+      console.error('Error in tutorial reset:', error);
       toast({
         title: "Error restarting tutorial",
         description: error.message || "Please try again",
@@ -363,6 +379,7 @@ const Index = () => {
       if (!session?.user.id) return;
 
       try {
+        console.log('Checking tutorial status...');
         const { data, error } = await supabase
           .from('profiles')
           .select('has_completed_tutorial, onboarding_completed, onboarding_step')
@@ -374,12 +391,12 @@ const Index = () => {
         console.log('Tutorial status check:', {
           hasCompletedTutorial: data.has_completed_tutorial,
           onboardingCompleted: data.onboarding_completed,
-          onboardingStep: data.onboarding_step
+          onboardingStep: data.onboarding_step,
+          pathname: location.pathname
         });
 
         setTutorialComplete(!!data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
-        
         setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
       } catch (error) {
         console.error('Error checking tutorial status:', error);
@@ -387,7 +404,7 @@ const Index = () => {
     };
 
     checkTutorialStatus();
-  }, [session?.user.id]);
+  }, [session?.user.id, queryClient]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
