@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { ChatInput } from "@/components/ChatInput";
+import { LanguageSelector } from "@/components/LanguageSelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,12 @@ interface DemographicsSectionProps {
 }
 
 export const DemographicsSection = ({ session, onComplete }: DemographicsSectionProps) => {
-  const [step, setStep] = useState<'age' | 'city' | 'relationship' | 'gender'>('age');
+  const [step, setStep] = useState<'age' | 'city' | 'languages' | 'relationship' | 'gender' | 'occupation'>('age');
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const [age, setAge] = useState<number>(0);
   const [selectedCity, setSelectedCity] = useState("");
   const [utcOffset, setUtcOffset] = useState<number>(0);
+  const [occupation, setOccupation] = useState("");
   const [hasPlayedIntro, setHasPlayedIntro] = useState(false);
   const [hasPlayedDetails, setHasPlayedDetails] = useState(false);
   const [hasPlayedQuestion, setHasPlayedQuestion] = useState(false);
@@ -106,10 +108,27 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         })
         .eq('id', session?.user.id);
 
-      setStep('relationship');
+      setStep('languages');
     } catch (error) {
       toast({
         title: "Error saving city",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleLanguagesComplete = async (languages: string[]) => {
+    try {
+      await supabase
+        .from('profiles')
+        .update({ languages })
+        .eq('id', session?.user.id);
+
+      setStep('relationship');
+    } catch (error) {
+      toast({
+        title: "Error saving languages",
         description: "Please try again",
         variant: "destructive",
       });
@@ -137,14 +156,10 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
     try {
       await supabase
         .from('profiles')
-        .update({ 
-          gender,
-          onboarding_completed: true,
-          onboarding_started_at: new Date().toISOString()
-        })
+        .update({ gender })
         .eq('id', session?.user.id);
 
-      onComplete();
+      setStep('occupation');
     } catch (error) {
       toast({
         title: "Error saving gender",
@@ -152,6 +167,42 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         variant: "destructive",
       });
     }
+  };
+
+  const handleOccupationSubmit = async () => {
+    if (!occupation.trim()) {
+      toast({
+        title: "Please enter your occupation",
+        description: "Tell us what you do for work",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          occupation,
+          onboarding_completed: true,
+          onboarding_started_at: new Date().toISOString()
+        })
+        .eq('id', session?.user.id);
+
+      onComplete();
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleOccupationChange = (value: string) => {
+    console.log('Occupation changed to:', value);
+    setOccupation(value);
   };
 
   return (
@@ -257,6 +308,19 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
         </>
       )}
 
+      {step === 'languages' && (
+        <>
+          <div className="text-xl font-cormorant">
+            <TypewriterText
+              text="What languages do you speak?"
+              delay={250}
+              typingSpeed={25}
+            />
+          </div>
+          <LanguageSelector onComplete={handleLanguagesComplete} />
+        </>
+      )}
+
       {step === 'relationship' && (
         <>
           <div className="text-xl font-cormorant">
@@ -301,6 +365,32 @@ export const DemographicsSection = ({ session, onComplete }: DemographicsSection
                 {gender}
               </Button>
             ))}
+          </div>
+        </>
+      )}
+
+      {step === 'occupation' && (
+        <>
+          <div className="text-xl font-cormorant">
+            <TypewriterText
+              text="What do you do for work?"
+              delay={250}
+              typingSpeed={25}
+            />
+          </div>
+          <div className="space-y-4">
+            <ChatInput
+              onSend={handleOccupationChange}
+              placeholder="What do you do for work?"
+              initialValue={occupation}
+            />
+            <Button 
+              onClick={handleOccupationSubmit}
+              className="w-full"
+              disabled={!occupation || occupation.length === 0}
+            >
+              Finish
+            </Button>
           </div>
         </>
       )}
