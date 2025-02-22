@@ -60,6 +60,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [priorityLine3, setPriorityLine3] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
+  const [hasPlayedActivitiesIntro1, setHasPlayedActivitiesIntro1] = useState(false);
+  const [hasPlayedActivitiesIntro2, setHasPlayedActivitiesIntro2] = useState(false);
   const [hasPlayedActivitiesIntro, setHasPlayedActivitiesIntro] = useState(false);
   const [hasPlayedFoodIntro, setHasPlayedFoodIntro] = useState(false);
   const [priorityPersonName, setPriorityPersonName] = useState("");
@@ -633,34 +635,34 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'interests' && (
           <div className="space-y-8">
-            {hasPlayedLine1 ? (
+            {hasPlayedActivitiesIntro1 ? (
               <div className="text-xl">
-                Nice. We'll focus on making sure you see {priorityPersonName} and your other friends soon.
+                Nice. Since {priorityPersonName} is the first person that came to mind, let's plan something fun with them.
               </div>
             ) : (
               <TypewriterText
-                key="line1"
-                text={`Nice. We'll focus on making sure you see ${priorityPersonName} and your other friends soon.`}
+                key="activities-intro1"
+                text={`Nice. Since ${priorityPersonName} is the first person that came to mind, let's plan something fun with them.`}
                 delay={250}
                 typingSpeed={25}
-                onComplete={() => setHasPlayedLine1(true)}
+                onComplete={() => setHasPlayedActivitiesIntro1(true)}
                 className="text-xl"
               />
             )}
 
-            {hasPlayedLine1 && (
-              hasPlayedActivitiesIntro ? (
+            {hasPlayedActivitiesIntro1 && (
+              hasPlayedActivitiesIntro2 ? (
                 <div className="text-xl">
-                  Just one more thing - I'm curious how you like to spend your time. What are some things you like to do for fun?
+                  What are some activities you might enjoy doing together?
                 </div>
               ) : (
                 <TypewriterText
-                  key="activities-intro"
-                  text="Just one more thing - I'm curious how you like to spend your time. What are some things you like to do for fun?"
+                  key="activities-intro2"
+                  text="What are some activities you might enjoy doing together?"
                   delay={250}
                   typingSpeed={25}
                   onComplete={() => {
-                    setHasPlayedActivitiesIntro(true);
+                    setHasPlayedActivitiesIntro2(true);
                     setShowActivities(true);
                   }}
                   className="text-xl"
@@ -672,10 +674,32 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <div>
                 <InterestSelector
                   type="activities"
-                  onComplete={(selections) => {
+                  onComplete={async (selections) => {
+                    if (session?.user?.id) {
+                      await supabase
+                        .from('profiles')
+                        .update({ 
+                          current_interests: selections 
+                        })
+                        .eq('id', session.user.id);
+                      
+                      const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('catch_up_contacts')
+                        .eq('id', session.user.id)
+                        .single();
+                      
+                      if (profile?.catch_up_contacts?.[0]) {
+                        await supabase
+                          .from('contacts')
+                          .update({ 
+                            interests: selections 
+                          })
+                          .eq('id', profile.catch_up_contacts[0]);
+                      }
+                    }
+                    
                     handleInterestComplete('activities')(selections);
-                    setShowFood(true);
-                    setHasPlayedFoodIntro(true);
                   }}
                   placeholder="Type to search activities..."
                   minSelections={1}
@@ -687,30 +711,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </div>
             )}
 
-            {showFood && (
-              <>
-                {hasPlayedFoodIntro && (
-                  <div className="text-xl">
-                    We all gotta eat as well. What are your favorite types of food?
-                  </div>
-                )}
-                <div>
-                  <InterestSelector
-                    type="food"
-                    onComplete={handleInterestComplete('food')}
-                    placeholder="Type your favorite cuisines and dishes..."
-                    minSelections={1}
-                    value={state.foodPreferences}
-                    onChange={(selections) => {
-                      setState(prev => ({ ...prev, foodPreferences: selections }));
-                    }}
-                  />
-                </div>
-              </>
-            )}
-
-            {(state.currentInterests?.length ?? 0) > 0 && 
-             (state.foodPreferences?.length ?? 0) > 0 && (
+            {(state.currentInterests?.length ?? 0) > 0 && (
               <Button 
                 onClick={handleProceedToFutureInterests}
                 className="w-full mt-8"
