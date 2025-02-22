@@ -10,13 +10,13 @@ export interface ContactInfo {
   relationship?: string;
 }
 
-enum ConversationType {
+export enum ConversationType {
   CHAT = 'CHAT',
   HANG_PLANNER = 'HANG_PLANNER',
   PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER'
 }
 
-export const generateChatResponse = async (message: string, contactInfo?: ContactInfo[], secretMessage?: boolean) => {
+export const generateChatResponse = async (message: string, contactInfo?: ContactInfo[], secretMessage?: boolean, conversationType: ConversationType = ConversationType.CHAT) => {
   try {
     const session = await supabase.auth.getSession();
     const userId = session.data.session?.user.id;
@@ -26,7 +26,7 @@ export const generateChatResponse = async (message: string, contactInfo?: Contac
     }
 
     const { data, error } = await supabase.functions.invoke('chat', {
-      body: { message, userId, contactInfo, secretMessage, conversationType: ConversationType.CHAT }
+      body: { message, userId, contactInfo, secretMessage, conversationType }
     });
 
     if (error) {
