@@ -389,12 +389,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <div className="text-xl">
                 I'm all about helping you see the people you want to see.
                 <br />
+                <br />
                 Over time, I'll get better at predicting this, but we've only just met -
               </div>
             ) : (
               <TypewriterText
                 key="priority1"
-                text="I'm all about helping you see the people you want to see.\nOver time, I'll get better at predicting this, but we've only just met -"
+                text="I'm all about helping you see the people you want to see.\n\nOver time, I'll get better at predicting this, but we've only just met -"
                 delay={250}
                 typingSpeed={25}
                 onComplete={() => {
