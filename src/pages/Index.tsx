@@ -718,27 +718,63 @@ const Index = () => {
   };
 
   const handleOnboardingComplete = async () => {
-    if (!session?.user.id) return;
+    if (!session?.user?.id) return;
 
     try {
+      // Get user profile data for personalized welcome message
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('display_name, catch_up_contacts')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Get contact name if we have a catch_up_contact
+      let contactName = '';
+      if (profileData?.catch_up_contacts?.[0]) {
+        const { data: contactData, error: contactError } = await supabase
+          .from('contacts')
+          .select('name')
+          .eq('id', profileData.catch_up_contacts[0])
+          .single();
+
+        if (!contactError && contactData) {
+          contactName = contactData.name;
+        }
+      }
+
+      // Create welcome message
+      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
+
+      // Add welcome message to chat history
+      await supabase
+        .from('chat_history')
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id
+        }]);
+
+      // Update profile to mark onboarding as complete
       await supabase
         .from('profiles')
         .update({ 
           onboarding_completed: true,
-          onboarding_step: 'splash',
-          has_completed_tutorial: false
+          onboarding_step: 'complete',
+          has_completed_tutorial: true
         })
         .eq('id', session.user.id);
 
       setShowOnboarding(false);
-      setTutorialComplete(false);
+      setTutorialComplete(true);
       setShowProfileButton(false);
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
       toast({
-        title: "Onboarding completed",
-        description: "Let's get started with the tutorial!",
+        title: "Welcome aboard!",
+        description: "Let's get started with your social life journey.",
       });
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
