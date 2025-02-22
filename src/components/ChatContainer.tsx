@@ -5,21 +5,13 @@ import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Contact } from "@/types/contacts";
 
 interface Message {
   content: string;
   isAl: boolean;
   is_secret?: boolean;
-  contactInfo?: {
-    id: string;
-    name: string;
-    phone?: string;
-    instagram?: string;
-    linkedin?: string;
-    twitter?: string;
-    meetingStory?: string;
-    relationship?: string;
-  };
+  contactInfo?: Contact;
 }
 
 interface ChatContainerProps {
@@ -55,16 +47,12 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
-  // Filter out system messages (morning/evening check-in prompts, and post-event prompts)
   const filteredMessages = messages.filter((message, index) => {
-
-    // Check if message is a morning or evening check-in system prompt
     const isCheckInPrompt = !message.isAl && 
                            message.content.includes("You're doing the") && 
                            (message.content.includes("morning check-in") || 
                             message.content.includes("evening recap"));
 
-    // Check if message is a post-event system prompt
     const isPostEventPrompt = !message.isAl &&
                              message.content.includes("just completed") &&
                              message.content.includes("Ask them how it went");

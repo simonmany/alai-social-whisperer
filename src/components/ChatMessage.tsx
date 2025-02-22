@@ -12,6 +12,7 @@ interface Contact {
   twitter?: string;
   meetingStory?: string;
   relationship?: string;
+  user_id: string;
 }
 
 interface ChatMessageProps {

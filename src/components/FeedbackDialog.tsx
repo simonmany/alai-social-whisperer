@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,7 @@ interface Event {
   title: string;
   date: Date;
   location: string;
-  attendees: EventAttendee[];
+  attendees: Contact[];
 }
 
 interface FeedbackDialogProps {
@@ -83,7 +83,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
   const { data: eventDetails } = useQuery({
     queryKey: ['event-details', selectedEventId],
     queryFn: async () => {
-      if (!selectedEventId) return null;
+      if (!selectedEventId || !session?.user?.id) return null;
 
       const { data: event, error } = await supabase
         .from('calendar_events')
@@ -107,14 +107,20 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
       if (error) throw error;
       
       if (event) {
-        const formattedEvent = {
+        const formattedEvent: Event = {
           id: event.id,
           title: event.title,
           date: new Date(event.start_time),
           location: event.location || "No location specified",
           attendees: event.event_attendees.map((ea: any) => ({
             id: ea.contacts.id,
-            name: ea.contacts.name
+            name: ea.contacts.name,
+            user_id: session.user.id,
+            interests: [],
+            is_archived: ea.contacts.is_archived ?? false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            closeness: 0.5
           }))
         };
 
@@ -135,106 +141,12 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     enabled: !!selectedEventId && open
   });
 
-  const { data: recentEvents = [] } = useQuery({
-    queryKey: ['recent-events-without-feedback'],
-    queryFn: async () => {
-      if (!session?.user?.id) return [];
-
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const now = new Date();
-
-      const { data, error } = await supabase
-        .from('calendar_events')
-        .select(`
-          id,
-          title,
-          start_time,
-          location,
-          feedback_sent,
-          event_attendees (
-            contacts (
-              id,
-              name,
-              is_archived
-            )
-          )
-        `)
-        .eq('user_id', session.user.id)
-        .eq('feedback_sent', false)
-        .gte('start_time', thirtyDaysAgo.toISOString())
-        .lte('start_time', now.toISOString())
-        .order('start_time', { ascending: false })
-        .limit(10);
-
-      if (error) {
-        console.error('Error fetching recent events:', error);
-        return [];
-      }
-
-      return data.map(event => ({
-        id: event.id,
-        title: event.title,
-        date: new Date(event.start_time),
-        location: event.location || "No location specified",
-        attendees: event.event_attendees.map((ea: any) => ({
-          id: ea.contacts.id,
-          name: ea.contacts.name
-        }))
-      }));
-    },
-    enabled: open && !selectedEventId
-  });
-
-  const { data: filteredContacts = [] } = useQuery({
-    queryKey: ['filtered-contacts', contactInput],
-    queryFn: async () => {
-      if (!session?.user?.id || !contactInput) return [];
-
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .ilike('name', `%${contactInput}%`)
-        .order('name');
-
-      if (error) throw error;
-      return data.map(contact => ({
-        ...contact,
-        interests: Array.isArray(contact.interests) ? contact.interests : [],
-      })) as Contact[];
-    },
-    enabled: !!contactInput && !!session?.user?.id
-  });
-
-  const { data: activitySuggestions = [] } = useQuery({
-    queryKey: ['activity-suggestions', manualActivity],
-    queryFn: async () => {
-      if (!manualActivity) return [];
-
-      const { data, error } = await supabase
-        .from('activities')
-        .select('name, category')
-        .ilike('name', `%${manualActivity}%`)
-        .limit(5);
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!manualActivity && isManualEntry
-  });
-
   useEffect(() => {
     if (eventDetails) {
       setSelectedEvent(eventDetails);
       setIsManualEntry(false);
     }
   }, [eventDetails]);
-
-  useEffect(() => {
-    if (!open) {
-      setShowNewContactDialog(false);
-    }
-  }, [open]);
 
   const handleBackClick = () => {
     if (!selectedEventId) {
@@ -244,8 +156,77 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     }
   };
 
-  const handleEventSelect = (event: Event) => {
+  const createContact = (attendee: { id: string; name: string }): Contact => {
+    if (!session?.user?.id) throw new Error("User must be logged in");
+    
+    return {
+      id: attendee.id,
+      name: attendee.name,
+      user_id: session.user.id,
+      interests: [] as string[],
+      is_archived: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      closeness: 0.5
+    };
+  };
+
+  const createEvent = (eventData: { 
+    id: string; 
+    title: string; 
+    date: Date; 
+    location: string; 
+    attendees: Array<{ id: string; name: string; }>; 
+  }): Event => {
+    if (!session?.user?.id) throw new Error("User must be logged in");
+
+    return {
+      id: eventData.id,
+      title: eventData.title,
+      date: eventData.date,
+      location: eventData.location,
+      attendees: eventData.attendees.map(createContact)
+    };
+  };
+
+  const handleEventSelect = (eventData: { 
+    id: string; 
+    title: string; 
+    date: Date; 
+    location: string; 
+    attendees: Array<{ id: string; name: string; }>; 
+  }) => {
+    if (!session?.user?.id) return;
+    
+    const event: Event = {
+      id: eventData.id,
+      title: eventData.title,
+      date: eventData.date,
+      location: eventData.location,
+      attendees: eventData.attendees.map(attendee => ({
+        id: attendee.id,
+        name: attendee.name,
+        user_id: session.user.id,
+        interests: [],
+        is_archived: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        closeness: 0.5
+      }))
+    };
+    
     setSelectedEvent(event);
+  };
+
+  const handleRecentEventSelect = (eventData: { 
+    id: string; 
+    title: string; 
+    date: Date; 
+    location: string; 
+    attendees: Array<{ id: string; name: string; }>; 
+  }) => {
+    if (!session?.user?.id) return;
+    setSelectedEvent(createEvent(eventData));
   };
 
   const handleContactSelect = (contact: Contact) => {
@@ -493,6 +474,94 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
     </div>
   );
 
+  // Add query to fetch contacts
+  const { data: contacts = [] } = useQuery({
+    queryKey: ['contacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', session?.user?.id)
+        .order('name');
+      
+      if (error) throw error;
+      return data as Contact[];
+    },
+    enabled: !!session?.user?.id
+  });
+
+  // Add query to fetch recent events
+  const { data: recentEvents = [] } = useQuery({
+    queryKey: ['recent-events'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          id,
+          title,
+          start_time,
+          location,
+          event_attendees (
+            contacts (
+              id,
+              name,
+              is_archived
+            )
+          )
+        `)
+        .eq('user_id', session?.user?.id)
+        .eq('feedback_sent', false)
+        .order('start_time', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      return data.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        date: new Date(event.start_time),
+        location: event.location || "No location specified",
+        attendees: event.event_attendees?.map((ea: any) => ({
+          id: ea.contacts.id,
+          name: ea.contacts.name
+        })) || []
+      }));
+    },
+    enabled: !!session?.user?.id && !selectedEventId
+  });
+
+  // Filter contacts based on input
+  const filteredContacts = useMemo(() => {
+    if (!contactInput) return [];
+    const searchTerm = contactInput.toLowerCase();
+    return contacts.filter(contact => 
+      contact.name.toLowerCase().includes(searchTerm)
+    );
+  }, [contacts, contactInput]);
+
+  // Activity suggestions
+  const activitySuggestions = useMemo(() => {
+    const suggestions = [
+      { name: "Coffee Chat", category: "Social" },
+      { name: "Lunch Meeting", category: "Social" },
+      { name: "Dinner", category: "Social" },
+      { name: "Movie Night", category: "Entertainment" },
+      { name: "Game Night", category: "Entertainment" },
+      { name: "Workout Session", category: "Fitness" },
+      { name: "Study Group", category: "Education" },
+      { name: "Virtual Hangout", category: "Social" },
+      { name: "Walking", category: "Fitness" },
+      { name: "Birthday Party", category: "Celebration" }
+    ];
+
+    if (!manualActivity) return suggestions;
+    
+    const searchTerm = manualActivity.toLowerCase();
+    return suggestions.filter(activity =>
+      activity.name.toLowerCase().includes(searchTerm)
+    );
+  }, [manualActivity]);
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -587,7 +656,7 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                                   </Avatar>
                                   <span>{attendee.name}</span>
                                   {attendee.is_archived && (
-                                    <Archive className="h-3 w-3 text-muted-foreground" />
+                                    <Archive className="h-4 w-4 text-muted-foreground" />
                                   )}
                                   <button
                                     onClick={(e) => {

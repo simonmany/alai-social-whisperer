@@ -1,19 +1,18 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChatMessage } from "@/components/ChatMessage";
 import { TypewriterText } from "@/components/TypewriterText";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface GoalsSectionProps {
-  session: any;
   onComplete: (goals: string[]) => void;
   initialGoals?: string[];
   userName?: string;
 }
 
-export const GoalsSection = ({ session, onComplete, initialGoals, userName }: GoalsSectionProps) => {
+export const GoalsSection = ({ onComplete, initialGoals, userName }: GoalsSectionProps) => {
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialGoals || []);
   const [introCompleted, setIntroCompleted] = useState(false);
   const [showGoalsText, setShowGoalsText] = useState(false);
@@ -50,26 +49,13 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
       return;
     }
 
-    try {
-      await supabase
-        .from('profiles')
-        .update({ goals: selectedGoals })
-        .eq('id', session?.user.id);
-
-      onComplete(selectedGoals);
-    } catch (error: any) {
-      toast({
-        title: "Error saving goals",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
+    onComplete(selectedGoals);
   };
 
   return (
     <div className="space-y-4">
       {userName && (
-        <div className="text-lg font-medium mb-6">
+        <div className="text-xl font-cormorant mb-6">
           {introCompleted ? (
             <div>{`Nice to meet you, ${capitalizedName}!`}</div>
           ) : (
@@ -81,12 +67,13 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
                 setIntroCompleted(true);
                 setShowGoalsText(true);
               }}
+              className="text-xl font-cormorant"
             />
           )}
         </div>
       )}
       
-      <div className="text-lg">
+      <div className="text-xl font-cormorant">
         {showOptions ? (
           <div>Next, let's talk about your goals. Which of these are you interested in? You can choose multiple.</div>
         ) : showGoalsText && (
@@ -95,12 +82,13 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
             delay={250}
             typingSpeed={25}
             onComplete={() => setShowOptions(true)}
+            className="text-xl font-cormorant"
           />
         )}
       </div>
       
       <div className={cn(
-        "flex flex-wrap gap-2 transition-opacity duration-500",
+        "flex flex-col space-y-2 transition-opacity duration-500",
         showOptions ? "opacity-100" : "opacity-0"
       )}>
         {goals.map((goal) => (
@@ -108,7 +96,7 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
             key={goal}
             variant={selectedGoals.includes(goal) ? "default" : "outline"}
             onClick={() => handleGoalToggle(goal)}
-            className="transition-colors"
+            className="text-xl font-cormorant transition-colors w-full justify-start"
           >
             {goal}
           </Button>
@@ -118,7 +106,7 @@ export const GoalsSection = ({ session, onComplete, initialGoals, userName }: Go
       <Button 
         onClick={handleGoalsSubmit}
         className={cn(
-          "w-full transition-opacity duration-500",
+          "w-full text-xl font-cormorant transition-opacity duration-500",
           showOptions ? "opacity-100" : "opacity-0"
         )}
       >

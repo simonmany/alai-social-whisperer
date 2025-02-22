@@ -19,4 +19,16 @@ export interface Contact {
   instagram?: string;
   linkedin?: string;
   twitter?: string;
+  closeness?: number;
+}
+
+export interface ContactEvent {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  user_id: string;
+  created_at?: string;
+  updated_at?: string;
 }

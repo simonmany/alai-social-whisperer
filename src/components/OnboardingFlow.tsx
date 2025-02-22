@@ -1,21 +1,17 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
-import { BasicInfo } from "./onboarding/BasicInfo";
-import { GoalsSection } from "./onboarding/GoalsSection";
-import { GoalRankingSection } from "./onboarding/GoalRankingSection";
-import { DemographicsSection } from "./onboarding/DemographicsSection";
-import { PersonalityIntro } from "./onboarding/personality/PersonalityIntro";
-import { PersonalityQuestion } from "./onboarding/personality/PersonalityQuestion";
+import { BasicInfo } from "@/components/onboarding/BasicInfo";
+import { DemographicsSection } from "@/components/onboarding/DemographicsSection";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, SkipForward } from "lucide-react";
-import { generatePersonalityAnalysis } from "@/utils/openai";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, SkipForward, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { OnboardingState } from "@/types/onboarding";
-import type { Goal } from "@/types/goals";
+import type { OnboardingState, AIPreferencesResponse } from "@/types/onboarding";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -23,48 +19,11 @@ interface OnboardingFlowProps {
 
 type OnboardingStep = 
   | 'basic' 
-  | 'goals' 
-  | 'goals-ranking'
-  | 'personality-intro'
-  | 'personality-q1'
-  | 'personality-q2'
-  | 'personality-q3'
-  | 'personality-q4'
+  | 'contacts'
+  | 'priority-people'
   | 'interests'
   | 'future-interests'
   | 'demographics';
-
-interface AIPreferencesResponse {
-  response: string;
-  contacts?: any[]; // Adding this in case it's needed based on the response shape
-}
-
-const questions = [
-  {
-    id: 1,
-    text: "Do you consider yourself an introvert or an extrovert?",
-    leftLabel: "introvert",
-    rightLabel: "extrovert",
-  },
-  {
-    id: 2,
-    text: "Are you typically quiet or talkative in social settings?",
-    leftLabel: "Quality over quantity",
-    rightLabel: "adept conversationalist",
-  },
-  {
-    id: 3,
-    text: "Do you prefer to hang out with people one on one or in groups?",
-    leftLabel: "Love a duet",
-    rightLabel: "love an orchestra",
-  },
-  {
-    id: 4,
-    text: "Do you prefer to plan ahead or be spontaneous?",
-    leftLabel: "I live by my calendar",
-    rightLabel: "What's a calendar?",
-  },
-];
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<OnboardingStep>('basic');
@@ -77,10 +36,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [isLoadingPreferencesAi, setIsLoadingPreferencesAi] = useState(false);
   const [hasPlayedTypewriter, setHasPlayedTypewriter] = useState(false);
   const [hasPlayedFollowUp, setHasPlayedFollowUp] = useState(false);
+  const [hasPlayedIntroLine, setHasPlayedIntroLine] = useState(false);
+  const [hasPlayedPredictionLine, setHasPlayedPredictionLine] = useState(false);
   const followUpText = "Now, what are some **new** things you'd like to try?";
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
+  const [hasPlayedLine4, setHasPlayedLine4] = useState(false);
+  const [hasPlayedLine5, setHasPlayedLine5] = useState(false);
   const [isAnalyzingInterests, setIsAnalyzingInterests] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
   const [showFood, setShowFood] = useState(false);
@@ -88,29 +51,55 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showFutureActivities, setShowFutureActivities] = useState(false);
   const [showFutureFood, setShowFutureFood] = useState(false);
   const [showFutureMusic, setShowFutureMusic] = useState(false);
-  
+  const [priorityPerson, setPriorityPerson] = useState("");
+  const [otherPeople, setOtherPeople] = useState("");
+  const [showPriorityInput, setShowPriorityInput] = useState(false);
+  const [showOtherPeopleInput, setShowOtherPeopleInput] = useState(false);
+  const [priorityLine1, setPriorityLine1] = useState(false);
+  const [priorityLine2, setPriorityLine2] = useState(false);
+  const [priorityLine3, setPriorityLine3] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
+  const [hasPlayedActivitiesIntro, setHasPlayedActivitiesIntro] = useState(false);
+  const [hasPlayedFoodIntro, setHasPlayedFoodIntro] = useState(false);
+  const [priorityPersonName, setPriorityPersonName] = useState("");
+
+  useEffect(() => {
+    const fetchPriorityPerson = async () => {
+      if (session?.user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('catch_up_contacts')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.catch_up_contacts?.[0]) {
+          const { data: contact } = await supabase
+            .from('contacts')
+            .select('name')
+            .eq('id', profile.catch_up_contacts[0])
+            .single();
+
+          if (contact) {
+            setPriorityPersonName(contact.name);
+          }
+        }
+      }
+    };
+
+    fetchPriorityPerson();
+  }, [session?.user?.id]);
+
   const handleBack = () => {
     switch (step) {
-      case 'goals-ranking':
-        setStep('goals');
+      case 'contacts':
+        setStep('basic');
         break;
-      case 'personality-intro':
-        setStep('goals-ranking');
-        break;
-      case 'personality-q1':
-        setStep('personality-intro');
-        break;
-      case 'personality-q2':
-        setStep('personality-q1');
-        break;
-      case 'personality-q3':
-        setStep('personality-q2');
-        break;
-      case 'personality-q4':
-        setStep('personality-q3');
+      case 'priority-people':
+        setStep('contacts');
         break;
       case 'interests':
-        setStep('personality-q4');
+        setStep('priority-people');
         break;
       case 'future-interests':
         setStep('interests');
@@ -123,21 +112,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleSkip = async () => {
     switch (step) {
-      case 'goals-ranking':
-        setStep('personality-intro');
-        break;
-      case 'personality-q1':
-      case 'personality-q2':
-      case 'personality-q3':
-      case 'personality-q4':
-        const nextSteps: Record<string, OnboardingStep> = {
-          'personality-q1': 'personality-q2',
-          'personality-q2': 'personality-q3',
-          'personality-q3': 'personality-q4',
-          'personality-q4': 'interests'
-        };
-        setStep(nextSteps[step]);
-        break;
       case 'interests':
         setStep('future-interests');
         break;
@@ -147,70 +121,41 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
-  const handlePersonalityAnswer = async (questionIndex: number, value: number, comment: string) => {
-    const updatedTraits = { ...state.personalityTraits, [questions[questionIndex].id]: value };
-    const updatedComments = [...(state.personalityComments || [])];
-    updatedComments[questionIndex] = comment;
+  const handleProceedToFutureInterests = async () => {
+    if (canProceedToNextSection('current')) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ 
+            onboarding_completed: true,
+            onboarding_started_at: new Date().toISOString(),
+            onboarding_step: 'splash',
+            has_completed_tutorial: false
+          })
+          .eq('id', session?.user.id);
 
-    setState(prev => ({
-      ...prev,
-      personalityTraits: updatedTraits,
-      personalityComments: updatedComments
-    }));
-
-    setIsLoadingAi(true);
-    try {
-      const question = questions[questionIndex];
-      const responseType = value <= 40 ? question.leftLabel : value >= 80 ? question.rightLabel : "balanced";
-      let prompt = `We are talking about ${state.name}'s personality. For the question "${question.text}", they lean towards being ${responseType}`;
-      
-      if (comment.trim()) {
-        prompt += `. Also, ${state.name} said this in relation to the question: "${comment}"`;
+        onComplete();
+      } catch (error: any) {
+        console.error('Error completing onboarding:', error);
+        toast({
+          title: "Error completing onboarding",
+          description: "Please try again",
+          variant: "destructive",
+        });
       }
-      
-      const previousComments = updatedComments.filter((_, index) => index < questionIndex);
-      if (previousComments.length > 0) {
-        prompt += `. In previous questions, they've mentioned: "${previousComments.join('", "')}"`;
-      }
-      
-      prompt += `. Give a very brief (max 50 words) friendly insight about this aspect of their personality.`;
-
-      console.log('Personality Quiz - Model Input:', {
-        questionIndex,
-        questionText: question.text,
-        selectedValue: value,
-        responseType,
-        userComment: comment,
-        previousComments,
-        fullPrompt: prompt
-      });
-      
-      const aiResponse = await generatePersonalityAnalysis(prompt);
-      setAiResponse(aiResponse);
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-      toast({
-        title: "Error getting AI response",
-        description: "Please try again",
-        variant: "destructive",
-      });
     }
-    setIsLoadingAi(false);
+  };
 
-    const nextSteps: Record<number, OnboardingStep> = {
-      0: 'personality-q2',
-      1: 'personality-q3',
-      2: 'personality-q4',
-      3: 'interests'
-    };
-    setStep(nextSteps[questionIndex]);
+  const canProceedToNextSection = (section: 'current' | 'future') => {
+    if (section === 'current') {
+      return !!(state.currentInterests?.length || state.foodPreferences?.length || state.musicPreferences?.length);
+    } else {
+      return !!(state.desiredInterests?.length || state.desiredFoodPreferences?.length || state.desiredMusicPreferences?.length);
+    }
   };
 
   const showBackButton = step !== 'basic';
-  const showSkipButton = ['personality-q1', 'personality-q2', 'personality-q3', 'personality-q4', 'interests', 'future-interests'].includes(step);
-  const currentQuestionIndex = step.startsWith('personality-q') 
-    ? parseInt(step.charAt(step.length - 1)) - 1 
-    : -1;
+  const showSkipButton = ['interests', 'future-interests'].includes(step);
 
   const handleInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
     setState(prev => {
@@ -248,64 +193,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     });
   };
 
-  const canProceedToNextSection = (section: 'current' | 'future') => {
-    if (section === 'current') {
-      return !!(state.currentInterests?.length || state.foodPreferences?.length || state.musicPreferences?.length);
-    } else {
-      return !!(state.desiredInterests?.length || state.desiredFoodPreferences?.length || state.desiredMusicPreferences?.length);
-    }
-  };
-
-  const handleProceedToFutureInterests = async () => {
-    if (canProceedToNextSection('current')) {
-      setIsAnalyzingInterests(true);
-      setIsLoadingPreferencesAi(true);
-      console.log('Starting AI analysis of preferences:', {
-        activities: state.currentInterests,
-        food: state.foodPreferences,
-        music: state.musicPreferences
-      });
-
-      try {
-        const { data, error } = await supabase.functions.invoke('analyze-preferences', {
-          body: {
-            activities: state.currentInterests || [],
-            food: state.foodPreferences || [],
-            music: state.musicPreferences || [],
-            userId: session?.user.id
-          }
-        });
-
-        console.log('Received response from analyze-preferences:', data);
-
-        if (error) {
-          console.error('Error from analyze-preferences:', error);
-          throw error;
-        }
-
-        if (!data.response) {
-          console.error('No response received from analyze-preferences');
-          throw new Error('No response received from AI analysis');
-        }
-
-        console.log('Setting AI response:', data.response);
-        setAiPreferencesResponse(data.response);
-        
-      } catch (error: any) {
-        console.error('Error getting AI response:', error);
-        toast({
-          title: "Error getting AI response",
-          description: error.message || "Please try again",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingPreferencesAi(false);
-        setIsAnalyzingInterests(false);
-        setStep('future-interests');
-      }
-    }
-  };
-
   const handleFollowUpComplete = () => {
     setHasPlayedFollowUp(true);
     setShowFutureActivities(true);
@@ -313,24 +200,94 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     setTimeout(() => setShowFutureMusic(true), 1000);
   };
 
+  const handlePriorityPersonSubmit = async () => {
+    if (!priorityPerson.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: contact, error: contactError } = await supabase
+        .from('contacts')
+        .insert({
+          name: priorityPerson.trim(),
+          user_id: session?.user.id
+        })
+        .select()
+        .single();
+
+      if (contactError) throw contactError;
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          catch_up_contacts: [contact.id]
+        })
+        .eq('id', session?.user.id);
+
+      if (profileError) throw profileError;
+
+      setShowOtherPeopleInput(true);
+      setPriorityLine3(true);
+      setPriorityPerson(priorityPerson.trim());
+      setHasSubmittedOnce(true);
+    } catch (error: any) {
+      toast({
+        title: "Error adding contact",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOtherPeopleSubmit = async () => {
+    if (otherPeople.trim()) {
+      setIsSubmitting(true);
+      try {
+        const names = otherPeople
+          .split(',')
+          .map(name => name.trim())
+          .filter(name => name.length > 0);
+
+        const contacts = names.map(name => ({
+          name,
+          user_id: session?.user.id
+        }));
+
+        const { error } = await supabase
+          .from('contacts')
+          .insert(contacts);
+
+        if (error) throw error;
+      } catch (error: any) {
+        toast({
+          title: "Error adding contacts",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+    
+    setStep('interests');
+  };
+
+  const capitalizeFirstLetter = (str: string = "") => {
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-4">
         {showBackButton && (
-          <Button
-            variant="ghost"
-            onClick={handleBack}
-          >
+          <Button variant="ghost" onClick={handleBack}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back
           </Button>
         )}
         {showSkipButton && (
-          <Button
-            variant="ghost"
-            onClick={handleSkip}
-            className="ml-auto"
-          >
+          <Button variant="ghost" onClick={handleSkip} className="ml-auto">
             Skip
             <SkipForward className="ml-2 h-4 w-4" />
           </Button>
@@ -343,192 +300,308 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             session={session} 
             onComplete={(name) => {
               setState(prev => ({ ...prev, name }));
-              setStep('goals');
+              setStep('contacts');
             }}
             initialName={state.name}
           />
         )}
 
-        {step === 'goals' && (
-          <GoalsSection 
-            session={session} 
-            onComplete={(selectedGoals) => {
-              const goals: Goal[] = selectedGoals.map(type => ({
-                type,
-                description: "", // You might want to add descriptions here
-                timeframe: "long-term",
-                completed: false,
-                created_at: new Date().toISOString()
-              }));
-              
-              setState(prev => ({ ...prev, goals }));
-              if (goals.length > 1) {
-                setStep('goals-ranking');
-              } else {
-                setStep('personality-intro');
-              }
-            }}
-            initialGoals={state.goals?.map(g => g.type)}
-            userName={state.name}
-          />
-        )}
-
-        {step === 'goals-ranking' && state.goals && (
-          <GoalRankingSection
-            goals={state.goals}
-            onComplete={async (rankedGoals) => {
-              if (!session?.user?.id) return;
-
-              try {
-                const { error } = await supabase
-                  .from('profiles')
-                  .update({ 
-                    long_term_goals: rankedGoals
-                  })
-                  .eq('id', session.user.id);
-
-                if (error) throw error;
-
-                setState(prev => ({ 
-                  ...prev, 
-                  goals: rankedGoals 
-                }));
-                setStep('personality-intro');
-              } catch (error: any) {
-                console.error('Error updating ranked goals:', error);
-                toast({
-                  title: "Error saving goal rankings",
-                  description: error.message || "Please try again",
-                  variant: "destructive",
-                });
-              }
-            }}
-          />
-        )}
-
-        {step === 'personality-intro' && (
-          <PersonalityIntro
-            userName={state.name}
-            onStart={() => setStep('personality-q1')}
-          />
-        )}
-
-        {currentQuestionIndex >= 0 && (
-          <>
-            <div className="h-1 w-full bg-gray-200 rounded">
-              <div
-                className="h-1 bg-primary rounded transition-all duration-300"
-                style={{ width: `${((currentQuestionIndex + 1) / questions.length) * 100}%` }}
+        {step === 'contacts' && (
+          <div className="space-y-8">
+            {hasPlayedLine1 ? (
+              <div className="text-xl">{`Nice to meet you, ${capitalizeFirstLetter(state.name)}.`}</div>
+            ) : (
+              <TypewriterText
+                key="line1"
+                text={`Nice to meet you, ${capitalizeFirstLetter(state.name)}.`}
+                delay={250}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedLine1(true)}
+                className="text-xl"
               />
-            </div>
-            <PersonalityQuestion
-              question={questions[currentQuestionIndex]}
-              initialValue={state.personalityTraits?.[questions[currentQuestionIndex].id]}
-              aiResponse={aiResponse}
-              isLoadingAi={isLoadingAi}
-              onAnswer={(value, comment) => handlePersonalityAnswer(currentQuestionIndex, value, comment)}
-            />
-          </>
+            )}
+
+            {hasPlayedLine1 && (
+              hasPlayedLine3 ? (
+                <div className="text-xl">
+                  My goal is to help you be intentional about your relationships. That includes:
+                  <ul className="list-none space-y-2 mt-4 ml-4">
+                    <li>- best friends</li>
+                    <li>- new friends</li>
+                    <li>- old friends</li>
+                    <li>- family</li>
+                    <li>- lovers</li>
+                    <li>- work connections</li>
+                    <li>- and people you haven't even met yet.</li>
+                  </ul>
+                </div>
+              ) : (
+                <TypewriterText
+                  key="line3"
+                  text={`My goal is to help you be intentional about your relationships. That includes:\n- best friends\n- new friends\n- old friends\n- family\n- lovers\n- work connections\n- and people you haven't even met yet.`}
+                  delay={250}
+                  typingSpeed={25}
+                  onComplete={() => setHasPlayedLine3(true)}
+                  className="text-xl"
+                />
+              )
+            )}
+
+            {hasPlayedLine3 && (
+              hasPlayedLine4 ? (
+                <div className="text-xl">It's a lot to process - that's why I'm here.</div>
+              ) : (
+                <TypewriterText
+                  key="line4"
+                  text="It's a lot to process - that's why I'm here."
+                  delay={250}
+                  typingSpeed={25}
+                  onComplete={() => setHasPlayedLine4(true)}
+                  className="text-xl"
+                />
+              )
+            )}
+
+            {hasPlayedLine4 && (
+              hasPlayedLine5 ? (
+                <div className="text-xl">Connect your contacts to get started - I'll never share your info with anyone else.</div>
+              ) : (
+                <TypewriterText
+                  key="line5"
+                  text="Connect your contacts to get started - I'll never share your info with anyone else."
+                  delay={250}
+                  typingSpeed={25}
+                  onComplete={() => setHasPlayedLine5(true)}
+                  className="text-xl"
+                />
+              )
+            )}
+
+            {hasPlayedLine5 && (
+              <div className="flex flex-col space-y-4 mt-8">
+                <Button 
+                  onClick={() => setStep('priority-people')}
+                  className="w-full"
+                >
+                  Connect Contacts
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => setStep('priority-people')}
+                  className="w-full"
+                >
+                  Not Now
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {step === 'priority-people' && (
+          <div className="space-y-8">
+            {hasPlayedIntroLine ? (
+              <div className="text-xl">
+                I'm all about helping you see the people you want to see.
+              </div>
+            ) : (
+              <TypewriterText
+                key="intro"
+                text="I'm all about helping you see the people you want to see."
+                delay={250}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedIntroLine(true)}
+                className="text-xl"
+              />
+            )}
+
+            {hasPlayedIntroLine && (
+              hasPlayedPredictionLine ? (
+                <div className="text-xl">
+                  Over time, I'll get better at predicting this, but we've only just met -
+                </div>
+              ) : (
+                <TypewriterText
+                  key="prediction"
+                  text="Over time, I'll get better at predicting this, but we've only just met -"
+                  delay={250}
+                  typingSpeed={25}
+                  onComplete={() => {
+                    setHasPlayedPredictionLine(true);
+                    setPriorityLine1(true);
+                    setPriorityLine2(true);
+                  }}
+                  className="text-xl"
+                />
+              )
+            )}
+
+            {priorityLine2 && (
+              <>
+                {showPriorityInput ? (
+                  <div className="text-xl">
+                    So, without thinking too hard, who's the first person you want to see?
+                  </div>
+                ) : (
+                  <TypewriterText
+                    key="priority2"
+                    text="So, without thinking too hard, who's the first person you want to see?"
+                    delay={250}
+                    typingSpeed={25}
+                    onComplete={() => setShowPriorityInput(true)}
+                    className="text-xl"
+                  />
+                )}
+
+                {showPriorityInput && (
+                  <div className="space-y-4">
+                    <Input
+                      value={priorityPerson}
+                      onChange={(e) => setPriorityPerson(e.target.value)}
+                      placeholder="Enter name"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handlePriorityPersonSubmit();
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={handlePriorityPersonSubmit}
+                      className="w-full"
+                      disabled={!priorityPerson.trim() || isSubmitting}
+                      variant={hasSubmittedOnce ? "outline" : "default"}
+                    >
+                      {hasSubmittedOnce ? "Update" : "Submit"}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {priorityLine3 && (
+              <>
+                {showOtherPeopleInput ? (
+                  <div className="text-xl">
+                    Got it. Did anyone else come to mind? Feel free to add as many as you like.
+                  </div>
+                ) : (
+                  <TypewriterText
+                    key="priority3"
+                    text="Got it. Did anyone else come to mind? Feel free to add as many as you like."
+                    delay={250}
+                    typingSpeed={25}
+                    onComplete={() => setShowOtherPeopleInput(true)}
+                    className="text-xl"
+                  />
+                )}
+
+                {showOtherPeopleInput && (
+                  <div className="space-y-4">
+                    <Textarea
+                      value={otherPeople}
+                      onChange={(e) => setOtherPeople(e.target.value)}
+                      placeholder="Enter names (separated by commas)"
+                    />
+                    <Button 
+                      onClick={handleOtherPeopleSubmit}
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
+                      {otherPeople.trim() ? "Submit" : "Skip"}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         )}
 
         {step === 'interests' && (
           <div className="space-y-8">
-            <div>
-              {hasPlayedLine1 ? (
-                <div>{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
+            {hasPlayedLine1 ? (
+              <div className="text-xl">
+                Nice. We'll focus on making sure you see {priorityPersonName} and your other friends soon.
+              </div>
+            ) : (
+              <TypewriterText
+                key="line1"
+                text={`Nice. We'll focus on making sure you see ${priorityPersonName} and your other friends soon.`}
+                delay={250}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedLine1(true)}
+                className="text-xl"
+              />
+            )}
+
+            {hasPlayedLine1 && (
+              hasPlayedActivitiesIntro ? (
+                <div className="text-xl">
+                  Just one more thing - I'm curious how you like to spend your time. What are some things you like to do for fun?
+                </div>
               ) : (
                 <TypewriterText
-                  key="line1"
-                  text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
+                  key="activities-intro"
+                  text="Just one more thing - I'm curious how you like to spend your time. What are some things you like to do for fun?"
                   delay={250}
                   typingSpeed={25}
-                  onComplete={() => setHasPlayedLine1(true)}
+                  onComplete={() => {
+                    setHasPlayedActivitiesIntro(true);
+                    setShowActivities(true);
+                  }}
+                  className="text-xl"
                 />
-              )}
+              )
+            )}
 
-              {hasPlayedLine1 && (
-                hasPlayedLine2 ? (
-                  <div>Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to.</div>
-                ) : (
-                  <TypewriterText
-                    key="line2"
-                    text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
-                    delay={250}
-                    typingSpeed={25}
-                    onComplete={() => setHasPlayedLine2(true)}
-                  />
-                )
-              )}
+            {showActivities && (
+              <div>
+                <InterestSelector
+                  type="activities"
+                  onComplete={(selections) => {
+                    handleInterestComplete('activities')(selections);
+                    setShowFood(true);
+                    setHasPlayedFoodIntro(true);
+                  }}
+                  placeholder="Type to search activities..."
+                  minSelections={1}
+                  value={state.currentInterests}
+                  onChange={(selections) => {
+                    setState(prev => ({ ...prev, currentInterests: selections }));
+                  }}
+                />
+              </div>
+            )}
 
-              {hasPlayedLine2 && (
-                hasPlayedLine3 ? (
-                  <div>This'll help me recommend things you love.</div>
-                ) : (
-                  <TypewriterText
-                    key="line3"
-                    text="This'll help me recommend things you love."
-                    delay={250}
-                    typingSpeed={25}
-                    onComplete={() => {
-                      setHasPlayedLine3(true);
-                      setShowActivities(true);
-                      setTimeout(() => setShowFood(true), 500);
-                      setTimeout(() => setShowMusic(true), 1000);
+            {showFood && (
+              <>
+                {hasPlayedFoodIntro && (
+                  <div className="text-xl">
+                    We all gotta eat as well. What are your favorite types of food?
+                  </div>
+                )}
+                <div>
+                  <InterestSelector
+                    type="food"
+                    onComplete={handleInterestComplete('food')}
+                    placeholder="Type your favorite cuisines and dishes..."
+                    minSelections={1}
+                    value={state.foodPreferences}
+                    onChange={(selections) => {
+                      setState(prev => ({ ...prev, foodPreferences: selections }));
                     }}
                   />
-                )
-              )}
-            </div>
+                </div>
+              </>
+            )}
 
-            <div className="transition-opacity duration-500" style={{ opacity: showActivities ? 1 : 0 }}>
-              <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
-              <InterestSelector
-                type="activities"
-                onComplete={handleInterestComplete('activities')}
-                placeholder="Type to search activities..."
-                minSelections={1}
-                value={state.currentInterests}
-                onChange={(selections) => {
-                  setState(prev => ({ ...prev, currentInterests: selections }));
-                }}
-              />
-            </div>
-
-            <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFood ? 1 : 0 }}>
-              <h3 className="text-base font-medium mb-4">Food Preferences</h3>
-              <InterestSelector
-                type="food"
-                onComplete={handleInterestComplete('food')}
-                placeholder="Type your favorite cuisines and dishes..."
-                minSelections={1}
-                value={state.foodPreferences}
-                onChange={(selections) => {
-                  setState(prev => ({ ...prev, foodPreferences: selections }));
-                }}
-              />
-            </div>
-
-            <div className="transition-opacity duration-500 mt-8" style={{ opacity: showMusic ? 1 : 0 }}>
-              <h3 className="text-base font-medium mb-4">Music Preferences</h3>
-              <InterestSelector
-                type="music"
-                onComplete={handleInterestComplete('music')}
-                placeholder="Type your favorite music genres..."
-                minSelections={1}
-                value={state.musicPreferences}
-                onChange={(selections) => {
-                  setState(prev => ({ ...prev, musicPreferences: selections }));
-                }}
-              />
-            </div>
-
-            {canProceedToNextSection('current') && (
+            {(state.currentInterests?.length ?? 0) > 0 && 
+             (state.foodPreferences?.length ?? 0) > 0 && (
               <Button 
                 onClick={handleProceedToFutureInterests}
                 className="w-full mt-8"
                 disabled={isAnalyzingInterests}
               >
-                {isAnalyzingInterests ? "Analyzing your interests..." : "Next"}
+                {isAnalyzingInterests ? "Analyzing your interests..." : "Finish"}
               </Button>
             )}
           </div>
@@ -536,10 +609,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'future-interests' && (
           <div className="space-y-8">
-            <div>
+            <div className="space-y-8">
               {isLoadingPreferencesAi ? (
-                <div className="text-lg mb-8">
-                  <div className="animate-pulse">Thinking about your interests...</div>
+                <div className="text-lg animate-pulse">
+                  Thinking about your interests...
                 </div>
               ) : aiPreferencesResponse ? (
                 <div className="space-y-8">
@@ -578,31 +651,13 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     )}
                   </div>
                 </div>
-              ) : (
-                <div className="space-y-8">
-                  <div className="text-lg">
-                    <div>No worries - you can always tell me about your interests later.</div>
-                  </div>
-                  <div className="text-lg mb-16">
-                    {hasPlayedFollowUp ? (
-                      <div dangerouslySetInnerHTML={{ 
-                        __html: followUpText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') 
-                      }} />
-                    ) : (
-                      <TypewriterText
-                        key="followup"
-                        text={followUpText}
-                        delay={250}
-                        typingSpeed={25}
-                        onComplete={handleFollowUpComplete}
-                      />
-                    )}
-                  </div>
-                </div>
-              )}
+              ) : null}
 
               <div>
-                <div className="transition-opacity duration-500" style={{ opacity: showFutureActivities ? 1 : 0 }}>
+                <div className={cn(
+                  "transition-opacity duration-500",
+                  showFutureActivities ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
                   <InterestSelector
                     type="activities"
@@ -616,7 +671,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                 </div>
 
-                <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureFood ? 1 : 0 }}>
+                <div className={cn(
+                  "transition-opacity duration-500 mt-8",
+                  showFutureFood ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Food Preferences</h3>
                   <InterestSelector
                     type="food"
@@ -630,7 +688,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   />
                 </div>
 
-                <div className="transition-opacity duration-500 mt-8" style={{ opacity: showFutureMusic ? 1 : 0 }}>
+                <div className={cn(
+                  "transition-opacity duration-500 mt-8",
+                  showFutureMusic ? "opacity-100" : "opacity-0"
+                )}>
                   <h3 className="text-base font-medium mb-4">Music Preferences</h3>
                   <InterestSelector
                     type="music"

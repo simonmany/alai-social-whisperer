@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,9 +21,9 @@ interface InterestSelectorProps {
 }
 
 export const InterestSelector = ({ 
-  onComplete, 
-  placeholder = "Type to search or add new activities...",
+  onComplete,
   minSelections = 1,
+  placeholder = "Type to search activities...",
   type = 'activities',
   value = [],
   onChange
@@ -172,13 +173,18 @@ export const InterestSelector = ({
     }
   };
 
+  const handleSubmit = () => {
+    onComplete(value);
+  };
+
   return (
     <div className="space-y-4">
       <Input
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
-        onKeyDown={handleInputKeyDown}
         placeholder={placeholder}
+        className="text-xl font-cormorant"
+        onKeyDown={handleInputKeyDown}
       />
       
       {filteredItems.length > 0 && (
@@ -187,7 +193,7 @@ export const InterestSelector = ({
             <Button
               key={item.id}
               variant="ghost"
-              className="w-full justify-start"
+              className="w-full justify-start text-xl font-cormorant"
               onClick={() => handleItemSelect(item.name)}
             >
               {item.name}
@@ -202,13 +208,22 @@ export const InterestSelector = ({
             key={item}
             variant="secondary"
             onClick={() => handleItemSelect(item)}
-            className="group"
+            className="group text-xl font-cormorant"
           >
             {item}
             <span className="ml-2 opacity-0 group-hover:opacity-100">×</span>
           </Button>
         ))}
       </div>
+
+      {value.length > 0 && (
+        <div className="flex justify-between items-center">
+          <p className="text-xl font-cormorant text-gray-500">
+            {value.length} selected (minimum {minSelections})
+          </p>
+          <Button onClick={handleSubmit} className="text-xl font-cormorant">Continue</Button>
+        </div>
+      )}
     </div>
   );
 };

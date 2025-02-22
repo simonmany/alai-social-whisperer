@@ -19,6 +19,5 @@ export interface AIPreferencesResponse {
   contacts?: Array<{
     name: string;
     relationship?: string;
-    // Add other contact properties as needed
   }>;
 }

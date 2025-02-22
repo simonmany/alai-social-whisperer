@@ -6,21 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Phone, Instagram, Linkedin, Twitter, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Contact } from "@/types/contacts";
 
-export interface Contact {
-  id?: string;
-  user_id: string;
-  name: string;
-  phone: string;
-  instagram: string;
-  linkedin: string;
-  twitter: string;
-  photo?: string;
-  is_archived: boolean;
-  meeting_story: string;
-  relationship: string;
-  created_at: string;
-}
 interface ContactsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -54,51 +41,46 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
     if (!name) return;
 
     try {
-      const newContact: Contact = {
+      const newContact: Omit<Contact, 'id'> = {
         user_id: userId,
         name: name,
         phone: phone,
         instagram: instagram,
         linkedin: linkedin,
         twitter: twitter,
-        photo: photo,
-        meeting_story: meetingStory,
+        meetingStory: meetingStory,
         relationship: relationship,
         is_archived: false,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        interests: [] // Initialize with empty array
       };
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      // First, try to fetch all contacts with similar names to avoid duplicates
       const { data: existingContacts } = await supabase
         .from('contacts')
         .select('name')
         .ilike('name', `%${name}%`)
         .eq('user_id', user.id);
 
-      // Check if we might be creating a duplicate
       if (existingContacts && existingContacts.some(contact => 
         contact.name.toLowerCase() === name.toLowerCase()
       )) {
         console.log('Found potential duplicate contact:', name);
-        // You might want to show a warning to the user here
       }
 
-      // Insert contact into database
       const { data, error } = await supabase
-      .from('contacts')
-      .insert([newContact])
-      .select()
-      .single();
+        .from('contacts')
+        .insert([newContact])
+        .select()
+        .single();
 
       if (error) {
         console.error('Error inserting contact:', error);
         throw new Error(`Error inserting contact: ${error.message}`);
       }
 
-      // Generate message for chat
       let contactsString = "";
       if (phone) contactsString += `📱 ${phone} `;
       if (instagram) contactsString += `📸 @${instagram} `;
@@ -109,10 +91,19 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
         contactsString ? `Their contacts are ${contactsString.trim()}.` : ""
       } They are... ${relationship}`;
 
-      onSubmit(message, data);
+      if (data) {
+        const processedData: Contact = {
+          ...data,
+          interests: Array.isArray(data.interests) 
+            ? data.interests.map(i => String(i)) // Convert each interest to string
+            : []
+        };
+        onSubmit(message, processedData);
+      }
+
       onOpenChange(false);
       
-      // Reset form
+      // Reset form fields
       setName("");
       setPhone("");
       setInstagram("");
@@ -123,7 +114,6 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
       setRelationship("");
     } catch (error) {
       console.error('Error in handleSubmit:', error);
-      // You might want to show an error message to the user here
     }
   };
 
@@ -136,126 +126,77 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
         
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="name">Name*</Label>
-            <div className="flex gap-2">
-              <User className="w-4 h-4 mt-3" />
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="flex-1"
-              />
-            </div>
+            <Label htmlFor="name">Name</Label>
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter their name..."
+            />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="phone">Phone #</Label>
-            <div className="flex gap-2">
-              <Phone className="w-4 h-4 mt-3" />
-              <Input
-                id="phone"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="flex-1"
-              />
-            </div>
+            <Label htmlFor="phone">Phone</Label>
+            <Input
+              id="phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Enter their phone number..."
+            />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="instagram">Instagram</Label>
-            <div className="flex gap-2">
-              <Instagram className="w-4 h-4 mt-3" />
-              <Input
-                id="instagram"
-                value={instagram}
-                onChange={(e) => setInstagram(e.target.value)}
-                className="flex-1"
-              />
-            </div>
+            <Input
+              id="instagram"
+              value={instagram}
+              onChange={(e) => setInstagram(e.target.value)}
+              placeholder="Enter their Instagram handle..."
+            />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="linkedin">LinkedIn</Label>
-            <div className="flex gap-2">
-              <Linkedin className="w-4 h-4 mt-3" />
-              <Input
-                id="linkedin"
-                value={linkedin}
-                onChange={(e) => setLinkedin(e.target.value)}
-                className="flex-1"
-              />
-            </div>
+            <Input
+              id="linkedin"
+              value={linkedin}
+              onChange={(e) => setLinkedin(e.target.value)}
+              placeholder="Enter their LinkedIn profile..."
+            />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="twitter">Twitter</Label>
-            <div className="flex gap-2">
-              <Twitter className="w-4 h-4 mt-3" />
-              <Input
-                id="twitter"
-                value={twitter}
-                onChange={(e) => setTwitter(e.target.value)}
-                className="flex-1"
-              />
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="photo">Profile Photo URL</Label>
             <Input
-              id="photo"
-              value={photo}
-              onChange={(e) => setPhoto(e.target.value)}
+              id="twitter"
+              value={twitter}
+              onChange={(e) => setTwitter(e.target.value)}
+              placeholder="Enter their Twitter handle..."
             />
           </div>
 
           <div className="grid gap-2">
-            <Label>How'd you meet?</Label>
+            <Label htmlFor="meetingStory">How did you meet?</Label>
             <Input
+              id="meetingStory"
               value={meetingStory}
               onChange={(e) => setMeetingStory(e.target.value)}
-              placeholder="Tell us your story..."
+              placeholder="Tell me how you met..."
             />
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium mb-1">Suggestions:</p>
-              {meetingSuggestions.map((suggestion) => (
-                <p
-                  key={suggestion}
-                  className="italic cursor-pointer hover:text-foreground"
-                  onClick={() => setMeetingStory(suggestion)}
-                >
-                  • {suggestion}
-                </p>
-              ))}
-            </div>
           </div>
 
           <div className="grid gap-2">
-            <Label>Who are they?</Label>
+            <Label htmlFor="relationship">Relationship</Label>
             <Input
+              id="relationship"
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
-              placeholder="Tell us about them..."
+              placeholder="What's your relationship?"
             />
-            <div className="text-sm text-muted-foreground">
-              <p className="font-medium mb-1">Suggestions:</p>
-              {relationshipSuggestions.map((suggestion) => (
-                <p
-                  key={suggestion}
-                  className="italic cursor-pointer hover:text-foreground"
-                  onClick={() => setRelationship(suggestion)}
-                >
-                  • {suggestion}
-                </p>
-              ))}
-            </div>
           </div>
 
-          <Button 
-            onClick={handleSubmit}
-            disabled={!name}
-          >
-            Submit
+          <Button onClick={handleSubmit} className="w-full">
+            Add Contact
           </Button>
         </div>
       </DialogContent>
@@ -264,4 +205,3 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
 };
 
 export default ContactsDialog;
-
