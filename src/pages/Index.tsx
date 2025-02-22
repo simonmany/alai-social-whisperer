@@ -26,6 +26,18 @@ interface Message {
   contactInfo?: Contact;
 }
 
+interface ChatHistoryMessage {
+  message: string;
+  is_ai: boolean;
+  is_secret: boolean;
+  user_id: string;
+  id: string;
+  created_at: string;
+  evening_checkin: boolean;
+  morning_checkin: boolean;
+  is_onboarding_message: boolean;
+}
+
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -90,11 +102,10 @@ const Index = () => {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const historyMessages = data.map(msg => ({
+          const historyMessages = (data as ChatHistoryMessage[]).map(msg => ({
             content: msg.message,
             isAl: msg.is_ai,
             is_secret: msg.is_secret,
-            contactInfo: msg.contact_info
           }));
           setMessages(historyMessages);
         } else {
