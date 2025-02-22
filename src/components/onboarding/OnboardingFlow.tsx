@@ -17,7 +17,6 @@ interface OnboardingFlowProps {
 
 type OnboardingStep = 
   | 'basic' 
-  | 'contacts'
   | 'interests'
   | 'future-interests'
   | 'demographics';
@@ -37,8 +36,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
-  const [hasPlayedLine4, setHasPlayedLine4] = useState(false);
-  const [hasPlayedLine5, setHasPlayedLine5] = useState(false);
   const [isAnalyzingInterests, setIsAnalyzingInterests] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
   const [showFood, setShowFood] = useState(false);
@@ -49,11 +46,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleBack = () => {
     switch (step) {
-      case 'contacts':
-        setStep('basic');
-        break;
       case 'interests':
-        setStep('contacts');
+        setStep('basic');
         break;
       case 'future-interests':
         setStep('interests');
@@ -128,10 +122,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const showBackButton = step !== 'basic';
   const showSkipButton = ['interests', 'future-interests'].includes(step);
 
-  const capitalizeFirstLetter = (str: string = "") => {
-    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
-  };
-
   const handleInterestComplete = (category: 'activities' | 'food' | 'music') => (selections: string[]) => {
     setState(prev => {
       const newState = { ...prev };
@@ -198,203 +188,104 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             session={session} 
             onComplete={(name) => {
               setState(prev => ({ ...prev, name }));
-              setStep('contacts');
+              setStep('interests');
             }}
             initialName={state.name}
           />
         )}
 
-        {step === 'contacts' && (
-          <div className="space-y-8">
-            {hasPlayedLine1 ? (
-              <div className="text-lg">{`Nice to meet you, ${capitalizeFirstLetter(state.name)}.`}</div>
-            ) : (
-              <TypewriterText
-                key="line1"
-                text={`Nice to meet you, ${capitalizeFirstLetter(state.name)}.`}
-                delay={250}
-                typingSpeed={25}
-                onComplete={() => setHasPlayedLine1(true)}
-              />
-            )}
-
-            {hasPlayedLine1 && (
-              hasPlayedLine2 ? (
-                <div className="text-lg">Let's get to know each other.</div>
-              ) : (
-                <TypewriterText
-                  key="line2"
-                  text="Let's get to know each other."
-                  delay={250}
-                  typingSpeed={25}
-                  onComplete={() => setHasPlayedLine2(true)}
-                />
-              )
-            )}
-
-            {hasPlayedLine2 && (
-              hasPlayedLine3 ? (
-                <div className="text-lg">
-                  My goal is to help you be intentional about your relationships. That includes:
-                  <ul className="list-none space-y-2 mt-4 ml-4">
-                    <li>- best friends</li>
-                    <li>- new friends</li>
-                    <li>- old friends</li>
-                    <li>- family</li>
-                    <li>- lovers</li>
-                    <li>- work connections</li>
-                    <li>- and people you haven't even met yet.</li>
-                  </ul>
-                </div>
-              ) : (
-                <TypewriterText
-                  key="line3"
-                  text={`My goal is to help you be intentional about your relationships. That includes:\n- best friends\n- new friends\n- old friends\n- family\n- lovers\n- work connections\n- and people you haven't even met yet.`}
-                  delay={250}
-                  typingSpeed={25}
-                  onComplete={() => setHasPlayedLine3(true)}
-                />
-              )
-            )}
-
-            {hasPlayedLine3 && (
-              hasPlayedLine4 ? (
-                <div className="text-lg">It's a lot to process - that's why I'm here.</div>
-              ) : (
-                <TypewriterText
-                  key="line4"
-                  text="It's a lot to process - that's why I'm here."
-                  delay={250}
-                  typingSpeed={25}
-                  onComplete={() => setHasPlayedLine4(true)}
-                />
-              )
-            )}
-
-            {hasPlayedLine4 && (
-              hasPlayedLine5 ? (
-                <div className="text-lg">Connect your contacts to get started - I'll never share your info with anyone else.</div>
-              ) : (
-                <TypewriterText
-                  key="line5"
-                  text="Connect your contacts to get started - I'll never share your info with anyone else."
-                  delay={250}
-                  typingSpeed={25}
-                  onComplete={() => setHasPlayedLine5(true)}
-                />
-              )
-            )}
-
-            {hasPlayedLine5 && (
-              <div className="flex flex-col space-y-4 mt-8">
-                <Button 
-                  onClick={() => setStep('interests')}
-                  className="w-full"
-                >
-                  Connect Contacts
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => setStep('interests')}
-                  className="w-full"
-                >
-                  Not Now
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
         {step === 'interests' && (
           <div className="space-y-8">
-            {hasPlayedLine1 ? (
-              <div>{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
-            ) : (
-              <TypewriterText
-                key="line1"
-                text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
-                delay={250}
-                typingSpeed={25}
-                onComplete={() => setHasPlayedLine1(true)}
-              />
-            )}
-
-            {hasPlayedLine1 && (
-              hasPlayedLine2 ? (
-                <div>Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to.</div>
+            <div>
+              {hasPlayedLine1 ? (
+                <div>{`I'm looking forward to getting to know you even better over time, ${state.name}.`}</div>
               ) : (
                 <TypewriterText
-                  key="line2"
-                  text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
+                  key="line1"
+                  text={`I'm looking forward to getting to know you even better over time, ${state.name}.`}
                   delay={250}
                   typingSpeed={25}
-                  onComplete={() => {
-                    setHasPlayedLine2(true);
-                    setShowActivities(true);
-                    setTimeout(() => setShowFood(true), 500);
-                    setTimeout(() => setShowMusic(true), 1000);
-                  }}
+                  onComplete={() => setHasPlayedLine1(true)}
                 />
-              )
-            )}
+              )}
 
-            <div className={cn(
-              "space-y-8 mt-8",
-              showActivities ? "opacity-100" : "opacity-0",
-              "transition-opacity duration-500"
-            )}>
-              <div>
-                <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
-                <InterestSelector
-                  type="activities"
-                  onComplete={handleInterestComplete('activities')}
-                  placeholder="Type to search activities..."
-                  minSelections={1}
-                  value={state.currentInterests}
-                  onChange={(selections) => {
-                    setState(prev => ({ ...prev, currentInterests: selections }));
-                  }}
-                />
+              {hasPlayedLine1 && (
+                hasPlayedLine2 ? (
+                  <div>Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to.</div>
+                ) : (
+                  <TypewriterText
+                    key="line2"
+                    text="Now, let's talk about what you like to do for fun, what you like to eat, and what you like to listen to."
+                    delay={250}
+                    typingSpeed={25}
+                    onComplete={() => {
+                      setHasPlayedLine2(true);
+                      setShowActivities(true);
+                      setTimeout(() => setShowFood(true), 500);
+                      setTimeout(() => setShowMusic(true), 1000);
+                    }}
+                  />
+                )
+              )}
+
+              <div className={cn(
+                "space-y-8 mt-8",
+                showActivities ? "opacity-100" : "opacity-0",
+                "transition-opacity duration-500"
+              )}>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Activities & Hobbies</h3>
+                  <InterestSelector
+                    type="activities"
+                    onComplete={handleInterestComplete('activities')}
+                    placeholder="Type to search activities..."
+                    minSelections={1}
+                    value={state.currentInterests}
+                    onChange={(selections) => {
+                      setState(prev => ({ ...prev, currentInterests: selections }));
+                    }}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className={cn(
-              "space-y-8 mt-8",
-              showFood ? "opacity-100" : "opacity-0",
-              "transition-opacity duration-500"
-            )}>
-              <div>
-                <h3 className="text-base font-medium mb-4">Food Preferences</h3>
-                <InterestSelector
-                  type="food"
-                  onComplete={handleInterestComplete('food')}
-                  placeholder="Type your favorite cuisines and dishes..."
-                  minSelections={1}
-                  value={state.foodPreferences}
-                  onChange={(selections) => {
-                    setState(prev => ({ ...prev, foodPreferences: selections }));
-                  }}
-                />
+              <div className={cn(
+                "space-y-8 mt-8",
+                showFood ? "opacity-100" : "opacity-0",
+                "transition-opacity duration-500"
+              )}>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Food Preferences</h3>
+                  <InterestSelector
+                    type="food"
+                    onComplete={handleInterestComplete('food')}
+                    placeholder="Type your favorite cuisines and dishes..."
+                    minSelections={1}
+                    value={state.foodPreferences}
+                    onChange={(selections) => {
+                      setState(prev => ({ ...prev, foodPreferences: selections }));
+                    }}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className={cn(
-              "space-y-8 mt-8",
-              showMusic ? "opacity-100" : "opacity-0",
-              "transition-opacity duration-500"
-            )}>
-              <div>
-                <h3 className="text-base font-medium mb-4">Music Preferences</h3>
-                <InterestSelector
-                  type="music"
-                  onComplete={handleInterestComplete('music')}
-                  placeholder="Type your favorite music genres..."
-                  minSelections={1}
-                  value={state.musicPreferences}
-                  onChange={(selections) => {
-                    setState(prev => ({ ...prev, musicPreferences: selections }));
-                  }}
-                />
+              <div className={cn(
+                "space-y-8 mt-8",
+                showMusic ? "opacity-100" : "opacity-0",
+                "transition-opacity duration-500"
+              )}>
+                <div>
+                  <h3 className="text-base font-medium mb-4">Music Preferences</h3>
+                  <InterestSelector
+                    type="music"
+                    onComplete={handleInterestComplete('music')}
+                    placeholder="Type your favorite music genres..."
+                    minSelections={1}
+                    value={state.musicPreferences}
+                    onChange={(selections) => {
+                      setState(prev => ({ ...prev, musicPreferences: selections }));
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
