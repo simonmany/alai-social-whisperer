@@ -41,6 +41,8 @@ const Index = () => {
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<string>("");
 
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
@@ -783,6 +785,18 @@ const Index = () => {
   };
 
   const handleTutorialAction = async () => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.contactInfo) {
+      setSelectedContact(lastMessage.contactInfo);
+      
+      if (lastMessage.contactInfo.interests && lastMessage.contactInfo.interests.length > 0) {
+        const randomInterest = lastMessage.contactInfo.interests[
+          Math.floor(Math.random() * lastMessage.contactInfo.interests.length)
+        ];
+        setSelectedActivity(randomInterest);
+      }
+    }
+
     await supabase
       .from('chat_history')
       .insert([{
@@ -887,9 +901,11 @@ const Index = () => {
         onOpenChange={setIsProfileOpen}
       />
       <PlanningDialog 
-        open={isPlanningOpen} 
+        open={isPlanningOpen}
         onOpenChange={setIsPlanningOpen}
         onSubmit={handlePlanSubmit}
+        defaultContacts={selectedContact ? [selectedContact] : []}
+        defaultActivity={selectedActivity}
       />
       <FeedbackDialog
         open={isFeedbackOpen}
