@@ -34,6 +34,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
+      console.log('Fetching profile for tutorial:', session.user.id);
       const { data, error } = await supabase
         .from('profiles')
         .select('onboarding_step, has_completed_tutorial, goals, display_name')
@@ -49,6 +50,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
         });
         throw error;
       }
+      console.log('Fetched profile for tutorial:', data);
       return data;
     },
     enabled: !!session?.user?.id,
@@ -56,6 +58,16 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * Math.pow(2, attemptIndex), 10000)
   });
+
+  useEffect(() => {
+    if (!isProfileLoading) {
+      console.log('Tutorial profile state:', {
+        step: profile?.onboarding_step,
+        hasCompletedTutorial: profile?.has_completed_tutorial,
+        isProfileOpen
+      });
+    }
+  }, [profile, isProfileLoading, isProfileOpen]);
 
   useEffect(() => {
     if (profile?.onboarding_step === 'profileintro' && isProfileOpen) {
@@ -79,7 +91,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [profile?.goals, profile?.onboarding_step, isUpdatingStep]);
 
-  // Handle completion message and cleanup
   useEffect(() => {
     if (showCompletionMessage) {
       const completionTimeout = setTimeout(() => {
@@ -98,7 +109,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
 
       return () => {
         clearTimeout(completionTimeout);
-        // Ensure tutorial is marked as complete even if user navigates away
         if (session?.user?.id) {
           supabase
             .from('profiles')
@@ -110,14 +120,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
   }, [showCompletionMessage, session?.user?.id]);
 
   const updatePositions = () => {
-    // Add a safety check for the container
     const container = document.body;
     if (!container) return;
 
     if (profile?.onboarding_step === 'calendarintro') {
       const calendarButton = document.querySelector('[aria-label="Open calendar"]');
       if (!calendarButton) {
-        // If button not found, skip to next step after delay
         setTimeout(() => handleStepChange('contactsintro'), 1000);
         return;
       }
@@ -186,14 +194,12 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     updatePositions();
     window.addEventListener('resize', updatePositions);
     
-    // Add a small delay to ensure the DOM is fully rendered
     const timeout = setTimeout(updatePositions, 100);
     
     return () => {
       window.removeEventListener('resize', updatePositions);
       clearTimeout(timeout);
       
-      // If tutorial is interrupted, mark it as completed
       if (session?.user?.id && profile?.onboarding_step && profile.onboarding_step !== 'complete') {
         supabase
           .from('profiles')
@@ -228,7 +234,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
           return;
         }
         
-        // Only show error toast on final retry
         if (i === retryCount - 1) {
           toast({
             title: "Error updating tutorial progress",
@@ -239,7 +244,6 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
       } catch (error) {
         console.error('Error updating step:', error);
       }
-      // Wait before retry
       if (i < retryCount - 1) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }

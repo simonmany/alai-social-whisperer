@@ -128,7 +128,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           .from('profiles')
           .update({ 
             onboarding_completed: true,
-            onboarding_started_at: new Date().toISOString()
+            onboarding_started_at: new Date().toISOString(),
+            onboarding_step: 'splash',
+            has_completed_tutorial: false
           })
           .eq('id', session?.user.id);
 
