@@ -7,7 +7,9 @@ import { BasicInfo } from "@/components/onboarding/BasicInfo";
 import { DemographicsSection } from "@/components/onboarding/DemographicsSection";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, SkipForward } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, SkipForward, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OnboardingState, AIPreferencesResponse } from "@/types/onboarding";
 
@@ -18,6 +20,7 @@ interface OnboardingFlowProps {
 type OnboardingStep = 
   | 'basic' 
   | 'contacts'
+  | 'priority-people'
   | 'interests'
   | 'future-interests'
   | 'demographics';
@@ -46,14 +49,25 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [showFutureActivities, setShowFutureActivities] = useState(false);
   const [showFutureFood, setShowFutureFood] = useState(false);
   const [showFutureMusic, setShowFutureMusic] = useState(false);
+  const [priorityPerson, setPriorityPerson] = useState("");
+  const [otherPeople, setOtherPeople] = useState("");
+  const [showPriorityInput, setShowPriorityInput] = useState(false);
+  const [showOtherPeopleInput, setShowOtherPeopleInput] = useState(false);
+  const [priorityLine1, setPriorityLine1] = useState(false);
+  const [priorityLine2, setPriorityLine2] = useState(false);
+  const [priorityLine3, setPriorityLine3] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleBack = () => {
     switch (step) {
       case 'contacts':
         setStep('basic');
         break;
-      case 'interests':
+      case 'priority-people':
         setStep('contacts');
+        break;
+      case 'interests':
+        setStep('priority-people');
         break;
       case 'future-interests':
         setStep('interests');
@@ -169,6 +183,77 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     setShowFutureActivities(true);
     setTimeout(() => setShowFutureFood(true), 500);
     setTimeout(() => setShowFutureMusic(true), 1000);
+  };
+
+  const handlePriorityPersonSubmit = async () => {
+    if (!priorityPerson.trim()) return;
+    
+    setIsSubmitting(true);
+    try {
+      const { data: contact, error: contactError } = await supabase
+        .from('contacts')
+        .insert({
+          name: priorityPerson.trim(),
+          user_id: session?.user.id
+        })
+        .select()
+        .single();
+
+      if (contactError) throw contactError;
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          catch_up_contacts: [contact.id]
+        })
+        .eq('id', session?.user.id);
+
+      if (profileError) throw profileError;
+
+      setShowOtherPeopleInput(true);
+      setPriorityLine3(true);
+    } catch (error: any) {
+      toast({
+        title: "Error adding contact",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOtherPeopleSubmit = async () => {
+    if (otherPeople.trim()) {
+      setIsSubmitting(true);
+      try {
+        const names = otherPeople
+          .split(',')
+          .map(name => name.trim())
+          .filter(name => name.length > 0);
+
+        const contacts = names.map(name => ({
+          name,
+          user_id: session?.user.id
+        }));
+
+        const { error } = await supabase
+          .from('contacts')
+          .insert(contacts);
+
+        if (error) throw error;
+      } catch (error: any) {
+        toast({
+          title: "Error adding contacts",
+          description: error.message,
+          variant: "destructive",
+        });
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+    
+    setStep('interests');
   };
 
   const capitalizeFirstLetter = (str: string = "") => {
@@ -291,6 +376,106 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   Not Now
                 </Button>
               </div>
+            )}
+          </div>
+        )}
+
+        {step === 'priority-people' && (
+          <div className="space-y-8">
+            {priorityLine1 ? (
+              <div className="text-xl">
+                I'm all about helping you see the people you want to see. Over time, I'll get better at predicting this, but we've only just met -
+              </div>
+            ) : (
+              <TypewriterText
+                key="priority1"
+                text="I'm all about helping you see the people you want to see. Over time, I'll get better at predicting this, but we've only just met -"
+                delay={250}
+                typingSpeed={25}
+                onComplete={() => {
+                  setPriorityLine1(true);
+                  setPriorityLine2(true);
+                }}
+                className="text-xl"
+              />
+            )}
+
+            {priorityLine2 && (
+              <>
+                {showPriorityInput ? (
+                  <div className="text-xl">
+                    So, without thinking too hard, who's the first person you want to see?
+                  </div>
+                ) : (
+                  <TypewriterText
+                    key="priority2"
+                    text="So, without thinking too hard, who's the first person you want to see?"
+                    delay={250}
+                    typingSpeed={25}
+                    onComplete={() => setShowPriorityInput(true)}
+                    className="text-xl"
+                  />
+                )}
+
+                {showPriorityInput && (
+                  <div className="space-y-4">
+                    <Input
+                      value={priorityPerson}
+                      onChange={(e) => setPriorityPerson(e.target.value)}
+                      placeholder="Enter name"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handlePriorityPersonSubmit();
+                        }
+                      }}
+                    />
+                    <Button 
+                      onClick={handlePriorityPersonSubmit}
+                      className="w-full"
+                      disabled={!priorityPerson.trim() || isSubmitting}
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {priorityLine3 && (
+              <>
+                {showOtherPeopleInput ? (
+                  <div className="text-xl">
+                    Got it. Did anyone else come to mind? Feel free to add as many as you like.
+                  </div>
+                ) : (
+                  <TypewriterText
+                    key="priority3"
+                    text="Got it. Did anyone else come to mind? Feel free to add as many as you like."
+                    delay={250}
+                    typingSpeed={25}
+                    onComplete={() => setShowOtherPeopleInput(true)}
+                    className="text-xl"
+                  />
+                )}
+
+                {showOtherPeopleInput && (
+                  <div className="space-y-4">
+                    <Textarea
+                      value={otherPeople}
+                      onChange={(e) => setOtherPeople(e.target.value)}
+                      placeholder="Enter names (separated by commas)"
+                    />
+                    <Button 
+                      onClick={handleOtherPeopleSubmit}
+                      className="w-full"
+                      disabled={isSubmitting}
+                    >
+                      {otherPeople.trim() ? "Submit" : "Skip"}
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
