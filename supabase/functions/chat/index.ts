@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ChitChatAgent } from "./agents/chitchat.ts";
+import { HangPlannerAgent } from "./agents/hangplanner.ts";
 
 enum ConversationType {
   CHAT = 'CHAT',
@@ -54,6 +55,13 @@ serve(async (req: Request) => {
       const chitChatAgent = new ChitChatAgent(openAIApiKey);
       const { parsedResponse, contacts } = await chitChatAgent.chat(userId, message, contactInfo, secretMessage);
       return new Response(JSON.stringify({ response: parsedResponse, contacts }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    if (conversationType === ConversationType.HANG_PLANNER) {
+      const hangPlannerAgent = new HangPlannerAgent(openAIApiKey);
+      const { parsedResponse } = await hangPlannerAgent.chat(userId, message, contactInfo, secretMessage);
+      return new Response(JSON.stringify({ response: parsedResponse }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

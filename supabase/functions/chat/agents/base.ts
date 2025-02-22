@@ -60,6 +60,25 @@ export abstract class Agent {
     return profile;
   }
 
+  protected filterUserProfile(profile: any) {
+    let profileData = Object.fromEntries(
+      Object.entries({
+        username: profile.username,
+        goals: profile.goals,
+        personality_comments: profile.personality_comments,
+        current_interests: profile.current_interests,
+        desired_interests: profile.desired_interests,
+        age: profile.age,
+        city: profile.city,
+        languages: profile.languages,
+        relationship_status: profile.relationship_status,
+        gender: profile.gender,
+        occupation: profile.occupation,
+      }).filter(([_, value]) => value != null && value !== '')
+    );
+    return profileData
+  }
+
   protected async getUserContacts(userId: string) {
     const { data: contacts } = await supabase
       .from('contacts')

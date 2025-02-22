@@ -27,6 +27,7 @@ import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 interface Message {
   content: string;
   isAl: boolean;
+  is_secret?: boolean;
   contacts?: {
     name: string;
     phone?: string;
@@ -295,6 +296,7 @@ const Index = () => {
             const newMessage = {
               content: payload.new.message,
               isAl: payload.new.is_ai,
+              is_secret: payload.new.is_secret,
               contacts: payload.new.contact_info
             };
             setMessages(prev => [...prev, newMessage]);

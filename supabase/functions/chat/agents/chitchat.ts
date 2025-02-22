@@ -240,22 +240,7 @@ export class ChitChatAgent extends Agent {
   }
 
   private buildContext(profile: any) {
-    let profileData = Object.fromEntries(
-      Object.entries({
-        username: profile.username,
-        goals: profile.goals,
-        personality_comments: profile.personality_comments,
-        current_interests: profile.current_interests,
-        desired_interests: profile.desired_interests,
-        age: profile.age,
-        city: profile.city,
-        languages: profile.languages,
-        relationship_status: profile.relationship_status,
-        gender: profile.gender,
-        occupation: profile.occupation,
-      }).filter(([_, value]) => value != null && value !== '')
-    );
-
+    let profileData = this.filterUserProfile(profile)
     const context = {
       user: profileData,
     };
