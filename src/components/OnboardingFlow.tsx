@@ -151,65 +151,102 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handleFinishOnboarding = async () => {
-    if (!session?.user?.id) return;
+    console.log('handleFinishOnboarding called');
+    console.log('Current interests:', state.currentInterests);
+    console.log('Session user:', session?.user?.id);
+
+    if (!session?.user?.id) {
+      console.error('No session user found');
+      return;
+    }
     
     try {
-      if (state.currentInterests?.length) {
-        await supabase
-          .from('profiles')
-          .update({ 
-            current_interests: state.currentInterests,
-            onboarding_completed: true,
-            onboarding_started_at: new Date().toISOString(),
-            onboarding_step: 'splash',
-            has_completed_tutorial: false
-          })
-          .eq('id', session.user.id);
+      console.log('Starting onboarding completion...');
+      
+      // First update the profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          current_interests: state.currentInterests || [],
+          onboarding_completed: true,
+          onboarding_started_at: new Date().toISOString(),
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
+        })
+        .eq('id', session.user.id);
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('catch_up_contacts')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (profile?.catch_up_contacts?.[0]) {
-          await supabase
-            .from('contacts')
-            .update({ 
-              interests: state.currentInterests 
-            })
-            .eq('id', profile.catch_up_contacts[0]);
-        }
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        throw profileError;
       }
 
-      const { data: profileData } = await supabase
+      console.log('Profile updated successfully');
+
+      // Get user info for welcome message
+      const { data: profileData, error: fetchError } = await supabase
         .from('profiles')
         .select('display_name, catch_up_contacts')
         .eq('id', session.user.id)
         .single();
 
+      if (fetchError) {
+        console.error('Error fetching profile:', fetchError);
+        throw fetchError;
+      }
+
+      console.log('Profile data fetched:', profileData);
+
       let contactName = '';
       if (profileData?.catch_up_contacts?.[0]) {
-        const { data: contact } = await supabase
+        const { data: contact, error: contactError } = await supabase
           .from('contacts')
           .select('name')
           .eq('id', profileData.catch_up_contacts[0])
           .single();
 
+        if (contactError) {
+          console.error('Error fetching contact:', contactError);
+          throw contactError;
+        }
+
         if (contact) {
           contactName = contact.name;
+          
+          // Update contact interests
+          const { error: updateError } = await supabase
+            .from('contacts')
+            .update({ 
+              interests: state.currentInterests || []
+            })
+            .eq('id', profileData.catch_up_contacts[0]);
+
+          if (updateError) {
+            console.error('Error updating contact:', updateError);
+            throw updateError;
+          }
         }
       }
 
-      await supabase
+      console.log('Contact data processed');
+
+      // Clear existing onboarding messages
+      const { error: deleteError } = await supabase
         .from('chat_history')
         .delete()
         .eq('user_id', session.user.id)
         .eq('is_onboarding_message', true);
 
+      if (deleteError) {
+        console.error('Error clearing chat history:', deleteError);
+        throw deleteError;
+      }
+
+      console.log('Chat history cleared');
+
+      // Create welcome message
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
 
-      await supabase
+      const { error: insertError } = await supabase
         .from('chat_history')
         .insert([{
           message: welcomeMessage,
@@ -218,9 +255,18 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           is_onboarding_message: true
         }]);
 
+      if (insertError) {
+        console.error('Error inserting welcome message:', insertError);
+        throw insertError;
+      }
+
+      console.log('Welcome message created');
+      console.log('Calling onComplete...');
+
+      // Complete onboarding
       onComplete();
     } catch (error: any) {
-      console.error('Error completing onboarding:', error);
+      console.error('Error in handleFinishOnboarding:', error);
       toast({
         title: "Error completing onboarding",
         description: error.message || "Please try again",
@@ -800,13 +846,17 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <InterestSelector
                   type="activities"
                   onComplete={(selections) => {
-                    handleInterestComplete('activities')(selections);
-                    setState(prev => ({ ...prev, currentInterests: selections }));
+                    console.log('InterestSelector onComplete with selections:', selections);
+                    setState(prev => {
+                      console.log('Updating state with selections:', selections);
+                      return { ...prev, currentInterests: selections };
+                    });
                   }}
                   placeholder="Type to search activities..."
                   minSelections={1}
                   value={state.currentInterests}
                   onChange={(selections) => {
+                    console.log('InterestSelector onChange with selections:', selections);
                     setState(prev => ({ ...prev, currentInterests: selections }));
                   }}
                 />
@@ -815,7 +865,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
             {(state.currentInterests?.length ?? 0) > 0 && (
               <Button 
-                onClick={handleFinishOnboarding}
+                onClick={() => {
+                  console.log('Finish button clicked');
+                  handleFinishOnboarding();
+                }}
                 className="w-full mt-8"
               >
                 Finish
