@@ -150,6 +150,69 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     }
   };
 
+  const handleFinishOnboarding = async () => {
+    if (!session?.user?.id) return;
+
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_started_at: new Date().toISOString(),
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
+        })
+        .eq('id', session.user.id);
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('display_name, catch_up_contacts')
+        .eq('id', session.user.id)
+        .single();
+
+      let contactData = null;
+      let contactName = '';
+      if (profileData?.catch_up_contacts?.[0]) {
+        const { data: contact } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('id', profileData.catch_up_contacts[0])
+          .single();
+
+        if (contact) {
+          contactName = contact.name;
+          contactData = contact;
+        }
+      }
+
+      await supabase
+        .from('chat_history')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('is_onboarding_message', true);
+
+      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
+
+      await supabase
+        .from('chat_history')
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
+
+      onComplete();
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleProceedToFutureInterests = async () => {
     if (canProceedToNextSection('current')) {
       try {
@@ -759,7 +822,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
             {(state.currentInterests?.length ?? 0) > 0 && (
               <Button 
-                onClick={handleProceedToFutureInterests}
+                onClick={handleFinishOnboarding}
                 className="w-full mt-8"
               >
                 Finish
