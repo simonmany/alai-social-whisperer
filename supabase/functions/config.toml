@@ -78,3 +78,18 @@ cors_headers = [
   "Content-Type",
   "X-Client-Info"
 ]
+
+[[functions]]
+name = "summarize-chat"
+verify_jwt = true
+cors_origins = [
+  "http://localhost:*",
+  "https://alai-social-whisperer.com",
+  "https://preview--alai-social-whisperer.lovable.app"
+]
+cors_headers = [
+  "Authorization",
+  "apikey",
+  "Content-Type",
+  "X-Client-Info"
+]

@@ -1,5 +1,6 @@
-import { serve } from "std/http/server.ts";
-import { createClient } from '@supabase/supabase-js';
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,7 +22,7 @@ async function callOpenAI(apiKey: string, messages: any[]) {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4',
       messages,
       temperature: 0.7,
       max_tokens: 800,
@@ -128,7 +129,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: 'Summary stored successfully' }),
+      JSON.stringify({ success: true, summary }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
