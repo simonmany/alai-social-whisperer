@@ -63,6 +63,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedActivitiesIntro, setHasPlayedActivitiesIntro] = useState(false);
   const [hasPlayedFoodIntro, setHasPlayedFoodIntro] = useState(false);
   const [priorityPersonName, setPriorityPersonName] = useState("");
+  const [hasPlayedLine3Part1, setHasPlayedLine3Part1] = useState(false);
+  const [hasPlayedLine3Part2, setHasPlayedLine3Part2] = useState(false);
+  const [hasPlayedLine3Part3, setHasPlayedLine3Part3] = useState(false);
+  const [hasPlayedLine3Part4, setHasPlayedLine3Part4] = useState(false);
+  const [hasPlayedLine3Part5, setHasPlayedLine3Part5] = useState(false);
+  const [hasPlayedLine3Part6, setHasPlayedLine3Part6] = useState(false);
+  const [hasPlayedLine3Part7, setHasPlayedLine3Part7] = useState(false);
+  const [hasPlayedLine3Part8, setHasPlayedLine3Part8] = useState(false);
 
   useEffect(() => {
     const fetchPriorityPerson = async () => {
@@ -336,29 +344,122 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             )}
 
             {hasPlayedLine1 && (
-              hasPlayedLine3 ? (
-                <div className="text-xl">
-                  My goal is to help you be intentional about your relationships. That includes:
+              <div className="text-xl space-y-2">
+                {hasPlayedLine3Part1 ? (
+                  <div>My goal is to help you be intentional about your relationships. That includes:</div>
+                ) : (
+                  <TypewriterText
+                    key="line3-part1"
+                    text="My goal is to help you be intentional about your relationships. That includes:"
+                    delay={250}
+                    typingSpeed={25}
+                    onComplete={() => setHasPlayedLine3Part1(true)}
+                  />
+                )}
+
+                {hasPlayedLine3Part1 && (
                   <ul className="list-none space-y-2 mt-4 ml-4">
-                    <li>- best friends</li>
-                    <li>- new friends</li>
-                    <li>- old friends</li>
-                    <li>- family</li>
-                    <li>- lovers</li>
-                    <li>- work connections</li>
-                    <li>- and people you haven't even met yet.</li>
+                    {hasPlayedLine3Part2 ? (
+                      <li>- best friends</li>
+                    ) : (
+                      <TypewriterText
+                        key="line3-part2"
+                        text="- best friends"
+                        delay={250}
+                        typingSpeed={25}
+                        onComplete={() => setHasPlayedLine3Part2(true)}
+                      />
+                    )}
+
+                    {hasPlayedLine3Part2 && (
+                      hasPlayedLine3Part3 ? (
+                        <li>- new friends</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part3"
+                          text="- new friends"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part3(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part3 && (
+                      hasPlayedLine3Part4 ? (
+                        <li>- old friends</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part4"
+                          text="- old friends"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part4(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part4 && (
+                      hasPlayedLine3Part5 ? (
+                        <li>- family</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part5"
+                          text="- family"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part5(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part5 && (
+                      hasPlayedLine3Part6 ? (
+                        <li>- lovers</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part6"
+                          text="- lovers"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part6(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part6 && (
+                      hasPlayedLine3Part7 ? (
+                        <li>- work connections</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part7"
+                          text="- work connections"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part7(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part7 && (
+                      hasPlayedLine3Part8 ? (
+                        <li>- and people you haven't even met yet.</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part8"
+                          text="- and people you haven't even met yet."
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => {
+                            setHasPlayedLine3Part8(true);
+                            setHasPlayedLine3(true);
+                          }}
+                        />
+                      )
+                    )}
                   </ul>
-                </div>
-              ) : (
-                <TypewriterText
-                  key="line3"
-                  text={`My goal is to help you be intentional about your relationships. That includes:\n- best friends\n- new friends\n- old friends\n- family\n- lovers\n- work connections\n- and people you haven't even met yet.`}
-                  delay={250}
-                  typingSpeed={25}
-                  onComplete={() => setHasPlayedLine3(true)}
-                  className="text-xl"
-                />
-              )
+                )}
+              </div>
             )}
 
             {hasPlayedLine3 && (
