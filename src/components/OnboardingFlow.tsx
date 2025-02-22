@@ -36,6 +36,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [isLoadingPreferencesAi, setIsLoadingPreferencesAi] = useState(false);
   const [hasPlayedTypewriter, setHasPlayedTypewriter] = useState(false);
   const [hasPlayedFollowUp, setHasPlayedFollowUp] = useState(false);
+  const [hasPlayedIntroLine, setHasPlayedIntroLine] = useState(false);
+  const [hasPlayedPredictionLine, setHasPlayedPredictionLine] = useState(false);
   const followUpText = "Now, what are some **new** things you'd like to try?";
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
@@ -385,25 +387,42 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'priority-people' && (
           <div className="space-y-8">
-            {priorityLine1 ? (
+            {hasPlayedIntroLine ? (
               <div className="text-xl">
                 I'm all about helping you see the people you want to see.
-                <br />
-                <br />
-                Over time, I'll get better at predicting this, but we've only just met -
               </div>
             ) : (
               <TypewriterText
-                key="priority1"
-                text="I'm all about helping you see the people you want to see.\n\nOver time, I'll get better at predicting this, but we've only just met -"
+                key="intro"
+                text="I'm all about helping you see the people you want to see."
                 delay={250}
                 typingSpeed={25}
                 onComplete={() => {
-                  setPriorityLine1(true);
-                  setPriorityLine2(true);
+                  setHasPlayedIntroLine(true);
+                  setHasPlayedPredictionLine(true);
                 }}
-                className="text-xl whitespace-pre-line"
+                className="text-xl"
               />
+            )}
+
+            {hasPlayedPredictionLine && (
+              hasPlayedLine1 ? (
+                <div className="text-xl">
+                  Over time, I'll get better at predicting this, but we've only just met -
+                </div>
+              ) : (
+                <TypewriterText
+                  key="prediction"
+                  text="Over time, I'll get better at predicting this, but we've only just met -"
+                  delay={250}
+                  typingSpeed={25}
+                  onComplete={() => {
+                    setPriorityLine1(true);
+                    setPriorityLine2(true);
+                  }}
+                  className="text-xl"
+                />
+              )
             )}
 
             {priorityLine2 && (
