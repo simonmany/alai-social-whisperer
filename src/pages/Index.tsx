@@ -35,23 +35,113 @@ const Index = () => {
   const [isContactsOpen, setIsContactsOpen] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
+  const [tutorialComplete, setTutorialComplete] = useState(false);
+  const [showProfileButton, setShowProfileButton] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<string>("");
-
-  const [tutorialComplete, setTutorialComplete] = useState(false);
-  const [showProfileButton, setShowProfileButton] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+
+  // Check onboarding status
+  useEffect(() => {
+    const checkOnboardingStatus = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) throw error;
+
+        console.log('Onboarding status:', data?.onboarding_completed);
+        setShowOnboarding(!data?.onboarding_completed);
+      } catch (error) {
+        console.error('Error checking onboarding status:', error);
+      }
+    };
+
+    checkOnboardingStatus();
+  }, [session?.user?.id]);
+
+  // Load chat history
+  useEffect(() => {
+    const loadChatHistory = async () => {
+      if (!session?.user?.id) return;
+
+      try {
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+        
+        const { data, error } = await supabase
+          .from('chat_history')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .gte('created_at', startOfDay)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          const historyMessages = data.map(msg => ({
+            content: msg.message,
+            isAl: msg.is_ai,
+            is_secret: msg.is_secret,
+            contactInfo: msg.contact_info
+          }));
+          setMessages(historyMessages);
+        } else {
+          setMessages([{ 
+            content: "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?", 
+            isAl: true 
+          }]);
+        }
+      } catch (error) {
+        console.error('Error loading chat history:', error);
+      }
+    };
+
+    loadChatHistory();
+  }, [session?.user?.id, showOnboarding]);
+
+  const handleOnboardingComplete = async () => {
+    console.log('Completing onboarding...');
+    setShowOnboarding(false);
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+    
+    // Force reload chat history after onboarding completion
+    if (session?.user?.id) {
+      const { data } = await supabase
+        .from('chat_history')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('is_onboarding_message', true)
+        .order('created_at', { ascending: true });
+
+      if (data) {
+        const historyMessages = data.map(msg => ({
+          content: msg.message,
+          isAl: msg.is_ai,
+          is_secret: msg.is_secret,
+          contactInfo: msg.contact_info
+        }));
+        setMessages(historyMessages);
+      }
+    }
+  };
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
 
   const handleStartTutorial = async () => {
     if (!session?.user.id) return;
@@ -256,54 +346,6 @@ const Index = () => {
   };
 
   useEffect(() => {
-    const loadChatHistory = async () => {
-      if (!session?.user.id) return;
-
-      try {
-        console.log('Loading chat history for user:', session.user.id);
-        
-        const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-        
-        const { data, error } = await supabase
-          .from('chat_history')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .gte('created_at', startOfDay)
-          .order('created_at', { ascending: true });
-
-        if (error) {
-          console.error('Error fetching chat history:', error);
-          throw error;
-        }
-
-        console.log('Received chat history:', data);
-
-        if (data && data.length > 0) {
-          const historyMessages = data.map(msg => ({
-            content: msg.message,
-            isAl: msg.is_ai,
-            is_secret: msg.is_secret
-          }));
-          console.log('Setting messages:', historyMessages);
-          setMessages(historyMessages);
-        } else {
-          console.log('No chat history found, setting initial message');
-          setMessages([{ 
-            content: "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?", 
-            isAl: true 
-          }]);
-        }
-      } catch (error: any) {
-        console.error('Error loading chat history:', error);
-        toast({
-          title: "Error loading chat history",
-          description: error.message || "Please try refreshing the page",
-          variant: "destructive",
-        });
-      }
-    };
-
     const setupMessagesSubscription = () => {
       if (!session?.user.id) return;
 
@@ -338,11 +380,10 @@ const Index = () => {
       };
     };
 
-    loadChatHistory();
-    const cleanup = setupMessagesSubscription();
+    setupMessagesSubscription();
 
     return () => {
-      if (cleanup) cleanup();
+      cleanup && cleanup();
     };
   }, [session?.user.id, toast]);
 
@@ -816,6 +857,8 @@ const Index = () => {
 
     setIsPlanningOpen(true);
   };
+
+  let cleanup: () => void | undefined;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
