@@ -19,6 +19,7 @@ export interface Contact {
   twitter?: string | null;
   closeness?: number | null;
   photo?: string | null;
+  updated_at?: string;
 }
 
 export interface ContactEvent {
@@ -30,4 +31,15 @@ export interface ContactEvent {
   user_id: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface PlanningDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (message: string) => void;
+  defaultContact?: string;
+  defaultContacts?: Contact[];
+  defaultActivity?: string;
+  defaultLocation?: string;
+  defaultDate?: Date;
 }

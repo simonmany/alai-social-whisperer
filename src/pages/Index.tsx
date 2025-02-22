@@ -76,7 +76,7 @@ const Index = () => {
   const { session } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: profile } = useQuery({
+  const { data: userProfile } = useQuery({
     queryKey: ['profile', session?.user?.id],
     queryFn: async () => {
       if (!session?.user?.id) return null;
@@ -851,12 +851,14 @@ const Index = () => {
         open={isProfileOpen} 
         onOpenChange={setIsProfileOpen}
       />
+      
       <PlanningDialog
         open={isPlanningOpen}
         onOpenChange={setIsPlanningOpen}
         onSubmit={handlePlanSubmit}
-        defaultContact={profile?.catch_up_contacts?.[0]}
+        defaultContact={userProfile?.catch_up_contacts?.[0]}
       />
+      
       <FeedbackDialog
         open={isFeedbackOpen}
         onOpenChange={setIsFeedbackOpen}
