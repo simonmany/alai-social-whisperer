@@ -39,7 +39,12 @@ export const ContactsCombobox = ({ value, onValueChange }: ContactsComboboxProps
           .order('name');
         
         if (data && !error) {
-          setContacts(data);
+          // Ensure interests is always an array
+          const formattedContacts = data.map(contact => ({
+            ...contact,
+            interests: Array.isArray(contact.interests) ? contact.interests : []
+          })) as Contact[];
+          setContacts(formattedContacts);
         }
       }
     };

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -29,15 +30,20 @@ const PlanningDialog = ({
       if (defaultContact && session?.user?.id) {
         const { data, error } = await supabase
           .from('contacts')
-          .select('*, interests')
+          .select('*')
           .eq('id', defaultContact)
           .single();
         
         if (data && !error) {
-          setSelectedContact(data);
+          const contact = {
+            ...data,
+            interests: Array.isArray(data.interests) ? data.interests : []
+          } as Contact;
+          
+          setSelectedContact(contact);
           // If the contact has interests, select one randomly
-          if (data.interests && Array.isArray(data.interests) && data.interests.length > 0) {
-            const randomActivity = data.interests[Math.floor(Math.random() * data.interests.length)];
+          if (contact.interests && contact.interests.length > 0) {
+            const randomActivity = contact.interests[Math.floor(Math.random() * contact.interests.length)];
             setSelectedActivity(randomActivity);
           }
         }

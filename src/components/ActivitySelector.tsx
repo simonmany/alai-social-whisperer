@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,9 +30,9 @@ export const ActivitySelector = ({ contact, value, onValueChange }: ActivitySele
 
   useEffect(() => {
     const loadActivities = async () => {
-      if (contact?.interests) {
+      if (contact?.interests && Array.isArray(contact.interests)) {
         // If the contact has interests, use those
-        setActivities(Array.isArray(contact.interests) ? contact.interests : []);
+        setActivities(contact.interests);
       } else {
         // Otherwise, load from activities table
         const { data, error } = await supabase
