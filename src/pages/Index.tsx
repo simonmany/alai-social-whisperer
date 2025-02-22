@@ -124,27 +124,69 @@ const Index = () => {
 
   const handleOnboardingComplete = async () => {
     console.log('Completing onboarding...');
-    setShowOnboarding(false);
-    queryClient.invalidateQueries({ queryKey: ['profile'] });
+    if (!session?.user?.id) return;
     
-    // Force reload chat history after onboarding completion
-    if (session?.user?.id) {
-      const { data } = await supabase
-        .from('chat_history')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('is_onboarding_message', true)
-        .order('created_at', { ascending: true });
+    try {
+      setShowOnboarding(false);
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
 
-      if (data) {
-        const historyMessages = data.map(msg => ({
-          content: msg.message,
-          isAl: msg.is_ai,
-          is_secret: msg.is_secret,
-          contactInfo: msg.contact_info
-        }));
-        setMessages(historyMessages);
+      // Get profile data
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('display_name, catch_up_contacts')
+        .eq('id', session.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Get contact data if available
+      let contactData = null;
+      let contactName = '';
+      if (profileData?.catch_up_contacts?.[0]) {
+        const { data: contact, error: contactError } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('id', profileData.catch_up_contacts[0])
+          .single();
+
+        if (!contactError && contact) {
+          contactName = contact.name;
+          contactData = contact;
+        }
       }
+
+      // Create welcome message
+      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
+
+      // Insert welcome message
+      await supabase
+        .from('chat_history')
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
+      
+      // Update local state
+      setTutorialComplete(false);
+      setShowProfileButton(false);
+      setMessages([
+        { content: welcomeMessage, isAl: true },
+        { 
+          content: "Let's go!", 
+          isAl: false, 
+          is_secret: true,
+          contactInfo: contactData || undefined
+        }
+      ]);
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
@@ -767,9 +809,9 @@ const Index = () => {
     };
 
     const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
-    const instagram = contacts.match(/📸 @([^💼🐦\s]+)/)?.[1]?.trim();
-    const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
-    const twitter = contacts.match(/🐦 @([^\s]+)/)?.[1]?.trim();
+    const instagram = contacts.match(/📸 @([^📸💼🐦\s]+)/)?.[1]?.trim();
+    const linkedin = contacts.match(/💼 ([^📸💼🐦\s]+)/)?.[1]?.trim();
+    const twitter = contacts.match(/🐦 @([^📸💼🐦\s]+)/)?.[1]?.trim();
 
     if (!phone || !instagram || !linkedin || !twitter) return undefined;
     // If the user did not provide any other information, let the LLM take care of it
@@ -781,67 +823,6 @@ const Index = () => {
       linkedin,
       twitter,
     };
-  };
-
-  const handleOnboardingComplete = async () => {
-    if (!session?.user?.id) return;
-
-    try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('display_name, catch_up_contacts')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      let contactData = null;
-      let contactName = '';
-      if (profileData?.catch_up_contacts?.[0]) {
-        const { data: contact, error: contactError } = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('id', profileData.catch_up_contacts[0])
-          .single();
-
-        if (!contactError && contact) {
-          contactName = contact.name;
-          contactData = contact;
-        }
-      }
-
-      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
-
-      await supabase
-        .from('chat_history')
-        .insert([{
-          message: welcomeMessage,
-          is_ai: true,
-          user_id: session.user.id,
-          is_onboarding_message: true
-        }]);
-      
-      setTutorialComplete(false);
-      setShowProfileButton(false);
-      setMessages([
-        { content: welcomeMessage, isAl: true },
-        { 
-          content: "Let's go!", 
-          isAl: false, 
-          is_secret: true,
-          contactInfo: contactData || undefined
-        }
-      ]);
-      
-      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
-    } catch (error: any) {
-      console.error('Error completing onboarding:', error);
-      toast({
-        title: "Error completing onboarding",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleTutorialAction = async () => {
