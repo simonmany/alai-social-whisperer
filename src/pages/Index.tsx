@@ -413,9 +413,9 @@ const Index = () => {
 
   useEffect(() => {
     const state = location.state as { prompt?: string };
-    if (state?.prompt) {
+    if (state?.prompt && location.pathname === '/') {
       handleSend(state.prompt);
-      navigate(location.pathname, { replace: true, state: {} });
+      navigate('/', { replace: true, state: {} });
     }
   }, [location.state]);
 
