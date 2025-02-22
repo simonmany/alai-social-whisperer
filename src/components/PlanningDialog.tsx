@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, addDays } from "date-fns";
+import { format, addDays, parse, isValid } from "date-fns";
 import { Check } from "lucide-react";
 import ContactsDialog from "@/components/ContactsDialog";
 import { SuggestionDialog } from "./SuggestionDialog";
@@ -380,7 +380,6 @@ const PlanningDialog = ({
     if (!isComplete.datetime) {
       contextMessage += "\n- When would be a good time for this event and why";
     }
-    contextMessage += "\n\nAlways provide a conversational response explaining your suggestions. Additionally, format the suggestions at the end as JSON with these fields: contacts (array of names), activity (string), datetime (object with date and time fields using the 12 hour clock). Only include fields that are not already filled.";
 
     setSuggestionMessage(contextMessage);
     setShowSuggestionDialog(true);
@@ -408,9 +407,27 @@ const PlanningDialog = ({
       if (!isComplete.datetime && response.datetime) {
         console.log('datetime', response.datetime)
         if (response.datetime.date) {
-          const date = new Date(response.datetime.date);
-          if (!isNaN(date.getTime())) {
-            setSelectedDate(date);
+          try {
+            // Parse date in format "Month day, year" (e.g., "February 21, 2025")
+            const parsedDate = parse(response.datetime.date, 'MMMM d, yyyy', new Date());
+            
+            if (isValid(parsedDate)) {
+              setSelectedDate(parsedDate);
+            } else {
+              console.error('Invalid date combination:', response.datetime.date);
+              toast({
+                title: "Invalid date",
+                description: "The suggested date is invalid. Please select a date manually.",
+                variant: "destructive",
+              });
+            }
+          } catch (e) {
+            console.error('Failed to parse date:', response.datetime.date, e);
+            toast({
+              title: "Date format error",
+              description: "The date format was incorrect. Please select a date manually.",
+              variant: "destructive",
+            });
           }
         }
         if (response.datetime.time) {

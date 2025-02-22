@@ -3,9 +3,8 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Loader2, ThumbsUp, RefreshCw } from "lucide-react";
-import { generateChatResponse, ContactInfo } from "@/utils/openai";
+import { generateChatResponse, ContactInfo, ConversationType } from "@/utils/openai";
 import { format, parse, isValid } from "date-fns";
-import { Contact } from "@/types/contacts";
 
 interface AIResponse {
   text?: string;
@@ -40,10 +39,10 @@ export function SuggestionDialog({
   const fetchSuggestion = async () => {
     try {
       setIsLoading(true);
-      const data = await generateChatResponse(message, contactInfo, true);
+      const data = await generateChatResponse(message, contactInfo, true, ConversationType.HANG_PLANNER);
 
-      if (data.full_response) {
-        setCurrentResponse(data.full_response);
+      if (data.response) {
+        setCurrentResponse(data.response);
       } else {
         throw new Error("No response received");
       }
