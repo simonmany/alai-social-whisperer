@@ -16,13 +16,6 @@ import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { REDIRECT_URL } from "@/integrations/supabase/client";
-import { Separator } from "@/components/ui/separator";
-import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 
 interface Message {
   content: string;
@@ -721,7 +714,6 @@ const Index = () => {
     if (!session?.user?.id) return;
 
     try {
-      // Get user profile data for personalized welcome message
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('display_name, catch_up_contacts')
@@ -730,7 +722,6 @@ const Index = () => {
 
       if (profileError) throw profileError;
 
-      // Get contact name if we have a catch_up_contact
       let contactName = '';
       if (profileData?.catch_up_contacts?.[0]) {
         const { data: contactData, error: contactError } = await supabase
@@ -744,10 +735,8 @@ const Index = () => {
         }
       }
 
-      // Create welcome message
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
 
-      // Add welcome message to chat history
       await supabase
         .from('chat_history')
         .insert([{
@@ -756,7 +745,6 @@ const Index = () => {
           user_id: session.user.id
         }]);
 
-      // Update profile to mark onboarding as complete
       await supabase
         .from('profiles')
         .update({ 
@@ -803,25 +791,15 @@ const Index = () => {
         {showOnboarding ? (
           <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : (
-          <>
-            {!tutorialComplete && (
-              <TutorialOverlay 
-                onComplete={handleTutorialComplete}
-                isProfileOpen={isProfileOpen}
-                onPlanningOpen={() => setIsPlanningOpen(true)}
-                key={isProfileOpen ? 'profile-open' : 'profile-closed'}
-              />
-            )}
-            <ChatContainer
-              messages={messages}
-              isLoading={isLoading}
-              onSend={handleSend}
-              onSuggestedPrompt={handleSuggestedPrompt}
-              disabled={!tutorialComplete}
-            >
-              <></>
-            </ChatContainer>
-          </>
+          <ChatContainer
+            messages={messages}
+            isLoading={isLoading}
+            onSend={handleSend}
+            onSuggestedPrompt={handleSuggestedPrompt}
+            disabled={!tutorialComplete}
+          >
+            <></>
+          </ChatContainer>
         )}
       </div>
 
