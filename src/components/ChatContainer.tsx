@@ -85,7 +85,6 @@ export const ChatContainer = ({
                 isAl={message.isAl}
                 animate={index === filteredMessages.length - 1}
                 contacts={message.contactInfo ? [message.contactInfo] : undefined}
-                is_secret={message.is_secret}
               />
             ))}
           {isLoading && (

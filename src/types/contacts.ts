@@ -2,24 +2,24 @@
 export interface Contact {
   id: string;
   name: string;
-  phone?: string | null;
-  email?: string | null;
-  location?: string | null;
-  relationship?: string | null;
-  interests?: string[] | null;
-  notes?: string | null;
-  last_contact?: string | null;
-  contact_frequency?: number | null;
+  phone?: string;
+  email?: string;
+  location?: string;
+  relationship?: string;
+  interests?: string[];
+  notes?: string;
+  last_contact?: string;
+  contact_frequency?: number;
   user_id: string;
-  created_at: string;
-  is_archived?: boolean | null;
-  meetingStory?: string | null;
-  instagram?: string | null;
-  linkedin?: string | null;
-  twitter?: string | null;
-  closeness?: number | null;
-  photo?: string | null;
+  created_at?: string;
   updated_at?: string;
+  is_archived?: boolean;
+  custom_fields?: Record<string, any>;
+  meetingStory?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  closeness?: number;
 }
 
 export interface ContactEvent {
@@ -31,15 +31,4 @@ export interface ContactEvent {
   user_id: string;
   created_at?: string;
   updated_at?: string;
-}
-
-export interface PlanningDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (message: string) => void;
-  defaultContact?: string;
-  defaultContacts?: Contact[];
-  defaultActivity?: string;
-  defaultLocation?: string;
-  defaultDate?: Date;
 }

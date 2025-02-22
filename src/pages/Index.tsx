@@ -15,7 +15,14 @@ import FeedbackDialog from "@/components/FeedbackDialog";
 import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { REDIRECT_URL } from "@/integrations/supabase/client";
+import { Separator } from "@/components/ui/separator";
+import { TutorialOverlay } from "@/components/tutorial/TutorialOverlay";
 
 interface Message {
   content: string;
@@ -60,6 +67,7 @@ const Index = () => {
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
+
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
   const isMobile = useIsMobile();
@@ -68,53 +76,6 @@ const Index = () => {
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
-
-  const { data: userProfile } = useQuery({
-    queryKey: ['profile', session?.user?.id],
-    queryFn: async () => {
-      if (!session?.user?.id) return null;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          username,
-          avatar_url,
-          city,
-          display_name,
-          goals,
-          utc_offset_minutes,
-          onboarding_step,
-          has_completed_tutorial,
-          google_access_token,
-          google_refresh_token,
-          google_token_expires_at,
-          has_google_calendar,
-          google_token_expired,
-          catch_up_contacts
-        `)
-        .eq('id', session.user.id)
-        .single();
-
-      if (error) throw error;
-      if (!data) throw new Error('No profile found');
-
-      return {
-        ...data,
-        hasGoogleCalendar: data?.has_google_calendar || false,
-        googleTokenExpired: data?.google_token_expired || false,
-        tokenExpiresAt: data?.google_token_expires_at ? new Date(data.google_token_expires_at) : null,
-        hasAccessToken: !!data?.google_access_token,
-        hasRefreshToken: !!data?.google_refresh_token,
-        hasValidTokens: data?.has_google_calendar && !data?.google_token_expired,
-        catchUpContacts: data?.catch_up_contacts || []
-      };
-    },
-    enabled: !!session?.user?.id,
-    staleTime: 1000 * 60 * 5,
-    gcTime: 1000 * 60 * 30,
-    retry: 2,
-  });
 
   const handleStartTutorial = async () => {
     if (!session?.user.id) return;
@@ -710,59 +671,60 @@ const Index = () => {
     }
   };
 
+  const parseContactInfo = (message: string) => {
+    const nameMatch = message.match(/I met (.+?) (?:at|\.)/);
+    const meetingMatch = message.match(/at (.+?)\./);
+    const contactsMatch = message.match(/Their contacts are (.+?)\./);
+    const relationshipMatch = message.match(/They are\.\.\. (.+)$/);
+
+    if (!nameMatch) return undefined;
+
+    const contacts = contactsMatch?.[1] || "";
+    const contactInfo = {
+      name: nameMatch[1],
+      meetingStory: meetingMatch?.[1],
+      relationship: relationshipMatch?.[1],
+    };
+
+    const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
+    const instagram = contacts.match(/📸 @([^💼🐦\s]+)/)?.[1]?.trim();
+    const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
+    const twitter = contacts.match(/🐦 @([^\s]+)/)?.[1]?.trim();
+
+    if (!phone || !instagram || !linkedin || !twitter) return undefined;
+    // If the user did not provide any other information, let the LLM take care of it
+
+    return {
+      ...contactInfo,
+      phone,
+      instagram,
+      linkedin,
+      twitter,
+    };
+  };
+
   const handleOnboardingComplete = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user.id) return;
 
     try {
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('display_name, catch_up_contacts')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      let contactName = '';
-      if (profileData?.catch_up_contacts?.[0]) {
-        const { data: contactData, error: contactError } = await supabase
-          .from('contacts')
-          .select('name')
-          .eq('id', profileData.catch_up_contacts[0])
-          .single();
-
-        if (!contactError && contactData) {
-          contactName = contactData.name;
-        }
-      }
-
-      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
-
-      await supabase
-        .from('chat_history')
-        .insert([{
-          message: welcomeMessage,
-          is_ai: true,
-          user_id: session.user.id
-        }]);
-
       await supabase
         .from('profiles')
         .update({ 
           onboarding_completed: true,
-          onboarding_step: 'complete',
-          has_completed_tutorial: true
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
         })
         .eq('id', session.user.id);
 
       setShowOnboarding(false);
-      setTutorialComplete(true);
+      setTutorialComplete(false);
       setShowProfileButton(false);
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
       toast({
-        title: "Welcome aboard!",
-        description: "Let's get started with your social life journey.",
+        title: "Onboarding completed",
+        description: "Let's get started with the tutorial!",
       });
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
@@ -791,15 +753,24 @@ const Index = () => {
         {showOnboarding ? (
           <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : (
-          <ChatContainer
-            messages={messages}
-            isLoading={isLoading}
-            onSend={handleSend}
-            onSuggestedPrompt={handleSuggestedPrompt}
-            disabled={!tutorialComplete}
-          >
-            <></>
-          </ChatContainer>
+          <>
+            {!tutorialComplete && (
+              <TutorialOverlay 
+                onComplete={handleTutorialComplete} 
+                isProfileOpen={isProfileOpen}
+                key={isProfileOpen ? 'profile-open' : 'profile-closed'}
+              />
+            )}
+            <ChatContainer
+              messages={messages}
+              isLoading={isLoading}
+              onSend={handleSend}
+              onSuggestedPrompt={handleSuggestedPrompt}
+              disabled={!tutorialComplete}
+            >
+              <></>
+            </ChatContainer>
+          </>
         )}
       </div>
 
@@ -865,14 +836,11 @@ const Index = () => {
         open={isProfileOpen} 
         onOpenChange={setIsProfileOpen}
       />
-      
-      <PlanningDialog
-        open={isPlanningOpen}
+      <PlanningDialog 
+        open={isPlanningOpen} 
         onOpenChange={setIsPlanningOpen}
         onSubmit={handlePlanSubmit}
-        defaultContact={userProfile?.catch_up_contacts?.[0]}
       />
-      
       <FeedbackDialog
         open={isFeedbackOpen}
         onOpenChange={setIsFeedbackOpen}
