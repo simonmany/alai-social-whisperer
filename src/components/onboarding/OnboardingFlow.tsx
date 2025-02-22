@@ -1,20 +1,15 @@
-
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/components/AuthProvider";
-import { BasicInfo } from "./BasicInfo";
-import { DemographicsSection } from "./DemographicsSection";
-import { PersonalityIntro } from "./personality/PersonalityIntro";
-import { PersonalityQuestion } from "./personality/PersonalityQuestion";
+import { BasicInfo } from "@/components/onboarding/BasicInfo";
+import { DemographicsSection } from "@/components/onboarding/DemographicsSection";
 import { InterestSelector } from "@/components/InterestSelector";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, SkipForward } from "lucide-react";
-import { generatePersonalityAnalysis } from "@/utils/openai";
 import { cn } from "@/lib/utils";
-import type { OnboardingState } from "@/types/onboarding";
-import type { Goal } from "@/types/goals";
+import type { OnboardingState, AIPreferencesResponse } from "@/types/onboarding";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
