@@ -123,43 +123,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
   const handleProceedToFutureInterests = async () => {
     if (canProceedToNextSection('current')) {
-      setIsAnalyzingInterests(true);
-      setIsLoadingPreferencesAi(true);
-      console.log('Starting AI analysis of preferences:', {
-        activities: state.currentInterests,
-        food: state.foodPreferences,
-        music: state.musicPreferences
-      });
-
-      try {
-        const { data, error } = await supabase.functions.invoke('analyze-preferences', {
-          body: {
-            activities: state.currentInterests || [],
-            food: state.foodPreferences || [],
-            music: state.musicPreferences || [],
-            userId: session?.user.id
-          }
-        });
-
-        if (error) throw error;
-        if (!data.response) {
-          throw new Error('No response received from AI analysis');
-        }
-
-        setAiPreferencesResponse(data.response);
-        
-      } catch (error: any) {
-        console.error('Error getting AI response:', error);
-        toast({
-          title: "Error getting AI response",
-          description: error.message || "Please try again",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingPreferencesAi(false);
-        setIsAnalyzingInterests(false);
-        setStep('future-interests');
-      }
+      setStep('demographics');
     }
   };
 
