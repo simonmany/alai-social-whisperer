@@ -761,9 +761,8 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               <Button 
                 onClick={handleProceedToFutureInterests}
                 className="w-full mt-8"
-                disabled={isAnalyzingInterests}
               >
-                {isAnalyzingInterests ? "Analyzing your interests..." : "Finish"}
+                Finish
               </Button>
             )}
           </div>
