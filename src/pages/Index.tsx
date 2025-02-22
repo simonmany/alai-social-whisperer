@@ -81,33 +81,22 @@ const Index = () => {
     if (!session?.user.id) return;
 
     try {
-      if (showOnboarding) {
-        await supabase
-          .from('profiles')
-          .update({ 
-            onboarding_completed: true,
-            onboarding_step: 'splash',
-            has_completed_tutorial: false
-          })
-          .eq('id', session.user.id);
-
-        setShowOnboarding(false);
-        setTutorialComplete(false);
-        setShowProfileButton(false);
-      } else {
-        await supabase
-          .from('profiles')
-          .update({ 
-            onboarding_step: 'splash',
-            has_completed_tutorial: false
-          })
-          .eq('id', session.user.id);
-
-        setTutorialComplete(false);
-        setShowProfileButton(false);
-      }
+      console.log('Starting tutorial...');
+      
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_step: 'splash',
+          has_completed_tutorial: false,
+          onboarding_completed: true
+        })
+        .eq('id', session.user.id);
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      
+      setShowOnboarding(false);
+      setTutorialComplete(false);
+      setShowProfileButton(false);
       
       toast({
         title: "Tutorial started",
@@ -127,6 +116,8 @@ const Index = () => {
     if (!session?.user.id) return;
 
     try {
+      console.log('Skipping onboarding and tutorial...');
+      
       await supabase
         .from('profiles')
         .update({ 
@@ -136,18 +127,67 @@ const Index = () => {
         })
         .eq('id', session.user.id);
 
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      
       setShowOnboarding(false);
       setTutorialComplete(true);
       setShowProfileButton(false);
       
       toast({
-        title: "Onboarding skipped",
-        description: "You can restart onboarding using the button in the bottom left",
+        title: "Onboarding and tutorial skipped",
+        description: "You can restart either using the buttons in the bottom left",
       });
     } catch (error: any) {
       console.error('Error skipping onboarding:', error);
       toast({
         title: "Error skipping onboarding",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRestartOnboarding = async () => {
+    if (!session?.user.id) return;
+
+    try {
+      console.log('Restarting onboarding...');
+      
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: false,
+          has_completed_tutorial: false,
+          onboarding_step: 'initial',
+          personality_traits: {},
+          personality_comments: [],
+          current_interests: [],
+          desired_interests: [],
+          goals: [],
+          display_name: null,
+          age: null,
+          city: null,
+          languages: [],
+          relationship_status: null,
+          gender: null,
+          occupation: null
+        })
+        .eq('id', session.user.id);
+
+      queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
+      
+      setShowOnboarding(true);
+      setTutorialComplete(false);
+      setShowProfileButton(false);
+      
+      toast({
+        title: "Onboarding restarted",
+        description: "Let's start fresh!",
+      });
+    } catch (error: any) {
+      console.error('Error restarting onboarding:', error);
+      toast({
+        title: "Error restarting onboarding",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -626,49 +666,6 @@ const Index = () => {
 
   const handleTutorialComplete = () => {
     setTutorialComplete(true);
-  };
-
-  const handleRestartOnboarding = async () => {
-    if (!session?.user.id) return;
-
-    try {
-      await supabase
-        .from('profiles')
-        .update({ 
-          onboarding_completed: false,
-          has_completed_tutorial: false,
-          onboarding_step: 'initial',
-          personality_traits: {},
-          personality_comments: [],
-          current_interests: [],
-          desired_interests: [],
-          goals: [],
-          display_name: null,
-          age: null,
-          city: null,
-          languages: [],
-          relationship_status: null,
-          gender: null,
-          occupation: null
-        })
-        .eq('id', session.user.id);
-
-      setShowOnboarding(true);
-      setTutorialComplete(false);
-      setShowProfileButton(false);
-      
-      toast({
-        title: "Onboarding restarted",
-        description: "Let's start fresh!",
-      });
-    } catch (error: any) {
-      console.error('Error restarting onboarding:', error);
-      toast({
-        title: "Error restarting onboarding",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    }
   };
 
   const parseContactInfo = (message: string) => {
