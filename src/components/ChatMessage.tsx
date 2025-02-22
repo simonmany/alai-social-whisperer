@@ -1,17 +1,18 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
+import { Contact } from "@/types/contacts";
 
 interface ChatMessageProps {
-  message: {
-    content: string;
-    isAl: boolean;
-    is_secret?: boolean;
-    contacts?: Contact[];
-  };
+  content: string;
+  isAl: boolean;
+  is_secret?: boolean;
+  contacts?: Contact[];
+  animate?: boolean;
 }
 
-export const ChatMessage = ({ message }: ChatMessageProps) => {
+export const ChatMessage = ({ content, isAl, is_secret, contacts, animate }: ChatMessageProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const [showMore, setShowMore] = useState(false);
@@ -20,12 +21,12 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
     if (contentRef.current) {
       setShowMore(contentRef.current.scrollHeight > contentRef.current.clientHeight);
     }
-  }, [message.content]);
+  }, [content]);
 
   const renderContactCards = () => {
-    if (!message.contacts || !Array.isArray(message.contacts)) return null;
+    if (!contacts || !Array.isArray(contacts)) return null;
 
-    return message.contacts.map((contact) => (
+    return contacts.map((contact) => (
       <ContactCard
         key={contact.id}
         id={contact.id}
@@ -45,7 +46,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
   return (
     <div className={cn(
       "col-start-1 col-end-13 p-4 rounded-lg",
-      message.isAl ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
+      isAl ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
     )}>
       <div className="flex items-center gap-3">
         <div className="flex flex-col">
@@ -56,7 +57,7 @@ export const ChatMessage = ({ message }: ChatMessageProps) => {
               isExpanded ? "max-h-none" : "max-h-40 overflow-hidden"
             )}
           >
-            {message.content}
+            {content}
           </div>
           {showMore && (
             <button
