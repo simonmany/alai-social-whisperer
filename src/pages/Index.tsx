@@ -377,17 +377,18 @@ const Index = () => {
           onboardingStep: data.onboarding_step
         });
 
-        setTutorialComplete(!!data.has_completed_tutorial);
-        setShowOnboarding(!data.onboarding_completed);
-        
-        setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
+        if (location.pathname === '/') {
+          setTutorialComplete(!!data.has_completed_tutorial);
+          setShowOnboarding(!data.onboarding_completed);
+          setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
+        }
       } catch (error) {
         console.error('Error checking tutorial status:', error);
       }
     };
 
     checkTutorialStatus();
-  }, [session?.user.id]);
+  }, [session?.user.id, location.pathname]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -402,18 +403,20 @@ const Index = () => {
 
         if (error) throw error;
 
-        setShowOnboarding(!data.onboarding_completed);
+        if (location.pathname === '/') {
+          setShowOnboarding(!data.onboarding_completed);
+        }
       } catch (error) {
         console.error('Error checking onboarding status:', error);
       }
     };
 
     checkOnboardingStatus();
-  }, [session?.user.id]);
+  }, [session?.user.id, location.pathname]);
 
   useEffect(() => {
     const state = location.state as { prompt?: string };
-    if (state?.prompt && location.pathname === '/') {
+    if (state?.prompt && !location.pathname.includes('/calendar') && !location.pathname.includes('/contacts')) {
       handleSend(state.prompt);
       navigate('/', { replace: true, state: {} });
     }
