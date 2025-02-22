@@ -119,6 +119,27 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
   }, [showCompletionMessage, session?.user?.id]);
 
+  useEffect(() => {
+    if (!isProfileLoading && profile?.onboarding_step === 'splash' && hasPlayedLine3) {
+      if (session?.user?.id) {
+        supabase
+          .from('profiles')
+          .update({ 
+            onboarding_step: 'complete',
+            has_completed_tutorial: true 
+          })
+          .eq('id', session.user.id)
+          .then(() => {
+            setShowCompletionMessage(true);
+            setTimeout(() => {
+              setShowCompletionMessage(false);
+              onComplete();
+            }, 500);
+          });
+      }
+    }
+  }, [isProfileLoading, profile?.onboarding_step, hasPlayedLine3, session?.user?.id]);
+
   const updatePositions = () => {
     const container = document.body;
     if (!container) return;
@@ -258,17 +279,7 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
     }
 
     if (showCompletionMessage) {
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-[9999]">
-          <div className="text-2xl">
-            <TypewriterText
-              text="That's it! I'm looking forward to being your Alai."
-              delay={0}
-              onComplete={() => {}}
-            />
-          </div>
-        </div>
-      );
+      return null;
     }
 
     const step = profile.onboarding_step as TutorialStep;
@@ -324,148 +335,8 @@ export const TutorialOverlay = ({ onComplete, isProfileOpen }: TutorialOverlayPr
                 )}
               </div>
             </div>
-            
-            {hasPlayedLine3 && (
-              <Button 
-                onClick={() => handleStepChange('calendarintro')}
-                size="lg"
-                className="w-full animate-fade-in"
-              >
-                Let's go!
-              </Button>
-            )}
           </div>
         </div>
-      );
-    }
-
-    if (step === 'calendarintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 50
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 50
-            }}
-          >
-            <div className="space-y-4">
-              <p>Connecting your calendar will help me plan events for you smoothly.</p>
-              <div className="flex gap-2">
-                <Button onClick={() => handleStepChange('contactsintro')}>
-                  Connect Calendar
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleStepChange('contactsintro')}
-                >
-                  Not Now
-                </Button>
-              </div>
-            </div>
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'contactsintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 50
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 50
-            }}
-          >
-            <div className="space-y-4">
-              <p>Let's add some contacts to help you achieve your goals.</p>
-              <div className="flex gap-2">
-                <Button onClick={() => handleStepChange('profileintro')}>
-                  Connect Contacts
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleStepChange('profileintro')}
-                >
-                  Not Now
-                </Button>
-              </div>
-            </div>
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'profileintro') {
-      return (
-        <>
-          <TutorialArrow 
-            direction="up"
-            style={{
-              position: 'fixed',
-              top: `${arrowPosition.top}px`,
-              left: `${arrowPosition.left}px`,
-              zIndex: 50
-            }}
-          />
-          <TutorialMessage 
-            style={{
-              position: 'fixed',
-              top: `${messagePosition.top}px`,
-              left: `${messagePosition.left}px`,
-              zIndex: 50
-            }}
-          >
-            <div className="space-y-4">
-              <p>I've created a profile for you here. Click to take a look.</p>
-            </div>
-          </TutorialMessage>
-        </>
-      );
-    }
-
-    if (step === 'goalset') {
-      return (
-        <>
-          {goalArrowPositions.map((position, index) => (
-            <TutorialArrow
-              key={index}
-              direction="right"
-              style={{
-                position: 'fixed',
-                top: `${position.top}px`,
-                left: `${position.left}px`,
-                zIndex: 99999
-              }}
-            />
-          ))}
-          <TutorialMessage 
-            className="fixed right-[450px] top-32 max-w-[300px] z-[99999]"
-          >
-            Let's start by setting some goals. What would you like to achieve?
-          </TutorialMessage>
-        </>
       );
     }
 
