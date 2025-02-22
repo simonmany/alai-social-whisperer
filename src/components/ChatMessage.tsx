@@ -45,23 +45,24 @@ export const ChatMessage = ({ content, isAl, is_secret, contacts, animate }: Cha
 
   return (
     <div className={cn(
-      "col-start-1 col-end-13 p-4 rounded-lg",
-      isAl ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"
+      "col-start-1 col-end-13 p-4",
+      !isAl && "bg-primary text-primary-foreground rounded-lg"
     )}>
-      <div className="flex items-center gap-3">
-        <div className="flex flex-col">
+      <div className="flex items-start gap-3">
+        <div className="flex flex-col w-full">
           <div
             ref={contentRef}
             className={cn(
-              "text-sm break-words",
-              isExpanded ? "max-h-none" : "max-h-40 overflow-hidden"
+              "text-lg font-light break-words leading-relaxed",
+              isExpanded ? "max-h-none" : "max-h-[400px] overflow-hidden",
+              isAl && "text-foreground"
             )}
           >
             {content}
           </div>
           {showMore && (
             <button
-              className="text-blue-500 hover:underline text-sm"
+              className="text-blue-500 hover:underline text-base mt-2"
               onClick={() => setIsExpanded(!isExpanded)}
             >
               {isExpanded ? "Show less" : "Show more"}
