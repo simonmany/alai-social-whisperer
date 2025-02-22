@@ -15,7 +15,7 @@ import FeedbackDialog from "@/components/FeedbackDialog";
 import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -67,7 +67,6 @@ const Index = () => {
   const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [passwordError, setPasswordError] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
-
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
   const isMobile = useIsMobile();
@@ -76,6 +75,53 @@ const Index = () => {
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+
+  const { data: profile } = useQuery({
+    queryKey: ['profile', session?.user?.id],
+    queryFn: async () => {
+      if (!session?.user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          username,
+          avatar_url,
+          city,
+          display_name,
+          goals,
+          utc_offset_minutes,
+          onboarding_step,
+          has_completed_tutorial,
+          google_access_token,
+          google_refresh_token,
+          google_token_expires_at,
+          has_google_calendar,
+          google_token_expired,
+          catch_up_contacts
+        `)
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error('No profile found');
+
+      return {
+        ...data,
+        hasGoogleCalendar: data?.has_google_calendar || false,
+        googleTokenExpired: data?.google_token_expired || false,
+        tokenExpiresAt: data?.google_token_expires_at ? new Date(data.google_token_expires_at) : null,
+        hasAccessToken: !!data?.google_access_token,
+        hasRefreshToken: !!data?.google_refresh_token,
+        hasValidTokens: data?.has_google_calendar && !data?.google_token_expired,
+        catchUpContacts: data?.catch_up_contacts || []
+      };
+    },
+    enabled: !!session?.user?.id,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 30,
+    retry: 2,
+  });
 
   const handleStartTutorial = async () => {
     if (!session?.user.id) return;
@@ -669,38 +715,6 @@ const Index = () => {
         variant: "destructive",
       });
     }
-  };
-
-  const parseContactInfo = (message: string) => {
-    const nameMatch = message.match(/I met (.+?) (?:at|\.)/);
-    const meetingMatch = message.match(/at (.+?)\./);
-    const contactsMatch = message.match(/Their contacts are (.+?)\./);
-    const relationshipMatch = message.match(/They are\.\.\. (.+)$/);
-
-    if (!nameMatch) return undefined;
-
-    const contacts = contactsMatch?.[1] || "";
-    const contactInfo = {
-      name: nameMatch[1],
-      meetingStory: meetingMatch?.[1],
-      relationship: relationshipMatch?.[1],
-    };
-
-    const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
-    const instagram = contacts.match(/📸 @([^💼🐦\s]+)/)?.[1]?.trim();
-    const linkedin = contacts.match(/💼 ([^🐦\s]+)/)?.[1]?.trim();
-    const twitter = contacts.match(/🐦 @([^\s]+)/)?.[1]?.trim();
-
-    if (!phone || !instagram || !linkedin || !twitter) return undefined;
-    // If the user did not provide any other information, let the LLM take care of it
-
-    return {
-      ...contactInfo,
-      phone,
-      instagram,
-      linkedin,
-      twitter,
-    };
   };
 
   const handleOnboardingComplete = async () => {
