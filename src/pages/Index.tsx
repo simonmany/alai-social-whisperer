@@ -214,6 +214,7 @@ const Index = () => {
     if (!session?.user.id) return;
     
     try {
+      console.log('Triggering morning check-in...');
       const { data, error } = await supabase.functions.invoke('daily-checkin', {
         body: { 
           type: 'morning',
@@ -221,7 +222,12 @@ const Index = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Morning check-in error:', error);
+        throw error;
+      }
+      
+      console.log('Morning check-in response:', data);
       
       toast({
         title: "Morning check-in triggered",
@@ -241,6 +247,7 @@ const Index = () => {
     if (!session?.user.id) return;
     
     try {
+      console.log('Triggering evening check-in...');
       const { data, error } = await supabase.functions.invoke('daily-checkin', {
         body: { 
           type: 'evening',
@@ -248,7 +255,12 @@ const Index = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Evening check-in error:', error);
+        throw error;
+      }
+      
+      console.log('Evening check-in response:', data);
       
       toast({
         title: "Evening check-in triggered",
