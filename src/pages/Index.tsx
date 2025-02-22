@@ -17,6 +17,7 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { Contact } from "@/types/contacts";
+import { APP_CONSTANTS } from "@/utils/constants";
 
 interface Message {
   content: string;
@@ -404,7 +405,7 @@ const Index = () => {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: REDIRECT_URL
+          redirectTo: `${APP_CONSTANTS.SITE_URL}/auth/callback`
         }
       });
       
