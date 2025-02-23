@@ -907,9 +907,7 @@ const Index = () => {
             onSend={handleSend}
             onSuggestedPrompt={handleSuggestedPrompt}
             onTutorialAction={handleTutorialAction}
-          >
-            <TypewriterText />
-          </ChatContainer>
+          />
         )}
       </div>
 
