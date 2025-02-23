@@ -18,12 +18,14 @@ import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { Contact } from "@/types/contacts";
 import { APP_CONSTANTS } from "@/utils/constants";
+import { TypewriterText } from "@/components/TypewriterText";
 
 interface Message {
   content: string;
   isAl: boolean;
   is_secret?: boolean;
   contactInfo?: Contact;
+  is_animated?: boolean;
 }
 
 interface ChatHistoryMessage {
@@ -128,6 +130,17 @@ const Index = () => {
       setShowOnboarding(false);
       queryClient.invalidateQueries({ queryKey: ['profile'] });
 
+      const { data: existingMessages } = await supabase
+        .from('chat_history')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('is_onboarding_message', true);
+
+      if (existingMessages && existingMessages.length > 0) {
+        console.log('Welcome message already exists, skipping creation');
+        return;
+      }
+
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('display_name, catch_up_contacts')
@@ -153,28 +166,33 @@ const Index = () => {
 
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
 
-      const { data: existingMessages } = await supabase
+      await supabase
         .from('chat_history')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('is_onboarding_message', true)
-        .single();
-
-      if (!existingMessages) {
-        await supabase
-          .from('chat_history')
-          .insert([{
-            message: welcomeMessage,
-            is_ai: true,
-            user_id: session.user.id,
-            is_onboarding_message: true
-          }]);
-      }
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
       
+      if (contactData) {
+        setSelectedContact(contactData);
+        if (contactData.interests && contactData.interests.length > 0) {
+          const randomInterest = contactData.interests[
+            Math.floor(Math.random() * contactData.interests.length)
+          ];
+          setSelectedActivity(randomInterest);
+        }
+      }
+
       setTutorialComplete(false);
       setShowProfileButton(false);
       setMessages([
-        { content: welcomeMessage, isAl: true },
+        { 
+          content: welcomeMessage, 
+          isAl: true,
+          is_animated: true
+        },
         { 
           content: "Let's go!", 
           isAl: false, 
@@ -890,7 +908,7 @@ const Index = () => {
             onSuggestedPrompt={handleSuggestedPrompt}
             onTutorialAction={handleTutorialAction}
           >
-            <></>
+            <TypewriterText />
           </ChatContainer>
         )}
       </div>

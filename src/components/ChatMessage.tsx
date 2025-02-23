@@ -2,6 +2,7 @@
 import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
 import ReactMarkdown from "react-markdown";
+import { TypewriterText } from "@/components/TypewriterText";
 
 interface Contact {
   id: string;
@@ -20,9 +21,10 @@ interface ChatMessageProps {
   isAl: boolean;
   animate?: boolean;
   contacts?: Contact[];
+  is_animated?: boolean;
 }
 
-export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMessageProps) => {
+export const ChatMessage = ({ content, isAl, animate = true, contacts, is_animated }: ChatMessageProps) => {
   return (
     <div
       className={cn(
@@ -34,7 +36,11 @@ export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMes
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
           <div className="whitespace-pre-line prose prose-lg max-w-none prose-gray">
-            <ReactMarkdown>{content}</ReactMarkdown>
+            {is_animated ? (
+              <TypewriterText text={content} typingSpeed={25} />
+            ) : (
+              <ReactMarkdown>{content}</ReactMarkdown>
+            )}
           </div>
           {contacts && contacts.length > 0 && (
             <div className="mt-4 space-y-4">
