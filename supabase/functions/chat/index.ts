@@ -2,12 +2,8 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ChitChatAgent } from "./agents/chitchat.ts";
 import { HangPlannerAgent } from "./agents/hangplanner.ts";
-
-enum ConversationType {
-  CHAT = 'CHAT',
-  HANG_PLANNER = 'HANG_PLANNER',
-  PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER'
-}
+import { PersonalityAnalyzerAgent } from "./agents/personalityanalyzer.ts";
+import { ConversationType } from "./types.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,16 +47,22 @@ serve(async (req: Request) => {
 
     console.log('Processing chat request:', { userId, conversationType });
 
-    if (conversationType === ConversationType.CHAT) {
-      const chitChatAgent = new ChitChatAgent(openAIApiKey);
-      const { parsedResponse, contacts } = await chitChatAgent.chat(userId, message, contactInfo, secretMessage);
-      return new Response(JSON.stringify({ response: parsedResponse, contacts }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // Create appropriate agent based on conversation type
+    let agent;
+    switch (conversationType) {
+      case ConversationType.HANG_PLANNER:
+        agent = new HangPlannerAgent(openAIApiKey);
+        break;
+      case ConversationType.PERSONALITY_ANALYZER:
+        agent = new PersonalityAnalyzerAgent(openAIApiKey);
+        break;
+      case ConversationType.CHAT:
+        agent = new ChitChatAgent(openAIApiKey);
+        break;
     }
-    if (conversationType === ConversationType.HANG_PLANNER) {
-      const hangPlannerAgent = new HangPlannerAgent(openAIApiKey);
-      const { parsedResponse } = await hangPlannerAgent.chat(userId, message, contactInfo, secretMessage);
+
+    if (agent) {
+      const { parsedResponse } = await agent.chat(userId, message, contactInfo, secretMessage);
       return new Response(JSON.stringify({ response: parsedResponse }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

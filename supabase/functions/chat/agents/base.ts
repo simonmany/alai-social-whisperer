@@ -49,7 +49,7 @@ export abstract class Agent {
     message: string,
     contactInfo?: Contact[],
     secretMessage?: boolean
-  ): Promise<{ parsedResponse: any; contacts: Contact[] }>;
+  ): Promise<{ parsedResponse: any }>;
 
   protected async getUserProfile(userId: string) {
     const { data: profile } = await supabase
@@ -57,6 +57,9 @@ export abstract class Agent {
       .select('*')
       .eq('id', userId)
       .single();
+    if (!profile) {
+      throw new Error(`Could not find profile for ${userId}`)
+    }
     return profile;
   }
 
@@ -87,17 +90,17 @@ export abstract class Agent {
     return contacts || [];
   }
 
-  protected async getChatHistory(userId: string) {
+  protected async getChatHistory(userId: string, limit: number = 7) {
     const { data: history } = await supabase
       .from('chat_history')
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
-      .limit(7);
-    return history || [];
+      .limit(limit);
+    return history ? history.reverse() : [];    
   }
 
-  protected async getEvents(userId: string, utcOffset: number) {
+  protected async getEvents(userId: string, utcOffset: number = -240) {
     const now = new Date();
     const tenDaysFromNow = new Date();
     tenDaysFromNow.setDate(now.getDate() + 10);

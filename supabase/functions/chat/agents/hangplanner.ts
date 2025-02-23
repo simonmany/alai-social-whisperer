@@ -22,7 +22,7 @@ export class HangPlannerAgent extends Agent {
     message: string,
     contactInfo?: Contact[],
     secretMessage?: boolean
-  ): Promise<{ parsedResponse: any; contacts: Contact[] }> {
+  ): Promise<{ parsedResponse: any }> {
     // Get user profile and events for context
     const profile = await this.getUserProfile(userId);
     const profileData = this.filterUserProfile(profile);
@@ -78,9 +78,6 @@ export class HangPlannerAgent extends Agent {
     if (parsedResponse.text) {
         this.saveChatMessage(userId, parsedResponse.text, secretMessage, true);
     }
-    return {
-      parsedResponse,
-      contacts: contactInfo || []
-    };
+    return { parsedResponse };
   }
 }
