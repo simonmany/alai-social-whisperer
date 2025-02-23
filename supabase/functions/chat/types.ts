@@ -11,6 +11,12 @@ export interface Contact {
     interests?: string[];
   }
 
+export enum ConversationType {
+    CHAT = 'CHAT',
+    HANG_PLANNER = 'HANG_PLANNER',
+    PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER'
+}
+
 export const functions = [
 {
     "type": "function",

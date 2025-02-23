@@ -99,7 +99,7 @@ export class ChitChatAgent extends Agent {
     message: string,
     contactInfo?: Contact[],
     secretMessage = false
-  ): Promise<{ parsedResponse: any; contacts: Contact[] }> {
+  ): Promise<{ parsedResponse: any }> {
     // store user message
     this.saveChatMessage(userId, message, secretMessage, false)
 
@@ -236,7 +236,7 @@ export class ChitChatAgent extends Agent {
     }
     
 
-    return { parsedResponse, contacts };
+    return {parsedResponse};
   }
 
   private buildContext(profile: any) {

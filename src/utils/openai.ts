@@ -59,8 +59,8 @@ export const generatePersonalityAnalysis = async (message: string) => {
       throw new Error("User not authenticated");
     }
 
-    const { data, error } = await supabase.functions.invoke('personality-analysis', {
-      body: { message, userId }
+    const { data, error } = await supabase.functions.invoke('chat', {
+      body: { message, userId, contactInfo: [], secretMessage: true, conversationType: ConversationType.PERSONALITY_ANALYZER }
     });
 
     if (error) {
@@ -68,12 +68,12 @@ export const generatePersonalityAnalysis = async (message: string) => {
       throw new Error(error.message || "Failed to generate analysis");
     }
 
-    if (!data || !data.analysis) {
+    if (!data || !data.text) {
       console.error("Invalid response format:", data);
       throw new Error("Invalid response from personality analysis");
     }
 
-    return data.analysis;
+    return data.text;
 
   } catch (error) {
     console.error("Error generating personality analysis:", error);
