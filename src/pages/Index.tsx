@@ -18,6 +18,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { Contact } from "@/types/contacts";
 import { APP_CONSTANTS } from "@/utils/constants";
+import { TutorialConversation } from "@/components/tutorial/TutorialConversation";
 
 interface Message {
   content: string;
@@ -175,12 +176,12 @@ const Index = () => {
       setShowProfileButton(false);
       setMessages([
         { content: welcomeMessage, isAl: true },
-        { 
-          content: "Let's go!", 
-          isAl: false, 
-          is_secret: true,
-          contactInfo: contactData || undefined
-        }
+        // { 
+        //   content: "Let's go!", 
+        //   isAl: false, 
+        //   is_secret: true,
+        //   contactInfo: contactData || undefined
+        // }
       ]);
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
@@ -760,8 +761,24 @@ const Index = () => {
     }
   };
 
-  const handleTutorialComplete = () => {
-    setTutorialComplete(true);
+  const handleTutorialComplete = async () => {
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          has_completed_tutorial: true 
+        })
+        .eq('id', session?.user?.id);
+
+      setTutorialComplete(true);
+    } catch (error) {
+      console.error('Error completing tutorial:', error);
+      toast({
+        title: "Error completing tutorial",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleRestartOnboarding = async () => {
@@ -852,19 +869,17 @@ const Index = () => {
       }
     }
 
-    await supabase
-      .from('chat_history')
-      .insert([{
-        message: "Let's go!",
-        is_ai: false,
-        user_id: session?.user?.id,
-        is_onboarding_message: true
-      }]);
-
     setIsPlanningOpen(true);
   };
 
   let cleanup: () => void | undefined;
+
+  const defaultPrompts = [
+    { text: "plan a future hang", action: "plan me a hang" },
+    { text: "talk about past hang", action: "talk about a hang" },
+    { text: "Set a new goal", action: "Set a new goal" },
+    { text: "add a new contact", action: "add a new contact" }
+  ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -882,13 +897,21 @@ const Index = () => {
       <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
         {showOnboarding ? (
           <OnboardingFlow onComplete={handleOnboardingComplete} />
+        ) : !tutorialComplete ? (
+          <TutorialConversation
+            onComplete={handleTutorialComplete}
+            messages={messages}
+            isLoading={isLoading}
+            onSend={handleSend}
+            onSuggestedPrompt={handleSuggestedPrompt}
+          />
         ) : (
           <ChatContainer
             messages={messages}
             isLoading={isLoading}
             onSend={handleSend}
             onSuggestedPrompt={handleSuggestedPrompt}
-            onTutorialAction={handleTutorialAction}
+            suggestedPrompts={defaultPrompts}
           >
             <></>
           </ChatContainer>

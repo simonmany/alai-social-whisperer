@@ -221,7 +221,6 @@ export const InterestSelector = ({
           <p className="text-xl font-cormorant text-gray-500">
             {value.length} selected (minimum {minSelections})
           </p>
-          <Button onClick={handleSubmit} className="text-xl font-cormorant">Continue</Button>
         </div>
       )}
     </div>

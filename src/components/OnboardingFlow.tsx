@@ -161,7 +161,14 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
           onboarding_completed: true,
           onboarding_started_at: new Date().toISOString(),
           onboarding_step: 'splash',
-          has_completed_tutorial: false
+          has_completed_tutorial: false,
+          desired_interests: [...state.currentInterests || [], 
+                     ...state.desiredInterests || [],
+                     ...state.foodPreferences || [],
+                     ...state.desiredFoodPreferences || [],
+                     ...state.musicPreferences || [],
+                     ...state.desiredMusicPreferences || []
+                    ].filter(Boolean)
         })
         .eq('id', session?.user?.id);
 
@@ -339,7 +346,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     try {
       const { data: contact, error: contactError } = await supabase
         .from('contacts')
-        .insert({
+        .upsert({
           name: priorityPerson.trim(),
           user_id: session?.user.id
         })
@@ -353,7 +360,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .update({
           catch_up_contacts: [contact.id]
         })
-        .eq('id', session?.user.id);
+        .eq('id', session?.user?.id);
 
       if (profileError) throw profileError;
 

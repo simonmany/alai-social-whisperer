@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
@@ -15,6 +14,11 @@ interface Message {
   contactInfo?: Contact;
 }
 
+interface SuggestedPromptItem {
+  text: string;
+  action: string;
+}
+
 interface ChatContainerProps {
   messages: Message[];
   isLoading: boolean;
@@ -23,6 +27,7 @@ interface ChatContainerProps {
   onTutorialAction?: () => void;
   disabled?: boolean;
   children: React.ReactNode;
+  suggestedPrompts?: SuggestedPromptItem[];
 }
 
 export const ChatContainer = ({
@@ -33,6 +38,7 @@ export const ChatContainer = ({
   onTutorialAction,
   disabled = false,
   children,
+  suggestedPrompts = []
 }: ChatContainerProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -117,24 +123,14 @@ export const ChatContainer = ({
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
-            <div className="flex gap-2 flex-wrap">
-              <SuggestedPrompt
-                text="plan a future hang"
-                onClick={() => onSuggestedPrompt("plan me a hang")}
-              />
-              <SuggestedPrompt
-                text="talk about past hang"
-                onClick={() => onSuggestedPrompt("talk about a hang")}
-              />
-              <SuggestedPrompt
-                text="Set a new goal"
-                onClick={() => onSuggestedPrompt("Set a new goal")}
-              />
-              <SuggestedPrompt
-                text="add a new contact"
-                onClick={() => onSuggestedPrompt("add a new contact")}
-              />
+            <div className="flex flex-wrap gap-2 mb-4">
+              {suggestedPrompts.map((prompt, index) => (
+                <SuggestedPrompt
+                  key={index}
+                  text={prompt.text}
+                  onClick={() => onSuggestedPrompt(prompt.action)}
+                />
+              ))}
             </div>
           </div>
           <ChatInput onSend={onSend} />
