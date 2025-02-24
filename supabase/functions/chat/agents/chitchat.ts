@@ -1,6 +1,7 @@
 import { Agent } from './base.ts';
 import { Contact, functions } from '../types.ts';
 import { extractNamesFromText, searchContactsByNames, upsertContacts, searchGooglePlaces, findFriendsForActivity, mergeContacts, upsertContactGroups } from '../utils.ts';
+import { stringifyJSON } from '../../_shared/utils.ts';
 
 export class ChitChatAgent extends Agent {
   protected systemPrompt = ``
@@ -25,8 +26,8 @@ export class ChitChatAgent extends Agent {
     }));
   
     return `You are Al, a friendly and helpful social life assistant. You have access to the following user data:
-        - Profile: ${JSON.stringify(profile, null, 2)}
-        - Calendar Events for the next 10 days: ${JSON.stringify(formattedEvents, null, 2)}
+        - Profile: ${stringifyJSON(profile)}
+        - Calendar Events for the next 10 days: ${stringifyJSON(formattedEvents)}
         
         If asked about the calendar or scheduling, you can:
         - List upcoming events

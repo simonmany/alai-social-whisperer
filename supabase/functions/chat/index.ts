@@ -4,7 +4,8 @@ import { ChitChatAgent } from "./agents/chitchat.ts";
 import { HangGeneratorAgent } from "./agents/hanggenerator.ts";
 import { PersonalityAnalyzerAgent } from "./agents/personalityanalyzer.ts";
 import { ConversationType } from "./types.ts";
-import { HangPlannerAgent, TutorialAgent } from "./agents/hangplanneragent.ts";
+import { HangPlannerAgent } from "./agents/hangplanneragent.ts";
+import { DailyCheckinAgent } from "./agents/dailycheckinagent.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,6 +63,9 @@ serve(async (req: Request) => {
         break;
       case ConversationType.HANG_PLANNER:
         agent = new HangPlannerAgent(openAIApiKey);
+        break;
+      case ConversationType.DAILY_CHECKIN:
+        agent = new DailyCheckinAgent(openAIApiKey);
         break;
     }
 
