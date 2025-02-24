@@ -1,6 +1,8 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { stringifyJSON } from '../_shared/utils.ts';
+import { convertToLocalTime } from "../_shared/utils.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -68,12 +70,12 @@ serve(async (req) => {
         ? userHour >= 7 && userHour < 9
         : userHour >= 20 && userHour < 23;
 
-      if (!isRightTime) {
-        console.log(`Skipping ${type} message - not the right time for user`);
-        return new Response(JSON.stringify({ status: 'skipped', reason: 'not the right time' }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      // if (!isRightTime) {
+      //   console.log(`Skipping ${type} message - not the right time for user`);
+      //   return new Response(JSON.stringify({ status: 'skipped', reason: 'not the right time' }), {
+      //     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      //   });
+      // }
 
       if (type === 'morning') {
         // Get today's events using user's UTC offset for date boundaries
@@ -82,9 +84,9 @@ serve(async (req) => {
         const endOfDay = new Date(startOfDay);
         endOfDay.setUTCHours(23, 59, 59, 999);
         
-        const { data: events, error: eventsError } = await supabaseClient
+        const { data, error: eventsError } = await supabaseClient
           .from('calendar_events')
-          .select('*')
+          .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
           .gte('start_time', startOfDay.toISOString())
           .lt('start_time', endOfDay.toISOString())
@@ -94,10 +96,15 @@ serve(async (req) => {
           console.error('Error fetching events:', eventsError);
           throw eventsError;
         }
+        const events = data?.map(event => ({
+          ...event,
+          start_time: convertToLocalTime(event.start_time, profile.utc_offset_minutes),
+          end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
+        })) || [];        
 
         message = `You're doing the morning check-in for your user. What they have scheduled for today is: ${
           events && events.length > 0 
-            ? events.map(e => e.title).join(', ')
+            ? events.map(e => stringifyJSON(e)).join(', ')
             : 'no scheduled events'
         }. Summarize these events succinctly, and highlight any availabilities. Suggest potential activities to fill these availabilities, taking into account the user's interests, goals, and contacts.${missingGoalsPrompt}`;
       } else {
@@ -108,9 +115,9 @@ serve(async (req) => {
         endOfDay.setUTCHours(23, 59, 59, 999);
 
         // Get past events for today
-        const { data: pastEvents, error: pastEventsError } = await supabaseClient
+        const { pastData, error: pastEventsError } = await supabaseClient
           .from('calendar_events')
-          .select('*')
+          .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
           .gte('start_time', startOfDay.toISOString())
           .lt('end_time', now.toISOString())
@@ -120,11 +127,15 @@ serve(async (req) => {
           console.error('Error fetching past events:', pastEventsError);
           throw pastEventsError;
         }
-
+        const pastEvents = pastData?.map(event => ({
+          ...event,
+          start_time: convertToLocalTime(event.start_time, profile.utc_offset_minutes),
+          end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
+        })) || [];
         // Get upcoming events for the rest of today
-        const { data: upcomingEvents, error: upcomingEventsError } = await supabaseClient
+        const { data, error: upcomingEventsError } = await supabaseClient
           .from('calendar_events')
-          .select('*')
+          .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
           .gte('start_time', now.toISOString())
           .lt('start_time', endOfDay.toISOString())
@@ -135,13 +146,19 @@ serve(async (req) => {
           throw upcomingEventsError;
         }
 
+        const upcomingEvents = data?.map(event => ({
+          ...event,
+          start_time: convertToLocalTime(event.start_time, profile.utc_offset_minutes),
+          end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
+        })) || [];
+
         message = `You're doing the evening recap with your user. Today, they'd scheduled ${
           pastEvents && pastEvents.length > 0 
-            ? pastEvents.map(e => e.title).join(', ')
+            ? pastEvents.map(e => stringifyJSON(e)).join(', ')
             : 'no events'
         }; tonight, they still have ${
           upcomingEvents && upcomingEvents.length > 0
-            ? upcomingEvents.map(e => e.title).join(', ')
+            ? upcomingEvents.map(e => stringifyJSON(e)).join(', ')
             : 'no remaining events'
         } on the calendar. Ask them how their day was, referencing and commenting upon specific events. Consider the context of their relationship with any attendees at these events, and their interests and progression along those interests.
 
@@ -193,7 +210,7 @@ Your goal is to better understand the user's likes and dislikes across people, a
     // Route through the chat function
     console.log('Routing through chat function with message:', message);
     const { data: chatResponse, error: chatError } = await supabaseClient.functions.invoke('chat', {
-      body: { message, userId: user_id, secretMessage: false, conversationType: "CHAT" }
+      body: { message, userId: user_id, secretMessage: false, conversationType: "DAILY_CHECKIN" }
     });
 
     if (chatError) {
@@ -202,20 +219,6 @@ Your goal is to better understand the user's likes and dislikes across people, a
     }
 
     console.log('Chat function response:', chatResponse);
-
-    // Verify the message was stored
-    const { data: chatHistory, error: historyError } = await supabaseClient
-      .from('chat_history')
-      .select('*')
-      .eq('user_id', user_id)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (historyError) {
-      console.error('Error verifying chat history:', historyError);
-    } else {
-      console.log('Latest chat history entry:', chatHistory);
-    }
 
     console.log('Successfully processed check-in');
     return new Response(JSON.stringify({ status: 'success' }), {
