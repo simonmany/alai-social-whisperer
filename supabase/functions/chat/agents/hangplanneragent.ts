@@ -49,6 +49,8 @@ export class HangPlannerAgent extends Agent {
 
     messages.push({role: 'user', content: `Context: ${JSON.stringify(context, null, 2)}\nMessage: ${message}`})
 
+    this.saveChatMessage(userId, message, secretMessage, false);
+
     // Prepare messages for the AI
     messages.unshift({
       role: 'system',
@@ -105,8 +107,6 @@ export class HangPlannerAgent extends Agent {
       }
     }
     console.log('parsed response', parsedResponse)
-
-    this.saveChatMessage(userId, message, secretMessage, false);
 
     if (parsedResponse.text) {
       this.saveChatMessage(userId, parsedResponse.text, secretMessage, true);

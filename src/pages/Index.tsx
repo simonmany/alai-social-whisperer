@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { generateChatResponse } from "@/utils/openai";
+import { ConversationType, generateChatResponse } from "@/utils/openai";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { MainNavigation } from "@/components/MainNavigation";
 import { ChatContainer } from "@/components/ChatContainer";
@@ -19,6 +19,11 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Contact } from "@/types/contacts";
 import { APP_CONSTANTS } from "@/utils/constants";
 import { TutorialConversation } from "@/components/tutorial/TutorialConversation";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { TIME_OPTIONS } from "@/utils/constants";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Message {
   content: string;
@@ -53,12 +58,16 @@ const Index = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<string>("");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTime, setSelectedTime] = useState<string>();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
   const { session } = useAuth();
   const queryClient = useQueryClient();
+  const [conversationType, setConversationType] = useState(ConversationType.CHAT)
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -121,9 +130,17 @@ const Index = () => {
     loadChatHistory();
   }, [session?.user?.id, showOnboarding]);
 
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    console.log('last message', lastMessage);
+    if (lastMessage && lastMessage?.isAl && lastMessage.content.toLowerCase().includes('pick a date and time')) {
+      setShowDatePicker(true);
+    }
+  }, [messages]);
+
   const handleOnboardingComplete = async () => {
     console.log('Completing onboarding...');
-    if (!session?.user?.id) return;
+    if (!session?.user.id) return;
     
     try {
       setShowOnboarding(false);
@@ -154,35 +171,18 @@ const Index = () => {
 
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
 
-      const { data: existingMessages } = await supabase
+      await supabase
         .from('chat_history')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('is_onboarding_message', true)
-        .single();
-
-      if (!existingMessages) {
-        await supabase
-          .from('chat_history')
-          .insert([{
-            message: welcomeMessage,
-            is_ai: true,
-            user_id: session.user.id,
-            is_onboarding_message: true
-          }]);
-      }
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
       
       setTutorialComplete(false);
       setShowProfileButton(false);
-      setMessages([
-        { content: welcomeMessage, isAl: true },
-        // { 
-        //   content: "Let's go!", 
-        //   isAl: false, 
-        //   is_secret: true,
-        //   contactInfo: contactData || undefined
-        // }
-      ]);
+      setConversationType(ConversationType.HANG_PLANNER);
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
       toast({
@@ -192,12 +192,6 @@ const Index = () => {
       });
     }
   };
-
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [username, setUsername] = useState("");
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [passwordError, setPasswordError] = useState("");
 
   const handleStartTutorial = async () => {
     if (!session?.user.id) return;
@@ -249,26 +243,18 @@ const Index = () => {
 
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
 
-      const { data: existingMessages } = await supabase
+      await supabase
         .from('chat_history')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .eq('is_onboarding_message', true)
-        .single();
-
-      if (!existingMessages) {
-        await supabase
-          .from('chat_history')
-          .insert([{
-            message: welcomeMessage,
-            is_ai: true,
-            user_id: session.user.id,
-            is_onboarding_message: true
-          }]);
-      }
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
       
       setTutorialComplete(false);
       setShowProfileButton(false);
+      setConversationType(ConversationType.HANG_PLANNER);
 
       if (contactData) {
         setSelectedContact(contactData);
@@ -279,16 +265,6 @@ const Index = () => {
           setSelectedActivity(randomInterest);
         }
       }
-
-      setMessages([
-        { content: welcomeMessage, isAl: true },
-        { 
-          content: "Let's go!", 
-          isAl: false, 
-          is_secret: true,
-          contactInfo: contactData || undefined
-        }
-      ]);
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
@@ -322,6 +298,7 @@ const Index = () => {
       setShowOnboarding(false);
       setTutorialComplete(true);
       setShowProfileButton(false);
+      setConversationType(ConversationType.CHAT);
       
       toast({
         title: "Onboarding skipped",
@@ -545,15 +522,6 @@ const Index = () => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [navigate, toast]);
-
-  const validatePassword = (password: string) => {
-    if (password.length < 6) {
-      setPasswordError("Password must be at least 6 characters long");
-      return false;
-    }
-    setPasswordError("");
-    return true;
-  };
   
   const handleGoogleSignIn = async () => {
     try {
@@ -591,139 +559,79 @@ const Index = () => {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validatePassword(password)) {
-      return;
-    }
-    
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username,
-            avatar_url: null,
-          },
-        },
-      });
-
-      if (error) {
-        let errorBody: any = {};
-        try {
-          errorBody = error.message ? JSON.parse(error.message) : {};
-        } catch (parseError) {
-          console.error("Error parsing error message:", parseError);
-        }
-
-        const isUserExists = error.status === 422 || 
-                              errorBody?.code === "user_already_exists" ||
-                              error.message.includes("User already registered");
-
-        if (isUserExists) {
-          console.log("User already exists, attempting sign in");
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          });
-
-          if (signInError) {
-            throw signInError;
-          }
-
-          if (signInData.user?.app_metadata?.provider === 'google') {
-            const { user_metadata } = signInData.user;
-            await supabase
-              .from('profiles')
-              .update({
-                avatar_url: user_metadata.avatar_url,
-                display_name: user_metadata.full_name,
-              })
-              .eq('id', signInData.user.id);
-          }
-
-          toast({
-            title: "Welcome back!",
-            description: "You've been signed in with your existing account.",
-          });
-          navigate("/");
-          return;
-        }
-        throw error;
-      }
-
-      setShowEmailConfirmation(true);
-      toast({
-        title: "Success!",
-        description: "Please check your email to confirm your account.",
-      });
-      
-      if (data.user && !data.user.confirmed_at) {
-        navigate("/");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        if (error.message.includes("Email not confirmed")) {
-          setShowEmailConfirmation(true);
-          throw new Error("Please confirm your email before signing in. Check your inbox for the confirmation link.");
-        }
-        throw error;
-      }
-
-      if (data.user?.app_metadata?.provider === 'google') {
-        const { user_metadata } = data.user;
-        await supabase
-          .from('profiles')
-          .update({
-            avatar_url: user_metadata.avatar_url,
-            display_name: user_metadata.full_name,
-          })
-          .eq('id', data.user.id);
-      }
-      
-      navigate("/");
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleSend = async (message: string, contactInfo?: Contact) => {
     if (!message.trim()) return;
 
     setIsLoading(true);
 
     try {
-      const response = await generateChatResponse(message, contactInfo ? [contactInfo] : undefined);
+      const response = await generateChatResponse(message, contactInfo ? [contactInfo] : undefined, false, conversationType);
+      
+      console.log('response',response)
+      if (response.done) {
+        console.log('planning done, sending event')
+        try {
+          const [hours, minutes, period] = selectedTime!.match(/(\d+):(\d+) (AM|PM)/)!.slice(1);
+          let hour = parseInt(hours);
+          if (period === "PM" && hour !== 12) hour += 12;
+          if (period === "AM" && hour === 12) hour = 0;
+          
+          const startTime = new Date(selectedDate!);
+          startTime.setHours(hour, parseInt(minutes), 0, 0);
+
+          const endTime = new Date(startTime);
+          endTime.setHours(endTime.getHours() + 1);
+
+          const { data: eventData, error: eventError } = await supabase
+            .from('calendar_events')
+            .insert({
+              user_id: session.user.id,
+              title: response.activity,
+              location: response.location,
+              start_time: startTime.toISOString(),
+              end_time: endTime.toISOString(),
+            })
+            .select()
+            .single();
+
+          if (eventError) throw eventError;
+
+          const { data: selectedContacts, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('user_id', session.user.id)
+
+          if (error) {
+            console.error('Error fetching contacts:', error);
+            throw error;
+          }
+
+          const filteredContacts = selectedContacts.filter(contact => response.contacts.some(name => contact.name.toLowerCase().includes(name.toLowerCase())));
+
+          const attendeesToInsert = filteredContacts.map(contact => ({
+            event_id: eventData.id,
+            contact_id: contact.id
+          }));
+
+          const { error: attendeesError } = await supabase
+            .from('event_attendees')
+            .insert(attendeesToInsert);
+
+          if (attendeesError) throw attendeesError;
+
+          if (!tutorialComplete) {
+            handleTutorialComplete();
+          }
+
+        } catch (error: any) {
+          console.error('Error creating event:', error);
+          toast({
+            title: "Error",
+            description: "Failed to create event. Please try again.",
+            variant: "destructive",
+          });
+        }
+      }
     } catch (error: any) {
       console.error('Error generating response:', error);
       toast({
@@ -771,6 +679,7 @@ const Index = () => {
         .eq('id', session?.user?.id);
 
       setTutorialComplete(true);
+      setConversationType(ConversationType.CHAT)
     } catch (error) {
       console.error('Error completing tutorial:', error);
       toast({
@@ -824,54 +733,6 @@ const Index = () => {
     }
   };
 
-  const parseContactInfo = (message: string) => {
-    const nameMatch = message.match(/I met (.+?) (?:at|\.)/);
-    const meetingMatch = message.match(/at (.+?)\./);
-    const contactsMatch = message.match(/Their contacts are (.+?)\./);
-    const relationshipMatch = message.match(/They are\.\.\. (.+)$/);
-
-    if (!nameMatch) return undefined;
-
-    const contacts = contactsMatch?.[1] || "";
-    const contactInfo = {
-      name: nameMatch[1],
-      meetingStory: meetingMatch?.[1],
-      relationship: relationshipMatch?.[1],
-    };
-
-    const phone = contacts.match(/📱 ([^📸💼🐦]+)/)?.[1]?.trim();
-    const instagram = contacts.match(/📸 @([^📸💼🐦\s]+)/)?.[1]?.trim();
-    const linkedin = contacts.match(/💼 ([^📸💼🐦\s]+)/)?.[1]?.trim();
-    const twitter = contacts.match(/🐦 @([^📸💼🐦\s]+)/)?.[1]?.trim();
-
-    if (!phone || !instagram || !linkedin || !twitter) return undefined;
-    // If the user did not provide any other information, let the LLM take care of it
-
-    return {
-      ...contactInfo,
-      phone,
-      instagram,
-      linkedin,
-      twitter,
-    };
-  };
-
-  const handleTutorialAction = async () => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.contactInfo) {
-      setSelectedContact(lastMessage.contactInfo);
-      
-      if (lastMessage.contactInfo.interests && lastMessage.contactInfo.interests.length > 0) {
-        const randomInterest = lastMessage.contactInfo.interests[
-          Math.floor(Math.random() * lastMessage.contactInfo.interests.length)
-        ];
-        setSelectedActivity(randomInterest);
-      }
-    }
-
-    setIsPlanningOpen(true);
-  };
-
   let cleanup: () => void | undefined;
 
   const defaultPrompts = [
@@ -880,6 +741,16 @@ const Index = () => {
     { text: "Set a new goal", action: "Set a new goal" },
     { text: "add a new contact", action: "add a new contact" }
   ];
+
+  const handleDateTimeSubmit = () => {
+    if (selectedDate && selectedTime) {
+      const formattedDate = format(selectedDate, 'MMMM do, yyyy');
+      handleSend(`I would like to meet on ${formattedDate} at ${selectedTime}`);
+      setShowDatePicker(false);
+      setSelectedDate(undefined);
+      setSelectedTime(undefined);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -898,13 +769,15 @@ const Index = () => {
         {showOnboarding ? (
           <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : !tutorialComplete ? (
-          <TutorialConversation
-            onComplete={handleTutorialComplete}
+          <ChatContainer
             messages={messages}
             isLoading={isLoading}
             onSend={handleSend}
             onSuggestedPrompt={handleSuggestedPrompt}
-          />
+            suggestedPrompts={[]}
+          >
+            <></>
+          </ChatContainer>
         ) : (
           <ChatContainer
             messages={messages}
@@ -1003,6 +876,37 @@ const Index = () => {
         onSubmit={handleSend}
         userId={session?.user.id}
       />
+      <Dialog open={showDatePicker} onOpenChange={setShowDatePicker}>
+        <DialogContent>
+        Pick a date and time for your hang!
+          <div className="flex flex-col gap-4">
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              className="rounded-md border"
+            />
+            <Select value={selectedTime} onValueChange={setSelectedTime}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a time" />
+              </SelectTrigger>
+              <SelectContent>
+                {TIME_OPTIONS.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button 
+              onClick={handleDateTimeSubmit}
+              disabled={!selectedDate || !selectedTime}
+            >
+              Confirm
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

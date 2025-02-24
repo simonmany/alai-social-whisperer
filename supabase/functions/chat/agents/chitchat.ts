@@ -103,6 +103,9 @@ export class ChitChatAgent extends Agent {
     const profile = await this.getUserProfile(userId);
     const chatHistory = await this.getChatHistory(userId);
 
+    // save user message
+    this.saveChatMessage(userId, message, secretMessage, false)
+    
     const context = this.buildContext(profile);
 
     let events = await this.getEvents(profile.id, profile.utc_offset_minutes);
@@ -226,8 +229,7 @@ export class ChitChatAgent extends Agent {
     if (parsedResponse.contact_groups) {
       await upsertContactGroups(userId, parsedResponse.contact_groups, contacts);
     }
-    // save user message
-    this.saveChatMessage(userId, message, secretMessage, false)
+
     // Save chat message
     if (parsedResponse.text) {
       await this.saveChatMessage(userId, parsedResponse.text, secretMessage, true);
