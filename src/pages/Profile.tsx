@@ -68,6 +68,10 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       if (error) throw error;
       if (!profile) throw new Error('No profile found');
 
+      console.log('Raw profile data:', profile);
+      console.log('Raw current_interests:', profile.current_interests);
+      console.log('Raw desired_interests:', profile.desired_interests);
+
       const currentInterests = Array.isArray(profile.current_interests) 
         ? profile.current_interests.filter((item): item is string => typeof item === 'string')
         : [];
@@ -75,6 +79,9 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       const desiredInterests = Array.isArray(profile.desired_interests)
         ? profile.desired_interests.filter((item): item is string => typeof item === 'string')
         : [];
+        
+      console.log('Processed currentInterests:', currentInterests);
+      console.log('Processed desiredInterests:', desiredInterests);
 
       return {
         ...profile,
@@ -111,6 +118,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const handleInterestsUpdate = async (currentInterests: string[], desiredInterests: string[]) => {
     if (!userData?.id) return;
 
+    console.log('Updating interests with:', { currentInterests, desiredInterests });
+
     try {
       const { error } = await supabase
         .from('profiles')
@@ -122,6 +131,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
       if (error) throw error;
 
+      console.log('Successfully updated interests in database');
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       
       toast({

@@ -12,6 +12,12 @@ interface Message {
   isAl: boolean;
   is_secret?: boolean;
   contactInfo?: Contact;
+  showPlanningForm?: boolean;
+  onPlanningSubmit?: (message: string) => void;
+  defaultContacts?: Contact[];
+  defaultActivity?: string;
+  defaultLocation?: string;
+  defaultDate?: Date;
 }
 
 interface SuggestedPromptItem {
@@ -93,6 +99,12 @@ export const ChatContainer = ({
                   isAl={message.isAl}
                   animate={index === messages.length - 1}
                   contacts={message.contactInfo ? [message.contactInfo] : undefined}
+                  showPlanningForm={message.showPlanningForm}
+                  onPlanningSubmit={message.onPlanningSubmit}
+                  defaultContacts={message.defaultContacts}
+                  defaultActivity={message.defaultActivity}
+                  defaultLocation={message.defaultLocation}
+                  defaultDate={message.defaultDate}
                 />
               );
             }

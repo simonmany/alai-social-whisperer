@@ -31,7 +31,10 @@ export const generateChatResponse = async (message: string, contactInfo?: Contac
     });
 
     if (error) {
-      console.error("Supabase function error:", error);
+      console.error("Supabase function error:", {
+        error,
+        requestData: { message, userId, contactInfo, secretMessage, conversationType }
+      });
       throw new Error(error.message || "Failed to generate response");
     }
 

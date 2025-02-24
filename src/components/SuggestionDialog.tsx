@@ -40,16 +40,32 @@ export function SuggestionDialog({
     try {
       setIsLoading(true);
       const data = await generateChatResponse(message, contactInfo, true, ConversationType.HANG_PLANNER);
+      console.log('Received data:', data);
 
-      if (data.response) {
-        setCurrentResponse(data.response);
+      // Check if data itself is the response
+      if (data && typeof data === 'object') {
+        if (data.response) {
+          setCurrentResponse(data.response);
+        } else if ('text' in data || 'contacts' in data || 'activity' in data || 'datetime' in data) {
+          // The data itself appears to be the response
+          setCurrentResponse(data);
+        } else {
+          throw new Error("Invalid response format");
+        }
       } else {
         throw new Error("No response received");
       }
     } catch (error) {
       console.error("Error getting suggestion:", error);
+      let errorMessage = "Sorry, I couldn't generate a suggestion at this time.";
+      
+      // Add more specific error info
+      if (error instanceof Error) {
+        errorMessage += `\n\nError details: ${error.message}`;
+      }
+      
       setCurrentResponse({
-        text: "Sorry, I couldn't generate a suggestion at this time. Please try again."
+        text: errorMessage
       });
     } finally {
       setIsLoading(false);

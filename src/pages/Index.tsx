@@ -656,7 +656,20 @@ const Index = () => {
 
   const handleSuggestedPrompt = (prompt: string) => {
     if (prompt === "plan me a hang") {
-      setIsPlanningOpen(true);
+      // Add a message from the user indicating they want to plan
+      setMessages(prev => [...prev, { 
+        content: "I'd like to plan a hang", 
+        isAl: false 
+      }]);
+      // Add AI response with the planning form
+      setMessages(prev => [...prev, { 
+        content: "Sure! Let's plan something. Fill out the details below:", 
+        isAl: true,
+        showPlanningForm: true,
+        onPlanningSubmit: handlePlanSubmit,
+        defaultContacts: selectedContact ? [selectedContact] : [],
+        defaultActivity: selectedActivity
+      }]);
     } else if (prompt === "talk about a hang") {
       setIsFeedbackOpen(true);
     } else if (prompt === "Set a new goal") {
@@ -852,13 +865,7 @@ const Index = () => {
         open={isProfileOpen} 
         onOpenChange={setIsProfileOpen}
       />
-      <PlanningDialog 
-        open={isPlanningOpen}
-        onOpenChange={setIsPlanningOpen}
-        onSubmit={handlePlanSubmit}
-        defaultContacts={selectedContact ? [selectedContact] : []}
-        defaultActivity={selectedActivity}
-      />
+
       <FeedbackDialog
         open={isFeedbackOpen}
         onOpenChange={setIsFeedbackOpen}

@@ -1,6 +1,7 @@
 
 import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
+import { PlanningForm } from "@/components/PlanningForm";
 import ReactMarkdown from "react-markdown";
 
 interface Contact {
@@ -20,9 +21,26 @@ interface ChatMessageProps {
   isAl: boolean;
   animate?: boolean;
   contacts?: Contact[];
+  showPlanningForm?: boolean;
+  onPlanningSubmit?: (message: string) => void;
+  defaultContacts?: Contact[];
+  defaultActivity?: string;
+  defaultLocation?: string;
+  defaultDate?: Date;
 }
 
-export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMessageProps) => {
+export const ChatMessage = ({ 
+  content, 
+  isAl, 
+  animate = true, 
+  contacts,
+  showPlanningForm,
+  onPlanningSubmit,
+  defaultContacts,
+  defaultActivity,
+  defaultLocation,
+  defaultDate
+}: ChatMessageProps) => {
   return (
     <div
       className={cn(
@@ -41,6 +59,17 @@ export const ChatMessage = ({ content, isAl, animate = true, contacts }: ChatMes
               {contacts.map((contact, index) => (
                 <ContactCard key={`${contact.name}-${index}`} {...contact} />
               ))}
+            </div>
+          )}
+          {showPlanningForm && onPlanningSubmit && (
+            <div className="mt-4">
+              <PlanningForm
+                onSubmit={onPlanningSubmit}
+                defaultContacts={defaultContacts}
+                defaultActivity={defaultActivity}
+                defaultLocation={defaultLocation}
+                defaultDate={defaultDate}
+              />
             </div>
           )}
         </div>
