@@ -566,10 +566,9 @@ const Index = () => {
 
     try {
       const response = await generateChatResponse(message, contactInfo ? [contactInfo] : undefined, false, conversationType);
-      
-      console.log('response',response)
-      if (response.done) {
-        console.log('planning done, sending event')
+
+      console.log('response', response);
+      if (response.contacts && response.activity && response.location && response.datetime && response.datetime?.date && response.datetime?.time) {
         try {
           const [hours, minutes, period] = selectedTime!.match(/(\d+):(\d+) (AM|PM)/)!.slice(1);
           let hour = parseInt(hours);

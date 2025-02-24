@@ -21,8 +21,10 @@ export class HangPlannerAgent extends Agent {
       "time": the time the hangout is scheduled to take place using the 12 hour clock
     },
     "location": the location the hangout will take place at,
-    "done": bool, whether all of the other fields are filled including datetime.date and datetime.time
-  }`
+  }
+    
+    When all of the steps are complete, and you have filled in the json response, confirm with the user that their event is in the calendar.
+`
 
   async chat(
     userId: string,
