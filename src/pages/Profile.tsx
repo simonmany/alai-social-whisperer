@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { InterestsCard } from "@/components/profile/InterestsCard";
+import { CatchUpCard } from "@/components/profile/CatchUpCard";
 import Autocomplete from 'react-google-autocomplete';
 
 interface ProfileProps {
@@ -306,11 +307,14 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
               </div>
 
               {!isLoading && (
-                <InterestsCard
-                  currentInterests={profileData?.currentInterests}
-                  desiredInterests={profileData?.desiredInterests}
-                  onUpdate={handleInterestsUpdate}
-                />
+                <>
+                  <InterestsCard
+                    currentInterests={profileData?.currentInterests}
+                    desiredInterests={profileData?.desiredInterests}
+                    onUpdate={handleInterestsUpdate}
+                  />
+                  <CatchUpCard userId={userData?.id || ''} />
+                </>
               )}
 
               <div className="flex flex-col gap-2">
