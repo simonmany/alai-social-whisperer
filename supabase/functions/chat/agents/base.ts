@@ -1,5 +1,5 @@
 import { Contact } from '../types.ts';
-import { convertToLocalTime } from '../utils.ts';
+import { convertToLocalTime } from '../../_shared/utils.ts';
 import { supabase } from '../../_shared/supabase.ts'
 
 export abstract class Agent {
@@ -102,6 +102,7 @@ export abstract class Agent {
 
   protected async getEvents(userId: string, utcOffset: number = -240) {
     const now = new Date();
+    now.setUTCHours(0, 0, 0, 0);
     const tenDaysFromNow = new Date();
     tenDaysFromNow.setDate(now.getDate() + 10);
     const { data: events } = await supabase

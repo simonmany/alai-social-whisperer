@@ -10,7 +10,6 @@ import { OnboardingFlow } from "@/components/OnboardingFlow";
 import { Button } from "@/components/ui/button";
 import { Redo, Play, RefreshCw } from "lucide-react";
 import Profile from "./Profile";
-import PlanningDialog from "@/components/PlanningDialog";
 import FeedbackDialog from "@/components/FeedbackDialog";
 import GoalsDialog from "@/components/GoalsDialog";
 import ContactsDialog from "@/components/ContactsDialog";
@@ -18,7 +17,6 @@ import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { Contact } from "@/types/contacts";
 import { APP_CONSTANTS } from "@/utils/constants";
-import { TutorialConversation } from "@/components/tutorial/TutorialConversation";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
@@ -865,7 +863,6 @@ const Index = () => {
         open={isProfileOpen} 
         onOpenChange={setIsProfileOpen}
       />
-
       <FeedbackDialog
         open={isFeedbackOpen}
         onOpenChange={setIsFeedbackOpen}

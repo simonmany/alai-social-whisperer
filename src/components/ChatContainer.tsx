@@ -25,6 +25,11 @@ interface SuggestedPromptItem {
   action: string;
 }
 
+interface SuggestedPromptItem {
+  text: string;
+  action: string;
+}
+
 interface ChatContainerProps {
   messages: Message[];
   isLoading: boolean;
