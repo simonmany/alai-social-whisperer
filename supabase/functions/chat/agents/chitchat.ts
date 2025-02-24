@@ -61,7 +61,7 @@ export class ChitChatAgent extends Agent {
         3. Use their feedback to make better suggestions for future social activities
         4. If they express any concerns or negative experiences, provide empathetic support and constructive suggestions
   
-        Ask these questions one at a time to not overwhelm the user. Keep a natural conversational flow.
+        ALWAYS ask questions one at a time to not overwhelm the user. NEVER ask multiple questions in one response.
         
         Your response should be in this JSON format:
         {
@@ -100,9 +100,6 @@ export class ChitChatAgent extends Agent {
     contactInfo?: Contact[],
     secretMessage = false
   ): Promise<{ parsedResponse: any }> {
-    // store user message
-    this.saveChatMessage(userId, message, secretMessage, false)
-
     const profile = await this.getUserProfile(userId);
     const chatHistory = await this.getChatHistory(userId);
 
@@ -229,7 +226,8 @@ export class ChitChatAgent extends Agent {
     if (parsedResponse.contact_groups) {
       await upsertContactGroups(userId, parsedResponse.contact_groups, contacts);
     }
-
+    // save user message
+    this.saveChatMessage(userId, message, secretMessage, false)
     // Save chat message
     if (parsedResponse.text) {
       await this.saveChatMessage(userId, parsedResponse.text, secretMessage, true);

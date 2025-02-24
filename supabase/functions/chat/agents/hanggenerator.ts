@@ -1,7 +1,7 @@
 import { Agent } from './base.ts';
 import { Contact } from '../types.ts';
 
-export class HangPlannerAgent extends Agent {
+export class HangGeneratorAgent extends Agent {
   protected systemPrompt = `You are helping the user plan a hangout with their friends. 
     Always provide a conversational response explaining your suggestions. 
     If there are not any attendees listed, select some contacts from the contacts list to suggest.

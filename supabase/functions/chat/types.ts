@@ -14,7 +14,8 @@ export interface Contact {
 export enum ConversationType {
     CHAT = 'CHAT',
     HANG_PLANNER = 'HANG_PLANNER',
-    PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER'
+    PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER',
+    HANG_GENERATOR = 'HANG_GENERATOR',
 }
 
 export const functions = [

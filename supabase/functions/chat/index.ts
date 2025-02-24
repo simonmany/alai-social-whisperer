@@ -1,9 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ChitChatAgent } from "./agents/chitchat.ts";
-import { HangPlannerAgent } from "./agents/hangplanner.ts";
+import { HangGeneratorAgent } from "./agents/hanggenerator.ts";
 import { PersonalityAnalyzerAgent } from "./agents/personalityanalyzer.ts";
 import { ConversationType } from "./types.ts";
+import { HangPlannerAgent, TutorialAgent } from "./agents/hangplanneragent.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -50,14 +51,17 @@ serve(async (req: Request) => {
     // Create appropriate agent based on conversation type
     let agent;
     switch (conversationType) {
-      case ConversationType.HANG_PLANNER:
-        agent = new HangPlannerAgent(openAIApiKey);
+      case ConversationType.HANG_GENERATOR:
+        agent = new HangGeneratorAgent(openAIApiKey);
         break;
       case ConversationType.PERSONALITY_ANALYZER:
         agent = new PersonalityAnalyzerAgent(openAIApiKey);
         break;
       case ConversationType.CHAT:
         agent = new ChitChatAgent(openAIApiKey);
+        break;
+      case ConversationType.HANG_PLANNER:
+        agent = new HangPlannerAgent(openAIApiKey);
         break;
     }
 
