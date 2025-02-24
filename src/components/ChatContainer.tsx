@@ -14,13 +14,20 @@ interface Message {
   contactInfo?: Contact;
 }
 
+interface SuggestedPromptItem {
+  text: string;
+  action: string;
+}
+
 interface ChatContainerProps {
   messages: Message[];
   isLoading: boolean;
   onSend: (content: string) => void;
   onSuggestedPrompt: (prompt: string) => void;
+  onTutorialAction?: () => void;
   disabled?: boolean;
   children: React.ReactNode;
+  suggestedPrompts?: SuggestedPromptItem[];
 }
 
 export const ChatContainer = ({
@@ -28,8 +35,10 @@ export const ChatContainer = ({
   isLoading,
   onSend,
   onSuggestedPrompt,
+  onTutorialAction,
   disabled = false,
   children,
+  suggestedPrompts = []
 }: ChatContainerProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,20 +56,6 @@ export const ChatContainer = ({
     setShowScrollButton(!isNearBottom);
   };
 
-  const filteredMessages = messages.filter((message, index) => {
-    const isCheckInPrompt = !message.isAl && 
-                           message.content.includes("You're doing the") && 
-                           (message.content.includes("morning check-in") || 
-                            message.content.includes("evening recap"));
-
-    const isPostEventPrompt = !message.isAl &&
-                             message.content.includes("just completed") &&
-                             message.content.includes("Ask them how it went");
-
-    return !isCheckInPrompt && 
-           !isPostEventPrompt;
-  });
-
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -76,17 +71,35 @@ export const ChatContainer = ({
         onScroll={handleScroll}
       >
         <div className="flex flex-col gap-3 pb-4">
-          {filteredMessages
-            .filter(message => !message.is_secret)
-            .map((message, index) => (
-              <ChatMessage
-                key={index}
-                content={message.content}
-                isAl={message.isAl}
-                animate={index === filteredMessages.length - 1}
-                contacts={message.contactInfo ? [message.contactInfo] : undefined}
-              />
-            ))}
+          {messages.map((message, index) => {
+            if (message.is_secret && message.content === "Let's go!" && onTutorialAction) {
+              return (
+                <div key={index} className="self-end">
+                  <Button
+                    onClick={onTutorialAction}
+                    className="bg-primary text-primary-foreground px-6 py-2 rounded-lg text-lg"
+                  >
+                    Let's go!
+                  </Button>
+                </div>
+              );
+            }
+            
+            if (!message.is_secret) {
+              return (
+                <ChatMessage
+                  key={index}
+                  content={message.content}
+                  isAl={message.isAl}
+                  animate={index === messages.length - 1}
+                  contacts={message.contactInfo ? [message.contactInfo] : undefined}
+                />
+              );
+            }
+            
+            return null;
+          })}
+          
           {isLoading && (
             <div className="self-start text-sm text-gray-500 animate-pulse">
               Al is typing...
@@ -110,24 +123,14 @@ export const ChatContainer = ({
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <p className="text-sm text-gray-500 italic">Things we can talk about...</p>
-            <div className="flex gap-2 flex-wrap">
-              <SuggestedPrompt
-                text="plan a future hang"
-                onClick={() => onSuggestedPrompt("plan me a hang")}
-              />
-              <SuggestedPrompt
-                text="talk about past hang"
-                onClick={() => onSuggestedPrompt("talk about a hang")}
-              />
-              <SuggestedPrompt
-                text="Set a new goal"
-                onClick={() => onSuggestedPrompt("Set a new goal")}
-              />
-              <SuggestedPrompt
-                text="add a new contact"
-                onClick={() => onSuggestedPrompt("add a new contact")}
-              />
+            <div className="flex flex-wrap gap-2 mb-4">
+              {suggestedPrompts.map((prompt, index) => (
+                <SuggestedPrompt
+                  key={index}
+                  text={prompt.text}
+                  onClick={() => onSuggestedPrompt(prompt.action)}
+                />
+              ))}
             </div>
           </div>
           <ChatInput onSend={onSend} />

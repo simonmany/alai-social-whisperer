@@ -13,7 +13,8 @@ export interface ContactInfo {
 export enum ConversationType {
   CHAT = 'CHAT',
   HANG_PLANNER = 'HANG_PLANNER',
-  PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER'
+  PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER',
+  HANG_GENERATOR = 'HANG_GENERATOR',
 }
 
 export const generateChatResponse = async (message: string, contactInfo?: ContactInfo[], secretMessage?: boolean, conversationType: ConversationType = ConversationType.CHAT) => {
@@ -39,7 +40,7 @@ export const generateChatResponse = async (message: string, contactInfo?: Contac
       throw new Error("Invalid response from chat function");
     }
 
-    return data;
+    return data.response;
 
   } catch (error) {
     console.error("Error generating chat response:", error);

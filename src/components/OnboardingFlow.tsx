@@ -60,13 +60,25 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [priorityLine3, setPriorityLine3] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasSubmittedOnce, setHasSubmittedOnce] = useState(false);
+  const [hasPlayedActivitiesIntro1, setHasPlayedActivitiesIntro1] = useState(false);
+  const [hasPlayedActivitiesIntro2, setHasPlayedActivitiesIntro2] = useState(false);
   const [hasPlayedActivitiesIntro, setHasPlayedActivitiesIntro] = useState(false);
   const [hasPlayedFoodIntro, setHasPlayedFoodIntro] = useState(false);
   const [priorityPersonName, setPriorityPersonName] = useState("");
+  const [hasPlayedLine3Part1, setHasPlayedLine3Part1] = useState(false);
+  const [hasPlayedLine3Part2, setHasPlayedLine3Part2] = useState(false);
+  const [hasPlayedLine3Part3, setHasPlayedLine3Part3] = useState(false);
+  const [hasPlayedLine3Part4, setHasPlayedLine3Part4] = useState(false);
+  const [hasPlayedLine3Part5, setHasPlayedLine3Part5] = useState(false);
+  const [hasPlayedLine3Part6, setHasPlayedLine3Part6] = useState(false);
+  const [hasPlayedLine3Part7, setHasPlayedLine3Part7] = useState(false);
+  const [hasPlayedLine3Part8, setHasPlayedLine3Part8] = useState(false);
 
   useEffect(() => {
     const fetchPriorityPerson = async () => {
-      if (session?.user?.id) {
+      if (!session?.user?.id) return;
+
+      try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('catch_up_contacts')
@@ -82,13 +94,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
           if (contact) {
             setPriorityPersonName(contact.name);
+            setPriorityPerson(contact.name);
           }
         }
+      } catch (error) {
+        console.error('Error fetching priority person:', error);
       }
     };
 
     fetchPriorityPerson();
-  }, [session?.user?.id]);
+  }, [session?.user?.id, step]);
 
   const handleBack = () => {
     switch (step) {
@@ -111,19 +126,105 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   };
 
   const handleSkip = async () => {
-    switch (step) {
-      case 'interests':
-        setStep('future-interests');
-        break;
-      case 'future-interests':
-        setStep('demographics');
-        break;
+    if (!session?.user?.id) return;
+    
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_started_at: new Date().toISOString(),
+          onboarding_step: 'splash',
+          has_completed_tutorial: false
+        })
+        .eq('id', session?.user?.id);
+
+      onComplete();
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleFinishOnboarding = async () => {
+    console.log('handleFinishOnboarding called');
+    if (!session?.user?.id) return;
+    
+    try {
+      await supabase
+        .from('profiles')
+        .update({ 
+          onboarding_completed: true,
+          onboarding_started_at: new Date().toISOString(),
+          onboarding_step: 'splash',
+          has_completed_tutorial: false,
+          desired_interests: [...state.currentInterests || [], 
+                     ...state.desiredInterests || [],
+                     ...state.foodPreferences || [],
+                     ...state.desiredFoodPreferences || [],
+                     ...state.musicPreferences || [],
+                     ...state.desiredMusicPreferences || []
+                    ].filter(Boolean)
+        })
+        .eq('id', session?.user?.id);
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('display_name, catch_up_contacts')
+        .eq('id', session.user.id)
+        .single();
+
+      let contactData = null;
+      let contactName = '';
+      if (profileData?.catch_up_contacts?.[0]) {
+        const { data: contact } = await supabase
+          .from('contacts')
+          .select('name')
+          .eq('id', profileData.catch_up_contacts[0])
+          .single();
+
+        if (contact) {
+          contactName = contact.name;
+        }
+      }
+
+      await supabase
+        .from('chat_history')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('is_onboarding_message', true);
+
+      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
+
+      await supabase
+        .from('chat_history')
+        .insert([{
+          message: welcomeMessage,
+          is_ai: true,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
+
+      onComplete();
+    } catch (error: any) {
+      console.error('Error completing onboarding:', error);
+      toast({
+        title: "Error completing onboarding",
+        description: "Please try again",
+        variant: "destructive",
+      });
     }
   };
 
   const handleProceedToFutureInterests = async () => {
     if (canProceedToNextSection('current')) {
       try {
+        if (!session?.user?.id) return;
+
         await supabase
           .from('profiles')
           .update({ 
@@ -132,7 +233,45 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             onboarding_step: 'splash',
             has_completed_tutorial: false
           })
-          .eq('id', session?.user.id);
+          .eq('id', session?.user?.id);
+
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('display_name, catch_up_contacts')
+          .eq('id', session.user.id)
+          .single();
+
+        let contactData = null;
+        let contactName = '';
+        if (profileData?.catch_up_contacts?.[0]) {
+          const { data: contact } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('id', profileData.catch_up_contacts[0])
+            .single();
+
+          if (contact) {
+            contactName = contact.name;
+            contactData = contact;
+          }
+        }
+
+        await supabase
+          .from('chat_history')
+          .delete()
+          .eq('user_id', session.user.id)
+          .eq('is_onboarding_message', true);
+
+        const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
+
+        await supabase
+          .from('chat_history')
+          .insert([{
+            message: welcomeMessage,
+            is_ai: true,
+            user_id: session.user.id,
+            is_onboarding_message: true
+          }]);
 
         onComplete();
       } catch (error: any) {
@@ -207,7 +346,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     try {
       const { data: contact, error: contactError } = await supabase
         .from('contacts')
-        .insert({
+        .upsert({
           name: priorityPerson.trim(),
           user_id: session?.user.id
         })
@@ -221,10 +360,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .update({
           catch_up_contacts: [contact.id]
         })
-        .eq('id', session?.user.id);
+        .eq('id', session?.user?.id);
 
       if (profileError) throw profileError;
 
+      setPriorityPersonName(contact.name);
       setShowOtherPeopleInput(true);
       setPriorityLine3(true);
       setPriorityPerson(priorityPerson.trim());
@@ -322,29 +462,122 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             )}
 
             {hasPlayedLine1 && (
-              hasPlayedLine3 ? (
-                <div className="text-xl">
-                  My goal is to help you be intentional about your relationships. That includes:
+              <div className="text-xl space-y-2">
+                {hasPlayedLine3Part1 ? (
+                  <div>My goal is to help you be intentional about your relationships. That includes:</div>
+                ) : (
+                  <TypewriterText
+                    key="line3-part1"
+                    text="My goal is to help you be intentional about your relationships. That includes:"
+                    delay={250}
+                    typingSpeed={25}
+                    onComplete={() => setHasPlayedLine3Part1(true)}
+                  />
+                )}
+
+                {hasPlayedLine3Part1 && (
                   <ul className="list-none space-y-2 mt-4 ml-4">
-                    <li>- best friends</li>
-                    <li>- new friends</li>
-                    <li>- old friends</li>
-                    <li>- family</li>
-                    <li>- lovers</li>
-                    <li>- work connections</li>
-                    <li>- and people you haven't even met yet.</li>
+                    {hasPlayedLine3Part2 ? (
+                      <li>- best friends</li>
+                    ) : (
+                      <TypewriterText
+                        key="line3-part2"
+                        text="- best friends"
+                        delay={250}
+                        typingSpeed={25}
+                        onComplete={() => setHasPlayedLine3Part2(true)}
+                      />
+                    )}
+
+                    {hasPlayedLine3Part2 && (
+                      hasPlayedLine3Part3 ? (
+                        <li>- new friends</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part3"
+                          text="- new friends"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part3(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part3 && (
+                      hasPlayedLine3Part4 ? (
+                        <li>- old friends</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part4"
+                          text="- old friends"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part4(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part4 && (
+                      hasPlayedLine3Part5 ? (
+                        <li>- family</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part5"
+                          text="- family"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part5(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part5 && (
+                      hasPlayedLine3Part6 ? (
+                        <li>- lovers</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part6"
+                          text="- lovers"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part6(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part6 && (
+                      hasPlayedLine3Part7 ? (
+                        <li>- work connections</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part7"
+                          text="- work connections"
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => setHasPlayedLine3Part7(true)}
+                        />
+                      )
+                    )}
+
+                    {hasPlayedLine3Part7 && (
+                      hasPlayedLine3Part8 ? (
+                        <li>- and people you haven't even met yet.</li>
+                      ) : (
+                        <TypewriterText
+                          key="line3-part8"
+                          text="- and people you haven't even met yet."
+                          delay={250}
+                          typingSpeed={25}
+                          onComplete={() => {
+                            setHasPlayedLine3Part8(true);
+                            setHasPlayedLine3(true);
+                          }}
+                        />
+                      )
+                    )}
                   </ul>
-                </div>
-              ) : (
-                <TypewriterText
-                  key="line3"
-                  text={`My goal is to help you be intentional about your relationships. That includes:\n- best friends\n- new friends\n- old friends\n- family\n- lovers\n- work connections\n- and people you haven't even met yet.`}
-                  delay={250}
-                  typingSpeed={25}
-                  onComplete={() => setHasPlayedLine3(true)}
-                  className="text-xl"
-                />
-              )
+                )}
+              </div>
             )}
 
             {hasPlayedLine3 && (
@@ -518,34 +751,34 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'interests' && (
           <div className="space-y-8">
-            {hasPlayedLine1 ? (
+            {hasPlayedActivitiesIntro1 ? (
               <div className="text-xl">
-                Nice. We'll focus on making sure you see {priorityPersonName} and your other friends soon.
+                Nice. Since {priorityPersonName} is the first person that came to mind, let's plan something fun with them.
               </div>
             ) : (
               <TypewriterText
-                key="line1"
-                text={`Nice. We'll focus on making sure you see ${priorityPersonName} and your other friends soon.`}
+                key="activities-intro1"
+                text={`Nice. Since ${priorityPersonName} is the first person that came to mind, let's plan something fun with them.`}
                 delay={250}
                 typingSpeed={25}
-                onComplete={() => setHasPlayedLine1(true)}
+                onComplete={() => setHasPlayedActivitiesIntro1(true)}
                 className="text-xl"
               />
             )}
 
-            {hasPlayedLine1 && (
-              hasPlayedActivitiesIntro ? (
+            {hasPlayedActivitiesIntro1 && (
+              hasPlayedActivitiesIntro2 ? (
                 <div className="text-xl">
-                  Just one more thing - I'm curious how you like to spend your time. What are some things you like to do for fun?
+                  What are some activities you might enjoy doing together?
                 </div>
               ) : (
                 <TypewriterText
-                  key="activities-intro"
-                  text="Just one more thing - I'm curious how you like to spend your time. What are some things you like to do for fun?"
+                  key="activities-intro2"
+                  text="What are some activities you might enjoy doing together?"
                   delay={250}
                   typingSpeed={25}
                   onComplete={() => {
-                    setHasPlayedActivitiesIntro(true);
+                    setHasPlayedActivitiesIntro2(true);
                     setShowActivities(true);
                   }}
                   className="text-xl"
@@ -558,9 +791,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 <InterestSelector
                   type="activities"
                   onComplete={(selections) => {
-                    handleInterestComplete('activities')(selections);
-                    setShowFood(true);
-                    setHasPlayedFoodIntro(true);
+                    setState(prev => ({ ...prev, currentInterests: selections }));
                   }}
                   placeholder="Type to search activities..."
                   minSelections={1}
@@ -572,36 +803,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
               </div>
             )}
 
-            {showFood && (
-              <>
-                {hasPlayedFoodIntro && (
-                  <div className="text-xl">
-                    We all gotta eat as well. What are your favorite types of food?
-                  </div>
-                )}
-                <div>
-                  <InterestSelector
-                    type="food"
-                    onComplete={handleInterestComplete('food')}
-                    placeholder="Type your favorite cuisines and dishes..."
-                    minSelections={1}
-                    value={state.foodPreferences}
-                    onChange={(selections) => {
-                      setState(prev => ({ ...prev, foodPreferences: selections }));
-                    }}
-                  />
-                </div>
-              </>
-            )}
-
-            {(state.currentInterests?.length ?? 0) > 0 && 
-             (state.foodPreferences?.length ?? 0) > 0 && (
+            {(state.currentInterests?.length ?? 0) > 0 && (
               <Button 
-                onClick={handleProceedToFutureInterests}
+                onClick={handleFinishOnboarding}
                 className="w-full mt-8"
-                disabled={isAnalyzingInterests}
               >
-                {isAnalyzingInterests ? "Analyzing your interests..." : "Finish"}
+                Finish
               </Button>
             )}
           </div>
@@ -728,3 +935,5 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
     </div>
   );
 };
+
+export default OnboardingFlow;
