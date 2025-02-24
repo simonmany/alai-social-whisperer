@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, addDays, parse, isValid } from "date-fns";
 import { Check } from "lucide-react";
 import ContactsDialog from "@/components/ContactsDialog";
-import { SuggestionDialog } from "./SuggestionDialog";
+import { PlanningForm } from "@/components/PlanningForm";
 
 interface PlanningDialogProps {
   open: boolean;
@@ -63,8 +63,14 @@ const PlanningDialog = ({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>();
   const [showNewContactDialog, setShowNewContactDialog] = useState(false);
-  const [showSuggestionDialog, setShowSuggestionDialog] = useState(false);
-  const [suggestionMessage, setSuggestionMessage] = useState("");
+  const [showPlanningForm, setShowPlanningForm] = useState(false);
+  const [formState, setFormState] = useState({
+    contacts: defaultContacts,
+    activity: defaultActivity,
+    location: defaultLocation,
+    date: defaultDate,
+    time: undefined as string | undefined
+  });
   const { toast } = useToast();
   const { session } = useAuth();
 
@@ -79,7 +85,14 @@ const PlanningDialog = ({
         setSelectedDate(defaultDate);
         setSelectedTime(undefined);
         setShowNewContactDialog(false);
-        setShowSuggestionDialog(false);
+        setShowPlanningForm(false);
+        setFormState({
+          contacts: defaultContacts,
+          activity: defaultActivity,
+          location: defaultLocation,
+          date: defaultDate,
+          time: undefined
+        });
       }, 100);
     }
   }, [open, defaultContacts, defaultActivity, defaultLocation, defaultDate]);
@@ -223,6 +236,8 @@ const PlanningDialog = ({
     });
   };
 
+
+
   const handleRandomDateTime = () => {
     const daysToAdd = Math.floor(Math.random() * 7) + 1;
     const randomDate = addDays(new Date(), daysToAdd);
@@ -265,7 +280,33 @@ const PlanningDialog = ({
   };
 
   const handleSubmit = async () => {
-    if (!allFieldsComplete || !session?.user?.id) return;
+    if (!session?.user?.id) return;
+
+    // If no fields are filled, or some fields are missing, show suggestion dialog
+    if (!allFieldsComplete) {
+      // Build context message about the current state of the event
+      let contextMessage = "I'm planning an event.";
+      
+      if (selectedContacts.length > 0) {
+        contextMessage += `\nAttendees: ${selectedContacts.map(c => c.name).join(', ')}`;
+      }
+      
+      if (activity) {
+        contextMessage += `\nActivity: ${activity}`;
+      }
+      
+      if (location) {
+        contextMessage += `\nLocation: ${location}`;
+      }
+      
+      if (selectedDate && selectedTime) {
+        contextMessage += `\nTime: ${format(selectedDate, 'EEE, MMM d')} at ${selectedTime}`;
+      }
+
+      setSuggestionMessage(contextMessage);
+      setShowSuggestionDialog(true);
+      return;
+    }
 
     try {
       const [hours, minutes, period] = selectedTime!.match(/(\d+):(\d+) (AM|PM)/)!.slice(1);
@@ -800,27 +841,32 @@ const PlanningDialog = ({
       </div>
 
       <Button 
-        className="w-full bg-black hover:bg-black/90 text-white"
-        onClick={allFieldsComplete ? handleSubmit : handleFigureItOut}
+        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+        onClick={handleSubmit}
       >
-        {allFieldsComplete ? "Create Event" : "Figure it out for me"}
+        {!isComplete.contacts && !isComplete.activity && !isComplete.datetime && !isComplete.location
+          ? "Figure it out for me!"
+          : allFieldsComplete
+          ? "Looks good - Plan it!"
+          : "Figure out the rest!"}
       </Button>
     </div>
   );
 
   const isComplete = {
     contacts: selectedContacts.length > 0,
-    activity: !!activity,
-    datetime: !!selectedDate && !!selectedTime
+    activity: !!activity && !!location,
+    datetime: !!selectedDate && !!selectedTime,
+    location: !!location
   };
 
-  const allFieldsComplete = isComplete.contacts && isComplete.activity && isComplete.datetime;
+  const allFieldsComplete = isComplete.contacts && isComplete.activity && isComplete.datetime && isComplete.location;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Let's plan your next hang</DialogTitle>
+          <DialogTitle>Let's plan something! Fill out the details below, or I can help figure it out for you:</DialogTitle>
         </DialogHeader>
 
         {step === 'main' && renderMainStep()}
@@ -828,22 +874,20 @@ const PlanningDialog = ({
         {step === 'activity' && renderActivityStep()}
         {step === 'datetime' && renderDateTimeStep()}
       </DialogContent>
-      {showSuggestionDialog && (
-        <SuggestionDialog
-          open={showSuggestionDialog}
-          onOpenChange={setShowSuggestionDialog}
-          title="Let me help you plan this!"
-          message={suggestionMessage}
-          contactInfo={selectedContacts.length === 0 ? contacts
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 20)
-            .map(contact => ({
-              name: contact.name,
-              relationship: contact.relationship,
-              interests: contact.interests,
-            })) : undefined}
-          onSuggestionReceived={handleSuggestionReceived}
-        />
+      {showPlanningForm && (
+        <div className="mt-4">
+          <PlanningForm
+            onSubmit={onSubmit}
+            defaultContacts={formState.contacts}
+            defaultActivity={formState.activity}
+            defaultLocation={formState.location}
+            defaultDate={formState.date}
+            onUpdate={(newState) => {
+              setFormState(newState);
+              setShowPlanningForm(true);
+            }}
+          />
+        </div>
       )}
     </Dialog>
   );

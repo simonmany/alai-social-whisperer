@@ -57,7 +57,7 @@ serve(async (req: Request) => {
     }
 
     // Parse request body
-    const { action, timeMin, timeMax, google_token } = await req.json();
+    const { action, timeMin, timeMax, google_token, eventData } = await req.json();
 
     // Log request details
     console.log('Calendar request:', {
@@ -73,6 +73,9 @@ serve(async (req: Request) => {
     if (!google_token) throw new Error('Missing Google token');
     if (action === 'list' && (!timeMin || !timeMax)) {
       throw new Error('Missing timeMin/timeMax for list action');
+    }
+    if (action === 'create' && !eventData) {
+      throw new Error('Missing eventData for create action');
     }
 
     // Ensure timeMin and timeMax are in UTC format for Google Calendar API
@@ -150,8 +153,81 @@ serve(async (req: Request) => {
       return response;
     }
 
-    // Make initial request with provided token
-    let response = await fetchCalendarEvents(google_token);
+    // Handle different actions
+    let response;
+    if (action === 'create') {
+      // Create event in Google Calendar
+      response = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${google_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          summary: eventData.title,
+          description: eventData.description,
+          start: {
+            dateTime: eventData.start_time,
+            timeZone: 'UTC'
+          },
+          end: {
+            dateTime: eventData.end_time,
+            timeZone: 'UTC'
+          },
+          location: eventData.location,
+          attendees: eventData.attendees?.map((attendee: any) => ({
+            email: attendee.email,
+            displayName: attendee.name
+          })),
+          guestsCanSeeOtherGuests: true,
+          guestsCanInviteOthers: false,
+          guestsCanModify: false,
+          sendUpdates: 'all'
+        })
+      });
+
+      // Handle create event response
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Error creating event:', error);
+        throw new Error(JSON.stringify({
+          message: 'Failed to create calendar event',
+          details: error
+        }));
+      }
+
+      const event = await response.json();
+      
+      // Save event to database
+      const { error: dbError } = await supabase
+        .from('calendar_events')
+        .insert({
+          user_id: user.id,
+          google_event_id: event.id,
+          title: event.summary,
+          description: event.description,
+          start_time: event.start.dateTime,
+          end_time: event.end.dateTime,
+          location: event.location,
+          updated_at: new Date().toISOString()
+        });
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw new Error(`Failed to save event to database: ${dbError.message}`);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, event }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    } else {
+      // List calendar events
+      response = await fetchCalendarEvents(google_token);
+    }
 
     // If unauthorized, try refreshing token and retry request
     if (response.status === 401) {

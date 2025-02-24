@@ -17,20 +17,13 @@ export class HangPlannerAgent extends Agent {
     "contacts": [the people the user is inviting to the hangout],
     "activity": the activity the user and their friend will be doing,
     "datetime": {
-      "date": the date in YYYY-MM-DD format (e.g. 2025-02-24),
-      "time": the time in 12-hour format with AM/PM (e.g. 2:30 PM)
+      "date": the date the hangout is scheduled to take place,
+      "time": the time the hangout is scheduled to take place using the 12 hour clock
     },
     "location": the location the hangout will take place at,
   }
-
-  IMPORTANT DATE RULES:
-  1. ALWAYS use YYYY-MM-DD format for dates (e.g. 2025-02-24)
-  2. NEVER use relative dates like "next Friday" or "tomorrow"
-  3. ALWAYS use 12-hour time format with AM/PM (e.g. 2:30 PM)
-  4. Only suggest dates within the next 7 days
-  5. Always check that the date you suggest is valid and in the future
     
-  When all of the steps are complete, and you have filled in the json response, confirm with the user that their event is in the calendar.
+    When all of the steps are complete, and you have filled in the json response, confirm with the user that their event is in the calendar.
 `
 
   async chat(
@@ -51,15 +44,9 @@ export class HangPlannerAgent extends Agent {
     })) || [];
 
     // Build context for the AI
-    const now = new Date();
     const context = {
       user: profileData,
-      contacts: contactInfo || [],
-      currentTime: {
-        date: now.toISOString().split('T')[0],
-        time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-      }
+      contacts: contactInfo || []
     };
 
     messages.push({role: 'user', content: `Context: ${JSON.stringify(context, null, 2)}\nMessage: ${message}`})

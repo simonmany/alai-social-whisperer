@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { IntegrationsMenu } from "@/components/profile/IntegrationsMenu";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { InterestsCard } from "@/components/profile/InterestsCard";
+import { CatchUpCard } from "@/components/profile/CatchUpCard";
 import Autocomplete from 'react-google-autocomplete';
 
 interface ProfileProps {
@@ -67,6 +68,10 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       if (error) throw error;
       if (!profile) throw new Error('No profile found');
 
+      console.log('Raw profile data:', profile);
+      console.log('Raw current_interests:', profile.current_interests);
+      console.log('Raw desired_interests:', profile.desired_interests);
+
       const currentInterests = Array.isArray(profile.current_interests) 
         ? profile.current_interests.filter((item): item is string => typeof item === 'string')
         : [];
@@ -74,6 +79,9 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
       const desiredInterests = Array.isArray(profile.desired_interests)
         ? profile.desired_interests.filter((item): item is string => typeof item === 'string')
         : [];
+        
+      console.log('Processed currentInterests:', currentInterests);
+      console.log('Processed desiredInterests:', desiredInterests);
 
       return {
         ...profile,
@@ -110,6 +118,8 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
   const handleInterestsUpdate = async (currentInterests: string[], desiredInterests: string[]) => {
     if (!userData?.id) return;
 
+    console.log('Updating interests with:', { currentInterests, desiredInterests });
+
     try {
       const { error } = await supabase
         .from('profiles')
@@ -121,6 +131,7 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
 
       if (error) throw error;
 
+      console.log('Successfully updated interests in database');
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       
       toast({
@@ -306,11 +317,14 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
               </div>
 
               {!isLoading && (
-                <InterestsCard
-                  currentInterests={profileData?.currentInterests}
-                  desiredInterests={profileData?.desiredInterests}
-                  onUpdate={handleInterestsUpdate}
-                />
+                <>
+                  <InterestsCard
+                    currentInterests={profileData?.currentInterests}
+                    desiredInterests={profileData?.desiredInterests}
+                    onUpdate={handleInterestsUpdate}
+                  />
+                  <CatchUpCard userId={userData?.id || ''} />
+                </>
               )}
 
               <div className="flex flex-col gap-2">
