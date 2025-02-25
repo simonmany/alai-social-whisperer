@@ -68,6 +68,25 @@ export const PlanningForm = ({
     enabled: !!session?.user?.id
   });
 
+  const { data: closeContacts = [] } = useQuery({
+    queryKey: ['closeContacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('closeness')
+        .limit(10);
+      
+      if (error) throw error;
+      return (data || []).map(contact => ({
+        ...contact,
+        interests: Array.isArray(contact.interests) ? contact.interests : [],
+      })) as Contact[];
+    },
+    enabled: !!session?.user?.id
+  });
+
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
     queryFn: async () => {
@@ -134,9 +153,13 @@ export const PlanningForm = ({
       if (!isComplete.datetime) contextMessage += '\n- Suggest a time in the next 7 days';
       if (!isComplete.location) contextMessage += '\n- Suggest a specific location for the activity';
 
+      let relevantContacts = selectedContacts.length > 0 ? selectedContacts : closeContacts;
+
       try {
         // Send user prompt as secret message
-        const data = await generateChatResponse(contextMessage, contacts, true, ConversationType.HANG_PLANNER);
+        const data = await generateChatResponse(contextMessage, relevantContacts, false, ConversationType.HANG_GENERATOR);
+        console.log('Received data:', data);
+
         if (data && typeof data === 'object') {
           const response = data.response || data;
           
@@ -145,7 +168,7 @@ export const PlanningForm = ({
           
           if (response.contacts?.length && !isComplete.contacts) {
             const suggestedContacts = contacts.filter(c => 
-              response.contacts?.includes(c.name)
+              response.contacts?.some(contact => contact.id === c.id)
             );
             if (suggestedContacts.length) {
               setSelectedContacts(suggestedContacts);
@@ -167,12 +190,9 @@ export const PlanningForm = ({
             }
           }
 
-          if (response.text && !isComplete.location) {
-            const locationMatch = response.text.match(/location: ([^\n]+)/i);
-            if (locationMatch) {
-              setLocation(locationMatch[1].trim());
-              formUpdated = true;
-            }
+          if (response.location && !isComplete.location) {
+            setLocation(response.location);
+            formUpdated = true;
           }
 
           // Emit form update if any fields were changed
@@ -225,11 +245,11 @@ export const PlanningForm = ({
       console.error('Error creating calendar event:', error);
     }
 
-    const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
-    const message = `I want to ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
-      location ? `at ${location}` : ''
-    } on ${dateStr} ${selectedTime || ''}`;
-    onSubmit(message);
+    // const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
+    // const message = `I want to ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
+    //   location ? `at ${location}` : ''
+    // } on ${dateStr} ${selectedTime || ''}`;
+    onSubmit("Let's schedule that event!");
   };
 
   const handleContactSelect = (contact: Contact) => {

@@ -1,22 +1,31 @@
 import { Agent } from './base.ts';
 import { Contact } from '../types.ts';
+import { filterJSON } from '../../_shared/utils.ts';
 
 export class HangGeneratorAgent extends Agent {
   protected systemPrompt = `You are helping the user plan a hangout with their friends. 
+    Try to suggest an activity that they will enjoy based on their profile and friends' profiles.
     Always provide a conversational response explaining your suggestions. 
     If there are not any attendees listed, select some contacts from the contacts list to suggest.
     Prefer days when there is not already an event.
     When you suggest a date, check to make sure it's the same date in your text response and the datetime object.
     Additionally, format the suggestions at the end as JSON. The structure of your response should be:
     {
-        "text": "Your explanation for your selections and choices here",
-        "contacts": [...],
-        "activity": "string",
-        "datetime": {
-            "date": "string formatted as: Month day, year",
-            "time": "string, using the 12 hour clock"
-        }
-    }`
+      "text": your conversational response,
+      "contacts": [{id: string, name: string}],
+      "activity": the activity the user and their friend will be doing,
+      "datetime": {
+        "date": the date in YYYY-MM-DD format (e.g. 2025-02-24),
+        "time": the time in 12-hour format with AM/PM (e.g. 2:30 PM)
+      },
+      "location": the location the hangout will take place at,
+    }
+    IMPORTANT DATE RULES:
+    1. ALWAYS use YYYY-MM-DD format for dates (e.g. 2025-02-24)
+    2. NEVER use relative dates like "next Friday" or "tomorrow"
+    3. ALWAYS use 12-hour time format with AM/PM (e.g. 2:30 PM)
+    4. Only suggest dates within the next 7 days
+    5. Always check that the date you suggest is valid and in the future`
   async chat(
     userId: string,
     message: string,
@@ -28,7 +37,7 @@ export class HangGeneratorAgent extends Agent {
     const profileData = this.filterUserProfile(profile);
     const events = await this.getEvents(userId, profile.utc_offset_minutes);
 
-    this.saveChatMessage(userId, message, secretMessage, false);
+    this.saveChatMessage(userId, message, true, false);
     
     // Format events for better readability
     const formattedEvents = events.map(event => ({
@@ -57,11 +66,13 @@ export class HangGeneratorAgent extends Agent {
       location: event.location
     }));
 
+    const filteredContacts = filterJSON(contactInfo);
+
     // Build context for the AI
     const context = {
       user: profileData,
       events: filteredEvents,
-      contacts: contactInfo || []
+      contacts: filteredContacts
     };
 
     // Prepare messages for the AI

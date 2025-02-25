@@ -77,7 +77,7 @@ export abstract class Agent {
         relationship_status: profile.relationship_status,
         gender: profile.gender,
         occupation: profile.occupation,
-      }).filter(([_, value]) => value != null && value !== '')
+      }).filter(([_, value]) => value != null && value !== '' && value !== undefined && (!Array.isArray(value) || value.length > 0))
     );
     return profileData
   }
