@@ -3,18 +3,7 @@ import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
 import { PlanningForm } from "@/components/PlanningForm";
 import ReactMarkdown from "react-markdown";
-
-interface Contact {
-  id: string;
-  name: string;
-  phone?: string;
-  instagram?: string;
-  linkedin?: string;
-  twitter?: string;
-  meetingStory?: string;
-  relationship?: string;
-  user_id: string;
-}
+import { Contact } from "@/types/contacts";
 
 interface ChatMessageProps {
   content: string;
