@@ -393,17 +393,20 @@ const Index = () => {
               content: payload.new.message,
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
-              contacts: payload.new.contact_info
+              contacts: payload.new.contact_info,
+              showPlanningForm: false // Explicitly set this for new messages
             };
-            setMessages(prev => {
-              // Find any messages with showPlanningForm
-              const planningMessages = prev.filter(msg => msg.showPlanningForm);
-              // Get all other messages
-              const regularMessages = prev.filter(msg => !msg.showPlanningForm);
-              regularMessages.push(newMessage);
-              // Combine regular messages with planning messages at the end
-              return [...regularMessages, ...planningMessages];
-            });
+            setMessages(prev => [...prev, newMessage]);
+            // setMessages(prev => {
+            //   // Find any messages with showPlanningForm
+            //   const planningMessages = prev.filter(msg => msg.showPlanningForm);
+            //   // Get all other messages except the planning ones
+            //   const regularMessages = prev.filter(msg => !msg.showPlanningForm);
+            //   // Add the new message to regular messages
+            //   regularMessages.push(newMessage);
+            //   // Return regular messages followed by planning messages
+            //   return [...regularMessages, ...planningMessages];
+            // });
           }
         )
         .subscribe();
