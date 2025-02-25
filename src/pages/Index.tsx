@@ -632,23 +632,19 @@ const Index = () => {
     }
   };
 
-  const handlePlanSubmit = (message: string, eventData?: any) => {
-    setMessages(prev => prev.filter(message => !message.showPlanningForm));
-    if (eventData) {
-      console.log('event data', eventData);
-      setMessages(prev => [...prev, { 
-        content: eventData.text, 
-        isAl: true,
-        showPlanningForm: true,
-        onPlanningSubmit: handlePlanSubmit,
-        defaultContacts: eventData.contacts ? eventData.contacts : [],
-        defaultActivity: eventData.activity,
-        defaultLocation: eventData.location,
-        defaultDate: eventData.date,
-        defaultTime: eventData.time
-      }]);
+  const handlePlanSubmit = (message: string, newContent?: string) => {
+    if (newContent) {
+      // Update the existing planning form message
+      setMessages(prev => prev.map(msg => 
+        msg.showPlanningForm ? {
+          ...msg,
+          content: newContent,
+        } : msg
+      ));
     }
     else {
+      // Only remove the planning form when submitting the final plan
+      setMessages(prev => prev.filter(message => !message.showPlanningForm));
       handleSend(message);
       setTutorialComplete(true);
     }

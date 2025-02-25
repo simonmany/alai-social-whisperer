@@ -15,7 +15,7 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { generateChatResponse, ConversationType } from "@/utils/openai";
 
 interface PlanningFormProps {
-  onSubmit: (message: string, data?: any) => void;
+  onSubmit: (message: string, newContent?: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
@@ -41,8 +41,8 @@ export const PlanningForm = ({
 }: PlanningFormProps) => {
   const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime' | 'location'>('main');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
-  const [activity, setActivity] = useState(defaultActivity);
-  const [location, setLocation] = useState(defaultLocation);
+  const [activity, setActivity] = useState<string>(defaultActivity);
+  const [location, setLocation] = useState<string>(defaultLocation);
   const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>(defaultTime);
 
@@ -132,7 +132,7 @@ export const PlanningForm = ({
       if (!allFieldsComplete) {
         // Build context message about the current state of the event
         let contextMessage = "I'm planning an event.";
-        
+  
         // Add information about selected contacts and their interests
         if (selectedContacts.length > 0) {
           contextMessage += `\nAttendees: ${selectedContacts.map(c => c.name).join(', ')}`;
@@ -172,39 +172,54 @@ export const PlanningForm = ({
           // Send user prompt as secret message
           const data = await generateChatResponse(contextMessage, relevantContacts, true, ConversationType.HANG_GENERATOR);
           console.log('Received data:', data);
-
+  
           if (data && typeof data === 'object') {
             const response = data.response || data;
             
-            console.log('AI response data:', response);
+            // Update form with AI suggestions
+            let formUpdated = false;
             
-            let suggestedContacts: Contact[] = [];
             if (response.contacts?.length && !isComplete.contacts) {
-              suggestedContacts = contacts.filter(c => 
+              const suggestedContacts = contacts.filter(c => 
                 response.contacts?.some(contact => contact.id === c.id)
               );
               if (suggestedContacts.length) {
                 setSelectedContacts(suggestedContacts);
+                formUpdated = true;
               }
             }
-
-            let date;
+  
+            if (response.activity && !isComplete.activity) {
+              setActivity(response.activity);
+              formUpdated = true;
+            }
+  
             if (response.datetime && !isComplete.datetime) {
-              date = parse(response.datetime.date, 'yyyy-MM-dd', new Date());
+              const date = parse(response.datetime.date, 'yyyy-MM-dd', new Date());
               if (isValid(date)) {
                 setSelectedDate(date);
                 setSelectedTime(response.datetime.time);
+                formUpdated = true;
               }
             }
-          
-            onSubmit("", {
-              text: response.text,
-              contacts: suggestedContacts,
-              activity: response.activity,
-              location: response.location,
-              date,
-              time: response.datetime?.time
-            });
+  
+            if (response.location && !isComplete.location) {
+              setLocation(response.location);
+              formUpdated = true;
+            }
+  
+            // Emit form update if any fields were changed
+            if (formUpdated && onUpdate) {
+              onUpdate({
+                contacts: selectedContacts,
+                activity,
+                location,
+                date: selectedDate,
+                time: selectedTime
+              });
+            }
+
+            onSubmit("", response.text);
           }
         } catch (error) {
           console.error('Error getting AI suggestions:', error);
