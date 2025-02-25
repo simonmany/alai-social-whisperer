@@ -45,14 +45,6 @@ export const PlanningForm = ({
   const [location, setLocation] = useState<string>(defaultLocation);
   const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>(defaultTime);
-
-  // Add debug logging for defaultTime
-  console.log('PlanningForm initialized with:', {
-    defaultTime,
-    defaultActivity,
-    defaultLocation,
-  });
-
   const [contactInput, setContactInput] = useState("");
   const [showContactDialog, setShowContactDialog] = useState(false);
   const { session } = useAuth();
