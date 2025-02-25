@@ -635,10 +635,68 @@ const Index = () => {
     }
   };
 
-  const handlePlanSubmit = (message: string) => {
-    handleSend(message);
-    setMessages(prev => prev.filter(message => !message.showPlanningForm));
-    setTutorialComplete(true);
+  const handlePlanSubmit = async (message: string, isAIRequest?: boolean) => {
+    console.log('Planning submit:', { message, isAIRequest });
+    
+    if (isAIRequest) {
+      console.log('Hiding planning form for AI request');
+      setMessages(prev => prev.filter(message => !message.showPlanningForm));
+    }
+    
+    try {
+      const response = await generateChatResponse(message, [], true, conversationType);
+      console.log('AI response:', response);
+      
+      if (isAIRequest && response.response) {
+        const data = response.response;
+        console.log('Setting planning form with data:', data);
+        
+        // Get contacts that match the AI's suggestions
+        const { data: selectedContacts, error } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('user_id', session?.user?.id);
+          
+        if (error) throw error;
+        
+        const matchingContacts = selectedContacts.filter(c => 
+          data.contacts?.some(name => 
+            c.name.toLowerCase().includes(name.toLowerCase())
+          )
+        );
+
+        setMessages(prev => [...prev, { 
+          content: "Here's what I suggest based on the information you provided. You can adjust these details if needed:", 
+          isAl: true,
+          showPlanningForm: true,
+          onPlanningSubmit: handlePlanSubmit,
+          defaultContacts: matchingContacts || [],
+          defaultActivity: data.activity || "",
+          defaultLocation: data.location || "",
+          defaultDate: data.datetime?.date ? new Date(data.datetime.date) : undefined
+        }]);
+      } else {
+        await handleSend(message);
+        setMessages(prev => prev.filter(message => !message.showPlanningForm));
+        setTutorialComplete(true);
+      }
+    } catch (error) {
+      console.error('Error in handlePlanSubmit:', error);
+      toast({
+        title: "Error",
+        description: "Failed to process your request. Please try again.",
+        variant: "destructive",
+      });
+      // Show the form again in case of error
+      if (isAIRequest) {
+        setMessages(prev => [...prev, { 
+          content: "Sorry, there was an error. Please try again:", 
+          isAl: true,
+          showPlanningForm: true,
+          onPlanningSubmit: handlePlanSubmit
+        }]);
+      }
+    }
   };
 
   const handleGoalSubmit = (message: string) => {

@@ -32,7 +32,60 @@ export class HangPlannerAgent extends Agent {
     
   When all of the steps are complete, and you have filled in the json response, confirm with the user that their event is in the calendar.
 `
+// edit_file /Users/simonmany/Documents/GitHub/alai-social-whisperer/src/pages/Index.tsx
 
+const handlePlanningSubmit = async (message: string, isAIRequest?: boolean) => {
+  console.log('Planning submit called with:', { message, isAIRequest });
+  setShowPlanningForm(false);
+  
+  try {
+    setIsLoading(true);
+    const data = await generateChatResponse(message, contacts, true, conversationType);
+    
+    // Log the messages we're about to add
+    const newMessages = [
+      { 
+        id: uuidv4(), 
+        message, 
+        is_ai: false, 
+        created_at: new Date().toISOString(),
+        showPlanningForm: false // Are we setting this somewhere?
+      },
+      { 
+        id: uuidv4(), 
+        message: data.text || data.response?.text, 
+        is_ai: true, 
+        created_at: new Date().toISOString(),
+        showPlanningForm: false
+      }
+    ];
+    console.log('New messages to be added:', newMessages);
+    
+    setMessages(prev => [...prev, ...newMessages]);
+
+    if (isAIRequest && data.response) {
+      console.log('Setting planning form data:', data.response);
+      setPlanningFormData({
+        contacts: contacts.filter(c => data.response.contacts?.includes(c.name)) || [],
+        activity: data.response.activity || "",
+        location: data.response.location || "",
+        date: data.response.datetime?.date ? new Date(data.response.datetime.date) : undefined,
+        time: data.response.datetime?.time
+      });
+      setShowPlanningForm(true);
+      console.log('ShowPlanningForm set to true');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    toast({
+      title: "Error",
+      description: "Failed to send message",
+      variant: "destructive"
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
   async chat(
     userId: string,
     message: string,

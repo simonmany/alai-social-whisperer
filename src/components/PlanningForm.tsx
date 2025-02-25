@@ -15,7 +15,7 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { generateChatResponse, ConversationType } from "@/utils/openai";
 
 interface PlanningFormProps {
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string, isAIRequest?: boolean) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
@@ -440,7 +440,30 @@ export const PlanningForm = ({
 
           <div className="flex justify-end mt-4">
             <Button
-              onClick={handleSubmit}
+              onClick={() => {
+                console.log('Submitting AI request');
+                // Build context message
+                let contextMessage = "I'm planning an event.";
+                if (selectedContacts.length > 0) {
+                  contextMessage += `\nAttendees: ${selectedContacts.map(c => c.name).join(', ')}`;
+                }
+                if (activity) {
+                  contextMessage += `\nActivity: ${activity}`;
+                }
+                if (location) {
+                  contextMessage += `\nLocation: ${location}`;
+                }
+                if (selectedDate && selectedTime) {
+                  contextMessage += `\nTime: ${format(selectedDate, 'EEE, MMM d')} at ${selectedTime}`;
+                }
+                contextMessage += '\n\nPlease help me fill in:';
+                if (!isComplete.contacts) contextMessage += '\n- Suggest contacts (prioritize those marked for catch-up and those in inner orbit)';
+                if (!isComplete.activity) contextMessage += '\n- Suggest an activity (consider the interests of all participants)';
+                if (!isComplete.datetime) contextMessage += '\n- Suggest a time in the next 7 days';
+                if (!isComplete.location) contextMessage += '\n- Suggest a specific location for the activity';
+                
+                onSubmit(contextMessage, true);
+              }}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
               {!isComplete.contacts && !isComplete.activity && !isComplete.datetime && !isComplete.location
