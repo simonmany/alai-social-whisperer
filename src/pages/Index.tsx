@@ -28,6 +28,12 @@ interface Message {
   isAl: boolean;
   is_secret?: boolean;
   contactInfo?: Contact;
+  showPlanningForm?: boolean;
+  onPlanningSubmit?: (message: string) => void;
+  defaultContacts?: Contact[];
+  defaultActivity?: string;
+  defaultLocation?: string;
+  defaultDate?: Date;
 }
 
 interface ChatHistoryMessage {
@@ -45,7 +51,6 @@ interface ChatHistoryMessage {
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isPlanningOpen, setIsPlanningOpen] = useState(false);
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [isGoalsOpen, setIsGoalsOpen] = useState(false);
   const [isContactsOpen, setIsContactsOpen] = useState(false);
@@ -144,43 +149,10 @@ const Index = () => {
       setShowOnboarding(false);
       queryClient.invalidateQueries({ queryKey: ['profile'] });
 
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('display_name, catch_up_contacts')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileError) throw profileError;
-
-      let contactData = null;
-      let contactName = '';
-      if (profileData?.catch_up_contacts?.[0]) {
-        const { data: contact, error: contactError } = await supabase
-          .from('contacts')
-          .select('*')
-          .eq('id', profileData.catch_up_contacts[0])
-          .single();
-
-        if (!contactError && contact) {
-          contactName = contact.name;
-          contactData = contact;
-        }
-      }
-
-      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
-
-      await supabase
-        .from('chat_history')
-        .insert([{
-          message: welcomeMessage,
-          is_ai: true,
-          user_id: session.user.id,
-          is_onboarding_message: true
-        }]);
-      
       setTutorialComplete(false);
       setShowProfileButton(false);
-      setConversationType(ConversationType.HANG_PLANNER);
+      handleStartTutorial();
+
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
       toast({
@@ -239,7 +211,7 @@ const Index = () => {
         }
       }
 
-      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Shall we make that happen?` : "Let's dive right in and get started planning your first Hang."}`;
+      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Let's make that happen!` : "Let's dive right in and get started planning your first Hang!"}`;
 
       await supabase
         .from('chat_history')
@@ -252,7 +224,16 @@ const Index = () => {
       
       setTutorialComplete(false);
       setShowProfileButton(false);
-      setConversationType(ConversationType.HANG_PLANNER);
+
+      setMessages(prev => [...prev, { 
+        content: "Sure! Let's plan something. Fill out the details below:", 
+        isAl: true,
+        showPlanningForm: true,
+        onPlanningSubmit: handlePlanSubmit,
+        defaultContacts: selectedContact ? [selectedContact] : [],
+        defaultActivity: selectedActivity
+      }]);
+      console.log('should be showing');
 
       if (contactData) {
         setSelectedContact(contactData);
@@ -412,7 +393,15 @@ const Index = () => {
               is_secret: payload.new.is_secret,
               contacts: payload.new.contact_info
             };
-            setMessages(prev => [...prev, newMessage]);
+            setMessages(prev => {
+              // Find any messages with showPlanningForm
+              const planningMessages = prev.filter(msg => msg.showPlanningForm);
+              // Get all other messages
+              const regularMessages = prev.filter(msg => !msg.showPlanningForm);
+              regularMessages.push(newMessage);
+              // Combine regular messages with planning messages at the end
+              return [...regularMessages, ...planningMessages];
+            });
           }
         )
         .subscribe();
@@ -643,7 +632,7 @@ const Index = () => {
 
   const handlePlanSubmit = (message: string) => {
     handleSend(message);
-    setIsPlanningOpen(false);
+    setMessages(prev => prev.filter(message => !message.showPlanningForm));
   };
 
   const handleGoalSubmit = (message: string) => {

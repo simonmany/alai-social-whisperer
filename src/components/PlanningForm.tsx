@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Users, Shuffle, Calendar, MapPin, UserPlus } from "lucide-react";
-import { Contact } from "@/types/chat";
+import { Contact } from "@/types/contacts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -37,11 +37,11 @@ export const PlanningForm = ({
   defaultDate,
   onUpdate
 }: PlanningFormProps) => {
-  const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime'>('main');
+  const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime' | 'location'>('main');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
   const [activity, setActivity] = useState(defaultActivity);
   const [location, setLocation] = useState(defaultLocation);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
+  const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>();
   const [contactInput, setContactInput] = useState("");
   const [showContactDialog, setShowContactDialog] = useState(false);
@@ -245,11 +245,13 @@ export const PlanningForm = ({
       console.error('Error creating calendar event:', error);
     }
 
-    // const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
-    // const message = `I want to ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
-    //   location ? `at ${location}` : ''
-    // } on ${dateStr} ${selectedTime || ''}`;
-    onSubmit("Let's schedule that event!");
+    const formattedTime = format(parse(selectedTime, 'HH:mm', new Date()), 'h:mm a');
+
+    const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
+    const message = `I just scheduled ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
+      location ? `at ${location}` : ''
+    } on ${dateStr} ${formattedTime || ''}`;
+    onSubmit(message);
   };
 
   const handleContactSelect = (contact: Contact) => {
