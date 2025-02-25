@@ -245,12 +245,10 @@ export const PlanningForm = ({
       console.error('Error creating calendar event:', error);
     }
 
-    const formattedTime = format(parse(selectedTime, 'HH:mm', new Date()), 'h:mm a');
-
     const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
     const message = `I just scheduled ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
       location ? `at ${location}` : ''
-    } on ${dateStr} ${formattedTime || ''}`;
+    } on ${dateStr} ${selectedTime || ''}`;
     onSubmit(message);
   };
 
