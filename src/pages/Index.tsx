@@ -235,7 +235,6 @@ const Index = () => {
         defaultContacts: contactData ? [contactData] : [],
         defaultActivity: desiredInterest
       }]);
-      console.log('should be showing');
 
       if (contactData) {
         setSelectedContact(contactData);

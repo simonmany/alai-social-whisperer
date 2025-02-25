@@ -77,19 +77,22 @@ serve(async (req) => {
       //   });
       // }
 
+      // Get today's events using user's UTC offset for date boundaries
+      const userLocalTime = new Date(now.getTime() + (profile.utc_offset_minutes || 0) * 60000);
+      const startOfDay = new Date(userLocalTime);
+      startOfDay.setHours(0, 0, 0, 0);  // Set to midnight in local time
+      const startOfDayUTC = new Date(startOfDay.getTime() - (profile.utc_offset_minutes || 0) * 60000);
+      const endOfDay = new Date(userLocalTime);
+      endOfDay.setHours(23, 59, 59, 999);  // Set to end of day in local time
+      const endOfDayUTC = new Date(endOfDay.getTime() - (profile.utc_offset_minutes || 0) * 60000);
+  
       if (type === 'morning') {
-        // Get today's events using user's UTC offset for date boundaries
-        const startOfDay = new Date(now.getTime() + (profile.utc_offset_minutes || 0) * 60000);
-        startOfDay.setUTCHours(0, 0, 0, 0);
-        const endOfDay = new Date(startOfDay);
-        endOfDay.setUTCHours(23, 59, 59, 999);
-        
         const { data, error: eventsError } = await supabaseClient
           .from('calendar_events')
           .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
-          .gte('start_time', startOfDay.toISOString())
-          .lt('start_time', endOfDay.toISOString())
+          .gte('start_time', startOfDayUTC.toISOString())
+          .lt('start_time', endOfDayUTC.toISOString())
           .order('start_time', { ascending: true });
 
         if (eventsError) {
@@ -108,19 +111,12 @@ serve(async (req) => {
             : 'no scheduled events'
         }. Summarize these events succinctly, and highlight any availabilities. Suggest potential activities to fill these availabilities, taking into account the user's interests, goals, and contacts.${missingGoalsPrompt}`;
       } else {
-        // For evening check-in, get both past and upcoming events for today
-        const startOfDay = new Date(now.getTime() + (profile.utc_offset_minutes || 0) * 60000);
-        startOfDay.setUTCHours(0, 0, 0, 0);
-        const endOfDay = new Date(startOfDay);
-        endOfDay.setUTCHours(23, 59, 59, 999);
-
-        // Get past events for today
-        const { pastData, error: pastEventsError } = await supabaseClient
+        const { data: pastData, error: pastEventsError } = await supabaseClient
           .from('calendar_events')
           .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
-          .gte('start_time', startOfDay.toISOString())
-          .lt('end_time', now.toISOString())
+          .gte('start_time', startOfDayUTC.toISOString())  // Started today
+          .lt('start_time', now.toISOString())  // Started before now
           .order('start_time', { ascending: true });
 
         if (pastEventsError) {
@@ -133,12 +129,12 @@ serve(async (req) => {
           end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
         })) || [];
         // Get upcoming events for the rest of today
-        const { data, error: upcomingEventsError } = await supabaseClient
+        const { data: upcomingData, error: upcomingEventsError } = await supabaseClient
           .from('calendar_events')
           .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
           .gte('start_time', now.toISOString())
-          .lt('start_time', endOfDay.toISOString())
+          .lt('start_time', endOfDayUTC.toISOString())
           .order('start_time', { ascending: true });
 
         if (upcomingEventsError) {
@@ -146,12 +142,14 @@ serve(async (req) => {
           throw upcomingEventsError;
         }
 
-        const upcomingEvents = data?.map(event => ({
+        const upcomingEvents = upcomingData?.map(event => ({
           ...event,
           start_time: convertToLocalTime(event.start_time, profile.utc_offset_minutes),
           end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
         })) || [];
 
+        console.log('past events', pastEvents);
+        console.log('upcoming events', upcomingEvents);
         message = `You're doing the evening recap with your user. Today, they'd scheduled ${
           pastEvents && pastEvents.length > 0 
             ? pastEvents.map(e => stringifyJSON(e)).join(', ')
