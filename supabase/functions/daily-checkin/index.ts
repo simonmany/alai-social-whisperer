@@ -148,8 +148,6 @@ serve(async (req) => {
           end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
         })) || [];
 
-        console.log('past events', pastEvents);
-        console.log('upcoming events', upcomingEvents);
         message = `You're doing the evening recap with your user. Today, they'd scheduled ${
           pastEvents && pastEvents.length > 0 
             ? pastEvents.map(e => stringifyJSON(e)).join(', ')
