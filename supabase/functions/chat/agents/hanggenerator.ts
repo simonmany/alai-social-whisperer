@@ -8,6 +8,7 @@ export class HangGeneratorAgent extends Agent {
     Always provide a conversational response explaining your suggestions. 
     If there are not any attendees listed, select some contacts from the contacts list to suggest.
     Prefer days when there is not already an event.
+    When you suggest a date, make sure the user doesn't have something else scheduled for the same time.
     When you suggest a date, check to make sure it's the same date in your text response and the datetime object.
     Additionally, format the suggestions at the end as JSON. The structure of your response should be:
     {
