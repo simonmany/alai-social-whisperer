@@ -15,11 +15,12 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { generateChatResponse, ConversationType } from "@/utils/openai";
 
 interface PlanningFormProps {
-  onSubmit: (message: string) => void;
+  onSubmit: (message: string, data?: any) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
+  defaultTime?: string;
   onUpdate?: (formState: {
     contacts: Contact[];
     activity: string;
@@ -35,6 +36,7 @@ export const PlanningForm = ({
   defaultActivity = "",
   defaultLocation = "",
   defaultDate,
+  defaultTime,
   onUpdate
 }: PlanningFormProps) => {
   const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime' | 'location'>('main');
@@ -42,10 +44,19 @@ export const PlanningForm = ({
   const [activity, setActivity] = useState(defaultActivity);
   const [location, setLocation] = useState(defaultLocation);
   const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
-  const [selectedTime, setSelectedTime] = useState<string>();
+  const [selectedTime, setSelectedTime] = useState<string>(defaultTime);
+
+  // Add debug logging for defaultTime
+  console.log('PlanningForm initialized with:', {
+    defaultTime,
+    defaultActivity,
+    defaultLocation,
+  });
+
   const [contactInput, setContactInput] = useState("");
   const [showContactDialog, setShowContactDialog] = useState(false);
   const { session } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts'],
@@ -114,142 +125,136 @@ export const PlanningForm = ({
   const allFieldsComplete = isComplete.contacts && isComplete.activity && isComplete.datetime && isComplete.location;
 
   const handleSubmit = async () => {
-    if (!session?.user?.id) return;
+    if (!session?.user?.id || isSubmitting) return;
     
-    if (!allFieldsComplete) {
-      // Build context message about the current state of the event
-      let contextMessage = "I'm planning an event.";
-      
-      // Add information about selected contacts and their interests
-      if (selectedContacts.length > 0) {
-        contextMessage += `\nAttendees: ${selectedContacts.map(c => c.name).join(', ')}`;
-        const contactInterests = selectedContacts
-          .filter(c => c.interests?.length)
-          .map(c => `${c.name}: ${c.interests?.join(', ')}`);
-        if (contactInterests.length) {
-          contextMessage += `\nTheir interests include: ${contactInterests.join('\n')}`;
+    setIsSubmitting(true);
+    try {
+      if (!allFieldsComplete) {
+        // Build context message about the current state of the event
+        let contextMessage = "I'm planning an event.";
+        
+        // Add information about selected contacts and their interests
+        if (selectedContacts.length > 0) {
+          contextMessage += `\nAttendees: ${selectedContacts.map(c => c.name).join(', ')}`;
+          const contactInterests = selectedContacts
+            .filter(c => c.interests?.length)
+            .map(c => `${c.name}: ${c.interests?.join(', ')}`);
+          if (contactInterests.length) {
+            contextMessage += `\nTheir interests include: ${contactInterests.join('\n')}`;
+          }
         }
-      }
-      
-      // Add activity if selected
-      if (activity) {
-        contextMessage += `\nActivity: ${activity}`;
-      }
-      
-      // Add location if selected
-      if (location) {
-        contextMessage += `\nLocation: ${location}`;
-      }
-      
-      // Add date/time if selected
-      if (selectedDate && selectedTime) {
-        contextMessage += `\nTime: ${format(selectedDate, 'EEE, MMM d')} at ${selectedTime}`;
-      }
+        
+        // Add activity if selected
+        if (activity) {
+          contextMessage += `\nActivity: ${activity}`;
+        }
+        
+        // Add location if selected
+        if (location) {
+          contextMessage += `\nLocation: ${location}`;
+        }
+        
+        // Add date/time if selected
+        if (selectedDate && selectedTime) {
+          contextMessage += `\nTime: ${format(selectedDate, 'EEE, MMM d')} at ${selectedTime}`;
+        }
 
-      // Add what needs to be filled
-      contextMessage += '\n\nPlease help me fill in:';
-      if (!isComplete.contacts) contextMessage += '\n- Suggest contacts (prioritize those marked for catch-up and those in inner orbit)';
-      if (!isComplete.activity) contextMessage += '\n- Suggest an activity (consider the interests of all participants)';
-      if (!isComplete.datetime) contextMessage += '\n- Suggest a time in the next 7 days';
-      if (!isComplete.location) contextMessage += '\n- Suggest a specific location for the activity';
+        // Add what needs to be filled
+        contextMessage += '\n\nPlease help me fill in:';
+        if (!isComplete.contacts) contextMessage += '\n- Suggest contacts (prioritize those marked for catch-up and those in inner orbit)';
+        if (!isComplete.activity) contextMessage += '\n- Suggest an activity (consider the interests of all participants)';
+        if (!isComplete.datetime) contextMessage += '\n- Suggest a time in the next 7 days';
+        if (!isComplete.location) contextMessage += '\n- Suggest a specific location for the activity';
 
-      let relevantContacts = selectedContacts.length > 0 ? selectedContacts : closeContacts;
+        let relevantContacts = selectedContacts.length > 0 ? selectedContacts : closeContacts;
 
-      try {
-        // Send user prompt as secret message
-        const data = await generateChatResponse(contextMessage, relevantContacts, false, ConversationType.HANG_GENERATOR);
-        console.log('Received data:', data);
+        try {
+          // Send user prompt as secret message
+          const data = await generateChatResponse(contextMessage, relevantContacts, true, ConversationType.HANG_GENERATOR);
+          console.log('Received data:', data);
 
-        if (data && typeof data === 'object') {
-          const response = data.response || data;
-          
-          // Update form with AI suggestions
-          let formUpdated = false;
-          
-          if (response.contacts?.length && !isComplete.contacts) {
-            const suggestedContacts = contacts.filter(c => 
-              response.contacts?.some(contact => contact.id === c.id)
-            );
-            if (suggestedContacts.length) {
-              setSelectedContacts(suggestedContacts);
-              formUpdated = true;
+          if (data && typeof data === 'object') {
+            const response = data.response || data;
+            
+            console.log('AI response data:', response);
+            
+            let suggestedContacts: Contact[] = [];
+            if (response.contacts?.length && !isComplete.contacts) {
+              suggestedContacts = contacts.filter(c => 
+                response.contacts?.some(contact => contact.id === c.id)
+              );
+              if (suggestedContacts.length) {
+                setSelectedContacts(suggestedContacts);
+              }
             }
-          }
 
-          if (response.activity && !isComplete.activity) {
-            setActivity(response.activity);
-            formUpdated = true;
-          }
-
-          if (response.datetime && !isComplete.datetime) {
-            const date = parse(response.datetime.date, 'yyyy-MM-dd', new Date());
-            if (isValid(date)) {
-              setSelectedDate(date);
-              setSelectedTime(response.datetime.time);
-              formUpdated = true;
+            let date;
+            if (response.datetime && !isComplete.datetime) {
+              date = parse(response.datetime.date, 'yyyy-MM-dd', new Date());
+              if (isValid(date)) {
+                setSelectedDate(date);
+                setSelectedTime(response.datetime.time);
+              }
             }
-          }
-
-          if (response.location && !isComplete.location) {
-            setLocation(response.location);
-            formUpdated = true;
-          }
-
-          // Emit form update if any fields were changed
-          if (formUpdated && onUpdate) {
-            onUpdate({
-              contacts: selectedContacts,
-              activity,
-              location,
-              date: selectedDate,
-              time: selectedTime
+          
+            onSubmit("", {
+              text: response.text,
+              contacts: suggestedContacts,
+              activity: response.activity,
+              location: response.location,
+              date,
+              time: response.datetime?.time
             });
           }
+        } catch (error) {
+          console.error('Error getting AI suggestions:', error);
+        }
+        return;
+      }
+
+      // Convert date and time to UTC
+      const [hours, minutes] = selectedTime.match(/\d+/g)!;
+      const isPM = selectedTime.includes('PM');
+      let hour = parseInt(hours);
+      if (isPM && hour !== 12) hour += 12;
+      if (!isPM && hour === 12) hour = 0;
+      
+      const startDate = new Date(selectedDate);
+      startDate.setHours(hour, parseInt(minutes));
+      const endDate = new Date(startDate);
+      endDate.setHours(endDate.getHours() + 2); // Default to 2 hour events
+
+      // Add event to calendar_events table
+      try {
+        const { error: eventError } = await supabase
+          .from('calendar_events')
+          .insert({
+            user_id: session.user.id,
+            title: activity,
+            description: `Hangout with ${selectedContacts.map(c => c.name).join(', ')}`,
+            start_time: startDate.toISOString(),
+            end_time: endDate.toISOString(),
+            location: location,
+            updated_at: new Date().toISOString()
+          });
+
+        if (eventError) {
+          console.error('Error creating calendar event:', eventError);
         }
       } catch (error) {
-        console.error('Error getting AI suggestions:', error);
+        console.error('Error creating calendar event:', error);
       }
-      return;
-    }
 
-    // Convert date and time to UTC
-    const [hours, minutes] = selectedTime.match(/\d+/g)!;
-    const isPM = selectedTime.includes('PM');
-    let hour = parseInt(hours);
-    if (isPM && hour !== 12) hour += 12;
-    if (!isPM && hour === 12) hour = 0;
-    
-    const startDate = new Date(selectedDate);
-    startDate.setHours(hour, parseInt(minutes));
-    const endDate = new Date(startDate);
-    endDate.setHours(endDate.getHours() + 2); // Default to 2 hour events
-
-    // Add event to calendar_events table
-    try {
-      const { error: eventError } = await supabase
-        .from('calendar_events')
-        .insert({
-          user_id: session.user.id,
-          title: activity,
-          description: `Hangout with ${selectedContacts.map(c => c.name).join(', ')}`,
-          start_time: startDate.toISOString(),
-          end_time: endDate.toISOString(),
-          location: location,
-          updated_at: new Date().toISOString()
-        });
-
-      if (eventError) {
-        console.error('Error creating calendar event:', eventError);
-      }
+      const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
+      const message = `I just scheduled ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
+        location ? `at ${location}` : ''
+      } on ${dateStr} ${selectedTime}`;
+      onSubmit(message);
     } catch (error) {
-      console.error('Error creating calendar event:', error);
+      console.error('Error in handleSubmit:', error);
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
-    const message = `I just scheduled ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
-      location ? `at ${location}` : ''
-    } on ${dateStr} ${selectedTime || ''}`;
-    onSubmit(message);
   };
 
   const handleContactSelect = (contact: Contact) => {
@@ -439,9 +444,12 @@ export const PlanningForm = ({
           <div className="flex justify-end mt-4">
             <Button
               onClick={handleSubmit}
-              className="bg-purple-600 hover:bg-purple-700 text-white"
+              className="bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
+              disabled={isSubmitting}
             >
-              {!isComplete.contacts && !isComplete.activity && !isComplete.datetime && !isComplete.location
+              {isSubmitting 
+                ? "Planning..." 
+                : !isComplete.contacts && !isComplete.activity && !isComplete.datetime && !isComplete.location
                 ? "Figure it out for me!"
                 : allFieldsComplete
                 ? "Looks good - Plan it!"

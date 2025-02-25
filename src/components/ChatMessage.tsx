@@ -27,6 +27,7 @@ interface ChatMessageProps {
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
+  defaultTime?: string;
 }
 
 export const ChatMessage = ({ 
@@ -39,7 +40,8 @@ export const ChatMessage = ({
   defaultContacts,
   defaultActivity,
   defaultLocation,
-  defaultDate
+  defaultDate,
+  defaultTime,
 }: ChatMessageProps) => {
   return (
     <div
@@ -69,6 +71,7 @@ export const ChatMessage = ({
                 defaultActivity={defaultActivity}
                 defaultLocation={defaultLocation}
                 defaultDate={defaultDate}
+                defaultTime={defaultTime}
               />
             </div>
           )}

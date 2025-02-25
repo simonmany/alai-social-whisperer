@@ -34,6 +34,7 @@ interface Message {
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
+  defaultTime?: string;
 }
 
 interface ChatHistoryMessage {
@@ -136,9 +137,6 @@ const Index = () => {
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     console.log('last message', lastMessage);
-    if (lastMessage && lastMessage?.isAl && lastMessage.content.toLowerCase().includes('pick a date and time')) {
-      setShowDatePicker(true);
-    }
   }, [messages]);
 
   const handleOnboardingComplete = async () => {
@@ -634,10 +632,26 @@ const Index = () => {
     }
   };
 
-  const handlePlanSubmit = (message: string) => {
-    handleSend(message);
+  const handlePlanSubmit = (message: string, eventData?: any) => {
     setMessages(prev => prev.filter(message => !message.showPlanningForm));
-    setTutorialComplete(true);
+    if (eventData) {
+      console.log('event data', eventData);
+      setMessages(prev => [...prev, { 
+        content: eventData.text, 
+        isAl: true,
+        showPlanningForm: true,
+        onPlanningSubmit: handlePlanSubmit,
+        defaultContacts: eventData.contacts ? eventData.contacts : [],
+        defaultActivity: eventData.activity,
+        defaultLocation: eventData.location,
+        defaultDate: eventData.date,
+        defaultTime: eventData.time
+      }]);
+    }
+    else {
+      handleSend(message);
+      setTutorialComplete(true);
+    }
   };
 
   const handleGoalSubmit = (message: string) => {
