@@ -13,3 +13,20 @@ export function convertToLocalTime(utcTime: string, utcOffsetMinutes?: number) {
     const localDate = new Date(date.getTime() + (utcOffsetMinutes * 60 * 1000));
     return localDate.toISOString();
 }
+
+export function filterJSON(jsonObject: any): any {
+  if (Array.isArray(jsonObject)) {
+    return jsonObject.map(item => filterJSON(item));
+  }
+  if (typeof jsonObject === 'object' && jsonObject !== null) {
+    return Object.fromEntries(
+      Object.entries(jsonObject).filter(([_, value]) => 
+        value !== undefined && 
+        value !== null && 
+        value !== '' && 
+        (!Array.isArray(value) || value.length > 0)
+      ).map(([key, value]) => [key, filterJSON(value)])
+    );
+  }
+  return jsonObject;
+}

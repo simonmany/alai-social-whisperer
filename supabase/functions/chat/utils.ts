@@ -1,5 +1,6 @@
 import { Contact } from "./types.ts";
 import { supabase } from '../_shared/supabase.ts';
+import { filterJSON } from "../_shared/utils.ts";
 
 export async function searchGooglePlaces(searchString: string, location?: string): Promise<any> {
   const apiKey = Deno.env.get('VITE_PUBLIC_GOOGLE_MAPS_API_KEY');
@@ -94,9 +95,7 @@ export async function searchContactsByNames(userId: string, names: string[]) {
 
     const filteredContacts = data.filter(contact => names.some(name => contact.name.toLowerCase().includes(name.toLowerCase())));
     
-    mentionedContacts = filteredContacts.map(contact => Object.fromEntries(
-      Object.entries(contact).filter(([_, value]) => value !== null)
-    ));
+    mentionedContacts = filterJSON(filteredContacts);
   }
   console.log('Found contacts', mentionedContacts)
 

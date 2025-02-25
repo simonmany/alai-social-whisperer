@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Users, Shuffle, Calendar, MapPin, UserPlus } from "lucide-react";
-import { Contact } from "@/types/chat";
+import { Contact } from "@/types/contacts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -37,11 +37,11 @@ export const PlanningForm = ({
   defaultDate,
   onUpdate
 }: PlanningFormProps) => {
-  const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime'>('main');
+  const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime' | 'location'>('main');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
   const [activity, setActivity] = useState(defaultActivity);
   const [location, setLocation] = useState(defaultLocation);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
+  const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>();
   const [contactInput, setContactInput] = useState("");
   const [showContactDialog, setShowContactDialog] = useState(false);
@@ -60,6 +60,25 @@ export const PlanningForm = ({
 
       if (error) throw error;
       
+      return (data || []).map(contact => ({
+        ...contact,
+        interests: Array.isArray(contact.interests) ? contact.interests : [],
+      })) as Contact[];
+    },
+    enabled: !!session?.user?.id
+  });
+
+  const { data: closeContacts = [] } = useQuery({
+    queryKey: ['closeContacts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('closeness')
+        .limit(10);
+      
+      if (error) throw error;
       return (data || []).map(contact => ({
         ...contact,
         interests: Array.isArray(contact.interests) ? contact.interests : [],
@@ -134,9 +153,13 @@ export const PlanningForm = ({
       if (!isComplete.datetime) contextMessage += '\n- Suggest a time in the next 7 days';
       if (!isComplete.location) contextMessage += '\n- Suggest a specific location for the activity';
 
+      let relevantContacts = selectedContacts.length > 0 ? selectedContacts : closeContacts;
+
       try {
         // Send user prompt as secret message
-        const data = await generateChatResponse(contextMessage, contacts, true, ConversationType.HANG_PLANNER);
+        const data = await generateChatResponse(contextMessage, relevantContacts, false, ConversationType.HANG_GENERATOR);
+        console.log('Received data:', data);
+
         if (data && typeof data === 'object') {
           const response = data.response || data;
           
@@ -145,7 +168,7 @@ export const PlanningForm = ({
           
           if (response.contacts?.length && !isComplete.contacts) {
             const suggestedContacts = contacts.filter(c => 
-              response.contacts?.includes(c.name)
+              response.contacts?.some(contact => contact.id === c.id)
             );
             if (suggestedContacts.length) {
               setSelectedContacts(suggestedContacts);
@@ -167,12 +190,9 @@ export const PlanningForm = ({
             }
           }
 
-          if (response.text && !isComplete.location) {
-            const locationMatch = response.text.match(/location: ([^\n]+)/i);
-            if (locationMatch) {
-              setLocation(locationMatch[1].trim());
-              formUpdated = true;
-            }
+          if (response.location && !isComplete.location) {
+            setLocation(response.location);
+            formUpdated = true;
           }
 
           // Emit form update if any fields were changed
@@ -225,10 +245,12 @@ export const PlanningForm = ({
       console.error('Error creating calendar event:', error);
     }
 
+    const formattedTime = format(parse(selectedTime, 'HH:mm', new Date()), 'h:mm a');
+
     const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
-    const message = `I want to ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
+    const message = `I just scheduled ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
       location ? `at ${location}` : ''
-    } on ${dateStr} ${selectedTime || ''}`;
+    } on ${dateStr} ${formattedTime || ''}`;
     onSubmit(message);
   };
 
