@@ -18,6 +18,7 @@ interface Message {
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
+  defaultTime?: string;
 }
 
 interface SuggestedPromptItem {
@@ -110,6 +111,7 @@ export const ChatContainer = ({
                   defaultActivity={message.defaultActivity}
                   defaultLocation={message.defaultLocation}
                   defaultDate={message.defaultDate}
+                  defaultTime={message.defaultTime}
                 />
               );
             }

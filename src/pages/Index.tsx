@@ -34,6 +34,7 @@ interface Message {
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
+  defaultTime?: string;
 }
 
 interface ChatHistoryMessage {
@@ -136,9 +137,6 @@ const Index = () => {
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     console.log('last message', lastMessage);
-    if (lastMessage && lastMessage?.isAl && lastMessage.content.toLowerCase().includes('pick a date and time')) {
-      setShowDatePicker(true);
-    }
   }, [messages]);
 
   const handleOnboardingComplete = async () => {
@@ -634,10 +632,22 @@ const Index = () => {
     }
   };
 
-  const handlePlanSubmit = (message: string) => {
-    handleSend(message);
-    setMessages(prev => prev.filter(message => !message.showPlanningForm));
-    setTutorialComplete(true);
+  const handlePlanSubmit = (message: string, newContent?: string) => {
+    if (newContent) {
+      // Update the existing planning form message
+      setMessages(prev => prev.map(msg => 
+        msg.showPlanningForm ? {
+          ...msg,
+          content: newContent,
+        } : msg
+      ));
+    }
+    else {
+      // Only remove the planning form when submitting the final plan
+      setMessages(prev => prev.filter(message => !message.showPlanningForm));
+      handleSend(message);
+      setTutorialComplete(true);
+    }
   };
 
   const handleGoalSubmit = (message: string) => {
