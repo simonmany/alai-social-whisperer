@@ -190,7 +190,7 @@ const Index = () => {
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('display_name, catch_up_contacts')
+        .select('display_name, catch_up_contacts, desired_interests')
         .eq('id', session.user.id)
         .single();
 
@@ -211,6 +211,8 @@ const Index = () => {
         }
       }
 
+      const desiredInterest = profileData?.desired_interests[0] || '';
+
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Let's make that happen!` : "Let's dive right in and get started planning your first Hang!"}`;
 
       await supabase
@@ -226,12 +228,12 @@ const Index = () => {
       setShowProfileButton(false);
 
       setMessages(prev => [...prev, { 
-        content: "Sure! Let's plan something. Fill out the details below:", 
+        content: "", 
         isAl: true,
         showPlanningForm: true,
         onPlanningSubmit: handlePlanSubmit,
-        defaultContacts: selectedContact ? [selectedContact] : [],
-        defaultActivity: selectedActivity
+        defaultContacts: contactData ? [contactData] : [],
+        defaultActivity: desiredInterest
       }]);
       console.log('should be showing');
 
@@ -633,6 +635,7 @@ const Index = () => {
   const handlePlanSubmit = (message: string) => {
     handleSend(message);
     setMessages(prev => prev.filter(message => !message.showPlanningForm));
+    setTutorialComplete(true);
   };
 
   const handleGoalSubmit = (message: string) => {
