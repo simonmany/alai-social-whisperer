@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/contacts";
+import { CalendarEvent } from "@/types/calendar";
 
 interface Message {
   content: string;
@@ -13,12 +14,17 @@ interface Message {
   is_secret?: boolean;
   contactInfo?: Contact;
   showPlanningForm?: boolean;
+  showFeedbackForm?: boolean;
   onPlanningSubmit?: (message: string) => void;
+  onFeedbackSubmit?: (message: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
   defaultTime?: string;
+  eventId?: string;
+  eventTitle?: string;
+  completedEvent?: CalendarEvent;
 }
 
 interface SuggestedPromptItem {
@@ -98,6 +104,14 @@ export const ChatContainer = ({
             }
             
             if (!message.is_secret) {
+              console.log('ChatContainer - Message props:', {
+                content: message.content,
+                isAl: message.isAl,
+                showFeedbackForm: message.showFeedbackForm,
+                hasOnFeedbackSubmit: !!message.onFeedbackSubmit,
+                eventId: message.eventId,
+                completedEvent: message.completedEvent
+              });
               return (
                 <ChatMessage
                   key={index}
@@ -112,6 +126,9 @@ export const ChatContainer = ({
                   defaultLocation={message.defaultLocation}
                   defaultDate={message.defaultDate}
                   defaultTime={message.defaultTime}
+                  showFeedbackForm={message.showFeedbackForm}
+                  onFeedbackSubmit={message.onFeedbackSubmit}
+                  completedEvent={message.completedEvent}
                 />
               );
             }

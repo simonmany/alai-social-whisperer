@@ -6,6 +6,7 @@ import { PersonalityAnalyzerAgent } from "./agents/personalityanalyzer.ts";
 import { ConversationType } from "./types.ts";
 import { HangPlannerAgent } from "./agents/hangplanneragent.ts";
 import { DailyCheckinAgent } from "./agents/dailycheckinagent.ts";
+import { supabase } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -71,6 +72,7 @@ serve(async (req: Request) => {
 
     if (agent) {
       const { parsedResponse } = await agent.chat(userId, message, contactInfo, secretMessage);
+
       return new Response(JSON.stringify({ response: parsedResponse }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

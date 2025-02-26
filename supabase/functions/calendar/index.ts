@@ -353,16 +353,22 @@ serve(async (req: Request) => {
         .eq('google_event_id', event.id)
         .maybeSingle();
       
-      return {
+      const eventData: any = {
         user_id: user.id,
         google_event_id: event.id,
         title: event.summary || 'Untitled Event',
         description: existingEvent?.description || event.description || null,
         start_time: startUTC,
         end_time: endUTC,
-        feedback_sent: existingEvent?.feedback_sent || false,
         updated_at: new Date().toISOString()
       };
+
+      // Only set feedback_sent if this is a new event
+      if (!existingEvent) {
+        eventData.feedback_sent = false;
+      }
+
+      return eventData;
     }));
 
     // Log the transformed events

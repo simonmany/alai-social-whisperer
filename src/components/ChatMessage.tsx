@@ -2,6 +2,9 @@
 import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
 import { PlanningForm } from "@/components/PlanningForm";
+import { FeedbackForm } from "@/components/FeedbackForm";
+import { EventFeedbackCard } from "@/components/EventFeedbackCard";
+import { CalendarEvent } from "@/types/calendar";
 import ReactMarkdown from "react-markdown";
 
 interface Contact {
@@ -22,12 +25,15 @@ interface ChatMessageProps {
   animate?: boolean;
   contacts?: Contact[];
   showPlanningForm?: boolean;
+  showFeedbackForm?: boolean;
   onPlanningSubmit?: (message: string) => void;
+  onFeedbackSubmit?: (message: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
   defaultTime?: string;
+  completedEvent?: CalendarEvent;
 }
 
 export const ChatMessage = ({ 
@@ -36,13 +42,23 @@ export const ChatMessage = ({
   animate = true, 
   contacts,
   showPlanningForm,
+  showFeedbackForm,
   onPlanningSubmit,
+  onFeedbackSubmit,
   defaultContacts,
   defaultActivity,
   defaultLocation,
   defaultDate,
   defaultTime,
+  completedEvent,
 }: ChatMessageProps) => {
+  console.log('ChatMessage - Props:', {
+    content,
+    isAl,
+    showFeedbackForm,
+    hasOnFeedbackSubmit: !!onFeedbackSubmit,
+    completedEvent
+  });
   return (
     <div
       className={cn(
@@ -73,6 +89,20 @@ export const ChatMessage = ({
                 defaultDate={defaultDate}
                 defaultTime={defaultTime}
               />
+            </div>
+          )}
+          {showFeedbackForm && onFeedbackSubmit && (
+            <div className="mt-4 w-full max-w-2xl">
+              {completedEvent ? (
+                <EventFeedbackCard 
+                  event={completedEvent}
+                  onFeedbackSubmit={onFeedbackSubmit}
+                />
+              ) : (
+                <FeedbackForm
+                  onSubmit={onFeedbackSubmit}
+                />
+              )}
             </div>
           )}
         </div>

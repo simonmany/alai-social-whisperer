@@ -34,6 +34,7 @@ serve(async (req) => {
       end: now.toISOString()
     });
 
+    // Find events that need feedback
     const { data: completedEvents, error: eventsError } = await supabaseClient
       .from('calendar_events')
       .select('id, title, user_id, end_time')
@@ -54,8 +55,8 @@ serve(async (req) => {
         console.log(`Processing event: ${event.title} for user ${event.user_id}`);
         
         try {
-          // Send feedback request for each completed event
-          console.log('Calling daily-checkin for post-event feedback');
+          // Send AI message requesting feedback for each completed event
+          console.log('Calling daily-checkin to request feedback');
           const response = await fetch(`${supabaseUrl}/functions/v1/daily-checkin`, {
             method: 'POST',
             headers: {
@@ -72,22 +73,11 @@ serve(async (req) => {
 
           if (!response.ok) {
             const errorText = await response.text();
-            console.error(`Error calling daily-checkin for event ${event.id}:`, errorText);
+            console.error(`Error requesting feedback for event ${event.id}:`, errorText);
             continue;
           }
 
-          console.log(`Successfully sent post-event check-in for event ${event.id}`);
-
-          // Mark feedback as sent
-          console.log(`Marking feedback as sent for event ${event.id}`);
-          const { error: updateError } = await supabaseClient
-            .from('calendar_events')
-            .update({ feedback_sent: true })
-            .eq('id', event.id);
-
-          if (updateError) {
-            console.error(`Error marking feedback as sent for event ${event.id}:`, updateError);
-          }
+          console.log(`Successfully requested feedback for event ${event.id}`);
         } catch (error) {
           console.error(`Error processing event ${event.id}:`, error);
         }
