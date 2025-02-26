@@ -5,26 +5,7 @@ import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { Button } from "@/components/ui/button";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Contact } from "@/types/contacts";
-
-interface Message {
-  content: string;
-  isAl: boolean;
-  is_secret?: boolean;
-  contactInfo?: Contact;
-  showPlanningForm?: boolean;
-  onPlanningSubmit?: (message: string) => void;
-  defaultContacts?: Contact[];
-  defaultActivity?: string;
-  defaultLocation?: string;
-  defaultDate?: Date;
-  defaultTime?: string;
-}
-
-interface SuggestedPromptItem {
-  text: string;
-  action: string;
-}
+import { Message } from "@/types/chat";
 
 interface SuggestedPromptItem {
   text: string;

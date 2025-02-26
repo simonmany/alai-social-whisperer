@@ -3,11 +3,9 @@ import { Button } from "@/components/ui/button";
 import { UserRound, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { REDIRECT_URL } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import { APP_CONSTANTS } from '../utils/constants';
 import { useAuth } from "@/components/AuthProvider";
 
 interface MainNavigationProps {
