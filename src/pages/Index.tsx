@@ -107,7 +107,7 @@ const Index = () => {
     };
 
     loadChatHistory();
-  }, [session?.user?.id, showOnboarding]);
+  }, [session?.user?.id, showOnboarding, tutorialComplete]);
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -138,7 +138,7 @@ const Index = () => {
 
   const handleStartTutorial = async () => {
     if (!session?.user.id) return;
-
+    
     try {
       if (showOnboarding) {
         await supabase
@@ -200,6 +200,26 @@ const Index = () => {
       setTutorialComplete(false);
       setShowProfileButton(false);
 
+      // Wait for the real-time subscription to catch up
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Force a fresh fetch of messages before adding planning form
+      const { data: latestMessages } = await supabase
+        .from('chat_history')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: true });
+
+      if (latestMessages) {
+        const historyMessages = latestMessages.map(msg => ({
+          content: msg.message,
+          isAl: msg.is_ai,
+          is_secret: msg.is_secret,
+        }));
+        setMessages(historyMessages);
+      }
+
+      // Now add the planning form
       setMessages(prev => [...prev, { 
         content: "", 
         isAl: true,
@@ -221,10 +241,6 @@ const Index = () => {
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
-      toast({
-        title: "Tutorial started",
-        description: "Follow the instructions to learn how to use the app!",
-      });
     } catch (error: any) {
       console.error('Error starting tutorial:', error);
       toast({
@@ -369,16 +385,6 @@ const Index = () => {
               showPlanningForm: false // Explicitly set this for new messages
             };
             setMessages(prev => [...prev, newMessage]);
-            // setMessages(prev => {
-            //   // Find any messages with showPlanningForm
-            //   const planningMessages = prev.filter(msg => msg.showPlanningForm);
-            //   // Get all other messages except the planning ones
-            //   const regularMessages = prev.filter(msg => !msg.showPlanningForm);
-            //   // Add the new message to regular messages
-            //   regularMessages.push(newMessage);
-            //   // Return regular messages followed by planning messages
-            //   return [...regularMessages, ...planningMessages];
-            // });
           }
         )
         .subscribe();
