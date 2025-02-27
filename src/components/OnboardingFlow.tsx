@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, SkipForward, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OnboardingState, AIPreferencesResponse } from "@/types/onboarding";
+import { Capacitor } from "@capacitor/core";
+import { Contacts } from '@skektec/capacitor-contacts';
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -74,6 +76,9 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine3Part7, setHasPlayedLine3Part7] = useState(false);
   const [hasPlayedLine3Part8, setHasPlayedLine3Part8] = useState(false);
 
+  const [contacts, setContacts] = useState<Array<{id: string, name: string, phone?: string}>>([]);
+  const [filteredContacts, setFilteredContacts] = useState<Array<{id: string, name: string, phone?: string}>>([]);
+
   useEffect(() => {
     const fetchPriorityPerson = async () => {
       if (!session?.user?.id) return;
@@ -104,6 +109,27 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
     fetchPriorityPerson();
   }, [session?.user?.id, step]);
+
+  useEffect(() => {
+    const fetchContacts = async () => {
+      if (!session?.user?.id) return;
+      
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('id, name, phone')
+        .eq('user_id', session.user.id);
+        
+      if (error) {
+        console.error('Error fetching contacts:', error);
+        return;
+      }
+      
+      setContacts(data || []);
+      setFilteredContacts(data || []);
+    };
+    
+    fetchContacts();
+  }, [session?.user?.id]);
 
   const handleBack = () => {
     switch (step) {
@@ -575,18 +601,71 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
             {hasPlayedLine5 && (
               <div className="flex flex-col space-y-4 mt-8">
-                <Button 
-                  onClick={() => setStep('priority-people')}
-                  className="w-full"
-                >
-                  Connect Contacts
-                </Button>
+                {Capacitor.isNativePlatform() && (
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const result = await Contacts.getContacts({
+                          projection: {
+                            name: true,
+                            phones: true,
+                            postalAddresses: true,
+                          },
+                        });
+                        
+                        if (result.contacts && result.contacts.length > 0) {
+                          setIsSubmitting(true);
+                          const contactsToInsert = result.contacts.map(contact => ({
+                            user_id: session?.user?.id,
+                            name: contact.name?.display || 'Unknown',
+                            phone: contact.phones?.[0]?.number,
+                            address: contact.postalAddresses?.[0]?.formatted,
+                            created_at: new Date().toISOString(),
+                            updated_at: new Date().toISOString()
+                          }));
+
+                          const { error } = await supabase
+                            .from('contacts')
+                            .insert(contactsToInsert);
+
+                          if (error) {
+                            throw error;
+                          }
+
+                          toast({
+                            title: "Contacts Synchronized",
+                            description: `Successfully imported ${result.contacts.length} contacts`,
+                          });
+                          setStep('priority-people');
+                        } else {
+                          toast({
+                            title: "No Contacts Found",
+                            description: "Your contact list is empty",
+                            variant: "destructive",
+                          });
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "Error",
+                          description: "Failed to sync contacts: " + (error instanceof Error ? error.message : JSON.stringify(error)),
+                          variant: "destructive",
+                        });
+                      } finally {
+                        setIsSubmitting(false);
+                      }
+                    }}
+                    className="w-full"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Syncing Contacts..." : "Connect Contacts"}
+                  </Button>
+                )}
                 <Button 
                   variant="outline"
                   onClick={() => setStep('priority-people')}
                   className="w-full"
                 >
-                  Not Now
+                  {Capacitor.isNativePlatform() ? "Not Now" : "Continue"}
                 </Button>
               </div>
             )}
@@ -650,17 +729,51 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
                 {showPriorityInput && (
                   <div className="space-y-4">
-                    <Input
-                      value={priorityPerson}
-                      onChange={(e) => setPriorityPerson(e.target.value)}
-                      placeholder="Enter name"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handlePriorityPersonSubmit();
-                        }
-                      }}
-                    />
+                    <div className="relative">
+                      <Input
+                        value={priorityPerson}
+                        onChange={(e) => {
+                          const searchTerm = e.target.value;
+                          setPriorityPerson(searchTerm);
+                          
+                          // Filter contacts based on search term
+                          if (searchTerm.trim()) {
+                            const filtered = contacts.filter(contact =>
+                              contact.name.toLowerCase().includes(searchTerm.toLowerCase())
+                            );
+                            setFilteredContacts(filtered);
+                          } else {
+                            setFilteredContacts(contacts);
+                          }
+                        }}
+                        placeholder="Enter name"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && priorityPerson.trim()) {
+                            e.preventDefault();
+                            handlePriorityPersonSubmit();
+                          }
+                        }}
+                      />
+                      {priorityPerson.trim() && filteredContacts.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-auto">
+                          {filteredContacts.map(contact => (
+                            <div
+                              key={contact.id}
+                              className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => {
+                                setPriorityPerson(contact.name);
+                                setFilteredContacts([]);
+                              }}
+                            >
+                              <div className="font-medium">{contact.name}</div>
+                              {contact.phone && (
+                                <div className="text-sm text-gray-500">{contact.phone}</div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                     <Button 
                       onClick={handlePriorityPersonSubmit}
                       className="w-full"

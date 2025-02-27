@@ -98,3 +98,13 @@ Simply open [Lovable](https://lovable.dev/projects/228287c8-645d-4d08-a95c-ff345
 ## I want to use a custom domain - is that possible?
 
 We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+
+
+### Steps to build Capacitor
+- `npx cap add android/ios` (only necessary if android and ios folders don't exist)
+- `npm run build && npx cap sync` 
+- `npx cap open android/ios`
+- IOS dev https://capacitorjs.com/docs/ios
+- Android dev https://capacitorjs.com/docs/android
+
+Using https://www.npmjs.com/package/@skektec/capacitor-contacts, for contacts, a fork of the comunity plugin https://github.com/capacitor-community/contacts which does not support capacitor 7 yet.
