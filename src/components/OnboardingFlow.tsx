@@ -670,7 +670,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       } else {
                         toast({
                           title: "Permission Denied",
-                          description: "Calendar access is required to help schedule your events",
+                          description: "I won't access any events in your device's calendar",
                           variant: "destructive",
                         });
                       }
