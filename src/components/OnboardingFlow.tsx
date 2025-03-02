@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import type { OnboardingState, AIPreferencesResponse } from "@/types/onboarding";
 import { Capacitor } from "@capacitor/core";
 import { Contacts } from '@skektec/capacitor-contacts';
+import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
+import { synchronizeEvents } from "@/utils/calendar";
 
 interface OnboardingFlowProps {
   onComplete: () => void;
@@ -21,6 +23,7 @@ interface OnboardingFlowProps {
 
 type OnboardingStep = 
   | 'basic' 
+  | 'calendar'
   | 'contacts'
   | 'priority-people'
   | 'interests'
@@ -30,8 +33,6 @@ type OnboardingStep =
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [step, setStep] = useState<OnboardingStep>('basic');
   const [state, setState] = useState<OnboardingState>({});
-  const [aiResponse, setAiResponse] = useState<string>("");
-  const [isLoadingAi, setIsLoadingAi] = useState(false);
   const { session } = useAuth();
   const { toast } = useToast();
   const [aiPreferencesResponse, setAiPreferencesResponse] = useState<string | AIPreferencesResponse>("");
@@ -138,8 +139,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       case 'contacts':
         setStep('basic');
         break;
-      case 'priority-people':
+      case 'calendar':
         setStep('contacts');
+        break;
+      case 'priority-people':
+        setStep('calendar');
         break;
       case 'interests':
         setStep('priority-people');
@@ -573,7 +577,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                             title: "Contacts Synchronized",
                             description: `Successfully imported ${result.contacts.length} contacts`,
                           });
-                          setStep('priority-people');
+                          setStep('calendar');
                         } else {
                           toast({
                             title: "No Contacts Found",
@@ -599,13 +603,99 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 )}
                 <Button 
                   variant="outline"
-                  onClick={() => setStep('priority-people')}
+                  onClick={() => setStep('calendar')}
                   className="w-full"
                 >
                   {Capacitor.isNativePlatform() ? "Not Now" : "Continue"}
                 </Button>
               </div>
             )}
+          </div>
+        )}
+
+        {step === 'calendar' && (
+          <div className="space-y-8">
+            {hasPlayedLine4 ? (
+              <div className="text-xl">
+                Now that I know who you know, I'd love to help you find the perfect time to meet them! Connect your calendar to help me schedule events.
+              </div>
+            ) : (
+              <TypewriterText
+                key="calendar-intro"
+                text="Now that I know who you know, I'd love to help you find the perfect time to meet them! Connect your calendar to help me schedule events."
+                delay={250}
+                typingSpeed={25}
+                onComplete={() => setHasPlayedLine4(true)}
+                className="text-xl"
+              />
+            )}
+
+            <div className="flex flex-col space-y-4 mt-8">
+              {Capacitor.isNativePlatform() && (
+                <Button 
+                  onClick={async () => {
+                    try {
+                      const { result } = await CapacitorCalendar.requestFullCalendarAccess();
+                      console.log('request result:', result);
+                      
+                      if (result === 'granted') {
+                        const { result: calendars } = await CapacitorCalendar.listCalendars();
+                        console.log('available calendars:', calendars);
+                        
+                        if (calendars && calendars.length > 0) {
+                          toast({
+                            title: "Calendar Connected",
+                            description: `Found ${calendars.length} calendars`,
+                          });
+                        
+                          // import events from all calendars and store in supabase
+                          const now = new Date()
+                          const month_from_now = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+                          const { result: events } = await CapacitorCalendar.listEventsInRange({ from: now.getTime(), to: month_from_now.getTime() });
+                          console.log('first event:', JSON.stringify(events[0], null, 2));
+                          
+                          if (events && events.length > 0) {
+                            synchronizeEvents(session.user.id);
+                          }
+                          
+                          
+                          setStep('priority-people');
+                        } else {
+                          toast({
+                            title: "No Calendars Found",
+                            description: "No calendars were found on your device",
+                            variant: "destructive",
+                          });
+                        }
+                      } else {
+                        toast({
+                          title: "Permission Denied",
+                          description: "Calendar access is required to help schedule your events",
+                          variant: "destructive",
+                        });
+                      }
+                    } catch (error) {
+                      console.error('Calendar sync error:', error);
+                      toast({
+                        title: "Error",
+                        description: "Failed to connect calendar: " + (error instanceof Error ? error.message : JSON.stringify(error)),
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                  className="w-full"
+                >
+                  Connect Calendar
+                </Button>
+              )}
+              <Button 
+                variant="outline"
+                onClick={() => setStep('priority-people')}
+                className="w-full"
+              >
+                {Capacitor.isNativePlatform() ? "Not Now" : "Continue"}
+              </Button>
+            </div>
           </div>
         )}
 

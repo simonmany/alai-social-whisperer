@@ -11,6 +11,9 @@ import { DayView } from "@/components/calendar/DayView";
 import { WeekView } from "@/components/calendar/WeekView";
 import { MonthView } from "@/components/calendar/MonthView";
 import type { Database } from "@/integrations/supabase/types";
+import { Capacitor } from "@capacitor/core";
+import { synchronizeEvents, checkPermissions } from "@/utils/calendar";
+import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
 
 interface CalendarEvent {
   id: string;
@@ -72,8 +75,22 @@ const CalendarView = () => {
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-        // If Google Calendar is connected and active, sync first
-        if (profile?.has_google_calendar && !profile?.google_token_expired && profile?.google_access_token) {
+        // Check if we're on a native platform
+        if (Capacitor.isNativePlatform()) {
+          // Use native calendar sync
+          const syncResult = await synchronizeEvents(session.user.id);
+          if (syncResult.error) {
+            console.error('Native calendar sync error:', syncResult.error);
+            toast({
+              title: "Calendar Sync Error",
+              description: syncResult.error,
+              variant: "destructive",
+            });
+          } else {
+            console.log(`Synced ${syncResult.added} new events and updated ${syncResult.updated} events`);
+          }
+        } else if (profile?.has_google_calendar && !profile?.google_token_expired && profile?.google_access_token) {
+          // Use Google Calendar sync for web platform
           const { data: syncResponse, error: syncError } = await supabase.functions.invoke('calendar', {
             body: {
               action: 'list',
@@ -147,10 +164,11 @@ const CalendarView = () => {
             })) || []
         }));
 
+        const permissions = await checkPermissions();
         // Return events with connection status
         return { 
           events,
-          isConnected: profile?.has_google_calendar && !profile?.google_token_expired
+          isConnected: (profile?.has_google_calendar && !profile?.google_token_expired) || (Capacitor.isNativePlatform() && permissions.status === 'all') 
         };
       } catch (error) {
         console.error("Exception in fetchCalendarEvents:", error);
@@ -177,10 +195,16 @@ const CalendarView = () => {
       return;
     }
 
-    if (user?.app_metadata?.provider === 'email') {
-      navigate('/email-calendar/connect');
-    } else {
-      navigate('/connect-calendar');
+    if (!Capacitor.isNativePlatform()) {
+      if (user?.app_metadata?.provider === 'email') {
+        navigate('/email-calendar/connect');
+      } else {
+        navigate('/connect-calendar');
+      }
+    }
+    else {
+      await CapacitorCalendar.requestFullCalendarAccess();
+      synchronizeEvents(user.id);
     }
   };
 
@@ -216,7 +240,7 @@ const CalendarView = () => {
                   Connect your Google Calendar to sync and manage your events
                 </p>
                 <Button onClick={handleConnectCalendar}>
-                  Connect Google Calendar
+                  Connect Calendar
                 </Button>
               </div>
             </div>
@@ -287,6 +311,8 @@ const CalendarView = () => {
                       .eq('user_id', session.user.id);
 
                     if (deleteError) throw deleteError;
+
+                    // TODO (ari) disconnect from native calendar provider
 
                     window.location.reload();
                   } catch (error) {
