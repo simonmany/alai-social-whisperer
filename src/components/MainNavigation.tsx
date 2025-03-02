@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { UserRound, Calendar, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -115,7 +114,7 @@ export const MainNavigation = ({
   };
 
   return (
-    <div className="flex justify-between items-center gap-2 mb-6">
+    <div className="flex justify-between items-center w-full">
       <div className="flex-1">
         <Button
           variant="ghost"
