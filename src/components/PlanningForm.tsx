@@ -82,6 +82,7 @@ export const PlanningForm = ({
         .limit(10);
       
       if (error) throw error;
+      console.log('close contacts', data);
       return (data || []).map(contact => ({
         ...contact,
         interests: Array.isArray(contact.interests) ? contact.interests : [],
@@ -158,11 +159,9 @@ export const PlanningForm = ({
         if (!isComplete.datetime) contextMessage += '\n- Suggest a time in the next 7 days';
         if (!isComplete.location) contextMessage += '\n- Suggest a specific location for the activity';
 
-        let relevantContacts = selectedContacts.length > 0 ? selectedContacts : closeContacts;
-
         try {
           // Send user prompt as secret message
-          const data = await generateChatResponse(contextMessage, relevantContacts, true, ConversationType.HANG_GENERATOR);
+          const data = await generateChatResponse(contextMessage, closeContacts, true, ConversationType.HANG_GENERATOR);
           console.log('Received data:', data);
   
           if (data && typeof data === 'object') {
@@ -171,12 +170,16 @@ export const PlanningForm = ({
             // Update form with AI suggestions
             let formUpdated = false;
             
-            if (response.contacts?.length && !isComplete.contacts) {
+            if (response.contacts?.length) {
               const suggestedContacts = contacts.filter(c => 
                 response.contacts?.some(contact => contact.id === c.id)
               );
               if (suggestedContacts.length) {
-                setSelectedContacts(suggestedContacts);
+                // Merge suggestedContacts and selectedContacts
+                const mergedContacts = Array.from(new Set([...selectedContacts, ...suggestedContacts].map(c => c.id)))
+                  .map(id => selectedContacts.find(c => c.id === id) || suggestedContacts.find(c => c.id === id))
+                  .filter((c): c is Contact => c !== undefined);
+                setSelectedContacts(mergedContacts);
                 formUpdated = true;
               }
             }

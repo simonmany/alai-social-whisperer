@@ -54,6 +54,7 @@ interface ChatHistoryMessage {
   morning_checkin: boolean;
   is_onboarding_message: boolean;
 }
+import { Message, ChatHistoryMessage } from "@/types/chat";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -201,7 +202,7 @@ const Index = () => {
     };
 
     loadChatHistory();
-  }, [session?.user?.id, showOnboarding]);
+  }, [session?.user?.id, showOnboarding, tutorialComplete]);
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -232,7 +233,7 @@ const Index = () => {
 
   const handleStartTutorial = async () => {
     if (!session?.user.id) return;
-
+    
     try {
       if (showOnboarding) {
         await supabase
@@ -294,6 +295,26 @@ const Index = () => {
       setTutorialComplete(false);
       setShowProfileButton(false);
 
+      // Wait for the real-time subscription to catch up
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Force a fresh fetch of messages before adding planning form
+      const { data: latestMessages } = await supabase
+        .from('chat_history')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: true });
+
+      if (latestMessages) {
+        const historyMessages = latestMessages.map(msg => ({
+          content: msg.message,
+          isAl: msg.is_ai,
+          is_secret: msg.is_secret,
+        }));
+        setMessages(historyMessages);
+      }
+
+      // Now add the planning form
       setMessages(prev => [...prev, { 
         content: "", 
         isAl: true,
@@ -315,10 +336,6 @@ const Index = () => {
       
       queryClient.invalidateQueries({ queryKey: ['profile', session.user.id] });
       
-      toast({
-        title: "Tutorial started",
-        description: "Follow the instructions to learn how to use the app!",
-      });
     } catch (error: any) {
       console.error('Error starting tutorial:', error);
       toast({
@@ -545,16 +562,6 @@ const Index = () => {
               completedEvent: newMessage.completedEvent
             });
             setMessages(prev => [...prev, newMessage]);
-            // setMessages(prev => {
-            //   // Find any messages with showPlanningForm
-            //   const planningMessages = prev.filter(msg => msg.showPlanningForm);
-            //   // Get all other messages except the planning ones
-            //   const regularMessages = prev.filter(msg => !msg.showPlanningForm);
-            //   // Add the new message to regular messages
-            //   regularMessages.push(newMessage);
-            //   // Return regular messages followed by planning messages
-            //   return [...regularMessages, ...planningMessages];
-            // });
           }
         )
         .subscribe();
@@ -956,19 +963,21 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container max-w-2xl py-4">
-          <MainNavigation
-            isConnectingCalendar={isConnectingCalendar}
-            setIsConnectingCalendar={setIsConnectingCalendar}
-            onProfileOpen={() => setIsProfileOpen(true)}
-            onGoogleSignIn={handleGoogleSignIn}
-          />
+    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
+      <header className="fixed top-0 left-0 right-0 z-50">
+        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-[env(safe-area-inset-top)] px-[env(safe-area-inset-right)] pb-4 px-[env(safe-area-inset-left)]">
+          <div className="container max-w-2xl mx-auto">
+            <MainNavigation
+              isConnectingCalendar={isConnectingCalendar}
+              setIsConnectingCalendar={setIsConnectingCalendar}
+              onProfileOpen={() => setIsProfileOpen(true)}
+              onGoogleSignIn={handleGoogleSignIn}
+            />
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
+      <main className="flex-1 container max-w-2xl mx-auto px-4 pt-[calc(4rem+env(safe-area-inset-top))] pb-8">
         {showOnboarding ? (
           <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : !tutorialComplete ? (
@@ -992,7 +1001,7 @@ const Index = () => {
             <></>
           </ChatContainer>
         )}
-      </div>
+      </main>
 
       <div className="fixed bottom-4 left-4 flex flex-col gap-2">
         <Button

@@ -31,6 +31,7 @@ interface SuggestedPromptItem {
   text: string;
   action: string;
 }
+import { Message } from "@/types/chat";
 
 interface SuggestedPromptItem {
   text: string;

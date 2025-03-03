@@ -6,18 +6,7 @@ import { FeedbackForm } from "@/components/FeedbackForm";
 import { EventFeedbackCard } from "@/components/EventFeedbackCard";
 import { CalendarEvent } from "@/types/calendar";
 import ReactMarkdown from "react-markdown";
-
-interface Contact {
-  id: string;
-  name: string;
-  phone?: string;
-  instagram?: string;
-  linkedin?: string;
-  twitter?: string;
-  meetingStory?: string;
-  relationship?: string;
-  user_id: string;
-}
+import { Contact } from "@/types/contacts";
 
 interface ChatMessageProps {
   content: string;
