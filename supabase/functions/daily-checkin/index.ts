@@ -163,6 +163,8 @@ Ask the user for their rose, bud, and thorn of the day.
 Your goal is to better understand the user's likes and dislikes across people, activities, etc.${missingGoalsPrompt}`;
       }
     } else if (type === 'post-event' && event_id && event_title) {
+      console.log('Processing post-event request for event:', event_id);
+      
       // Get event details including attendees
       const { data: eventDetails, error: eventError } = await supabaseClient
         .from('calendar_events')
@@ -206,7 +208,14 @@ Your goal is to better understand the user's likes and dislikes across people, a
     // Route through the chat function
     console.log('Routing through chat function with message:', message);
     const { data: chatResponse, error: chatError } = await supabaseClient.functions.invoke('chat', {
-      body: { message, userId: user_id, secretMessage: false, conversationType: "DAILY_CHECKIN" }
+      body: { 
+        message, 
+        userId: user_id, 
+        secretMessage: false, 
+        conversationType: "DAILY_CHECKIN",
+        event_id: type === 'post-event' ? event_id : undefined,
+        event_title: type === 'post-event' ? event_title : undefined
+      }
     });
 
     if (chatError) {

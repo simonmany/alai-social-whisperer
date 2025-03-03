@@ -6,6 +6,7 @@ import { PersonalityAnalyzerAgent } from "./agents/personalityanalyzer.ts";
 import { ConversationType } from "./types.ts";
 import { HangPlannerAgent } from "./agents/hangplanneragent.ts";
 import { DailyCheckinAgent } from "./agents/dailycheckinagent.ts";
+import { supabase } from "../_shared/supabase.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -31,7 +32,7 @@ serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const { message, userId, contactInfo, secretMessage, conversationType } = body;
+    const { message, userId, contactInfo, secretMessage, conversationType, event_id, event_title } = body;
 
     if (!message || !userId || !conversationType) {
       console.error('Missing required fields:', { message, userId, conversationType });
@@ -40,6 +41,8 @@ serve(async (req: Request) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    console.log('Chat request details:', { userId, conversationType, event_id, event_title });
 
     const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
     if (!openAIApiKey) {
@@ -70,7 +73,8 @@ serve(async (req: Request) => {
     }
 
     if (agent) {
-      const { parsedResponse } = await agent.chat(userId, message, contactInfo, secretMessage);
+      const { parsedResponse } = await agent.chat(userId, message, contactInfo, secretMessage, event_id, event_title);
+
       return new Response(JSON.stringify({ response: parsedResponse }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });

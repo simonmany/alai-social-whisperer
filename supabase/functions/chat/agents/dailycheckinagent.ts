@@ -39,7 +39,9 @@ export class DailyCheckinAgent extends Agent {
     userId: string,
     message: string,
     contactInfo?: Contact[],
-    secretMessage?: boolean
+    secretMessage?: boolean,
+    event_id?: string,
+    event_title?: string
   ): Promise<{ parsedResponse: any }> {
     // Get user profile for context
     const profile = await this.getUserProfile(userId);
@@ -49,7 +51,7 @@ export class DailyCheckinAgent extends Agent {
       content: this.systemPrompt
     },
     {role: 'user', content: `User Profile: ${JSON.stringify(profileData, null, 2)}\nMessage: ${message}`}];
-    this.saveChatMessage(userId, message, true, false);
+    this.saveChatMessage(userId, message, true, false, event_id, event_title);
 
     // Get response from OpenAI
     const response = await this.callOpenAI(messages);
@@ -59,14 +61,14 @@ export class DailyCheckinAgent extends Agent {
       const parsedResponse = JSON.parse(responseData.choices[0].message.content);
       
       // Save the chat message
-      this.saveChatMessage(userId, parsedResponse.text, secretMessage, true);
+      this.saveChatMessage(userId, parsedResponse.text, secretMessage, true, event_id, event_title);
       
       return { parsedResponse };
     } catch (error) {
       console.error('Error parsing response:', error);
       // If parsing fails, return the raw response
       const text = responseData.choices[0].message.content;
-      this.saveChatMessage(userId, text, secretMessage, true);
+      this.saveChatMessage(userId, text, secretMessage, true, event_id, event_title);
       return { 
         parsedResponse: {
           text,

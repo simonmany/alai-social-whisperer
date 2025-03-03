@@ -16,12 +16,44 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { Contact } from "@/types/contacts";
+import { CalendarEvent } from "@/types/calendar";
 import { APP_CONSTANTS } from "@/utils/constants";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { TIME_OPTIONS } from "@/utils/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface Message {
+  content: string;
+  isAl: boolean;
+  is_secret?: boolean;
+  contactInfo?: Contact;
+  showPlanningForm?: boolean;
+  showFeedbackForm?: boolean;
+  onPlanningSubmit?: (message: string) => void;
+  onFeedbackSubmit?: (message: string) => void;
+  defaultContacts?: Contact[];
+  defaultActivity?: string;
+  defaultLocation?: string;
+  defaultDate?: Date;
+  defaultTime?: string;
+  eventId?: string;
+  eventTitle?: string;
+  completedEvent?: CalendarEvent;
+}
+
+interface ChatHistoryMessage {
+  message: string;
+  is_ai: boolean;
+  is_secret: boolean;
+  user_id: string;
+  id: string;
+  created_at: string;
+  evening_checkin: boolean;
+  morning_checkin: boolean;
+  is_onboarding_message: boolean;
+}
 import { Message, ChatHistoryMessage } from "@/types/chat";
 
 const Index = () => {
@@ -89,16 +121,79 @@ const Index = () => {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const historyMessages = (data as ChatHistoryMessage[]).map(msg => ({
-            content: msg.message,
-            isAl: msg.is_ai,
-            is_secret: msg.is_secret,
+          const historyMessages = await Promise.all((data as ChatHistoryMessage[]).map(async msg => {
+            const message = {
+              content: msg.message,
+              isAl: msg.is_ai,
+              is_secret: msg.is_secret,
+              eventId: msg.event_id,
+              eventTitle: msg.event_title,
+              showFeedbackForm: msg.event_id ? true : false,
+            };
+
+            // If this is a post-event message, fetch the event details
+            if (msg.event_id) {
+              const { data: eventData, error: eventError } = await supabase
+                .from('calendar_events')
+                .select(`
+                  *,
+                  event_attendees!left (contacts!contact_id (id, name))
+                `)
+                .eq('id', msg.event_id)
+                .maybeSingle();
+
+              if (eventError) {
+                console.error('Error fetching event:', eventError);
+              }
+
+              if (eventData && !eventData.feedback_sent) {
+                const onFeedbackSubmit = async (feedback: string) => {
+                  try {
+                    await supabase
+                      .from('calendar_events')
+                      .update({ 
+                        feedback_sent: true, 
+                        feedback 
+                      })
+                      .eq('id', msg.event_id);
+
+                    setMessages(prev => prev.map(m => 
+                      m.eventId === msg.event_id 
+                        ? { ...m, showFeedbackForm: false }
+                        : m
+                    ));
+
+                    toast({
+                      title: "Feedback submitted",
+                      description: "Thank you for your feedback!"
+                    });
+                  } catch (error) {
+                    console.error('Error submitting feedback:', error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to submit feedback",
+                      variant: "destructive"
+                    });
+                  }
+                };
+
+                message.completedEvent = eventData;
+                message.onFeedbackSubmit = onFeedbackSubmit;
+              }
+            }
+
+            return message;
           }));
           setMessages(historyMessages);
         } else {
           setMessages([{ 
             content: "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?", 
-            isAl: true 
+            isAl: true,
+            suggestedPrompts: [
+              "Plan a hang",
+              "Talk about past hang",
+              "Suggest someone to catch up with"
+            ]
           }]);
         }
       } catch (error) {
@@ -375,15 +470,97 @@ const Index = () => {
             table: 'chat_history',
             filter: `user_id=eq.${session.user.id}`
           },
-          (payload) => {
-            console.log('New message received:', payload);
-            const newMessage = {
+          async (payload) => {
+            console.log('New message received - Full payload:', payload.new);
+            console.log('New message received - Parsed:', {
+              message: payload.new.message,
+              is_ai: payload.new.is_ai,
+              event_id: payload.new.event_id,
+              event_title: payload.new.event_title,
+              contact_info: payload.new.contact_info,
+              type: typeof payload.new.event_id
+            });
+            const onFeedbackSubmit = async (feedback: string) => {
+              try {
+                // Update both feedback and feedback_sent flag when user submits
+                await supabase
+                  .from('calendar_events')
+                  .update({ 
+                    feedback_sent: true, 
+                    feedback 
+                  })
+                  .eq('id', payload.new.event_id);
+
+                // Remove the feedback form after successful submission
+                setMessages(prev => prev.map(msg => 
+                  msg.eventId === payload.new.event_id 
+                    ? { ...msg, showFeedbackForm: false }
+                    : msg
+                ));
+
+                toast({
+                  title: "Feedback submitted",
+                  description: "Thank you for your feedback!"
+                });
+              } catch (error) {
+                console.error('Error submitting feedback:', error);
+                toast({
+                  title: "Error",
+                  description: "Failed to submit feedback",
+                  variant: "destructive"
+                });
+              }
+            };
+            
+            let newMessage = {
               content: payload.new.message,
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
               contacts: payload.new.contact_info,
-              showPlanningForm: false // Explicitly set this for new messages
+              showPlanningForm: false, // Explicitly set this for new messages
+              showFeedbackForm: payload.new.event_id ? true : false, // Show feedback form for event messages
+              eventId: payload.new.event_id,
+              eventTitle: payload.new.event_title,
+              onFeedbackSubmit: payload.new.event_id ? onFeedbackSubmit : undefined
             };
+
+            // If this is a post-event message, fetch the event details
+            if (payload.new.event_id) {
+              console.log('Fetching event details for:', payload.new.event_id);
+              const { data: eventData, error: eventError } = await supabase
+                .from('calendar_events')
+                .select(`
+                  *,
+                  event_attendees!left (contacts!contact_id (id, name))
+                `)
+                .eq('id', payload.new.event_id)
+                .maybeSingle();
+
+              if (eventError) {
+                console.error('Error fetching event:', eventError);
+              }
+
+              console.log('Event data:', {
+                id: eventData?.id,
+                title: eventData?.title,
+                feedback_sent: eventData?.feedback_sent
+              });
+
+              if (eventData && !eventData.feedback_sent) {
+                // Only show feedback form if feedback hasn't been sent
+                newMessage = {
+                  ...newMessage,
+                  completedEvent: eventData,
+                };
+              }
+            }
+            console.log('Setting new message:', {
+              content: newMessage.content,
+              isAl: newMessage.isAl,
+              showFeedbackForm: newMessage.showFeedbackForm,
+              eventId: newMessage.eventId,
+              completedEvent: newMessage.completedEvent
+            });
             setMessages(prev => [...prev, newMessage]);
           }
         )
@@ -529,10 +706,48 @@ const Index = () => {
     }
   };
 
+  const handleFeedbackSubmit = async (message: string) => {
+    if (!session?.user?.id) return;
+
+    // Remove the feedback form from messages
+    setMessages(prev => prev.filter(msg => !msg.showFeedbackForm));
+
+    setIsLoading(true);
+    setMessages(prev => [...prev, { content: message, isAl: false }]);
+
+    try {
+      const response = await generateChatResponse(message, [], false, ConversationType.CHAT);
+      setMessages(prev => [...prev, { content: response.message, isAl: true }]);
+    } catch (error) {
+      console.error('Error generating response:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate response. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSend = async (message: string, contactInfo?: Contact) => {
     if (!message.trim()) return;
 
     setIsLoading(true);
+
+    if (message.toLowerCase().includes("talk about past hang")) {
+      setMessages(prev => [...prev, 
+        { content: message, isAl: false },
+        { 
+          content: "I'd love to hear about your past hang! Please select an event from below or tell me about something that wasn't on the calendar.", 
+          isAl: true,
+          showFeedbackForm: true,
+          onFeedbackSubmit: handleFeedbackSubmit
+        }
+      ]);
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const response = await generateChatResponse(message, contactInfo ? [contactInfo] : undefined, false, conversationType);
@@ -653,8 +868,8 @@ const Index = () => {
         defaultContacts: selectedContact ? [selectedContact] : [],
         defaultActivity: selectedActivity
       }]);
-    } else if (prompt === "talk about a hang") {
-      setIsFeedbackOpen(true);
+    } else if (prompt === "talk about past hang") {
+      handleSend("talk about past hang");
     } else if (prompt === "Set a new goal") {
       setIsGoalsOpen(true);
     } else if (prompt === "add a new contact") {
@@ -732,7 +947,7 @@ const Index = () => {
 
   const defaultPrompts = [
     { text: "plan a future hang", action: "plan me a hang" },
-    { text: "talk about past hang", action: "talk about a hang" },
+    { text: "talk about past hang", action: "talk about past hang" },
     { text: "Set a new goal", action: "Set a new goal" },
     { text: "add a new contact", action: "add a new contact" }
   ];

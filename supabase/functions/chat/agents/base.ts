@@ -128,14 +128,18 @@ export abstract class Agent {
     message: string,
     isSecret: boolean,
     isAI: boolean,
+    event_id?: string,
+    event_title?: string
   ) {
-    console.log('storing message')
+    console.log('storing message with event:', { event_id, event_title });
     const { error: userMessageError } = await supabase.from('chat_history').insert([
       {
         user_id: userId,
         message,
         is_secret: isSecret,
         is_ai: isAI,
+        event_id,
+        event_title
       },
     ]);
     if (userMessageError) {
