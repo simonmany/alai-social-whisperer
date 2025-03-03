@@ -27,7 +27,8 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
 
   const screens = [
     "Welcome to Alai - your social intelligence.",
-    "I'm Al, like Albert - or Alison. I'm here to help you be the best friend you can be.",
+    "I'm Al, like Albert - or Alison.",
+    "I'm here to help you be the best friend you can be.",
     "What's your name?",
   ];
 

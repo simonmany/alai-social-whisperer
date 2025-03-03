@@ -37,7 +37,7 @@ serve(async (req) => {
     // Find events that need feedback
     const { data: completedEvents, error: eventsError } = await supabaseClient
       .from('calendar_events')
-      .select('id, title, user_id, end_time')
+      .select('*')
       .lt('end_time', now.toISOString())
       .gt('end_time', fifteenMinutesAgo.toISOString())
       .is('feedback_sent', false);
@@ -67,7 +67,8 @@ serve(async (req) => {
               type: 'post-event',
               event_id: event.id,
               user_id: event.user_id,
-              event_title: event.title
+              event_title: event.title,
+              event: event
             })
           });
 

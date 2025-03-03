@@ -294,8 +294,8 @@ export const PlanningForm = ({
                   onChange={(e) => setContactInput(e.target.value)}
                 />
               </PopoverTrigger>
-              <PopoverContent className="p-0" align="start">
-                <Command>
+              <PopoverContent className="p-0 w-[300px]" align="start">
+                <Command className="max-h-[300px] overflow-auto">
                   <CommandInput placeholder="Search contacts..." />
                   <CommandEmpty>No contacts found.</CommandEmpty>
                   <CommandGroup>

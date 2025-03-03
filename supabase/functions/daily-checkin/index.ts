@@ -214,7 +214,8 @@ Your goal is to better understand the user's likes and dislikes across people, a
         secretMessage: false, 
         conversationType: "DAILY_CHECKIN",
         event_id: type === 'post-event' ? event_id : undefined,
-        event_title: type === 'post-event' ? event_title : undefined
+        event_title: type === 'post-event' ? event_title : undefined,
+        completedEvent: type === 'post-event' ? requestBody.event : undefined
       }
     });
 
