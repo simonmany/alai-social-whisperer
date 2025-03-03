@@ -120,10 +120,68 @@ const Index = () => {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const historyMessages = (data as ChatHistoryMessage[]).map(msg => ({
-            content: msg.message,
-            isAl: msg.is_ai,
-            is_secret: msg.is_secret,
+          const historyMessages = await Promise.all((data as ChatHistoryMessage[]).map(async msg => {
+            const message = {
+              content: msg.message,
+              isAl: msg.is_ai,
+              is_secret: msg.is_secret,
+              eventId: msg.event_id,
+              eventTitle: msg.event_title,
+              showFeedbackForm: msg.event_id ? true : false,
+            };
+
+            // If this is a post-event message, fetch the event details
+            if (msg.event_id) {
+              const { data: eventData, error: eventError } = await supabase
+                .from('calendar_events')
+                .select(`
+                  *,
+                  event_attendees!left (contacts!contact_id (id, name))
+                `)
+                .eq('id', msg.event_id)
+                .maybeSingle();
+
+              if (eventError) {
+                console.error('Error fetching event:', eventError);
+              }
+
+              if (eventData && !eventData.feedback_sent) {
+                const onFeedbackSubmit = async (feedback: string) => {
+                  try {
+                    await supabase
+                      .from('calendar_events')
+                      .update({ 
+                        feedback_sent: true, 
+                        feedback 
+                      })
+                      .eq('id', msg.event_id);
+
+                    setMessages(prev => prev.map(m => 
+                      m.eventId === msg.event_id 
+                        ? { ...m, showFeedbackForm: false }
+                        : m
+                    ));
+
+                    toast({
+                      title: "Feedback submitted",
+                      description: "Thank you for your feedback!"
+                    });
+                  } catch (error) {
+                    console.error('Error submitting feedback:', error);
+                    toast({
+                      title: "Error",
+                      description: "Failed to submit feedback",
+                      variant: "destructive"
+                    });
+                  }
+                };
+
+                message.completedEvent = eventData;
+                message.onFeedbackSubmit = onFeedbackSubmit;
+              }
+            }
+
+            return message;
           }));
           setMessages(historyMessages);
         } else {
@@ -405,15 +463,48 @@ const Index = () => {
               contact_info: payload.new.contact_info,
               type: typeof payload.new.event_id
             });
+            const onFeedbackSubmit = async (feedback: string) => {
+              try {
+                // Update both feedback and feedback_sent flag when user submits
+                await supabase
+                  .from('calendar_events')
+                  .update({ 
+                    feedback_sent: true, 
+                    feedback 
+                  })
+                  .eq('id', payload.new.event_id);
+
+                // Remove the feedback form after successful submission
+                setMessages(prev => prev.map(msg => 
+                  msg.eventId === payload.new.event_id 
+                    ? { ...msg, showFeedbackForm: false }
+                    : msg
+                ));
+
+                toast({
+                  title: "Feedback submitted",
+                  description: "Thank you for your feedback!"
+                });
+              } catch (error) {
+                console.error('Error submitting feedback:', error);
+                toast({
+                  title: "Error",
+                  description: "Failed to submit feedback",
+                  variant: "destructive"
+                });
+              }
+            };
+            
             let newMessage = {
               content: payload.new.message,
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
               contacts: payload.new.contact_info,
               showPlanningForm: false, // Explicitly set this for new messages
-              showFeedbackForm: false, // Don't show feedback form until we check the event
+              showFeedbackForm: payload.new.event_id ? true : false, // Show feedback form for event messages
               eventId: payload.new.event_id,
-              eventTitle: payload.new.event_title
+              eventTitle: payload.new.event_title,
+              onFeedbackSubmit: payload.new.event_id ? onFeedbackSubmit : undefined
             };
 
             // If this is a post-event message, fetch the event details
@@ -442,39 +533,7 @@ const Index = () => {
                 // Only show feedback form if feedback hasn't been sent
                 newMessage = {
                   ...newMessage,
-                  showFeedbackForm: true,
                   completedEvent: eventData,
-                  onFeedbackSubmit: async (feedback: string) => {
-                    try {
-                      // Update both feedback and feedback_sent flag when user submits
-                      await supabase
-                        .from('calendar_events')
-                        .update({ 
-                          feedback_sent: true, 
-                          feedback 
-                        })
-                        .eq('id', payload.new.event_id);
-
-                      // Remove the feedback form after successful submission
-                      setMessages(prev => prev.map(msg => 
-                        msg.eventId === payload.new.event_id 
-                          ? { ...msg, showFeedbackForm: false }
-                          : msg
-                      ));
-
-                      toast({
-                        title: "Feedback submitted",
-                        description: "Thank you for your feedback!"
-                      });
-                    } catch (error) {
-                      console.error('Error submitting feedback:', error);
-                      toast({
-                        title: "Error",
-                        description: "Failed to submit feedback",
-                        variant: "destructive"
-                      });
-                    }
-                  }
                 };
               }
             }
