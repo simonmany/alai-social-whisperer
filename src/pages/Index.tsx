@@ -748,19 +748,21 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container max-w-2xl py-4">
-          <MainNavigation
-            isConnectingCalendar={isConnectingCalendar}
-            setIsConnectingCalendar={setIsConnectingCalendar}
-            onProfileOpen={() => setIsProfileOpen(true)}
-            onGoogleSignIn={handleGoogleSignIn}
-          />
+    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
+      <header className="fixed top-0 left-0 right-0 z-50">
+        <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pt-[env(safe-area-inset-top)] px-[env(safe-area-inset-right)] pb-4 px-[env(safe-area-inset-left)]">
+          <div className="container max-w-2xl mx-auto">
+            <MainNavigation
+              isConnectingCalendar={isConnectingCalendar}
+              setIsConnectingCalendar={setIsConnectingCalendar}
+              onProfileOpen={() => setIsProfileOpen(true)}
+              onGoogleSignIn={handleGoogleSignIn}
+            />
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 container max-w-2xl py-8 flex flex-col mt-20">
+      <main className="flex-1 container max-w-2xl mx-auto px-4 pt-[calc(4rem+env(safe-area-inset-top))] pb-8">
         {showOnboarding ? (
           <OnboardingFlow onComplete={handleOnboardingComplete} />
         ) : !tutorialComplete ? (
@@ -784,7 +786,7 @@ const Index = () => {
             <></>
           </ChatContainer>
         )}
-      </div>
+      </main>
 
       <div className="fixed bottom-4 left-4 flex flex-col gap-2">
         <Button

@@ -220,19 +220,23 @@ const CalendarView = () => {
         onPointerDownOutside={() => navigate("/")}
         showCloseButton={false}
       >
-        <div className="flex items-center p-4 border-b">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="mr-2"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <SheetTitle>Calendar</SheetTitle>
+        <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <div className="pt-[env(safe-area-inset-top)] px-[env(safe-area-inset-right)] pb-4 px-[env(safe-area-inset-left)] border-b">
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate("/")}
+                className="mr-2"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <SheetTitle>Calendar</SheetTitle>
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1 overflow-hidden pt-[calc(4rem+env(safe-area-inset-top))]">
           {!calendarData.isConnected && !isLoading && (
             <div className="p-4 border-b bg-muted/30">
               <div className="flex flex-col items-center justify-center space-y-4">
