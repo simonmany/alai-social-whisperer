@@ -2,6 +2,7 @@ import { Contact } from "./contacts";
 import { CalendarEvent } from "./calendar";
 
 export interface Message {
+  id?: string;
   content: string;
   isAl: boolean;
   is_secret?: boolean;
