@@ -484,12 +484,13 @@ const Index = () => {
               content: payload.new.message,
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
-              defaultContacts: payload.new.contact_info,
-              showPlanningForm: false, // Explicitly set this for new messages
-              showFeedbackForm: payload.new.event_id ? true : false, // Show feedback form for event messages
+              contactInfo: payload.new.contact_info, // Fix property name
+              showPlanningForm: false,
+              showFeedbackForm: !!eventData && !eventData.feedback_sent, // Only show if we have event data and feedback not sent
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
-              onFeedbackSubmit: payload.new.event_id ? onFeedbackSubmit : undefined
+              completedEvent: eventData || undefined,
+              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined
             };
 
             // If this is a post-event message, fetch the event details

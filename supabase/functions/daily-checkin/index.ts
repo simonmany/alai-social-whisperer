@@ -40,11 +40,11 @@ serve(async (req) => {
       throw new Error('Missing user_id in request');
     }
 
-    // Get user's profile for timezone and goals
+    // Get user's profile for timezone, goals, and catch-up contacts
     console.log('Fetching profile for user:', user_id);
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
-      .select('id, display_name, city, goals, utc_offset_minutes')
+      .select('id, display_name, city, goals, utc_offset_minutes, catch_up_contacts')
       .eq('id', user_id)
       .single();
 
@@ -105,11 +105,58 @@ serve(async (req) => {
           end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
         })) || [];        
 
-        message = `You're doing the morning check-in for your user. What they have scheduled for today is: ${
-          events && events.length > 0 
-            ? events.map(e => stringifyJSON(e)).join(', ')
-            : 'no scheduled events'
-        }. Summarize these events succinctly, and highlight any availabilities. Suggest potential activities to fill these availabilities, taking into account the user's interests, goals, and contacts.${missingGoalsPrompt}`;
+        // First, fetch catch-up contacts if any are specified
+        let catchUpContacts = [];
+        if (profile.catch_up_contacts?.length > 0) {
+          const { data: catchUpData, error: catchUpError } = await supabaseClient
+            .from('contacts')
+            .select('id, name, closeness, interests, relationship, meeting_story')
+            .eq('user_id', user_id)
+            .in('id', profile.catch_up_contacts);
+
+          if (catchUpError) {
+            console.error('Error fetching catch-up contacts:', catchUpError);
+          } else {
+            catchUpContacts = catchUpData || [];
+          }
+        }
+
+        // Then fetch other close contacts as backup suggestions
+        let query = supabaseClient
+          .from('contacts')
+          .select('id, name, closeness, interests, relationship, meeting_story')
+          .eq('user_id', user_id)
+          .gt('closeness', 0.6);  // Get friends and close friends
+
+        // Only add the not.in filter if we have catch-up contacts to exclude
+        if (profile.catch_up_contacts?.length > 0) {
+          query = query.not('id', 'in', `(${profile.catch_up_contacts.join(',')})`);
+        }
+
+        const { data: closeContacts, error: contactsError } = await query.order('closeness', { ascending: false});
+
+        if (contactsError) {
+          console.error('Error fetching priority contacts:', contactsError);
+          throw contactsError;
+        }
+
+        message = `You are doing the morning check-in for your user. Use minimal spacing in your response.
+### Today's Schedule
+${events && events.length > 0 ? events.map(e => stringifyJSON(e)).join(', ') : 'no scheduled events'}
+### Availabilities
+Time slots 1 hour or longer:
+${events && events.length > 0 ? 'Based on your schedule today:' : 'You have a clear schedule today!'}
+
+Prioritizing:
+- Goals: ${stringifyJSON(goals)}
+- Priority catch-ups: ${stringifyJSON(catchUpContacts)}
+- Other close friends: ${stringifyJSON(closeContacts)}
+- Location: ${profile.city || 'Unknown'}
+
+Format:
+1. [Time] (Duration)\n   - Suggestion 1\n   - Suggestion 2\n   - Suggestion 3${missingGoalsPrompt}
+### Reminders
+Prep needed for today's events:`;
       } else {
         const { data: pastData, error: pastEventsError } = await supabaseClient
           .from('calendar_events')
