@@ -517,16 +517,7 @@ const Index = () => {
             }
 
             // Construct the message with event details and feedback form if needed
-            let newMessage = {
-              content: payload.new.message,
-              isAl: payload.new.is_ai,
-              is_secret: payload.new.is_secret,
-              contacts: payload.new.contact_info,
-              showPlanningForm: false,
-              eventId: payload.new.event_id,
-              eventTitle: payload.new.event_title,
-              completedEvent: eventData || undefined
-            };
+            newMessage.completedEvent = eventData;
 
             // Only show feedback form and submit function if we have an event that hasn't had feedback sent
             if (eventData && !eventData.feedback_sent) {
