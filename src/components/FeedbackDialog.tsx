@@ -93,8 +93,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           start_time,
           location,
           description,
-          event_attendees (
-            contacts (
+          event_attendees!left (
+            contacts!contact_id (
               id,
               name,
               is_archived
@@ -501,8 +501,8 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
           title,
           start_time,
           location,
-          event_attendees (
-            contacts (
+          event_attendees!left (
+            contacts!contact_id (
               id,
               name,
               is_archived
