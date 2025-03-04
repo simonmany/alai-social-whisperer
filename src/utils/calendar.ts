@@ -56,17 +56,17 @@ export const synchronizeEvents = async (userId: string): Promise<{
     // todo get attendees, compare by creationDate value if it exists
 
     // Fetch existing events from Supabase
-    console.log('fetching existing events');
-    const { data: existingEvents, error: fetchError } = await supabase
-      .from('calendar_events')
-      .select('*')
-      .eq('user_id', userId)
-      .gte('start_time', now.toISOString())
-      .lte('start_time', thirtyDaysFromNow.toISOString());
+    // console.log('fetching existing events');
+    // const { data: existingEvents, error: fetchError } = await supabase
+    //   .from('calendar_events')
+    //   .select('*')
+    //   .eq('user_id', userId)
+    //   .gte('start_time', now.toISOString())
+    //   .lte('start_time', thirtyDaysFromNow.toISOString());
 
-    if (fetchError) {
-      throw new Error(`Failed to fetch existing events: ${fetchError.message}`);
-    }
+    // if (fetchError) {
+    //   throw new Error(`Failed to fetch existing events: ${fetchError.message}`);
+    // }
 
     let added = 0;
     let updated = 0;
@@ -74,9 +74,37 @@ export const synchronizeEvents = async (userId: string): Promise<{
     // Process each native event
     // TODO (ari) compare by creationDate if exists, as well at calendar source and title
     for (const nativeEvent of nativeEvents) {
-      const existingEvent = existingEvents?.find(e => 
-        e.title === nativeEvent.title
-      );
+    //   const existingEvent = existingEvents?.find(e => 
+    //     e.title === nativeEvent.title
+    //   );
+
+      const { data: existingEvent, error } = await supabase
+        .from('calendar_events')
+        .select(`
+          id,
+          title,
+          description,
+          feedback_sent,
+          start_time,
+          end_time,
+          location,
+          event_attendees!left (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('calendar_event_id', nativeEvent.id)
+        .maybeSingle();
+
+      if (error) {
+        throw new Error(`Failed to fetch existing event: ${error.message}`);
+      }
+
+      console.log('found existing event? ', JSON.stringify(existingEvent, null, 2))
+
 
       const eventData = {
         user_id: userId,
@@ -88,7 +116,8 @@ export const synchronizeEvents = async (userId: string): Promise<{
         updated_at: now.toISOString(),
         created_at: nativeEvent.creationDate ? new Date(nativeEvent.creationDate).toISOString() : now.toISOString(),
         timezone: nativeEvent.timezone,
-        all_day: nativeEvent.isAllDay
+        all_day: nativeEvent.isAllDay,
+        calendar_event_id: nativeEvent.id,
       };
 
       if (!existingEvent) {
@@ -108,6 +137,7 @@ export const synchronizeEvents = async (userId: string): Promise<{
         existingEvent.location !== eventData.location ||
         existingEvent.description !== eventData.description
       ) {
+        console.log('updating event ', JSON.stringify(eventData, null, 2))
         // Update existing event if there are changes
         const { error: updateError } = await supabase
           .from('calendar_events')
