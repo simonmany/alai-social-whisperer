@@ -21,18 +21,29 @@ export const EventFeedbackCard = ({
   });
   const [showFeedbackForm, setShowFeedbackForm] = useState(false);
 
-  const date = new Date(event.date);
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  const time = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  let dateStr = '';
+  let timeStr = '';
+  
+  try {
+    const date = new Date(event.start_time);
+    if (!isNaN(date.getTime())) {
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const displayHours = hours % 12 || 12;
+      timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+      dateStr = format(date, 'PPP');
+    }
+  } catch (error) {
+    console.error('Error parsing date:', error);
+  }
 
   if (showFeedbackForm) {
     return (
       <FeedbackForm 
         onSubmit={onFeedbackSubmit}
         event={event}
+        skipEventSelection={true}
       />
     );
   }
@@ -47,7 +58,7 @@ export const EventFeedbackCard = ({
         <div className="space-y-1 flex-grow">
           <div className="font-medium">{event.title}</div>
           <div className="text-sm text-muted-foreground">
-            {format(date, 'PPP')} • {time}
+            {dateStr} {timeStr && `• ${timeStr}`}
           </div>
           {event.location && (
             <div className="text-sm text-muted-foreground">

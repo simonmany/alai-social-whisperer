@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Input } from './ui/input';
@@ -23,13 +23,17 @@ interface FeedbackFormProps {
     notes: string;
     mood: string;
   }) => void;
+  event?: CalendarEvent;
+  skipEventSelection?: boolean;
 }
 
 export const FeedbackForm = ({
   onSubmit,
-  onUpdate
+  onUpdate,
+  event,
+  skipEventSelection = false
 }: FeedbackFormProps) => {
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(event || null);
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [notes, setNotes] = useState('');
   const [selectedMood, setSelectedMood] = useState<string>('');
@@ -85,7 +89,7 @@ export const FeedbackForm = ({
           start_time,
           location,
           feedback_sent,
-          event_attendees(contact:contacts(*))
+          event_attendees(contacts!contact_id(id, name))
         `)
         .eq('user_id', session.user.id)
         .lt('start_time', now)
@@ -102,26 +106,43 @@ export const FeedbackForm = ({
       const events = (data || [])
         .filter(event => !event.feedback_sent)
         .map(event => {
-          const date = new Date(event.start_time);
-          const hours = date.getHours();
-          const minutes = date.getMinutes();
-          const period = hours >= 12 ? 'PM' : 'AM';
-          const displayHours = hours % 12 || 12;
-          const time = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+          let timeStr = '';
+          let dateStr = '';
+          
+          try {
+            const date = new Date(event.start_time);
+            if (!isNaN(date.getTime())) {
+              const hours = date.getHours();
+              const minutes = date.getMinutes();
+              const period = hours >= 12 ? 'PM' : 'AM';
+              const displayHours = hours % 12 || 12;
+              timeStr = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+              dateStr = format(date, 'PPP');
+            }
+          } catch (error) {
+            console.error('Error parsing date:', error);
+          }
+
+          // Map attendees from event_attendees
+          const attendees = event.event_attendees?.map(ea => ({
+            id: ea.contacts.id,
+            name: ea.contacts.name
+          })) || [];
           
           console.log('Event time details:', {
             title: event.title,
-            date: date.toLocaleString(),
-            time
+            dateStr,
+            timeStr,
+            attendees
           });
           
           return {
             id: event.id,
             title: event.title,
-            date: event.start_time,
+            start_time: event.start_time,
             location: event.location,
-            attendees: event.event_attendees?.map(ea => ea.contact) || [],
-            time
+            attendees,
+            time: timeStr
           };
         });
       console.log('Mapped events with time:', events);
@@ -148,29 +169,35 @@ export const FeedbackForm = ({
     'fun', 'chill', 'deep', 'productive', 'nostalgic', 'exciting', 'meaningful'
   ];
 
-  const handleEventSelect = (event: CalendarEvent | null) => {
+  const initializeEventData = (event: CalendarEvent | null) => {
     setSelectedEvent(event);
     setIsManualEntry(event === null);
     
     // Initialize editable fields
     if (event) {
       setEventTitle(event.title);
-      const eventDateTime = new Date(event.date);
-      setEventDate(eventDateTime);
       
-      const hours = eventDateTime.getHours();
-      const minutes = eventDateTime.getMinutes();
-      const period = hours >= 12 ? 'PM' : 'AM';
-      const displayHours = hours % 12 || 12;
-      const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+      try {
+        const date = new Date(event.start_time);
+        if (!isNaN(date.getTime())) {
+          setEventDate(date);
+          const hours = date.getHours();
+          const minutes = date.getMinutes();
+          const period = hours >= 12 ? 'PM' : 'AM';
+          const displayHours = hours % 12 || 12;
+          const timeString = `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+          setEventTime(timeString);
+          
+          console.log('Setting event time:', {
+            title: event.title,
+            date: date.toLocaleString(),
+            time: timeString
+          });
+        }
+      } catch (error) {
+        console.error('Error parsing date:', error);
+      }
       
-      console.log('Setting event time:', {
-        title: event.title,
-        date: eventDateTime.toLocaleString(),
-        time: timeString
-      });
-      
-      setEventTime(timeString);
       setEventLocation(event.location || '');
       setEventAttendees(event.attendees || []);
       setIsEditingTitle(false);
@@ -181,6 +208,17 @@ export const FeedbackForm = ({
       setEventLocation('');
       setEventAttendees([]);
     }
+  };
+
+  // Initialize event data when component mounts with pre-selected event
+  useEffect(() => {
+    if (event) {
+      initializeEventData(event);
+    }
+  }, [event]);
+
+  const handleEventSelect = (event: CalendarEvent | null) => {
+    initializeEventData(event);
     
     if (onUpdate) {
       onUpdate({
@@ -369,7 +407,18 @@ export const FeedbackForm = ({
         <div className="space-y-1 flex-1">
           <h4 className="font-medium">{event.title}</h4>
           <p className="text-sm text-muted-foreground">
-            {format(new Date(event.date), 'PPP')}
+            {(() => {
+              try {
+                const date = new Date(event.start_time);
+                if (!isNaN(date.getTime())) {
+                  return format(date, 'PPP');
+                }
+                return '';
+              } catch (error) {
+                console.error('Error parsing date:', error);
+                return '';
+              }
+            })()}
           </p>
           {event.location && (
             <p className="text-sm text-muted-foreground flex items-center gap-1">
