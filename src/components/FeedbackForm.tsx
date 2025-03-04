@@ -156,14 +156,21 @@ export const FeedbackForm = ({
       return events;
     },
     enabled: !!session?.user?.id,
-    refetchOnMount: true,
-    onSuccess: (data) => {
-      console.log('FeedbackForm - Query succeeded:', data);
-    },
-    onError: (error) => {
-      console.error('FeedbackForm - Query failed:', error);
-    }
+    refetchOnMount: true
   });
+
+  // Handle query success and error separately
+  useEffect(() => {
+    if (recentEvents) {
+      console.log('FeedbackForm - Query succeeded:', recentEvents);
+    }
+  }, [recentEvents]);
+
+  useEffect(() => {
+    if (queryError) {
+      console.error('FeedbackForm - Query failed:', queryError);
+    }
+  }, [queryError]);
 
   console.log('FeedbackForm - Current state:', {
     isLoadingEvents,
