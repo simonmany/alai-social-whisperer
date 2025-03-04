@@ -14,26 +14,8 @@ import type { Database } from "@/integrations/supabase/types";
 import { Capacitor } from "@capacitor/core";
 import { synchronizeEvents, checkPermissions } from "@/utils/calendar";
 import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
+import { CalendarEvent, CalendarData } from "@/types/calendar";
 
-interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  google_event_id?: string;
-  location?: string;
-  feedback_sent?: boolean;
-  attendees?: Array<{
-    id: string;
-    name: string;
-  }>;
-}
-
-interface CalendarData {
-  events: CalendarEvent[];
-  isConnected: boolean;
-}
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type CalendarEventRow = Database['public']['Tables']['calendar_events']['Row'];
@@ -75,49 +57,60 @@ const CalendarView = () => {
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-        // Check if we're on a native platform
-        if (Capacitor.isNativePlatform()) {
-          // Use native calendar sync
-          const syncResult = await synchronizeEvents(session.user.id);
-          if (syncResult.error) {
-            console.error('Native calendar sync error:', syncResult.error);
-            toast({
-              title: "Calendar Sync Error",
-              description: syncResult.error,
-              variant: "destructive",
-            });
-          } else {
-            console.log(`Synced ${syncResult.added} new events and updated ${syncResult.updated} events`);
-          }
-        } else if (profile?.has_google_calendar && !profile?.google_token_expired && profile?.google_access_token) {
-          // Use Google Calendar sync for web platform
-          const { data: syncResponse, error: syncError } = await supabase.functions.invoke('calendar', {
-            body: {
-              action: 'list',
-              timeMin: thirtyDaysAgo.toISOString(),
-              timeMax: thirtyDaysFromNow.toISOString(),
-              google_token: profile.google_access_token
+        // Only sync with external calendars if this is a polling update (not initial load)
+        const { data: eventCheck, error } = await supabase
+          .from('calendar_events')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .limit(1)
+          .single();
+        const shouldSyncExternalCalendars = !isLoading || !eventCheck;
+
+        if (shouldSyncExternalCalendars) {
+          // Check if we're on a native platform
+          if (Capacitor.isNativePlatform()) {
+            // Use native calendar sync
+            const syncResult = await synchronizeEvents(session.user.id);
+            if (syncResult.error) {
+              console.error('Native calendar sync error:', syncResult.error);
+              toast({
+                title: "Calendar Sync Error",
+                description: syncResult.error,
+                variant: "destructive",
+              });
+            } else {
+              console.log(`Synced ${syncResult.added} new events and updated ${syncResult.updated} events`);
             }
-          });
+          } else if (profile?.has_google_calendar && !profile?.google_token_expired && profile?.google_access_token) {
+            // Use Google Calendar sync for web platform
+            const { data: syncResponse, error: syncError } = await supabase.functions.invoke('calendar', {
+              body: {
+                action: 'list',
+                timeMin: thirtyDaysAgo.toISOString(),
+                timeMax: thirtyDaysFromNow.toISOString(),
+                google_token: profile.google_access_token
+              }
+            });
 
-          if (syncError) {
-            console.error('Calendar sync error:', syncError);
-            throw new Error('Failed to sync calendar events');
-          }
+            if (syncError) {
+              console.error('Calendar sync error:', syncError);
+              throw new Error('Failed to sync calendar events');
+            }
 
-          // Check for auth errors in sync response
-          if (syncResponse?.error?.type === 'auth_error') {
-            await supabase
-              .from('profiles')
-              .update({
-                google_token_expired: true,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', session.user.id);
+            // Check for auth errors in sync response
+            if (syncResponse?.error?.type === 'auth_error') {
+              await supabase
+                .from('profiles')
+                .update({
+                  google_token_expired: true,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', session.user.id);
+            }
           }
         }
 
-        // Always fetch events from our database, regardless of Google Calendar connection
+        // Always fetch events from our database
         const { data: dbEvents, error: dbError } = await supabase
           .from('calendar_events')
           .select(`
@@ -204,7 +197,7 @@ const CalendarView = () => {
     }
     else {
       await CapacitorCalendar.requestFullCalendarAccess();
-      synchronizeEvents(user.id);
+      await synchronizeEvents(user.id);
     }
   };
 

@@ -12,3 +12,8 @@ export interface CalendarEvent {
       name: string;
     }>;
   }
+
+export interface CalendarData {
+    events: CalendarEvent[];
+    isConnected: boolean;
+  }
