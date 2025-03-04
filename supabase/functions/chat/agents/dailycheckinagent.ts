@@ -8,7 +8,6 @@ export class DailyCheckinAgent extends Agent {
   - Review their scheduled events for the day
   - Provide encouragement and support for their social connections
   - If they have incomplete goals, ask them about setting specific targets
-  - Always end with "Want to plan a new hang, or tell me about something that's not on the calendar?"
 
   For evening check-ins:
   - Ask about their rose (highlight), bud (opportunity), and thorn (challenge) of the day

@@ -158,9 +158,7 @@ Format each availability as:
 1. [Time Slot] (Duration)\n   - Suggestion 1\n   - Suggestion 2\n   - Suggestion 3${missingGoalsPrompt}
 
 ### Reminders
-Prep needed for today's events:
-
-Want to plan a new hang, or tell me about something that's not on the calendar?`;
+Prep needed for today's events:`;
       } else {
         const { data: pastData, error: pastEventsError } = await supabaseClient
           .from('calendar_events')

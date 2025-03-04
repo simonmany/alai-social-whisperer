@@ -544,16 +544,15 @@ const Index = () => {
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
               contactInfo: payload.new.contact_info,
-              showPlanningForm: messageType === 'morning',
+              showPlanningForm: isMorningCheckin,
               showFeedbackForm: eventData && !eventData.feedback_sent,
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
               completedEvent: eventData,
               onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
-              onPlanningSubmit: messageType === 'morning' ? handlePlanSubmit : undefined,
+              onPlanningSubmit: isMorningCheckin ? handlePlanSubmit : undefined,
               defaultContacts: payload.new.default_contact ? [{ name: payload.new.default_contact }] : undefined,
-              defaultActivity: payload.new.default_activity,
-              messageType
+              defaultActivity: payload.new.default_activity
             };
 
             console.log('Created message with planning form:', {

@@ -45,6 +45,7 @@ export const ChatMessage = ({
   messageType,
 }: ChatMessageProps) => {
   const [showPlanningForm, setShowPlanningForm] = useState(false);
+  
   console.log('ChatMessage - Props:', {
     content,
     isAl,
@@ -55,6 +56,7 @@ export const ChatMessage = ({
     hasOnFeedbackSubmit: !!onFeedbackSubmit,
     completedEvent
   });
+  
   return (
     <div
       className={cn(
@@ -120,16 +122,7 @@ export const ChatMessage = ({
         </div>
       ) : (
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm">
-          <div className="whitespace-pre-line prose prose-lg max-w-none prose-invert">
-            <ReactMarkdown>{content}</ReactMarkdown>
-          </div>
-          {contacts && contacts.length > 0 && (
-            <div className="mt-4 space-y-4">
-              {contacts.map((contact, index) => (
-                <ContactCard key={`${contact.name}-${index}`} {...contact} />
-              ))}
-            </div>
-          )}
+          <div className="whitespace-pre-line">{content}</div>
         </div>
       )}
     </div>
