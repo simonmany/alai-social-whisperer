@@ -1,4 +1,5 @@
 import { Contact } from "./contacts";
+import { CalendarEvent } from "./calendar";
 
 export interface Message {
   content: string;
@@ -6,12 +7,22 @@ export interface Message {
   is_secret?: boolean;
   contactInfo?: Contact;
   showPlanningForm?: boolean;
+  showFeedbackForm?: boolean;
   onPlanningSubmit?: (message: string) => void;
+  onFeedbackSubmit?: (message: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
   defaultDate?: Date;
   defaultTime?: string;
+  eventId?: string;
+  eventTitle?: string;
+  completedEvent?: CalendarEvent;
+}
+
+export interface SuggestedPromptItem {
+  text: string;
+  action: string;
 }
 
 export interface ChatHistoryMessage {
@@ -24,4 +35,6 @@ export interface ChatHistoryMessage {
   evening_checkin: boolean;
   morning_checkin: boolean;
   is_onboarding_message: boolean;
+  event_id?: string;
+  event_title?: string;
 }

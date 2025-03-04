@@ -16,44 +16,12 @@ import ContactsDialog from "@/components/ContactsDialog";
 import { useAuth } from "@/components/AuthProvider";
 import { useQueryClient } from "@tanstack/react-query";
 import { Contact } from "@/types/contacts";
-import { CalendarEvent } from "@/types/calendar";
 import { APP_CONSTANTS } from "@/utils/constants";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { TIME_OPTIONS } from "@/utils/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-interface Message {
-  content: string;
-  isAl: boolean;
-  is_secret?: boolean;
-  contactInfo?: Contact;
-  showPlanningForm?: boolean;
-  showFeedbackForm?: boolean;
-  onPlanningSubmit?: (message: string) => void;
-  onFeedbackSubmit?: (message: string) => void;
-  defaultContacts?: Contact[];
-  defaultActivity?: string;
-  defaultLocation?: string;
-  defaultDate?: Date;
-  defaultTime?: string;
-  eventId?: string;
-  eventTitle?: string;
-  completedEvent?: CalendarEvent;
-}
-
-interface ChatHistoryMessage {
-  message: string;
-  is_ai: boolean;
-  is_secret: boolean;
-  user_id: string;
-  id: string;
-  created_at: string;
-  evening_checkin: boolean;
-  morning_checkin: boolean;
-  is_onboarding_message: boolean;
-}
 import { Message, ChatHistoryMessage } from "@/types/chat";
 
 const Index = () => {
@@ -122,7 +90,7 @@ const Index = () => {
 
         if (data && data.length > 0) {
           const historyMessages = await Promise.all((data as ChatHistoryMessage[]).map(async msg => {
-            const message = {
+            const message: Message = {
               content: msg.message,
               isAl: msg.is_ai,
               is_secret: msg.is_secret,
@@ -192,11 +160,6 @@ const Index = () => {
           setMessages([{ 
             content: "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?", 
             isAl: true,
-            suggestedPrompts: [
-              "Plan a hang",
-              "Talk about past hang",
-              "Suggest someone to catch up with"
-            ]
           }]);
         }
       } catch (error) {
@@ -517,6 +480,19 @@ const Index = () => {
             
             // If this is a post-event message, fetch the full event details with attendees
             let eventData = null;
+            let newMessage: Message = {
+              content: payload.new.message,
+              isAl: payload.new.is_ai,
+              is_secret: payload.new.is_secret,
+              defaultContacts: payload.new.contact_info,
+              showPlanningForm: false, // Explicitly set this for new messages
+              showFeedbackForm: payload.new.event_id ? true : false, // Show feedback form for event messages
+              eventId: payload.new.event_id,
+              eventTitle: payload.new.event_title,
+              onFeedbackSubmit: payload.new.event_id ? onFeedbackSubmit : undefined
+            };
+
+            // If this is a post-event message, fetch the event details
             if (payload.new.event_id) {
               console.log('Fetching event details for:', payload.new.event_id);
               const { data, error: eventError } = await supabase
