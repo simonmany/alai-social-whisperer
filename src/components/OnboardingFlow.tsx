@@ -46,6 +46,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
   const [hasPlayedLine4, setHasPlayedLine4] = useState(false);
+  const [hasPlayedLine4Part2, setHasPlayedLine4Part2] = useState(false);
   const [hasPlayedLine5, setHasPlayedLine5] = useState(false);
   const [isAnalyzingInterests, setIsAnalyzingInterests] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
@@ -615,14 +616,33 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'calendar' && (
           <div className="space-y-8">
-            {hasPlayedLine4 ? (
-              <div className="text-xl">
-                Now that I know who you know, I'd love to help you find the perfect time to meet them! Connect your calendar to help me schedule events.
+            {hasPlayedLine4 && hasPlayedLine4Part2 ? (
+              <div className="space-y-4">
+                <div className="text-xl">
+                  Now that I know who you know, I'd love to help you find the perfect time to meet them!
+                </div>
+                <div className="text-xl">
+                  Connect your calendar to help me schedule events.
+                </div>
+              </div>
+            ) : hasPlayedLine4 ? (
+              <div className="space-y-4">
+                <div className="text-xl">
+                  Now that I know who you know, I'd love to help you find the perfect time to meet them!
+                </div>
+                <TypewriterText
+                  key="calendar-intro-part2"
+                  text="Connect your calendar to help me schedule events."
+                  delay={250}
+                  typingSpeed={25}
+                  onComplete={() => setHasPlayedLine4Part2(true)}
+                  className="text-xl"
+                />
               </div>
             ) : (
               <TypewriterText
-                key="calendar-intro"
-                text="Now that I know who you know, I'd love to help you find the perfect time to meet them! Connect your calendar to help me schedule events."
+                key="calendar-intro-part1"
+                text="Now that I know who you know, I'd love to help you find the perfect time to meet them!"
                 delay={250}
                 typingSpeed={25}
                 onComplete={() => setHasPlayedLine4(true)}

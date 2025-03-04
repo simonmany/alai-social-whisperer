@@ -32,7 +32,7 @@ serve(async (req: Request) => {
     }
 
     const body = await req.json();
-    const { message, userId, contactInfo, secretMessage, conversationType, event_id, event_title } = body;
+    const { message, userId, contactInfo, secretMessage, conversationType, event_id, event_title, completedEvent } = body;
 
     if (!message || !userId || !conversationType) {
       console.error('Missing required fields:', { message, userId, conversationType });
@@ -75,7 +75,13 @@ serve(async (req: Request) => {
     if (agent) {
       const { parsedResponse } = await agent.chat(userId, message, contactInfo, secretMessage, event_id, event_title);
 
-      return new Response(JSON.stringify({ response: parsedResponse }), {
+      // For post-event messages, include the completed event in the response
+      const response = {
+        ...parsedResponse,
+        completedEvent: event_id && completedEvent ? completedEvent : undefined
+      };
+
+      return new Response(JSON.stringify({ response }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

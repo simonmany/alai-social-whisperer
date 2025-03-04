@@ -97,6 +97,9 @@ const Index = () => {
               eventId: msg.event_id,
               eventTitle: msg.event_title,
               showFeedbackForm: msg.event_id ? true : false,
+              showPlanningForm: msg.show_planning_form,
+              defaultContacts: msg.default_contact ? [{ name: msg.default_contact }] : undefined,
+              defaultActivity: msg.default_activity
             };
 
             // If this is a post-event message, fetch the event details
@@ -475,6 +478,8 @@ const Index = () => {
               }
             };
             
+            // If this is a post-event message, fetch the full event details with attendees
+            let eventData = null;
             let newMessage: Message = {
               content: payload.new.message,
               isAl: payload.new.is_ai,
@@ -490,7 +495,7 @@ const Index = () => {
             // If this is a post-event message, fetch the event details
             if (payload.new.event_id) {
               console.log('Fetching event details for:', payload.new.event_id);
-              const { data: eventData, error: eventError } = await supabase
+              const { data, error: eventError } = await supabase
                 .from('calendar_events')
                 .select(`
                   *,
@@ -501,21 +506,32 @@ const Index = () => {
 
               if (eventError) {
                 console.error('Error fetching event:', eventError);
+              } else {
+                eventData = data;
+                console.log('Event data:', {
+                  id: eventData?.id,
+                  title: eventData?.title,
+                  feedback_sent: eventData?.feedback_sent
+                });
               }
+            }
 
-              console.log('Event data:', {
-                id: eventData?.id,
-                title: eventData?.title,
-                feedback_sent: eventData?.feedback_sent
-              });
+            // Construct the message with event details and feedback form if needed
+            let newMessage = {
+              content: payload.new.message,
+              isAl: payload.new.is_ai,
+              is_secret: payload.new.is_secret,
+              contacts: payload.new.contact_info,
+              showPlanningForm: false,
+              eventId: payload.new.event_id,
+              eventTitle: payload.new.event_title,
+              completedEvent: eventData || undefined
+            };
 
-              if (eventData && !eventData.feedback_sent) {
-                // Only show feedback form if feedback hasn't been sent
-                newMessage = {
-                  ...newMessage,
-                  completedEvent: eventData,
-                };
-              }
+            // Only show feedback form and submit function if we have an event that hasn't had feedback sent
+            if (eventData && !eventData.feedback_sent) {
+              newMessage.showFeedbackForm = true;
+              newMessage.onFeedbackSubmit = onFeedbackSubmit;
             }
             console.log('Setting new message:', {
               content: newMessage.content,
