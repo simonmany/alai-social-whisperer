@@ -18,6 +18,7 @@ export interface Message {
   eventId?: string;
   eventTitle?: string;
   completedEvent?: CalendarEvent;
+  messageType?: "morning" | "evening" | "post-event";
 }
 
 export interface SuggestedPromptItem {

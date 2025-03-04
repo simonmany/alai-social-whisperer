@@ -80,7 +80,7 @@ export class DailyCheckinAgent extends Agent {
       console.log('Saving AI response:', { parsedResponse, isMorningCheckin });
       await this.saveChatMessage(
         userId,
-        JSON.stringify(parsedResponse),
+        parsedResponse.text,
         secretMessage || false,
         true,
         event_id,

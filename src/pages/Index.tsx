@@ -92,7 +92,17 @@ const Index = () => {
           const historyMessages = await Promise.all((data as ChatHistoryMessage[]).map(async msg => {
             // Try to parse the message content as JSON to get the type
             let messageType: 'morning' | 'evening' | 'post-event' | undefined;
+
+            if (msg.morning_checkin) {
+              messageType = 'morning';
+            } else if (msg.evening_checkin) {
+              messageType = 'evening';
+            } else if (msg.event_id) {
+              messageType = 'post-event';
+            }
             let displayContent = msg.message;
+
+            // TODO (ari) maybe delete??
             try {
               console.log('Trying to parse message:', msg.message);
               const parsedContent = JSON.parse(msg.message);
@@ -120,11 +130,10 @@ const Index = () => {
               eventId: msg.event_id,
               eventTitle: msg.event_title,
               showFeedbackForm: msg.event_id ? true : false,
-              showPlanningForm: messageType === 'morning',
               onPlanningSubmit: messageType === 'morning' ? handlePlanSubmit : undefined,
-              defaultContacts: msg.default_contact ? [{ name: msg.default_contact }] : undefined,
+              //defaultContacts: msg.default_contact ? [{ name: msg.default_contact }] : undefined,
               defaultActivity: msg.default_activity,
-              messageType
+              messageType,
             };
             
             console.log('Created message object:', message);
@@ -508,21 +517,7 @@ const Index = () => {
             
             // If this is a post-event message, fetch the full event details with attendees
             let eventData = null;
-            let newMessage: Message = {
-              content: payload.new.message,
-              isAl: payload.new.is_ai,
-              is_secret: payload.new.is_secret,
-              contactInfo: payload.new.contact_info, // Fix property name
-              showPlanningForm: false,
-              showFeedbackForm: !!eventData && !eventData.feedback_sent, // Only show if we have event data and feedback not sent
-              eventId: payload.new.event_id,
-              eventTitle: payload.new.event_title,
-              completedEvent: eventData || undefined,
-              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined
-            };
 
-            // If this is a post-event message, fetch the event details
-            let eventData = null;
             if (payload.new.event_id) {
               console.log('Fetching event details for:', payload.new.event_id);
               const { data, error: eventError } = await supabase
@@ -545,6 +540,14 @@ const Index = () => {
                 });
               }
             }
+            let messageType: 'morning' | 'evening' | 'post-event' | undefined = undefined;
+            if (payload.new.morning_checkin) {
+              messageType = 'morning';
+            } else if (payload.new.evening_checkin) {
+              messageType = 'evening';
+            } else if (payload.new.event_id) {
+              messageType = 'post-event';
+            }
 
             // Create message after we have all the data
             console.log('Raw message:', payload.new.message);
@@ -554,15 +557,15 @@ const Index = () => {
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
               contactInfo: payload.new.contact_info,
-              showPlanningForm: payload.new.morning_checkin,
               showFeedbackForm: eventData && !eventData.feedback_sent,
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
               completedEvent: eventData,
               onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
               onPlanningSubmit: payload.new.morning_checkin ? handlePlanSubmit : undefined,
-              defaultContacts: payload.new.default_contact ? [{ name: payload.new.default_contact }] : undefined,
-              defaultActivity: payload.new.default_activity
+              //defaultContacts: payload.new.default_contact ? [{ name: payload.new.default_contact }] : undefined,
+              defaultActivity: payload.new.default_activity,
+              messageType
             };
 
             console.log('Created message with planning form:', {

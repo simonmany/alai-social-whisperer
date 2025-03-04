@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
 import { PlanningForm } from "@/components/PlanningForm";
@@ -17,6 +16,7 @@ interface ChatMessageProps {
   animate?: boolean;
   contacts?: Contact[];
   showFeedbackForm?: boolean;
+  showPlanningForm?: boolean;
   onPlanningSubmit?: (message: string) => void;
   onFeedbackSubmit?: (message: string) => void;
   defaultContacts?: Contact[];
@@ -43,14 +43,15 @@ export const ChatMessage = ({
   defaultTime,
   completedEvent,
   messageType,
+  showPlanningForm,
 }: ChatMessageProps) => {
-  const [showPlanningForm, setShowPlanningForm] = useState(false);
+  const [showPlanningFormState, setShowPlanningForm] = useState(showPlanningForm);
   
   console.log('ChatMessage - Props:', {
     content,
     isAl,
     messageType,
-    showPlanningForm,
+    showPlanningForm: showPlanningFormState,
     hasOnPlanningSubmit: !!onPlanningSubmit,
     showFeedbackForm,
     hasOnFeedbackSubmit: !!onFeedbackSubmit,
@@ -77,9 +78,9 @@ export const ChatMessage = ({
               ))}
             </div>
           )}
-          {isAl && content.toLowerCase().includes('good morning') && (
+          {isAl && messageType === 'morning' && (
             <div className="mt-4">
-              {showPlanningForm ? (
+              {showPlanningFormState ? (
                 <PlanningForm
                   onSubmit={(message) => {
                     if (onPlanningSubmit) {
