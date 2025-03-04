@@ -53,30 +53,12 @@ export const synchronizeEvents = async (userId: string): Promise<{
       to: thirtyDaysFromNow.getTime()
     });
 
-    // todo get attendees, compare by creationDate value if it exists
-
-    // Fetch existing events from Supabase
-    // console.log('fetching existing events');
-    // const { data: existingEvents, error: fetchError } = await supabase
-    //   .from('calendar_events')
-    //   .select('*')
-    //   .eq('user_id', userId)
-    //   .gte('start_time', now.toISOString())
-    //   .lte('start_time', thirtyDaysFromNow.toISOString());
-
-    // if (fetchError) {
-    //   throw new Error(`Failed to fetch existing events: ${fetchError.message}`);
-    // }
-
     let added = 0;
     let updated = 0;
 
     // Process each native event
     // TODO (ari) compare by creationDate if exists, as well at calendar source and title
     for (const nativeEvent of nativeEvents) {
-    //   const existingEvent = existingEvents?.find(e => 
-    //     e.title === nativeEvent.title
-    //   );
 
       const { data: existingEvent, error } = await supabase
         .from('calendar_events')
