@@ -129,6 +129,9 @@ const Index = () => {
               eventId: msg.event_id,
               eventTitle: msg.event_title,
               showFeedbackForm: msg.event_id ? true : false,
+              showPlanningForm: msg.show_planning_form,
+              defaultContacts: msg.default_contact ? [{ name: msg.default_contact }] : undefined,
+              defaultActivity: msg.default_activity
             };
 
             // If this is a post-event message, fetch the event details
