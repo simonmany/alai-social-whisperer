@@ -8,7 +8,7 @@ export interface Message {
   contactInfo?: Contact;
   showPlanningForm?: boolean;
   showFeedbackForm?: boolean;
-  onPlanningSubmit?: (message: string) => void;
+  onPlanningSubmit?: (message: string, newContent?: string) => void;
   onFeedbackSubmit?: (message: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
@@ -18,6 +18,7 @@ export interface Message {
   eventId?: string;
   eventTitle?: string;
   completedEvent?: CalendarEvent;
+  messageType?: 'morning' | 'evening' | 'post-event';
 }
 
 export interface SuggestedPromptItem {

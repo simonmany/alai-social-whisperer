@@ -8,6 +8,7 @@ export class DailyCheckinAgent extends Agent {
   - Review their scheduled events for the day
   - Provide encouragement and support for their social connections
   - If they have incomplete goals, ask them about setting specific targets
+  - Always end with "Want to plan a new hang, or tell me about something that's not on the calendar?"
 
   For evening check-ins:
   - Ask about their rose (highlight), bud (opportunity), and thorn (challenge) of the day
@@ -41,7 +42,8 @@ export class DailyCheckinAgent extends Agent {
     contactInfo?: Contact[],
     secretMessage?: boolean,
     event_id?: string,
-    event_title?: string
+    event_title?: string,
+    checkinType?: string
   ): Promise<{ parsedResponse: any }> {
     // Get user profile for context
     const profile = await this.getUserProfile(userId);
@@ -51,7 +53,14 @@ export class DailyCheckinAgent extends Agent {
       content: this.systemPrompt
     },
     {role: 'user', content: `User Profile: ${JSON.stringify(profileData, null, 2)}\nMessage: ${message}`}];
-    this.saveChatMessage(userId, message, true, false, event_id, event_title);
+    const isMorningCheckin = checkinType === 'morning';
+    console.log('DailyCheckinAgent processing:', {
+      userId,
+      checkinType,
+      isMorningCheckin,
+      event_id,
+      event_title
+    });
 
     // Get response from OpenAI
     const response = await this.callOpenAI(messages);
@@ -59,16 +68,49 @@ export class DailyCheckinAgent extends Agent {
     
     try {
       const parsedResponse = JSON.parse(responseData.choices[0].message.content);
+      console.log('Parsed response from OpenAI:', parsedResponse);
       
-      // Save the chat message
-      this.saveChatMessage(userId, parsedResponse.text, secretMessage, true, event_id, event_title);
+      // Ensure type is set based on checkinType
+      if (!parsedResponse.type && checkinType) {
+        parsedResponse.type = checkinType;
+      }
+      
+      // Save the AI's response with morning check-in flag if applicable
+      console.log('Saving AI response:', { parsedResponse, isMorningCheckin });
+      await this.saveChatMessage(
+        userId,
+        JSON.stringify(parsedResponse),
+        secretMessage || false,
+        true,
+        event_id,
+        event_title,
+        isMorningCheckin
+      );
       
       return { parsedResponse };
     } catch (error) {
       console.error('Error parsing response:', error);
       // If parsing fails, return the raw response
       const text = responseData.choices[0].message.content;
-      this.saveChatMessage(userId, text, secretMessage, true, event_id, event_title);
+      await this.saveChatMessage(
+        userId,
+        JSON.stringify({
+          text,
+          type: checkinType || 'unknown',
+          insights: {
+            people: [],
+            activities: [],
+            places: [],
+            sentiment: 'neutral'
+          },
+          goals_discussed: false
+        }),
+        secretMessage || false,
+        true,
+        event_id,
+        event_title,
+        isMorningCheckin
+      );
       return { 
         parsedResponse: {
           text,

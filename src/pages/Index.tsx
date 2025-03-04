@@ -90,17 +90,44 @@ const Index = () => {
 
         if (data && data.length > 0) {
           const historyMessages = await Promise.all((data as ChatHistoryMessage[]).map(async msg => {
+            // Try to parse the message content as JSON to get the type
+            let messageType: 'morning' | 'evening' | 'post-event' | undefined;
+            let displayContent = msg.message;
+            try {
+              console.log('Trying to parse message:', msg.message);
+              const parsedContent = JSON.parse(msg.message);
+              console.log('Parsed content:', parsedContent);
+              if (parsedContent && parsedContent.type && parsedContent.text) {
+                messageType = parsedContent.type;
+                displayContent = parsedContent.text;
+                console.log('Found type and text:', { messageType, displayContent });
+              }
+            } catch (e) {
+              console.log('Not JSON message:', e);
+            }
+            
+            console.log('Processing message:', {
+              message: msg.message,
+              is_ai: msg.is_ai,
+              messageType,
+              event_id: msg.event_id
+            });
+            
             const message: Message = {
-              content: msg.message,
+              content: displayContent,
               isAl: msg.is_ai,
               is_secret: msg.is_secret,
               eventId: msg.event_id,
               eventTitle: msg.event_title,
               showFeedbackForm: msg.event_id ? true : false,
-              showPlanningForm: msg.show_planning_form,
+              showPlanningForm: messageType === 'morning',
+              onPlanningSubmit: messageType === 'morning' ? handlePlanSubmit : undefined,
               defaultContacts: msg.default_contact ? [{ name: msg.default_contact }] : undefined,
-              defaultActivity: msg.default_activity
+              defaultActivity: msg.default_activity,
+              messageType
             };
+            
+            console.log('Created message object:', message);
 
             // If this is a post-event message, fetch the event details
             if (msg.event_id) {
@@ -441,6 +468,7 @@ const Index = () => {
             console.log('New message received - Parsed:', {
               message: payload.new.message,
               is_ai: payload.new.is_ai,
+              morning_checkin: payload.new.morning_checkin,
               event_id: payload.new.event_id,
               event_title: payload.new.event_title,
               contact_info: payload.new.contact_info,
@@ -478,22 +506,8 @@ const Index = () => {
               }
             };
             
-            // If this is a post-event message, fetch the full event details with attendees
-            let eventData = null;
-            let newMessage: Message = {
-              content: payload.new.message,
-              isAl: payload.new.is_ai,
-              is_secret: payload.new.is_secret,
-              contactInfo: payload.new.contact_info, // Fix property name
-              showPlanningForm: false,
-              showFeedbackForm: !!eventData && !eventData.feedback_sent, // Only show if we have event data and feedback not sent
-              eventId: payload.new.event_id,
-              eventTitle: payload.new.event_title,
-              completedEvent: eventData || undefined,
-              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined
-            };
-
             // If this is a post-event message, fetch the event details
+            let eventData = null;
             if (payload.new.event_id) {
               console.log('Fetching event details for:', payload.new.event_id);
               const { data, error: eventError } = await supabase
@@ -517,14 +531,38 @@ const Index = () => {
               }
             }
 
-            // Construct the message with event details and feedback form if needed
-            newMessage.completedEvent = eventData;
+            // Create message after we have all the data
+            console.log('Raw payload:', payload.new);
+            console.log('Raw message:', payload.new.message);
+            
+            // Check if this is a morning check-in based on the message content
+            const messageType = payload.new.message.toLowerCase().includes('good morning') ? 'morning' : undefined;
+            console.log('Detected message type:', messageType);
 
-            // Only show feedback form and submit function if we have an event that hasn't had feedback sent
-            if (eventData && !eventData.feedback_sent) {
-              newMessage.showFeedbackForm = true;
-              newMessage.onFeedbackSubmit = onFeedbackSubmit;
-            }
+            let newMessage: Message = {
+              content: payload.new.message,
+              isAl: payload.new.is_ai,
+              is_secret: payload.new.is_secret,
+              contactInfo: payload.new.contact_info,
+              showPlanningForm: messageType === 'morning',
+              showFeedbackForm: eventData && !eventData.feedback_sent,
+              eventId: payload.new.event_id,
+              eventTitle: payload.new.event_title,
+              completedEvent: eventData,
+              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
+              onPlanningSubmit: messageType === 'morning' ? handlePlanSubmit : undefined,
+              defaultContacts: payload.new.default_contact ? [{ name: payload.new.default_contact }] : undefined,
+              defaultActivity: payload.new.default_activity,
+              messageType
+            };
+
+            console.log('Created message with planning form:', {
+              showPlanningForm: newMessage.showPlanningForm,
+              hasOnPlanningSubmit: !!newMessage.onPlanningSubmit,
+              morning_checkin: payload.new.morning_checkin
+            });
+            
+            console.log('Created real-time message:', newMessage);
             console.log('Setting new message:', {
               content: newMessage.content,
               isAl: newMessage.isAl,

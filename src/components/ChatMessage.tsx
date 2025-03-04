@@ -7,13 +7,15 @@ import { EventFeedbackCard } from "@/components/EventFeedbackCard";
 import { CalendarEvent } from "@/types/calendar";
 import ReactMarkdown from "react-markdown";
 import { Contact } from "@/types/contacts";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { CalendarPlus } from "lucide-react";
 
 interface ChatMessageProps {
   content: string;
   isAl: boolean;
   animate?: boolean;
   contacts?: Contact[];
-  showPlanningForm?: boolean;
   showFeedbackForm?: boolean;
   onPlanningSubmit?: (message: string) => void;
   onFeedbackSubmit?: (message: string) => void;
@@ -23,6 +25,7 @@ interface ChatMessageProps {
   defaultDate?: Date;
   defaultTime?: string;
   completedEvent?: CalendarEvent;
+  messageType?: 'morning' | 'evening' | 'post-event';
 }
 
 export const ChatMessage = ({ 
@@ -30,7 +33,6 @@ export const ChatMessage = ({
   isAl, 
   animate = true, 
   contacts,
-  showPlanningForm,
   showFeedbackForm,
   onPlanningSubmit,
   onFeedbackSubmit,
@@ -40,10 +42,15 @@ export const ChatMessage = ({
   defaultDate,
   defaultTime,
   completedEvent,
+  messageType,
 }: ChatMessageProps) => {
+  const [showPlanningForm, setShowPlanningForm] = useState(false);
   console.log('ChatMessage - Props:', {
     content,
     isAl,
+    messageType,
+    showPlanningForm,
+    hasOnPlanningSubmit: !!onPlanningSubmit,
     showFeedbackForm,
     hasOnFeedbackSubmit: !!onFeedbackSubmit,
     completedEvent
@@ -68,16 +75,32 @@ export const ChatMessage = ({
               ))}
             </div>
           )}
-          {showPlanningForm && onPlanningSubmit && (
+          {isAl && content.toLowerCase().includes('good morning') && (
             <div className="mt-4">
-              <PlanningForm
-                onSubmit={onPlanningSubmit}
-                defaultContacts={defaultContacts}
-                defaultActivity={defaultActivity}
-                defaultLocation={defaultLocation}
-                defaultDate={defaultDate}
-                defaultTime={defaultTime}
-              />
+              {showPlanningForm ? (
+                <PlanningForm
+                  onSubmit={(message) => {
+                    if (onPlanningSubmit) {
+                      onPlanningSubmit(message);
+                    }
+                    setShowPlanningForm(false);
+                  }}
+                  defaultContacts={defaultContacts}
+                  defaultActivity={defaultActivity}
+                  defaultLocation={defaultLocation}
+                  defaultDate={defaultDate}
+                  defaultTime={defaultTime}
+                />
+              ) : (
+                <Button 
+                  onClick={() => setShowPlanningForm(true)}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Add something to calendar
+                </Button>
+              )}
             </div>
           )}
           {showFeedbackForm && onFeedbackSubmit && (
