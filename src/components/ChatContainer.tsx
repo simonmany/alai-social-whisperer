@@ -130,6 +130,7 @@ export const ChatContainer = ({
                   showFeedbackForm={message.showFeedbackForm}
                   onFeedbackSubmit={message.onFeedbackSubmit}
                   completedEvent={message.completedEvent}
+                  messageId={message.id}
                 />
               );
             }

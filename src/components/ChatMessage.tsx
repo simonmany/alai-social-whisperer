@@ -7,6 +7,8 @@ import { EventFeedbackCard } from "@/components/EventFeedbackCard";
 import { CalendarEvent } from "@/types/calendar";
 import ReactMarkdown from "react-markdown";
 import { Contact } from "@/types/contacts";
+import { TypewriterText } from "@/components/TypewriterText";
+import { useState, useEffect } from "react";
 
 interface ChatMessageProps {
   content: string;
@@ -23,6 +25,12 @@ interface ChatMessageProps {
   defaultDate?: Date;
   defaultTime?: string;
   completedEvent?: CalendarEvent;
+  messageId?: string;
+}
+
+// Create a global cache for completed animations that persists across module reloads
+if (typeof window !== 'undefined' && !window.completedAnimations) {
+  window.completedAnimations = new Set<string>();
 }
 
 export const ChatMessage = ({ 
@@ -40,14 +48,28 @@ export const ChatMessage = ({
   defaultDate,
   defaultTime,
   completedEvent,
+  messageId,
 }: ChatMessageProps) => {
-  console.log('ChatMessage - Props:', {
-    content,
-    isAl,
-    showFeedbackForm,
-    hasOnFeedbackSubmit: !!onFeedbackSubmit,
-    completedEvent
-  });
+  // Check if this message should be animated
+  const shouldAnimate = isAl && messageId && !window.completedAnimations.has(messageId);
+  
+  // Track if the typewriter animation is complete for this render
+  const [isTypewriterComplete, setIsTypewriterComplete] = useState(false);
+
+  // Effect to handle animation completion
+  useEffect(() => {
+    if (messageId && isTypewriterComplete && shouldAnimate) {
+      window.completedAnimations.add(messageId);
+    }
+  }, [messageId, isTypewriterComplete, shouldAnimate]);
+
+  // Effect to handle initial state
+  useEffect(() => {
+    if (messageId && !shouldAnimate) {
+      setIsTypewriterComplete(true);
+    }
+  }, [messageId, shouldAnimate]);
+
   return (
     <div
       className={cn(
@@ -59,7 +81,20 @@ export const ChatMessage = ({
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
           <div className="whitespace-pre-line prose prose-lg max-w-none prose-gray">
-            <ReactMarkdown>{content}</ReactMarkdown>
+            {(!shouldAnimate || isTypewriterComplete) ? (
+              <ReactMarkdown>{content}</ReactMarkdown>
+            ) : (
+              <TypewriterText
+                text={content}
+                className="text-gray-800"
+                delay={100}
+                typingSpeed={20}
+                onComplete={() => {
+                  console.log('Typewriter animation complete for message:', messageId);
+                  setIsTypewriterComplete(true);
+                }}
+              />
+            )}
           </div>
           {contacts && contacts.length > 0 && (
             <div className="mt-4 space-y-4">
@@ -68,7 +103,8 @@ export const ChatMessage = ({
               ))}
             </div>
           )}
-          {showPlanningForm && onPlanningSubmit && (
+          {/* Render planning form if all conditions are met */}
+          {showPlanningForm && onPlanningSubmit && isTypewriterComplete && (
             <div className="mt-4">
               <PlanningForm
                 onSubmit={onPlanningSubmit}
