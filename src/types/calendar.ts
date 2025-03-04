@@ -1,3 +1,4 @@
+import { Contact } from "./contacts";
 export interface CalendarEvent {
     id: string;
     title: string;
@@ -7,8 +8,10 @@ export interface CalendarEvent {
     google_event_id?: string;
     location?: string;
     feedback_sent?: boolean;
-    attendees?: Array<{
-      id: string;
-      name: string;
-    }>;
+    attendees?: Array<Contact>;
+  }
+
+export interface CalendarData {
+    events: CalendarEvent[];
+    isConnected: boolean;
   }

@@ -141,8 +141,6 @@ serve(async (req) => {
         }
 
         message = `You are doing the morning check-in for your user. Use minimal spacing in your response.
-Type: morning
-
 ### Today's Schedule
 ${events && events.length > 0 ? 'Your events today:' : 'No scheduled events today.'}
 ${events && events.length > 0 ? events.map((e, i) => `${i + 1}. ${e.title} - Hangout with ${e.attendees?.map(a => a.name).join(', ')} from ${new Date(e.start_time).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})} to ${new Date(e.end_time).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`).join('\n') : ''}

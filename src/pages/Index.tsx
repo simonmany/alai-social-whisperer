@@ -506,6 +506,21 @@ const Index = () => {
               }
             };
             
+            // If this is a post-event message, fetch the full event details with attendees
+            let eventData = null;
+            let newMessage: Message = {
+              content: payload.new.message,
+              isAl: payload.new.is_ai,
+              is_secret: payload.new.is_secret,
+              contactInfo: payload.new.contact_info, // Fix property name
+              showPlanningForm: false,
+              showFeedbackForm: !!eventData && !eventData.feedback_sent, // Only show if we have event data and feedback not sent
+              eventId: payload.new.event_id,
+              eventTitle: payload.new.event_title,
+              completedEvent: eventData || undefined,
+              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined
+            };
+
             // If this is a post-event message, fetch the event details
             let eventData = null;
             if (payload.new.event_id) {

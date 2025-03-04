@@ -9,12 +9,13 @@ import { Textarea } from './ui/textarea';
 import { useAuth } from '@/components/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Contact } from '@/types/contact';
+import { Contact } from '@/types/contacts';
 import { CalendarEvent } from '@/types/calendar';
 import { format } from 'date-fns';
 import { UserPlus, CalendarIcon, MapPinIcon, UsersIcon, Edit, X, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TIME_OPTIONS } from '@/utils/constants';
+import { useToast } from "@/hooks/use-toast";
 
 interface FeedbackFormProps {
   onSubmit: (message: string) => void;
@@ -48,6 +49,7 @@ export const FeedbackForm = ({
   const [isAddingAttendee, setIsAddingAttendee] = useState(false);
   const [isEditingDate, setIsEditingDate] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
   
   const { session } = useAuth();
 
@@ -89,7 +91,12 @@ export const FeedbackForm = ({
           start_time,
           location,
           feedback_sent,
-          event_attendees(contacts!contact_id(id, name))
+          event_attendees!left (
+            contacts!contact_id (
+              id,
+              name
+            )
+          )
         `)
         .eq('user_id', session.user.id)
         .lt('start_time', now)
@@ -149,14 +156,21 @@ export const FeedbackForm = ({
       return events;
     },
     enabled: !!session?.user?.id,
-    refetchOnMount: true,
-    onSuccess: (data) => {
-      console.log('FeedbackForm - Query succeeded:', data);
-    },
-    onError: (error) => {
-      console.error('FeedbackForm - Query failed:', error);
-    }
+    refetchOnMount: true
   });
+
+  // Handle query success and error separately
+  useEffect(() => {
+    if (recentEvents) {
+      console.log('FeedbackForm - Query succeeded:', recentEvents);
+    }
+  }, [recentEvents]);
+
+  useEffect(() => {
+    if (queryError) {
+      console.error('FeedbackForm - Query failed:', queryError);
+    }
+  }, [queryError]);
 
   console.log('FeedbackForm - Current state:', {
     isLoadingEvents,
@@ -341,27 +355,39 @@ export const FeedbackForm = ({
           const attendeePromises = eventAttendees
             .filter(a => a.name.trim())
             .map(async (attendee) => {
-              // First create or update contact
-              const { data: contact, error: contactError } = await supabase
-                .from('contacts')
-                .upsert({
-                  user_id: session.user.id,
-                  name: attendee.name,
-                })
-                .select()
-                .single();
+              if (attendee.id) {
+                // Use existing contact
+                const { error: attendeeError } = await supabase
+                  .from('event_attendees')
+                  .insert({
+                    event_id: eventId,
+                    contact_id: attendee.id,
+                  });
 
-              if (contactError) throw contactError;
+                if (attendeeError) throw attendeeError;
+              } else {
+                // Create new contact only if it doesn't exist
+                const { data: contact, error: contactError } = await supabase
+                  .from('contacts')
+                  .upsert({
+                    user_id: session.user.id,
+                    name: attendee.name,
+                  })
+                  .select()
+                  .single();
 
-              // Then create event_attendee
-              const { error: attendeeError } = await supabase
-                .from('event_attendees')
-                .insert({
-                  event_id: eventId,
-                  contact_id: contact.id,
-                });
+                if (contactError) throw contactError;
 
-              if (attendeeError) throw attendeeError;
+                // Create event_attendee link
+                const { error: attendeeError } = await supabase
+                  .from('event_attendees')
+                  .insert({
+                    event_id: eventId,
+                    contact_id: contact.id,
+                  });
+
+                if (attendeeError) throw attendeeError;
+              }
             });
 
           await Promise.all(attendeePromises);
