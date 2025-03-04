@@ -130,7 +130,8 @@ export abstract class Agent {
     isAI: boolean,
     event_id?: string,
     event_title?: string,
-    isMorningCheckin?: boolean
+    isMorningCheckin?: boolean,
+    isEveningCheckin?: boolean
   ) {
     console.log('Saving chat message:', { 
       userId,
@@ -139,6 +140,7 @@ export abstract class Agent {
       event_id,
       event_title,
       isMorningCheckin,
+      isEveningCheckin,
       messagePreview: message.substring(0, 100) + '...'
     });
 
@@ -149,7 +151,8 @@ export abstract class Agent {
       is_ai: isAI,
       event_id,
       event_title,
-      morning_checkin: isMorningCheckin
+      morning_checkin: isMorningCheckin,
+      evening_checkin: isEveningCheckin
     };
 
     console.log('Message data to insert:', messageData);

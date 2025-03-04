@@ -532,25 +532,20 @@ const Index = () => {
             }
 
             // Create message after we have all the data
-            console.log('Raw payload:', payload.new);
             console.log('Raw message:', payload.new.message);
-            
-            // Check if this is a morning check-in based on the message content
-            const messageType = payload.new.message.toLowerCase().includes('good morning') ? 'morning' : undefined;
-            console.log('Detected message type:', messageType);
 
             let newMessage: Message = {
               content: payload.new.message,
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
               contactInfo: payload.new.contact_info,
-              showPlanningForm: isMorningCheckin,
+              showPlanningForm: payload.new.morning_checkin,
               showFeedbackForm: eventData && !eventData.feedback_sent,
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
               completedEvent: eventData,
               onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
-              onPlanningSubmit: isMorningCheckin ? handlePlanSubmit : undefined,
+              onPlanningSubmit: payload.new.morning_checkin ? handlePlanSubmit : undefined,
               defaultContacts: payload.new.default_contact ? [{ name: payload.new.default_contact }] : undefined,
               defaultActivity: payload.new.default_activity
             };

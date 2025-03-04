@@ -53,10 +53,12 @@ export class DailyCheckinAgent extends Agent {
     },
     {role: 'user', content: `User Profile: ${JSON.stringify(profileData, null, 2)}\nMessage: ${message}`}];
     const isMorningCheckin = checkinType === 'morning';
+    const isEveningCheckin = checkinType === 'evening';
     console.log('DailyCheckinAgent processing:', {
       userId,
       checkinType,
       isMorningCheckin,
+      isEveningCheckin,
       event_id,
       event_title
     });
@@ -83,7 +85,8 @@ export class DailyCheckinAgent extends Agent {
         true,
         event_id,
         event_title,
-        isMorningCheckin
+        isMorningCheckin,
+        isEveningCheckin
       );
       
       return { parsedResponse };
@@ -108,7 +111,8 @@ export class DailyCheckinAgent extends Agent {
         true,
         event_id,
         event_title,
-        isMorningCheckin
+        isMorningCheckin,
+        isEveningCheckin
       );
       return { 
         parsedResponse: {
