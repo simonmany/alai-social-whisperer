@@ -93,6 +93,15 @@ const Index = () => {
             let messageContent = msg.message;
             let messageMetadata = null;
             
+            let messageType: 'morning' | 'evening' | 'post-event' | undefined;
+
+            if (msg.morning_checkin) {
+              messageType = 'morning';
+            } else if (msg.evening_checkin) {
+              messageType = 'evening';
+            } else if (msg.event_id) {
+              messageType = 'post-event';
+            }
             try {
               // Handle both string and JSON message formats
               if (typeof msg.message === 'string') {
@@ -105,7 +114,6 @@ const Index = () => {
                 } catch (parseError) {
                   // If parsing fails, use the message as-is
                   messageContent = msg.message;
-                  console.log('Message is plain text:', messageContent);
                 }
               } else if (typeof msg.message === 'object') {
                 // Handle case where message is already an object
@@ -124,13 +132,14 @@ const Index = () => {
               eventId: msg.event_id,
               eventTitle: msg.event_title,
               showFeedbackForm: msg.event_id ? true : false,
+              messageType,
               // Only show planning form for the latest onboarding message
               showPlanningForm: msg.is_onboarding_message && index === data.length - 1,
-              onPlanningSubmit: msg.is_onboarding_message && index === data.length - 1 ? handlePlanSubmit : undefined,
-              defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
+              onPlanningSubmit: handlePlanSubmit,
+              //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
               defaultActivity: messageMetadata?.defaultActivity
             };
-
+            
             // If this is a post-event message, fetch the event details
             if (msg.event_id) {
               const { data: eventData, error: eventError } = await supabase
@@ -402,7 +411,7 @@ const Index = () => {
             defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
             defaultActivity: messageMetadata?.defaultActivity,
             showPlanningForm: msg.is_onboarding_message && isLatestMessage,
-            onPlanningSubmit: msg.is_onboarding_message && isLatestMessage ? handlePlanSubmit : undefined
+            onPlanningSubmit: handlePlanSubmit
           };
         });
         setMessages(historyMessages);
@@ -555,15 +564,6 @@ const Index = () => {
             filter: `user_id=eq.${session.user.id}`
           },
           async (payload) => {
-            console.log('New message received - Full payload:', payload.new);
-            console.log('New message received - Parsed:', {
-              message: payload.new.message,
-              is_ai: payload.new.is_ai,
-              event_id: payload.new.event_id,
-              event_title: payload.new.event_title,
-              contact_info: payload.new.contact_info,
-              type: typeof payload.new.event_id
-            });
             const onFeedbackSubmit = async (feedback: string) => {
               try {
                 // Update both feedback and feedback_sent flag when user submits
@@ -615,22 +615,6 @@ const Index = () => {
               console.log('Message not in JSON format, using as is');
             }
 
-            let newMessage: Message = {
-              id: payload.new.id, // Add message ID
-              content: messageContent,
-              isAl: payload.new.is_ai,
-              is_secret: payload.new.is_secret,
-              showPlanningForm: false,
-              showFeedbackForm: !!eventData && !eventData.feedback_sent,
-              eventId: payload.new.event_id,
-              eventTitle: payload.new.event_title,
-              completedEvent: eventData || undefined,
-              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
-              defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
-              defaultActivity: messageMetadata?.defaultActivity
-            };
-
-            // If this is a post-event message, fetch the event details
             if (payload.new.event_id) {
               console.log('Fetching event details for:', payload.new.event_id);
               const { data, error: eventError } = await supabase
@@ -653,22 +637,34 @@ const Index = () => {
                 });
               }
             }
-
-            // Construct the message with event details and feedback form if needed
-            newMessage.completedEvent = eventData;
-
-            // Only show feedback form and submit function if we have an event that hasn't had feedback sent
-            if (eventData && !eventData.feedback_sent) {
-              newMessage.showFeedbackForm = true;
-              newMessage.onFeedbackSubmit = onFeedbackSubmit;
+            let messageType: 'morning' | 'evening' | 'post-event' | undefined = undefined;
+            if (payload.new.morning_checkin) {
+              messageType = 'morning';
+            } else if (payload.new.evening_checkin) {
+              messageType = 'evening';
+            } else if (payload.new.event_id) {
+              messageType = 'post-event';
             }
-            console.log('Setting new message:', {
-              content: newMessage.content,
-              isAl: newMessage.isAl,
-              showFeedbackForm: newMessage.showFeedbackForm,
-              eventId: newMessage.eventId,
-              completedEvent: newMessage.completedEvent
-            });
+
+            // Create message after we have all the data
+
+            let newMessage: Message = {
+              id: payload.new.id, // Add message ID
+              content: messageContent,
+              isAl: payload.new.is_ai,
+              is_secret: payload.new.is_secret,
+              showPlanningForm: false,
+              showFeedbackForm: !!eventData && !eventData.feedback_sent,
+              eventId: payload.new.event_id,
+              eventTitle: payload.new.event_title,
+              completedEvent: eventData || undefined,
+              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
+              onPlanningSubmit: handlePlanSubmit,
+              //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
+              defaultActivity: messageMetadata?.defaultActivity,
+              messageType
+            };
+
             setMessages(prev => [...prev, newMessage]);
           }
         )
@@ -948,7 +944,6 @@ const Index = () => {
     }
     else {
       // Only remove the planning form when submitting the final plan
-      setMessages(prev => prev.filter(message => !message.showPlanningForm));
       handleSend(message);
       setTutorialComplete(true);
     }
