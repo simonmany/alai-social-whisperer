@@ -23,6 +23,7 @@ import { format } from "date-fns";
 import { TIME_OPTIONS } from "@/utils/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Message, ChatHistoryMessage } from "@/types/chat";
+import { CalendarEvent } from "@/types/calendar";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -186,7 +187,7 @@ const Index = () => {
                 .from('calendar_events')
                 .select(`
                   *,
-                  event_attendees!left (contacts!contact_id (id, name))
+                  event_attendees!left (contacts!contact_id (id, name, user_id))
                 `)
                 .eq('id', msg.event_id)
                 .maybeSingle();
@@ -204,7 +205,8 @@ const Index = () => {
                 if (eventData.event_attendees) {
                   const attendees = eventData.event_attendees.map((ea: any) => ({
                     id: ea.contacts.id,
-                    name: ea.contacts.name
+                    name: ea.contacts.name,
+                    user_id: ea.contacts.user_id
                   }));
                   
                   message.completedEvent.attendees = attendees;
