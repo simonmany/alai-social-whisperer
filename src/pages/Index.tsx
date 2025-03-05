@@ -26,6 +26,7 @@ import { Message, ChatHistoryMessage } from "@/types/chat";
 import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@skektec/capacitor-contacts';
 import { CalendarEvent } from "@/types/calendar";
+import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -895,9 +896,9 @@ const Index = () => {
       console.log('Fetching last contact sync for user:', session.user.id);
       const { data, error } = await supabase
         .from('contacts')
-        .select('created_at')
+        .select('updated_at')
         .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
+        .order('updated_at', { ascending: false })
         .limit(1)
         .single();
 
@@ -905,8 +906,8 @@ const Index = () => {
         console.error('Error in getLastContactSync:', error);
         throw error;
       }
-      console.log('created data', data);
-      return data ? new Date(data.created_at) : null;
+      console.log('updated data', data);
+      return data ? new Date(data.updated_at) : null;
     } catch (error) {
       console.error('Error fetching last contact sync:', error);
       return null;
@@ -934,6 +935,89 @@ const Index = () => {
     const syncInterval = setInterval(syncContacts, 6 * 60 * 60 * 1000);
 
     return () => clearInterval(syncInterval);
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    const setupCalendarEventsSubscription = () => {
+      if (!session?.user.id || !Capacitor.isNativePlatform()) return;
+
+      console.log('Setting up real-time calendar events subscription');
+
+      const channels = supabase.channel('custom-all-channel')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'calendar_events', filter: `user_id=eq.${session.user.id}` },
+          async (payload) => {
+            console.log('Change received!', payload);
+
+            if (payload.new.calendar_event_id) {
+              console.log('Event already exists on calendar, skipping');
+              return;
+            }
+            
+            // If a new event is inserted, add it to the native calendar
+            if (payload.eventType === 'INSERT') {
+              try {
+                const event = payload.new;
+                
+                // Format the start and end times for the native calendar
+                const startTime = new Date(event.start_time);
+                // Default to 1 hour duration if end_time is not provided
+                const endTime = event.end_time ? new Date(event.end_time) : new Date(startTime.getTime() + 60 * 60 * 1000);
+                
+                // Get attendee names if available
+                let attendeeNames = '';
+                let attendees = [];
+                const { data: eventAttendees, error: eventAttendeesError } = await supabase
+                  .from('event_attendees')
+                  .select('contact_id')
+                  .eq('event_id', event.id);
+                
+                if (eventAttendees && eventAttendees.length > 0) {
+                  const { data, error } = await supabase
+                    .from('contacts')
+                    .select('name, email')
+                    .in('id', eventAttendees.map((a: any) => a.contact_id));
+
+                  attendeeNames = data?.map((a: any) => a.name).join(', ') || '';
+                  attendees = data;
+                }
+                
+                // Create the event in the native calendar
+                await CapacitorCalendar.createEvent({
+                  title: event.title,
+                  location: event.location || '',
+                  description: `${event.description || ''}\n\nAttendees: ${attendeeNames}`,
+                  startDate: startTime.getTime(),
+                  endDate: endTime.getTime(),
+                });
+
+                // TODO (ari) store attendees, though email is required and its less common than phone
+                
+                console.log('Event added to native calendar:', event.title);
+                
+              } catch (error) {
+                console.error('Error adding event to native calendar:', error);
+              }
+            }
+
+            if (payload.eventType === 'DELETE') {
+              console.log('Event deleted from native calendar:', payload.old.title);
+              await CapacitorCalendar.deleteEvent({
+                id: payload.old.calendar_event_id,
+              });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        console.log('Cleaning up calendar events subscription');
+        supabase.removeChannel(channels);
+      };
+    };
+
+    setupCalendarEventsSubscription();
   }, [session?.user?.id]);
 
   const handleGoogleSignIn = async () => {
