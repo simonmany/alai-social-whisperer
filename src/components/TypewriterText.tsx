@@ -79,8 +79,8 @@ export const TypewriterText = ({
   }, [text, onComplete, delay, typingSpeed]);
 
   return (
-    <div className={cn("relative", className)}>
-      <span className="whitespace-pre-wrap">
+    <div className={cn("relative w-full", className)} style={{ width: '100%' }}>
+      <span className="whitespace-pre-wrap w-full" style={{ width: '100%', display: 'block' }}>
         {displayedText.split('\n').map((line, i, arr) => (
           <span key={i}>
             {line}

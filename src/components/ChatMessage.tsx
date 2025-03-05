@@ -84,14 +84,14 @@ export const ChatMessage = ({
   return (
     <div
       className={cn(
-        "mb-4 max-w-[80%] text-xl font-cormorant",
-        isAl ? "self-start" : "self-end",
+        "mb-4 text-xl font-cormorant",
+        isAl ? "self-start w-[80%]" : "self-end max-w-[80%]",
         animate && (isAl ? "animate-slide-in-left" : "animate-slide-in-right")
       )}
     >
       {isAl ? (
-        <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
-          <div className="prose prose-gray max-w-none space-y-2">
+        <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent w-full">
+          <div className="prose prose-gray max-w-none space-y-2 w-full">
             {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
@@ -116,7 +116,7 @@ export const ChatMessage = ({
           )}
           {/* Render feedback form immediately, not dependent on typewriter animation */}
           {showFeedbackForm && onFeedbackSubmit && (
-            <div className="mt-4 w-full">
+            <div className="mt-4 w-full" style={{ width: '100%', minWidth: '100%', maxWidth: '100%' }}>
               <InChatFeedbackForm
                 onSubmit={onFeedbackSubmit}
                 event={completedEvent}
