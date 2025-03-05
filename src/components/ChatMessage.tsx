@@ -18,7 +18,7 @@ interface ChatMessageProps {
   contacts?: Contact[];
   showFeedbackForm?: boolean;
   showPlanningForm?: boolean;
-  onPlanningSubmit?: (message: string) => void;
+  onPlanningSubmit?: (message: string, newContent?: string) => void;
   onFeedbackSubmit?: (message: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
@@ -55,22 +55,11 @@ export const ChatMessage = ({
 }: ChatMessageProps) => {
   const [showPlanningFormState, setShowPlanningForm] = useState(showPlanningForm);
   
-  console.log('ChatMessage - Props:', {
-    content,
-    isAl,
-    messageType,
-    showPlanningForm: showPlanningFormState,
-    hasOnPlanningSubmit: !!onPlanningSubmit,
-    showFeedbackForm,
-    hasOnFeedbackSubmit: !!onFeedbackSubmit,
-    completedEvent
-  });
-  
   // Check if this message should be animated
   const shouldAnimate = isAl && messageId && !window.completedAnimations.has(messageId);
   
   // Track if the typewriter animation is complete for this render
-  const [isTypewriterComplete, setIsTypewriterComplete] = useState(false);
+  const [isTypewriterComplete, setIsTypewriterComplete] = useState(!shouldAnimate);
 
   // Effect to handle animation completion
   useEffect(() => {
@@ -120,15 +109,17 @@ export const ChatMessage = ({
             </div>
           )}
           {/* Render planning form if all conditions are met */}
-          {showPlanningForm && onPlanningSubmit && isTypewriterComplete && (
+          {isTypewriterComplete && (showPlanningForm || (isAl && messageType === 'morning')) && (
             <div className="mt-4">
               {showPlanningFormState ? (
                 <PlanningForm
-                  onSubmit={(message) => {
+                  onSubmit={(message, newContent) => {
                     if (onPlanningSubmit) {
-                      onPlanningSubmit(message);
+                      onPlanningSubmit(message, newContent);
                     }
-                    setShowPlanningForm(false);
+                    if (!newContent) {
+                      setShowPlanningForm(false);
+                    }
                   }}
                   defaultContacts={defaultContacts}
                   defaultActivity={defaultActivity}

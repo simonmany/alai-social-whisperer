@@ -81,14 +81,6 @@ export const ChatContainer = ({
             }
             
             if (!message.is_secret) {
-              console.log('ChatContainer - Message props:', {
-                content: message.content,
-                isAl: message.isAl,
-                showFeedbackForm: message.showFeedbackForm,
-                hasOnFeedbackSubmit: !!message.onFeedbackSubmit,
-                eventId: message.eventId,
-                completedEvent: message.completedEvent
-              });
               return (
                 <ChatMessage
                   key={index}

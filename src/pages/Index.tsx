@@ -114,7 +114,6 @@ const Index = () => {
                 } catch (parseError) {
                   // If parsing fails, use the message as-is
                   messageContent = msg.message;
-                  console.log('Message is plain text:', messageContent);
                 }
               } else if (typeof msg.message === 'object') {
                 // Handle case where message is already an object
@@ -141,8 +140,6 @@ const Index = () => {
               defaultActivity: messageMetadata?.defaultActivity
             };
             
-            console.log('Created message object:', message);
-
             // If this is a post-event message, fetch the event details
             if (msg.event_id) {
               const { data: eventData, error: eventError } = await supabase
@@ -567,16 +564,6 @@ const Index = () => {
             filter: `user_id=eq.${session.user.id}`
           },
           async (payload) => {
-            console.log('New message received - Full payload:', payload.new);
-            console.log('New message received - Parsed:', {
-              message: payload.new.message,
-              is_ai: payload.new.is_ai,
-              morning_checkin: payload.new.morning_checkin,
-              event_id: payload.new.event_id,
-              event_title: payload.new.event_title,
-              contact_info: payload.new.contact_info,
-              type: typeof payload.new.event_id
-            });
             const onFeedbackSubmit = async (feedback: string) => {
               try {
                 // Update both feedback and feedback_sent flag when user submits
@@ -660,7 +647,6 @@ const Index = () => {
             }
 
             // Create message after we have all the data
-            console.log('Raw message:', payload.new.message);
 
             let newMessage: Message = {
               id: payload.new.id, // Add message ID
@@ -673,26 +659,12 @@ const Index = () => {
               eventTitle: payload.new.event_title,
               completedEvent: eventData || undefined,
               onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
-              onPlanningSubmit: payload.new.morning_checkin ? handlePlanSubmit : undefined,
+              onPlanningSubmit: handlePlanSubmit,
               //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
               defaultActivity: messageMetadata?.defaultActivity,
               messageType
             };
 
-            console.log('Created message with planning form:', {
-              showPlanningForm: newMessage.showPlanningForm,
-              hasOnPlanningSubmit: !!newMessage.onPlanningSubmit,
-              morning_checkin: payload.new.morning_checkin
-            });
-            
-            console.log('Created real-time message:', newMessage);
-            console.log('Setting new message:', {
-              content: newMessage.content,
-              isAl: newMessage.isAl,
-              showFeedbackForm: newMessage.showFeedbackForm,
-              eventId: newMessage.eventId,
-              completedEvent: newMessage.completedEvent
-            });
             setMessages(prev => [...prev, newMessage]);
           }
         )
@@ -972,7 +944,6 @@ const Index = () => {
     }
     else {
       // Only remove the planning form when submitting the final plan
-      setMessages(prev => prev.filter(message => !message.showPlanningForm));
       handleSend(message);
       setTutorialComplete(true);
     }
