@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CalendarPlus } from "lucide-react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMessageProps {
   content: string;
@@ -28,11 +29,7 @@ interface ChatMessageProps {
   completedEvent?: CalendarEvent;
   messageType?: 'morning' | 'evening' | 'post-event';
   messageId?: string;
-}
-
-// Create a global cache for completed animations that persists across module reloads
-if (typeof window !== 'undefined' && !window.completedAnimations) {
-  window.completedAnimations = new Set<string>();
+  typewriterPlayed?: boolean;
 }
 
 export const ChatMessage = ({ 
@@ -52,28 +49,28 @@ export const ChatMessage = ({
   messageType,
   showPlanningForm,
   messageId,
+  typewriterPlayed = false,
 }: ChatMessageProps) => {
+  const [isTypewriterComplete, setIsTypewriterComplete] = useState(typewriterPlayed);
   const [showPlanningFormState, setShowPlanningForm] = useState(showPlanningForm);
-  
-  // Check if this message should be animated
-  const shouldAnimate = isAl && messageId && !window.completedAnimations.has(messageId);
-  
-  // Track if the typewriter animation is complete for this render
-  const [isTypewriterComplete, setIsTypewriterComplete] = useState(!shouldAnimate);
 
-  // Effect to handle animation completion
+  // Effect to update typewriter_played in database when animation completes
   useEffect(() => {
-    if (messageId && isTypewriterComplete && shouldAnimate) {
-      window.completedAnimations.add(messageId);
-    }
-  }, [messageId, isTypewriterComplete, shouldAnimate]);
+    const updateTypewriterStatus = async () => {
+      if (messageId && isTypewriterComplete && !typewriterPlayed) {
+        const { error } = await supabase
+          .from('chat_history')
+          .update({ typewriter_played: true })
+          .eq('id', messageId);
+          
+        if (error) {
+          console.error('Error updating typewriter status:', error);
+        }
+      }
+    };
 
-  // Effect to handle initial state
-  useEffect(() => {
-    if (messageId && !shouldAnimate) {
-      setIsTypewriterComplete(true);
-    }
-  }, [messageId, shouldAnimate]);
+    updateTypewriterStatus();
+  }, [messageId, isTypewriterComplete, typewriterPlayed, supabase]);
 
   return (
     <div
@@ -86,7 +83,7 @@ export const ChatMessage = ({
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
           <div className="whitespace-pre-line prose prose-lg max-w-none prose-gray">
-            {(!shouldAnimate || isTypewriterComplete) ? (
+            {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
               <TypewriterText

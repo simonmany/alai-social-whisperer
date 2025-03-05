@@ -137,7 +137,8 @@ const Index = () => {
               showPlanningForm: msg.is_onboarding_message && index === data.length - 1,
               onPlanningSubmit: handlePlanSubmit,
               //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
-              defaultActivity: messageMetadata?.defaultActivity
+              defaultActivity: messageMetadata?.defaultActivity,
+              typewriterPlayed: msg.typewriter_played || false,
             };
             
             // If this is a post-event message, fetch the event details
@@ -973,8 +974,6 @@ const Index = () => {
       }]);
     } else if (prompt === "talk about past hang") {
       handleSend("talk about past hang");
-    } else if (prompt === "Set a new goal") {
-      setIsGoalsOpen(true);
     } else if (prompt === "add a new contact") {
       setIsContactsOpen(true);
     } else {
@@ -1051,7 +1050,6 @@ const Index = () => {
   const defaultPrompts = [
     { text: "plan a future hang", action: "plan me a hang" },
     { text: "talk about past hang", action: "talk about past hang" },
-    { text: "Set a new goal", action: "Set a new goal" },
     { text: "add a new contact", action: "add a new contact" }
   ];
 

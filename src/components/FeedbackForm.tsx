@@ -12,7 +12,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Contact } from '@/types/contacts';
 import { CalendarEvent } from '@/types/calendar';
 import { format } from 'date-fns';
-import { UserPlus, CalendarIcon, MapPinIcon, UsersIcon, Edit, X, Plus } from 'lucide-react';
+import { UserPlus, CalendarIcon, MapPinIcon, UsersIcon, Edit, X, Plus, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TIME_OPTIONS } from '@/utils/constants';
 import { useToast } from "@/hooks/use-toast";
@@ -180,7 +180,7 @@ export const FeedbackForm = ({
   });
 
   const moodOptions = [
-    'fun', 'chill', 'deep', 'productive', 'nostalgic', 'exciting', 'meaningful'
+    'fun', 'chill', 'deep', 'productive', 'nostalgic', 'exciting'
   ];
 
   const initializeEventData = (event: CalendarEvent | null) => {
@@ -543,79 +543,96 @@ export const FeedbackForm = ({
 
             <div className="grid grid-cols-3 gap-4">
               <div className="col-span-2">
-                <div className="flex flex-col">
-                  <div className="h-6 flex items-center">
-                    <Label>Date</Label>
+                {isEditingDate ? (
+                  <Calendar
+                    mode="single"
+                    selected={eventDate}
+                    onSelect={(date) => {
+                      setEventDate(date);
+                      setIsEditingDate(false);
+                    }}
+                    className="rounded-md border"
+                  />
+                ) : (
+                  <div 
+                    className="flex h-10 items-center text-sm text-muted-foreground px-3 border rounded-md hover:bg-accent hover:text-accent-foreground cursor-pointer"
+                    onClick={() => setIsEditingDate(true)}
+                  >
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                    <span className="flex-1">{eventDate ? format(eventDate, 'PPP') : 'Select date'}</span>
+                    <Edit className="h-4 w-4 flex-shrink-0" />
                   </div>
-                  {isEditingDate ? (
-                    <Calendar
-                      mode="single"
-                      selected={eventDate}
-                      onSelect={(date) => {
-                        setEventDate(date);
-                        setIsEditingDate(false);
-                      }}
-                      className="rounded-md border mt-2"
-                    />
-                  ) : (
-                    <div 
-                      className="flex h-10 items-center justify-between text-sm text-muted-foreground px-3 border rounded-md hover:bg-accent hover:text-accent-foreground mt-2 cursor-pointer"
-                      onClick={() => setIsEditingDate(true)}
-                    >
-                      <span>{eventDate ? format(eventDate, 'PPP') : 'No date selected'}</span>
-                      <Edit className="h-4 w-4" />
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
               
               <div>
-                <div className="flex flex-col">
-                  <div className="h-6 flex items-center">
-                    <Label>Time</Label>
-                  </div>
-                  <Select value={eventTime} onValueChange={setEventTime}>
-                    <SelectTrigger className="h-10 mt-2">
-                      <SelectValue placeholder="Select time" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {TIME_OPTIONS.map((time) => (
-                        <SelectItem key={time} value={time}>
-                          {time}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Select value={eventTime} onValueChange={setEventTime}>
+                  <SelectTrigger className="h-10">
+                    <div className="flex items-center">
+                      <Clock className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                      <SelectValue placeholder="Time" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_OPTIONS.map((time) => (
+                      <SelectItem key={time} value={time}>
+                        {time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="location">Location</Label>
+            <div className="relative">
+              <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 id="location"
                 value={eventLocation}
                 onChange={(e) => setEventLocation(e.target.value)}
-                placeholder="Event location"
+                placeholder="Location"
+                className="pl-9"
               />
             </div>
 
-            <div className="space-y-2">
-              <Label className="flex items-center justify-between">
-                <span>Attendees</span>
+            <div className="relative">
+              <UsersIcon className="absolute left-3 top-3.5 h-4 w-4 text-muted-foreground z-10" />
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <div className="min-h-[40px] pl-9 pr-3 py-1.5 border rounded-md flex flex-wrap gap-1 items-center hover:border-input">
+                    {eventAttendees.length > 0 ? eventAttendees.map((attendee) => (
+                      <div 
+                        key={attendee.id} 
+                        className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full text-sm"
+                      >
+                        <span>{attendee.name}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-4 w-4 p-0 hover:bg-transparent"
+                          onClick={() => setEventAttendees(eventAttendees.filter(a => a.id !== attendee.id))}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )) : (
+                      <span className="text-muted-foreground text-sm">No attendees</span>
+                    )}
+                  </div>
+                </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => setIsAddingAttendee(true)}
-                  className="h-6 px-2"
+                  className="h-10 px-3 flex-shrink-0"
                 >
-                  <Plus className="h-3 w-3 mr-1" />
+                  <Plus className="h-4 w-4 mr-1" />
                   Add
                 </Button>
-              </Label>
+              </div>
               
               {isAddingAttendee && (
-                <Card className="p-4 space-y-4">
+                <Card className="p-4 space-y-4 absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 shadow-lg">
                   <div className="space-y-2">
                     <div className="relative">
                       <Input
@@ -678,25 +695,6 @@ export const FeedbackForm = ({
                   </div>
                 </Card>
               )}
-              
-              <div className="flex flex-wrap gap-2">
-                {eventAttendees.map((attendee) => (
-                  <div 
-                    key={attendee.id} 
-                    className="flex items-center gap-1 bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-sm"
-                  >
-                    <span>{attendee.name}</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-transparent"
-                      onClick={() => setEventAttendees(eventAttendees.filter(a => a.id !== attendee.id))}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
         </div>
@@ -706,9 +704,7 @@ export const FeedbackForm = ({
         <div className="space-y-4">
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">How was it?</h3>
-            <p className="text-sm text-muted-foreground">
-              Select the mood that best describes the event
-            </p>
+
           </div>
           
           <div className="flex flex-wrap gap-2">

@@ -92,6 +92,8 @@ export const ChatContainer = ({
                   onPlanningSubmit={message.onPlanningSubmit}
                   defaultContacts={message.defaultContacts}
                   defaultActivity={message.defaultActivity}
+                  messageId={message.id}
+                  typewriterPlayed={message.typewriterPlayed}
                   defaultLocation={message.defaultLocation}
                   defaultDate={message.defaultDate}
                   defaultTime={message.defaultTime}
@@ -130,12 +132,13 @@ export const ChatContainer = ({
         
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="grid grid-cols-3 gap-2 mb-4 w-full">
               {suggestedPrompts.map((prompt, index) => (
                 <SuggestedPrompt
                   key={index}
                   text={prompt.text}
                   onClick={() => onSuggestedPrompt(prompt.action)}
+                  className="w-full"
                 />
               ))}
             </div>
