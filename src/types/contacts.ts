@@ -6,7 +6,7 @@ export interface Contact {
   email?: string;
   location?: string;
   relationship?: string;
-  interests?: string[];
+  interests?: any;
   notes?: string;
   last_contact?: string;
   contact_frequency?: number;

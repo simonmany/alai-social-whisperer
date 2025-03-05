@@ -125,7 +125,8 @@ const CalendarView = () => {
             event_attendees!left (
               contacts!contact_id (
                 id,
-                name
+                name,
+                user_id
               )
             )
           `)
@@ -153,7 +154,8 @@ const CalendarView = () => {
             ?.filter(ea => ea.contacts) // Filter out null contacts
             ?.map(attendee => ({
               id: attendee.contacts.id,
-              name: attendee.contacts.name
+              name: attendee.contacts.name,
+              user_id: attendee.contacts.user_id
             })) || []
         }));
 
