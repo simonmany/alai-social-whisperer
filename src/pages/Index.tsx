@@ -978,8 +978,6 @@ const Index = () => {
       }]);
     } else if (prompt === "talk about past hang") {
       handleSend("talk about past hang");
-    } else if (prompt === "Set a new goal") {
-      setIsGoalsOpen(true);
     } else if (prompt === "add a new contact") {
       setIsContactsOpen(true);
     } else {
@@ -1056,7 +1054,6 @@ const Index = () => {
   const defaultPrompts = [
     { text: "plan a future hang", action: "plan me a hang" },
     { text: "talk about past hang", action: "talk about past hang" },
-    { text: "Set a new goal", action: "Set a new goal" },
     { text: "add a new contact", action: "add a new contact" }
   ];
 

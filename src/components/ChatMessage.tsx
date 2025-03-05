@@ -53,22 +53,24 @@ export const ChatMessage = ({
   // Check if this message should be animated
   const shouldAnimate = isAl && messageId && !window.completedAnimations.has(messageId);
   
-  // Track if the typewriter animation is complete for this render
-  const [isTypewriterComplete, setIsTypewriterComplete] = useState(false);
+  // Get animation state from localStorage
+  const [isTypewriterComplete, setIsTypewriterComplete] = useState(() => {
+    if (!messageId) return false;
+    const animatedMessages = localStorage.getItem('animatedMessages');
+    if (!animatedMessages) return false;
+    return JSON.parse(animatedMessages).includes(messageId);
+  });
 
   // Effect to handle animation completion
   useEffect(() => {
-    if (messageId && isTypewriterComplete && shouldAnimate) {
-      window.completedAnimations.add(messageId);
+    if (messageId && isTypewriterComplete) {
+      const animatedMessages = JSON.parse(localStorage.getItem('animatedMessages') || '[]');
+      if (!animatedMessages.includes(messageId)) {
+        animatedMessages.push(messageId);
+        localStorage.setItem('animatedMessages', JSON.stringify(animatedMessages));
+      }
     }
-  }, [messageId, isTypewriterComplete, shouldAnimate]);
-
-  // Effect to handle initial state
-  useEffect(() => {
-    if (messageId && !shouldAnimate) {
-      setIsTypewriterComplete(true);
-    }
-  }, [messageId, shouldAnimate]);
+  }, [messageId, isTypewriterComplete]);
 
   return (
     <div
@@ -81,7 +83,7 @@ export const ChatMessage = ({
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
           <div className="whitespace-pre-line prose prose-lg max-w-none prose-gray">
-            {(!shouldAnimate || isTypewriterComplete) ? (
+            {(isTypewriterComplete || !isAl) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
               <TypewriterText
