@@ -10,7 +10,7 @@ export interface Message {
   showPlanningForm?: boolean;
   showFeedbackForm?: boolean;
   onPlanningSubmit?: (message: string) => void;
-  onFeedbackSubmit?: (message: string) => void;
+  onFeedbackSubmit?: (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
@@ -21,7 +21,14 @@ export interface Message {
   completedEvent?: CalendarEvent;
   typewriterPlayed?: boolean;
   messageType?: "morning" | "evening" | "post-event";
-  metadata?: any
+  metadata?: any;
+  // Multi-step feedback form properties
+  feedbackStep?: "event-selection" | "mood-selection" | "notes-input" | "complete";
+  showMoodSelection?: boolean;
+  showNotesInput?: boolean;
+  selectedEvent?: CalendarEvent;
+  selectedMoods?: string[];
+  feedbackNotes?: string;
 }
 
 export interface SuggestedPromptItem {
