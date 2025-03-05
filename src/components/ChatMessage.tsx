@@ -9,6 +9,7 @@ import ReactMarkdown from "react-markdown";
 import { Contact } from "@/types/contacts";
 import { TypewriterText } from "@/components/TypewriterText";
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatMessageProps {
   content: string;
@@ -26,11 +27,7 @@ interface ChatMessageProps {
   defaultTime?: string;
   completedEvent?: CalendarEvent;
   messageId?: string;
-}
-
-// Create a global cache for completed animations that persists across module reloads
-if (typeof window !== 'undefined' && !window.completedAnimations) {
-  window.completedAnimations = new Set<string>();
+  typewriterPlayed?: boolean;
 }
 
 export const ChatMessage = ({ 
@@ -49,28 +46,27 @@ export const ChatMessage = ({
   defaultTime,
   completedEvent,
   messageId,
+  typewriterPlayed = false,
 }: ChatMessageProps) => {
-  // Check if this message should be animated
-  const shouldAnimate = isAl && messageId && !window.completedAnimations.has(messageId);
-  
-  // Get animation state from localStorage
-  const [isTypewriterComplete, setIsTypewriterComplete] = useState(() => {
-    if (!messageId) return false;
-    const animatedMessages = localStorage.getItem('animatedMessages');
-    if (!animatedMessages) return false;
-    return JSON.parse(animatedMessages).includes(messageId);
-  });
+  const [isTypewriterComplete, setIsTypewriterComplete] = useState(typewriterPlayed);
 
-  // Effect to handle animation completion
+  // Effect to update typewriter_played in database when animation completes
   useEffect(() => {
-    if (messageId && isTypewriterComplete) {
-      const animatedMessages = JSON.parse(localStorage.getItem('animatedMessages') || '[]');
-      if (!animatedMessages.includes(messageId)) {
-        animatedMessages.push(messageId);
-        localStorage.setItem('animatedMessages', JSON.stringify(animatedMessages));
+    const updateTypewriterStatus = async () => {
+      if (messageId && isTypewriterComplete && !typewriterPlayed) {
+        const { error } = await supabase
+          .from('chat_history')
+          .update({ typewriter_played: true })
+          .eq('id', messageId);
+          
+        if (error) {
+          console.error('Error updating typewriter status:', error);
+        }
       }
-    }
-  }, [messageId, isTypewriterComplete]);
+    };
+
+    updateTypewriterStatus();
+  }, [messageId, isTypewriterComplete, typewriterPlayed, supabase]);
 
   return (
     <div
@@ -83,7 +79,7 @@ export const ChatMessage = ({
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
           <div className="whitespace-pre-line prose prose-lg max-w-none prose-gray">
-            {(isTypewriterComplete || !isAl) ? (
+            {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
               <TypewriterText

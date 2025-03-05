@@ -124,11 +124,13 @@ const Index = () => {
               eventId: msg.event_id,
               eventTitle: msg.event_title,
               showFeedbackForm: msg.event_id ? true : false,
+              typewriterPlayed: msg.typewriter_played || false,
               // Only show planning form for the latest onboarding message
               showPlanningForm: msg.is_onboarding_message && index === data.length - 1,
               onPlanningSubmit: msg.is_onboarding_message && index === data.length - 1 ? handlePlanSubmit : undefined,
               defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
-              defaultActivity: messageMetadata?.defaultActivity
+              defaultActivity: messageMetadata?.defaultActivity,
+              typewriterPlayed: msg.typewriter_played || false
             };
 
             // If this is a post-event message, fetch the event details

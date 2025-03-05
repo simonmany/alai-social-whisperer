@@ -19,6 +19,7 @@ export interface Message {
   eventId?: string;
   eventTitle?: string;
   completedEvent?: CalendarEvent;
+  typewriterPlayed?: boolean;
 }
 
 export interface SuggestedPromptItem {
@@ -38,4 +39,5 @@ export interface ChatHistoryMessage {
   is_onboarding_message: boolean;
   event_id?: string;
   event_title?: string;
+  typewriter_played?: boolean;
 }
