@@ -3,7 +3,7 @@ import { ChatMessage } from "@/components/ChatMessage";
 import { ChatInput } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { Button } from "@/components/ui/button";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, SendHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Contact } from "@/types/contacts";
 import { CalendarEvent } from "@/types/calendar";
@@ -130,19 +130,40 @@ export const ChatContainer = ({
         )}
         
         <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="grid grid-cols-3 gap-2 mb-4 w-full">
-              {suggestedPrompts.map((prompt, index) => (
-                <SuggestedPrompt
-                  key={index}
-                  text={prompt.text}
-                  onClick={() => onSuggestedPrompt(prompt.action)}
-                  className="w-full"
-                />
-              ))}
+          <div className="flex gap-2">
+            {/* Left column for text input and buttons above it */}
+            <div className="flex-1 flex flex-col">
+              {/* Buttons container - only spans the width of the text input */}
+              <div className="mb-4">
+                <div className="grid grid-cols-2 gap-2">
+                  {suggestedPrompts.map((prompt, index) => (
+                    <SuggestedPrompt
+                      key={index}
+                      text={prompt.text}
+                      onClick={() => onSuggestedPrompt(prompt.action)}
+                      className="w-full"
+                    />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Text input */}
+              <ChatInput onSend={onSend} showSendButton={false} />
+            </div>
+            
+            {/* Send button column */}
+            <div className="flex items-end">
+              <Button type="submit" size="icon" onClick={() => {
+                const inputElement = document.querySelector('form textarea') as HTMLTextAreaElement;
+                if (inputElement && inputElement.value.trim()) {
+                  onSend(inputElement.value.trim());
+                  inputElement.value = '';
+                }
+              }}>
+                <SendHorizontal className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-          <ChatInput onSend={onSend} />
           {children}
         </div>
       </div>

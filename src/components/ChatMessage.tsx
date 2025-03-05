@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
 import { PlanningForm } from "@/components/PlanningForm";
 import { FeedbackForm } from "@/components/FeedbackForm";
+import { InChatFeedbackForm } from "@/components/InChatFeedbackForm";
 import { EventFeedbackCard } from "@/components/EventFeedbackCard";
 import { CalendarEvent } from "@/types/calendar";
 import ReactMarkdown from "react-markdown";
@@ -20,7 +21,7 @@ interface ChatMessageProps {
   showFeedbackForm?: boolean;
   showPlanningForm?: boolean;
   onPlanningSubmit?: (message: string, newContent?: string) => void;
-  onFeedbackSubmit?: (message: string) => void;
+  onFeedbackSubmit?: (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
@@ -30,6 +31,10 @@ interface ChatMessageProps {
   messageType?: 'morning' | 'evening' | 'post-event';
   messageId?: string;
   typewriterPlayed?: boolean;
+  feedbackStep?: "event-selection" | "mood-selection" | "notes-input" | "complete";
+  selectedEvent?: CalendarEvent;
+  selectedMoods?: string[];
+  feedbackNotes?: string;
 }
 
 export const ChatMessage = ({ 
@@ -50,6 +55,10 @@ export const ChatMessage = ({
   showPlanningForm,
   messageId,
   typewriterPlayed = false,
+  feedbackStep = "event-selection",
+  selectedEvent,
+  selectedMoods = [],
+  feedbackNotes = "",
 }: ChatMessageProps) => {
   const [isTypewriterComplete, setIsTypewriterComplete] = useState(typewriterPlayed);
   const [showPlanningFormState, setShowPlanningForm] = useState(showPlanningForm);
@@ -82,7 +91,7 @@ export const ChatMessage = ({
     >
       {isAl ? (
         <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
-          <div className="whitespace-pre-line prose prose-lg max-w-none prose-gray">
+          <div className="prose prose-gray max-w-none space-y-2">
             {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
@@ -103,6 +112,20 @@ export const ChatMessage = ({
               {contacts.map((contact, index) => (
                 <ContactCard key={`${contact.name}-${index}`} {...contact} />
               ))}
+            </div>
+          )}
+          {/* Render feedback form immediately, not dependent on typewriter animation */}
+          {showFeedbackForm && onFeedbackSubmit && (
+            <div className="mt-4 w-full">
+              <InChatFeedbackForm
+                onSubmit={onFeedbackSubmit}
+                event={completedEvent}
+                skipEventSelection={!!completedEvent}
+                feedbackStep={feedbackStep}
+                selectedEvent={selectedEvent}
+                selectedMoods={selectedMoods}
+                feedbackNotes={feedbackNotes}
+              />
             </div>
           )}
           {/* Render planning form if all conditions are met */}
@@ -133,20 +156,6 @@ export const ChatMessage = ({
                   <CalendarPlus className="mr-2 h-4 w-4" />
                   Add something to calendar
                 </Button>
-              )}
-            </div>
-          )}
-          {showFeedbackForm && onFeedbackSubmit && (
-            <div className="mt-4 w-full max-w-2xl">
-              {completedEvent ? (
-                <EventFeedbackCard 
-                  event={completedEvent}
-                  onFeedbackSubmit={onFeedbackSubmit}
-                />
-              ) : (
-                <FeedbackForm
-                  onSubmit={onFeedbackSubmit}
-                />
               )}
             </div>
           )}

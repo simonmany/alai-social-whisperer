@@ -25,6 +25,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Message, ChatHistoryMessage } from "@/types/chat";
 import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@skektec/capacitor-contacts';
+import { CalendarEvent } from "@/types/calendar";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +51,45 @@ const Index = () => {
   const { session } = useAuth();
   const queryClient = useQueryClient();
   const [conversationType, setConversationType] = useState(ConversationType.CHAT)
+  
+  // Define handleFeedbackSubmit at the top level of the component
+  const handleFeedbackSubmit = async (message: string, event?: CalendarEvent, moods?: string[], notes?: string) => {
+    if (!session?.user?.id) return;
+
+    // Remove the feedback form from messages
+    setMessages(prev => prev.filter(msg => !msg.showFeedbackForm));
+
+    setIsLoading(true);
+    // We no longer add messages directly to the UI
+    // The real-time subscription will handle adding messages to the UI
+
+    try {
+      // If we have an event, update it in the database
+      if (event?.id) {
+        await supabase
+          .from('calendar_events')
+          .update({
+            mood: moods?.join(', '),
+            feedback_notes: notes,
+            feedback_sent: true
+          })
+          .eq('id', event.id);
+      }
+
+      // Generate the chat response - this will save both messages to the database
+      // and they will be picked up by the real-time subscription
+      await generateChatResponse(message, [], false, ConversationType.CHAT);
+    } catch (error) {
+      console.error('Error generating response:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate response. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -150,7 +190,7 @@ const Index = () => {
                 .from('calendar_events')
                 .select(`
                   *,
-                  event_attendees!left (contacts!contact_id (id, name))
+                  event_attendees!left (contacts!contact_id (id, name, user_id))
                 `)
                 .eq('id', msg.event_id)
                 .maybeSingle();
@@ -160,38 +200,20 @@ const Index = () => {
               }
 
               if (eventData && !eventData.feedback_sent) {
-                const onFeedbackSubmit = async (feedback: string) => {
-                  try {
-                    await supabase
-                      .from('calendar_events')
-                      .update({ 
-                        feedback_sent: true, 
-                        feedback 
-                      })
-                      .eq('id', msg.event_id);
-
-                    setMessages(prev => prev.map(m => 
-                      m.eventId === msg.event_id 
-                        ? { ...m, showFeedbackForm: false }
-                        : m
-                    ));
-
-                    toast({
-                      title: "Feedback submitted",
-                      description: "Thank you for your feedback!"
-                    });
-                  } catch (error) {
-                    console.error('Error submitting feedback:', error);
-                    toast({
-                      title: "Error",
-                      description: "Failed to submit feedback",
-                      variant: "destructive"
-                    });
-                  }
-                };
-
                 message.completedEvent = eventData;
-                message.onFeedbackSubmit = onFeedbackSubmit;
+                message.onFeedbackSubmit = handleFeedbackSubmit;
+                message.feedbackStep = "mood-selection";
+                
+                // Format attendees for display
+                if (eventData.event_attendees) {
+                  const attendees = eventData.event_attendees.map((ea: any) => ({
+                    id: ea.contacts.id,
+                    name: ea.contacts.name,
+                    user_id: ea.contacts.user_id
+                  }));
+                  
+                  message.completedEvent.attendees = attendees;
+                }
               }
             }
 
@@ -568,8 +590,14 @@ const Index = () => {
             filter: `user_id=eq.${session.user.id}`
           },
           async (payload) => {
+            // Create a flag to track if this message is already being handled
+            let isHandlingMessage = false;
+            
             const onFeedbackSubmit = async (feedback: string) => {
               try {
+                // Set flag to indicate we're handling this message
+                isHandlingMessage = true;
+                
                 // Update both feedback and feedback_sent flag when user submits
                 await supabase
                   .from('calendar_events')
@@ -590,6 +618,11 @@ const Index = () => {
                   title: "Feedback submitted",
                   description: "Thank you for your feedback!"
                 });
+                
+                // Reset the flag after a short delay to ensure we don't miss subsequent messages
+                setTimeout(() => {
+                  isHandlingMessage = false;
+                }, 1000);
               } catch (error) {
                 console.error('Error submitting feedback:', error);
                 toast({
@@ -597,6 +630,7 @@ const Index = () => {
                   description: "Failed to submit feedback",
                   variant: "destructive"
                 });
+                isHandlingMessage = false;
               }
             };
             
@@ -669,6 +703,7 @@ const Index = () => {
               messageType
             };
 
+            // Simply add the new message to the UI
             setMessages(prev => [...prev, newMessage]);
           }
         )
@@ -937,42 +972,21 @@ const Index = () => {
     }
   };
 
-  const handleFeedbackSubmit = async (message: string) => {
-    if (!session?.user?.id) return;
 
-    // Remove the feedback form from messages
-    setMessages(prev => prev.filter(msg => !msg.showFeedbackForm));
-
-    setIsLoading(true);
-    setMessages(prev => [...prev, { content: message, isAl: false }]);
-
-    try {
-      const response = await generateChatResponse(message, [], false, ConversationType.CHAT);
-      setMessages(prev => [...prev, { content: response.message, isAl: true }]);
-    } catch (error) {
-      console.error('Error generating response:', error);
-      toast({
-        title: "Error",
-        description: "Failed to generate response. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSend = async (message: string, contactInfo?: Contact) => {
     if (!message.trim()) return;
 
     setIsLoading(true);
 
-    if (message.toLowerCase().includes("talk about past hang")) {
+    if (message.toLowerCase().includes("talk about past hang") || message === "Reflect") {
       setMessages(prev => [...prev, 
         { content: message, isAl: false },
         { 
-          content: "I'd love to hear about your past hang! Please select an event from below or tell me about something that wasn't on the calendar.", 
+          content: "I'd love to hear about your past social experiences! Please select an event from below or tell me about something that wasn't on the calendar.", 
           isAl: true,
           showFeedbackForm: true,
+          feedbackStep: "event-selection",
           onFeedbackSubmit: handleFeedbackSubmit
         }
       ]);
@@ -1174,9 +1188,8 @@ const Index = () => {
   let cleanup: () => void | undefined;
 
   const defaultPrompts = [
-    { text: "plan a future hang", action: "plan me a hang" },
-    { text: "talk about past hang", action: "talk about past hang" },
-    { text: "add a new contact", action: "add a new contact" }
+    { text: "Plan", action: "plan me a hang" },
+    { text: "Reflect", action: "talk about past hang" }
   ];
 
   const handleDateTimeSubmit = () => {
