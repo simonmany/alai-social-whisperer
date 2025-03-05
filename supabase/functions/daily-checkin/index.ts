@@ -142,19 +142,19 @@ serve(async (req) => {
 
         message = `You are doing the morning check-in for your user. Use minimal spacing in your response.
 ### Today's Schedule
-${events && events.length > 0 ? events.map(e => stringifyJSON(e)).join(', ') : 'no scheduled events'}
-### Availabilities
-Time slots 1 hour or longer:
-${events && events.length > 0 ? 'Based on your schedule today:' : 'You have a clear schedule today!'}
+${events && events.length > 0 ? 'Your events today:' : 'No scheduled events today.'}
+${events && events.length > 0 ? events.map((e, i) => `${i + 1}. ${e.title} - Hangout with ${e.attendees?.map(a => a.name).join(', ')} from ${new Date(e.start_time).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})} to ${new Date(e.end_time).toLocaleTimeString([], {hour: 'numeric', minute:'2-digit'})}`).join('\n') : ''}
 
-Prioritizing:
-- Goals: ${stringifyJSON(goals)}
+### Availabilities
+Time slots 1 hour or longer. For each slot, I'll suggest activities prioritizing:
+- Your goals: ${stringifyJSON(goals)}
 - Priority catch-ups: ${stringifyJSON(catchUpContacts)}
 - Other close friends: ${stringifyJSON(closeContacts)}
-- Location: ${profile.city || 'Unknown'}
+- Your location: ${profile.city || 'Unknown'}
 
-Format:
-1. [Time] (Duration)\n   - Suggestion 1\n   - Suggestion 2\n   - Suggestion 3${missingGoalsPrompt}
+Format each availability as:
+1. [Time Slot] (Duration)\n   - Suggestion 1\n   - Suggestion 2\n   - Suggestion 3${missingGoalsPrompt}
+
 ### Reminders
 Prep needed for today's events:`;
       } else {
@@ -195,7 +195,10 @@ Prep needed for today's events:`;
           end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
         })) || [];
 
-        message = `You're doing the evening recap with your user. Today, they'd scheduled ${
+        message = `You're doing the evening recap with your user.
+Type: evening
+
+Today, they'd scheduled ${
           pastEvents && pastEvents.length > 0 
             ? pastEvents.map(e => stringifyJSON(e)).join(', ')
             : 'no events'
@@ -254,6 +257,15 @@ Your goal is to better understand the user's likes and dislikes across people, a
 
     // Route through the chat function
     console.log('Routing through chat function with message:', message);
+    console.log('Invoking chat function with:', { 
+      message: message.substring(0, 100) + '...', 
+      userId: user_id,
+      type,
+      event_id,
+      event_title
+    });
+
+    console.log('Invoking chat function with type:', type);
     const { data: chatResponse, error: chatError } = await supabaseClient.functions.invoke('chat', {
       body: { 
         message, 
@@ -262,9 +274,12 @@ Your goal is to better understand the user's likes and dislikes across people, a
         conversationType: "DAILY_CHECKIN",
         event_id: type === 'post-event' ? event_id : undefined,
         event_title: type === 'post-event' ? event_title : undefined,
-        completedEvent: type === 'post-event' ? requestBody.event : undefined
+        completedEvent: type === 'post-event' ? requestBody.event : undefined,
+        checkinType: type === 'morning' ? 'morning' : type === 'evening' ? 'evening' : type
       }
     });
+
+    console.log('Chat function response:', chatResponse);
 
     if (chatError) {
       console.error('Error calling chat function:', chatError);

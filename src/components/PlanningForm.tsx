@@ -162,9 +162,10 @@ export const PlanningForm = ({
         try {
           // Send user prompt as secret message
           const data = await generateChatResponse(contextMessage, closeContacts, true, ConversationType.HANG_GENERATOR);
-          console.log('Received data:', data);
   
           if (data && typeof data === 'object') {
+            console.log('Received data:', data);
+
             const response = data.response || data;
             
             // Update form with AI suggestions

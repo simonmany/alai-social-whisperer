@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { ContactCard } from "@/components/ContactCard";
 import { PlanningForm } from "@/components/PlanningForm";
@@ -7,6 +6,8 @@ import { EventFeedbackCard } from "@/components/EventFeedbackCard";
 import { CalendarEvent } from "@/types/calendar";
 import ReactMarkdown from "react-markdown";
 import { Contact } from "@/types/contacts";
+import { Button } from "@/components/ui/button";
+import { CalendarPlus } from "lucide-react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,9 +17,9 @@ interface ChatMessageProps {
   isAl: boolean;
   animate?: boolean;
   contacts?: Contact[];
-  showPlanningForm?: boolean;
   showFeedbackForm?: boolean;
-  onPlanningSubmit?: (message: string) => void;
+  showPlanningForm?: boolean;
+  onPlanningSubmit?: (message: string, newContent?: string) => void;
   onFeedbackSubmit?: (message: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
@@ -26,6 +27,7 @@ interface ChatMessageProps {
   defaultDate?: Date;
   defaultTime?: string;
   completedEvent?: CalendarEvent;
+  messageType?: 'morning' | 'evening' | 'post-event';
   messageId?: string;
   typewriterPlayed?: boolean;
 }
@@ -35,7 +37,6 @@ export const ChatMessage = ({
   isAl, 
   animate = true, 
   contacts,
-  showPlanningForm,
   showFeedbackForm,
   onPlanningSubmit,
   onFeedbackSubmit,
@@ -45,10 +46,13 @@ export const ChatMessage = ({
   defaultDate,
   defaultTime,
   completedEvent,
+  messageType,
+  showPlanningForm,
   messageId,
   typewriterPlayed = false,
 }: ChatMessageProps) => {
   const [isTypewriterComplete, setIsTypewriterComplete] = useState(typewriterPlayed);
+  const [showPlanningFormState, setShowPlanningForm] = useState(showPlanningForm);
 
   // Effect to update typewriter_played in database when animation completes
   useEffect(() => {
@@ -102,16 +106,34 @@ export const ChatMessage = ({
             </div>
           )}
           {/* Render planning form if all conditions are met */}
-          {showPlanningForm && onPlanningSubmit && isTypewriterComplete && (
+          {isTypewriterComplete && (showPlanningForm || (isAl && messageType === 'morning')) && (
             <div className="mt-4">
-              <PlanningForm
-                onSubmit={onPlanningSubmit}
-                defaultContacts={defaultContacts}
-                defaultActivity={defaultActivity}
-                defaultLocation={defaultLocation}
-                defaultDate={defaultDate}
-                defaultTime={defaultTime}
-              />
+              {showPlanningFormState ? (
+                <PlanningForm
+                  onSubmit={(message, newContent) => {
+                    if (onPlanningSubmit) {
+                      onPlanningSubmit(message, newContent);
+                    }
+                    if (!newContent) {
+                      setShowPlanningForm(false);
+                    }
+                  }}
+                  defaultContacts={defaultContacts}
+                  defaultActivity={defaultActivity}
+                  defaultLocation={defaultLocation}
+                  defaultDate={defaultDate}
+                  defaultTime={defaultTime}
+                />
+              ) : (
+                <Button 
+                  onClick={() => setShowPlanningForm(true)}
+                  variant="outline"
+                  className="w-full justify-start"
+                >
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Add something to calendar
+                </Button>
+              )}
             </div>
           )}
           {showFeedbackForm && onFeedbackSubmit && (
@@ -131,16 +153,7 @@ export const ChatMessage = ({
         </div>
       ) : (
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm">
-          <div className="whitespace-pre-line prose prose-lg max-w-none prose-invert">
-            <ReactMarkdown>{content}</ReactMarkdown>
-          </div>
-          {contacts && contacts.length > 0 && (
-            <div className="mt-4 space-y-4">
-              {contacts.map((contact, index) => (
-                <ContactCard key={`${contact.name}-${index}`} {...contact} />
-              ))}
-            </div>
-          )}
+          <div className="whitespace-pre-line">{content}</div>
         </div>
       )}
     </div>

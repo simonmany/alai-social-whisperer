@@ -20,6 +20,8 @@ export interface Message {
   eventTitle?: string;
   completedEvent?: CalendarEvent;
   typewriterPlayed?: boolean;
+  messageType?: "morning" | "evening" | "post-event";
+  metadata?: any
 }
 
 export interface SuggestedPromptItem {

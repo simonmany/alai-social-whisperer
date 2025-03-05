@@ -129,22 +129,41 @@ export abstract class Agent {
     isSecret: boolean,
     isAI: boolean,
     event_id?: string,
-    event_title?: string
+    event_title?: string,
+    isMorningCheckin?: boolean,
+    isEveningCheckin?: boolean
   ) {
-    console.log('storing message with event:', { event_id, event_title });
-    const { error: userMessageError } = await supabase.from('chat_history').insert([
-      {
-        user_id: userId,
-        message,
-        is_secret: isSecret,
-        is_ai: isAI,
-        event_id,
-        event_title
-      },
-    ]);
+    console.log('Saving chat message:', { 
+      userId,
+      isAI,
+      isSecret,
+      event_id,
+      event_title,
+      isMorningCheckin,
+      isEveningCheckin,
+      messagePreview: message.substring(0, 100) + '...'
+    });
+
+    const messageData = {
+      user_id: userId,
+      message,
+      is_secret: isSecret,
+      is_ai: isAI,
+      event_id,
+      event_title,
+      morning_checkin: isMorningCheckin,
+      evening_checkin: isEveningCheckin
+    };
+
+    console.log('Message data to insert:', messageData);
+
+    const { error: userMessageError } = await supabase.from('chat_history').insert([messageData]);
+
     if (userMessageError) {
       console.error('Error storing message:', userMessageError);
       throw userMessageError;
     }
+
+    console.log('Successfully saved chat message');
   }
 }
