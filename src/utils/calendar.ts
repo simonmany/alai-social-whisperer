@@ -1,7 +1,43 @@
 import { CapacitorCalendar, CalendarEvent, CalendarPermissionScope } from "@ebarooni/capacitor-calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { Capacitor } from "@capacitor/core";
+import { Contact } from "@/types/contacts";
 
+
+async function matchAttendeesToContacts(userId: string, attendees: CalendarEvent['attendees']): Promise<Array<Contact>> {
+  let contacts: Contact[] = [];
+  for (const attendee of attendees) {
+    const { data: findContact, error: findError } = await supabase
+      .from('contacts')
+      .select('*')
+      .eq('user_id', userId)
+      .or(
+        `name.eq.${attendee.name},email.eq.${attendee.name},email.eq.${attendee.email}`
+      )
+      .single();
+
+      if (findError && findError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+        console.error('Error finding contact:', findError);
+        continue;
+      }
+      if (findContact) contacts.push(findContact);
+    if (!findContact) {
+      const { data: newContact, error } = await supabase
+        .from('contacts')
+        .upsert({
+          name: attendee.name,
+          email: attendee.email,
+          user_id: userId
+        })
+        .select('*')
+        .limit(1)
+        .single();
+        console.log('Creating new contact', newContact);
+        contacts.push(newContact);
+    }
+  }
+  return contacts;
+}
 
 export async function checkPermissions(): Promise<{ 
   status: 'read' | 'write' | 'all' | 'none';
@@ -102,6 +138,8 @@ export const synchronizeEvents = async (userId: string): Promise<{
         calendar_event_id: nativeEvent.id,
       };
 
+      let attendees = await matchAttendeesToContacts(userId, nativeEvent.attendees);
+
       if (!existingEvent) {
         // Insert new event
         const { error: insertError } = await supabase
@@ -117,14 +155,32 @@ export const synchronizeEvents = async (userId: string): Promise<{
         existingEvent.start_time !== eventData.start_time ||
         existingEvent.end_time !== eventData.end_time ||
         existingEvent.location !== eventData.location ||
-        existingEvent.description !== eventData.description
+        existingEvent.description !== eventData.description ||
+        existingEvent.event_attendees?.length !== attendees?.length
       ) {
-        console.log('updating event ', JSON.stringify(eventData, null, 2))
         // Update existing event if there are changes
         const { error: updateError } = await supabase
           .from('calendar_events')
           .update(eventData)
           .eq('id', existingEvent.id);
+
+        // Add all attendees to event_attendees table
+        const { error: attendeesError } = await supabase
+          .from('event_attendees')
+          .upsert(
+            attendees.map(attendee => ({
+              event_id: existingEvent.id,
+              contact_id: attendee.id,
+            })),
+            { 
+              onConflict: 'event_id, contact_id',
+              ignoreDuplicates: false
+            }
+          );
+
+        if (attendeesError) {
+          console.error('Failed to update event attendees:', attendeesError);
+        }
 
         if (updateError) {
           console.error('Failed to update event:', updateError);

@@ -23,6 +23,8 @@ import { format } from "date-fns";
 import { TIME_OPTIONS } from "@/utils/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Message, ChatHistoryMessage } from "@/types/chat";
+import { Capacitor } from '@capacitor/core';
+import { Contacts } from '@skektec/capacitor-contacts';
 import { CalendarEvent } from "@/types/calendar";
 
 const Index = () => {
@@ -41,6 +43,7 @@ const Index = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
+  const [lastContactSync, setLastContactSync] = useState<Date | null>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -809,7 +812,130 @@ const Index = () => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [navigate, toast]);
-  
+
+  const syncContacts = async () => {
+    if (!Capacitor.isNativePlatform() || !session?.user?.id) return;
+
+    try {
+      const { contacts } = await Contacts.getContacts({
+        projection: {
+          name: true,
+          phones: true,
+          emails: true,
+          postalAddresses: true,
+        }
+      });
+
+      for (const contact of contacts) {
+        const { data: existingContact, error: checkError } = await supabase
+          .from('contacts')
+          .select('id, name, phone, email, address')
+          .eq('user_id', session.user.id)
+          .eq('name', contact.name.display)
+          .limit(1)
+          .maybeSingle();
+
+        if (checkError) throw checkError;
+
+        if (!existingContact) {
+          const { error: insertError } = await supabase
+            .from('contacts')
+            .insert({
+              user_id: session.user.id,
+              name: contact.name.display,
+              phone: contact.phones?.[0]?.number,
+              email: contact.emails?.[0]?.address,
+              address: contact.postalAddresses?.[0]?.street ? `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}` : null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+
+          if (insertError) throw insertError;
+        }
+        else if (
+          existingContact.name !== contact.name.display
+          || existingContact.phone !== contact.phones?.[0]?.number
+          || existingContact.email !== contact.emails?.[0]?.address
+          || existingContact.address !== `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}`
+        ) {
+          const { error: updateError } = await supabase
+            .from('contacts')
+            .update({
+              name: contact.name.display,
+              phone: contact.phones?.[0]?.number,
+              email: contact.emails?.[0]?.address,
+              address: contact.postalAddresses?.[0]?.street ? `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}` : null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingContact.id);
+
+          if (updateError) throw updateError;
+        }
+
+      }
+
+      setLastContactSync(new Date());
+    } catch (error) {
+      console.error('Error syncing contacts:', error);
+      toast({
+        title: "Error syncing contacts",
+        description: "There was an error syncing your contacts. Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getLastContactSync = async () => {
+    if (!session?.user?.id) {
+      console.log('No session user id available');
+      return null;
+    }
+    
+    try {
+      console.log('Fetching last contact sync for user:', session.user.id);
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error in getLastContactSync:', error);
+        throw error;
+      }
+      console.log('created data', data);
+      return data ? new Date(data.created_at) : null;
+    } catch (error) {
+      console.error('Error fetching last contact sync:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      console.log('Not on native platform, skipping contact sync');
+      return;
+    }
+
+    // Set initial lastContactSync based on most recent contact
+    getLastContactSync().then(date => {
+      console.log('Setting lastContactSync to:', date);
+      setLastContactSync(date);
+      // If the last sync was > 6 hours ago, sync now
+      if (date && Date.now() - date.getTime() > 6 * 60 * 60 * 1000) {
+        console.log('Last contact sync was more than 6 hours ago, syncing now');
+        syncContacts();
+      }
+    });
+
+    // Set up periodic sync (every 6 hours)
+    const syncInterval = setInterval(syncContacts, 6 * 60 * 60 * 1000);
+
+    return () => clearInterval(syncInterval);
+  }, [session?.user?.id]);
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
