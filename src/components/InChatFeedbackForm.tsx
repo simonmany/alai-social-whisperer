@@ -87,14 +87,17 @@ export const InChatFeedbackForm = ({
         .from('calendar_events')
         .select(`
           id,
+          user_id,
           title,
           start_time,
+          end_time,
           location,
           feedback_sent,
           event_attendees!left (
             contacts!contact_id (
               id,
-              name
+              name,
+              user_id
             )
           )
         `)
@@ -131,13 +134,16 @@ export const InChatFeedbackForm = ({
           // Map attendees from event_attendees
           const attendees = event.event_attendees?.map(ea => ({
             id: ea.contacts.id,
-            name: ea.contacts.name
+            name: ea.contacts.name,
+            user_id: ea.contacts.user_id
           })) || [];
           
           return {
             id: event.id,
+            user_id: event.user_id,
             title: event.title,
             start_time: event.start_time,
+            end_time: event.end_time,
             location: event.location,
             attendees,
             time: timeStr
