@@ -79,23 +79,27 @@ export const TypewriterText = ({
   }, [text, onComplete, delay, typingSpeed]);
 
   return (
-    <div className={cn("relative inline", className)}>
-      <div className="inline-flex flex-wrap items-baseline whitespace-pre-wrap">
-        <ReactMarkdown className="inline whitespace-pre-wrap">{displayedText}</ReactMarkdown>
-        {isTyping && (
-          <span 
-            aria-hidden="true"
-            className="inline-block border-r border-current"
-            style={{
-              height: '1em',
-              animation: 'cursor-blink 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite',
-              marginLeft: '1px',
-              marginTop: '0.15em',
-              marginBottom: '-0.15em',
-            }}
-          />
-        )}
-      </div>
+    <div className={cn("relative", className)}>
+      <span className="whitespace-pre-wrap">
+        {displayedText.split('\n').map((line, i, arr) => (
+          <span key={i}>
+            {line}
+            {i === arr.length - 1 && isTyping && (
+              <span 
+                aria-hidden="true"
+                className="inline-block border-r-2 border-current"
+                style={{
+                  height: '1.2em',
+                  animation: 'cursor-blink 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite',
+                  marginLeft: '1px',
+                  verticalAlign: 'middle',
+                }}
+              />
+            )}
+            {i < arr.length - 1 && <br />}
+          </span>
+        ))}
+      </span>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes cursor-blink {
           0%, 100% { opacity: 1; }
