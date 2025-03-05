@@ -2,6 +2,7 @@ import { Contact } from "./contacts";
 import { CalendarEvent } from "./calendar";
 
 export interface Message {
+  id?: string;
   content: string;
   isAl: boolean;
   is_secret?: boolean;
@@ -19,6 +20,7 @@ export interface Message {
   eventTitle?: string;
   completedEvent?: CalendarEvent;
   messageType?: "morning" | "evening" | "post-event";
+  metadata?: any
 }
 
 export interface SuggestedPromptItem {

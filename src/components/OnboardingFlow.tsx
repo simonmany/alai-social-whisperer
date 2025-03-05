@@ -45,9 +45,10 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine1, setHasPlayedLine1] = useState(false);
   const [hasPlayedLine2, setHasPlayedLine2] = useState(false);
   const [hasPlayedLine3, setHasPlayedLine3] = useState(false);
-  const [hasPlayedLine4, setHasPlayedLine4] = useState(false);
-  const [hasPlayedLine4Part2, setHasPlayedLine4Part2] = useState(false);
-  const [hasPlayedLine5, setHasPlayedLine5] = useState(false);
+  const [hasPlayedCalendarIntro1, setHasPlayedCalendarIntro1] = useState(false);
+  const [hasPlayedCalendarIntro2, setHasPlayedCalendarIntro2] = useState(false);
+  const [hasPlayedContactsIntro1, setHasPlayedContactsIntro1] = useState(false);
+  const [hasPlayedContactsIntro2, setHasPlayedContactsIntro2] = useState(false);
   const [isAnalyzingInterests, setIsAnalyzingInterests] = useState(false);
   const [showActivities, setShowActivities] = useState(false);
   const [showFood, setShowFood] = useState(false);
@@ -74,9 +75,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const [hasPlayedLine3Part3, setHasPlayedLine3Part3] = useState(false);
   const [hasPlayedLine3Part4, setHasPlayedLine3Part4] = useState(false);
   const [hasPlayedLine3Part5, setHasPlayedLine3Part5] = useState(false);
-  const [hasPlayedLine3Part6, setHasPlayedLine3Part6] = useState(false);
-  const [hasPlayedLine3Part7, setHasPlayedLine3Part7] = useState(false);
-  const [hasPlayedLine3Part8, setHasPlayedLine3Part8] = useState(false);
 
   const [contacts, setContacts] = useState<Array<{id: string, name: string, phone?: string}>>([]);
   const [filteredContacts, setFilteredContacts] = useState<Array<{id: string, name: string, phone?: string}>>([]);
@@ -409,11 +407,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 {hasPlayedLine3Part1 && (
                   <ul className="list-none space-y-2 mt-4 ml-4">
                     {hasPlayedLine3Part2 ? (
-                      <li>- best friends</li>
+                      <li>- best friends, new friends, and old friends</li>
                     ) : (
                       <TypewriterText
                         key="line3-part2"
-                        text="- best friends"
+                        text="- best friends, new friends, and old friends"
                         delay={250}
                         typingSpeed={25}
                         onComplete={() => setHasPlayedLine3Part2(true)}
@@ -422,11 +420,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
                     {hasPlayedLine3Part2 && (
                       hasPlayedLine3Part3 ? (
-                        <li>- new friends</li>
+                        <li>- family and romantic partners</li>
                       ) : (
                         <TypewriterText
                           key="line3-part3"
-                          text="- new friends"
+                          text="- family and romantic partners"
                           delay={250}
                           typingSpeed={25}
                           onComplete={() => setHasPlayedLine3Part3(true)}
@@ -436,11 +434,11 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
                     {hasPlayedLine3Part3 && (
                       hasPlayedLine3Part4 ? (
-                        <li>- old friends</li>
+                        <li>- coworkers, schoolmates, and hobby friends</li>
                       ) : (
                         <TypewriterText
                           key="line3-part4"
-                          text="- old friends"
+                          text="- coworkers, schoolmates, and hobby friends"
                           delay={250}
                           typingSpeed={25}
                           onComplete={() => setHasPlayedLine3Part4(true)}
@@ -450,57 +448,15 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
                     {hasPlayedLine3Part4 && (
                       hasPlayedLine3Part5 ? (
-                        <li>- family</li>
+                        <li>- and people you haven't met yet</li>
                       ) : (
                         <TypewriterText
                           key="line3-part5"
-                          text="- family"
-                          delay={250}
-                          typingSpeed={25}
-                          onComplete={() => setHasPlayedLine3Part5(true)}
-                        />
-                      )
-                    )}
-
-                    {hasPlayedLine3Part5 && (
-                      hasPlayedLine3Part6 ? (
-                        <li>- lovers</li>
-                      ) : (
-                        <TypewriterText
-                          key="line3-part6"
-                          text="- lovers"
-                          delay={250}
-                          typingSpeed={25}
-                          onComplete={() => setHasPlayedLine3Part6(true)}
-                        />
-                      )
-                    )}
-
-                    {hasPlayedLine3Part6 && (
-                      hasPlayedLine3Part7 ? (
-                        <li>- work connections</li>
-                      ) : (
-                        <TypewriterText
-                          key="line3-part7"
-                          text="- work connections"
-                          delay={250}
-                          typingSpeed={25}
-                          onComplete={() => setHasPlayedLine3Part7(true)}
-                        />
-                      )
-                    )}
-
-                    {hasPlayedLine3Part7 && (
-                      hasPlayedLine3Part8 ? (
-                        <li>- and people you haven't even met yet.</li>
-                      ) : (
-                        <TypewriterText
-                          key="line3-part8"
-                          text="- and people you haven't even met yet."
+                          text="- and people you haven't met yet"
                           delay={250}
                           typingSpeed={25}
                           onComplete={() => {
-                            setHasPlayedLine3Part8(true);
+                            setHasPlayedLine3Part5(true);
                             setHasPlayedLine3(true);
                           }}
                         />
@@ -512,36 +468,36 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             )}
 
             {hasPlayedLine3 && (
-              hasPlayedLine4 ? (
+              hasPlayedContactsIntro1 ? (
                 <div className="text-xl">It's a lot to process - that's why I'm here.</div>
               ) : (
                 <TypewriterText
-                  key="line4"
+                  key="contacts-intro-1"
                   text="It's a lot to process - that's why I'm here."
                   delay={250}
                   typingSpeed={25}
-                  onComplete={() => setHasPlayedLine4(true)}
+                  onComplete={() => setHasPlayedContactsIntro1(true)}
                   className="text-xl"
                 />
               )
             )}
 
-            {hasPlayedLine4 && (
-              hasPlayedLine5 ? (
+            {hasPlayedContactsIntro1 && (
+              hasPlayedContactsIntro2 ? (
                 <div className="text-xl">Connect your contacts to get started - I'll never share your info with anyone else.</div>
               ) : (
                 <TypewriterText
-                  key="line5"
+                  key="contacts-intro-2"
                   text="Connect your contacts to get started - I'll never share your info with anyone else."
                   delay={250}
                   typingSpeed={25}
-                  onComplete={() => setHasPlayedLine5(true)}
+                  onComplete={() => setHasPlayedContactsIntro2(true)}
                   className="text-xl"
                 />
               )
             )}
 
-            {hasPlayedLine5 && (
+            {hasPlayedContactsIntro2 && (
               <div className="flex flex-col space-y-4 mt-8">
                 {Capacitor.isNativePlatform() && (
                   <Button 
@@ -616,7 +572,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
 
         {step === 'calendar' && (
           <div className="space-y-8">
-            {hasPlayedLine4 && hasPlayedLine4Part2 ? (
+            {hasPlayedCalendarIntro1 && hasPlayedCalendarIntro2 ? (
               <div className="space-y-4">
                 <div className="text-xl">
                   Now that I know who you know, I'd love to help you find the perfect time to meet them!
@@ -625,7 +581,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   Connect your calendar to help me schedule events.
                 </div>
               </div>
-            ) : hasPlayedLine4 ? (
+            ) : hasPlayedCalendarIntro1 ? (
               <div className="space-y-4">
                 <div className="text-xl">
                   Now that I know who you know, I'd love to help you find the perfect time to meet them!
@@ -635,7 +591,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                   text="Connect your calendar to help me schedule events."
                   delay={250}
                   typingSpeed={25}
-                  onComplete={() => setHasPlayedLine4Part2(true)}
+                  onComplete={() => setHasPlayedCalendarIntro2(true)}
                   className="text-xl"
                 />
               </div>
@@ -645,7 +601,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                 text="Now that I know who you know, I'd love to help you find the perfect time to meet them!"
                 delay={250}
                 typingSpeed={25}
-                onComplete={() => setHasPlayedLine4(true)}
+                onComplete={() => setHasPlayedCalendarIntro1(true)}
                 className="text-xl"
               />
             )}

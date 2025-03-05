@@ -89,8 +89,10 @@ const Index = () => {
         if (error) throw error;
 
         if (data && data.length > 0) {
-          const historyMessages = await Promise.all((data as ChatHistoryMessage[]).map(async msg => {
-            // Try to parse the message content as JSON to get the type
+          const historyMessages = await Promise.all((data as ChatHistoryMessage[]).map(async (msg, index) => {
+            let messageContent = msg.message;
+            let messageMetadata = null;
+            
             let messageType: 'morning' | 'evening' | 'post-event' | undefined;
 
             if (msg.morning_checkin) {
@@ -100,40 +102,43 @@ const Index = () => {
             } else if (msg.event_id) {
               messageType = 'post-event';
             }
-            let displayContent = msg.message;
-
-            // TODO (ari) maybe delete??
             try {
-              console.log('Trying to parse message:', msg.message);
-              const parsedContent = JSON.parse(msg.message);
-              console.log('Parsed content:', parsedContent);
-              if (parsedContent && parsedContent.type && parsedContent.text) {
-                messageType = parsedContent.type;
-                displayContent = parsedContent.text;
-                console.log('Found type and text:', { messageType, displayContent });
+              // Handle both string and JSON message formats
+              if (typeof msg.message === 'string') {
+                try {
+                  const parsedMessage = JSON.parse(msg.message);
+                  if (parsedMessage.text && parsedMessage.metadata) {
+                    messageContent = parsedMessage.text;
+                    messageMetadata = parsedMessage.metadata;
+                  }
+                } catch (parseError) {
+                  // If parsing fails, use the message as-is
+                  messageContent = msg.message;
+                  console.log('Message is plain text:', messageContent);
+                }
+              } else if (typeof msg.message === 'object') {
+                // Handle case where message is already an object
+                messageContent = msg.message.text || msg.message;
+                messageMetadata = msg.message.metadata;
               }
             } catch (e) {
-              console.log('Not JSON message:', e);
+              // Message is not in JSON format, use as is
             }
             
-            console.log('Processing message:', {
-              message: msg.message,
-              is_ai: msg.is_ai,
-              messageType,
-              event_id: msg.event_id
-            });
-            
             const message: Message = {
-              content: displayContent,
+              id: msg.id,
+              content: messageContent,
               isAl: msg.is_ai,
               is_secret: msg.is_secret,
               eventId: msg.event_id,
               eventTitle: msg.event_title,
               showFeedbackForm: msg.event_id ? true : false,
-              onPlanningSubmit: messageType === 'morning' ? handlePlanSubmit : undefined,
-              //defaultContacts: msg.default_contact ? [{ name: msg.default_contact }] : undefined,
-              defaultActivity: msg.default_activity,
               messageType,
+              // Only show planning form for the latest onboarding message
+              showPlanningForm: msg.is_onboarding_message && index === data.length - 1,
+              onPlanningSubmit: handlePlanSubmit,
+              //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
+              defaultActivity: messageMetadata?.defaultActivity
             };
             
             console.log('Created message object:', message);
@@ -193,10 +198,36 @@ const Index = () => {
           }));
           setMessages(historyMessages);
         } else {
+          // Set initial welcome message with default metadata
+          const initialMessage = {
+            text: "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?",
+            metadata: {
+              defaultContact: null,
+              defaultActivity: null
+            }
+          };
+          
           setMessages([{ 
-            content: "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?", 
+            content: initialMessage.text,
             isAl: true,
+            metadata: initialMessage.metadata
           }]);
+          
+          // Store in chat history
+          const { data: insertedMessage, error: insertError } = await supabase
+            .from('chat_history')
+            .insert([{
+              message: JSON.stringify(initialMessage),
+              is_ai: true,
+              user_id: session.user.id,
+              is_onboarding_message: false
+            }])
+            .select()
+            .single();
+            
+          if (insertError) {
+            console.error('Error inserting initial message:', insertError);
+          }
         }
       } catch (error) {
         console.error('Error loading chat history:', error);
@@ -281,18 +312,65 @@ const Index = () => {
         }
       }
 
-      const desiredInterest = profileData?.desired_interests[0] || '';
+      console.log('profileData:', profileData);
+      console.log('desired_interests:', profileData?.desired_interests);
+      const desiredInterest = profileData?.desired_interests?.[0] || '';
 
-      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\nI don't know you well yet, but I like you already.\n\n${contactName ? `Let's dive right in and get started planning your first Hang. You mentioned wanting to see ${contactName}. Let's make that happen!` : "Let's dive right in and get started planning your first Hang!"}`;
-
-      await supabase
+      const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\n${contactName ? `Let's dive right in and get started planning your first Hang!\n\nYou mentioned wanting to see ${contactName} for ${desiredInterest}. Now, we just need to figure out *when* and *where*. You can fill in the blanks yourself, or have AI figure it out for you based on your calendar and location!` : "Let's dive right in and get started planning your first Hang!"}`;
+      
+      // Insert welcome message into chat history with metadata in the message
+      const messageMetadata = {
+        defaultContact: contactName,
+        defaultActivity: desiredInterest
+      };
+      
+      const { data: insertedMessage, error: insertError } = await supabase
         .from('chat_history')
         .insert([{
-          message: welcomeMessage,
+          message: JSON.stringify({
+            text: welcomeMessage,
+            metadata: messageMetadata
+          }),
           is_ai: true,
           user_id: session.user.id,
           is_onboarding_message: true
-        }]);
+        }])
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error('Error inserting welcome message:', insertError);
+        return;
+      }
+
+      // Wait for the real-time subscription to catch up
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Verify the message was inserted
+      const { data: verifyMessage, error: verifyError } = await supabase
+        .from('chat_history')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('is_onboarding_message', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+        
+      if (verifyError || !verifyMessage) {
+        console.error('Error verifying welcome message:', verifyError);
+        // Retry the message insertion
+        await supabase
+          .from('chat_history')
+          .insert([{
+            message: JSON.stringify({
+              text: welcomeMessage,
+              metadata: messageMetadata
+            }),
+            is_ai: true,
+            user_id: session.user.id,
+            is_onboarding_message: true
+          }]);
+      }
       
       setTutorialComplete(false);
       setShowProfileButton(false);
@@ -308,23 +386,39 @@ const Index = () => {
         .order('created_at', { ascending: true });
 
       if (latestMessages) {
-        const historyMessages = latestMessages.map(msg => ({
-          content: msg.message,
-          isAl: msg.is_ai,
-          is_secret: msg.is_secret,
-        }));
+        const historyMessages = latestMessages.map((msg, index) => {
+          let messageContent = msg.message;
+          let messageMetadata = null;
+          
+          try {
+            console.log('Parsing message:', msg.message);
+            const parsedMessage = JSON.parse(msg.message);
+            console.log('Parsed message:', parsedMessage);
+            if (parsedMessage.text && parsedMessage.metadata) {
+              messageContent = parsedMessage.text;
+              messageMetadata = parsedMessage.metadata;
+              console.log('Using parsed content:', messageContent);
+              console.log('Using metadata:', messageMetadata);
+            }
+          } catch (e) {
+            console.log('Message not in JSON format, using as is:', msg.message);
+          }
+
+          const isLatestMessage = index === latestMessages.length - 1;
+          
+          return {
+            id: msg.id,
+            content: messageContent,
+            isAl: msg.is_ai,
+            is_secret: msg.is_secret,
+            defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
+            defaultActivity: messageMetadata?.defaultActivity,
+            showPlanningForm: msg.is_onboarding_message && isLatestMessage,
+            onPlanningSubmit: handlePlanSubmit
+          };
+        });
         setMessages(historyMessages);
       }
-
-      // Now add the planning form
-      setMessages(prev => [...prev, { 
-        content: "", 
-        isAl: true,
-        showPlanningForm: true,
-        onPlanningSubmit: handlePlanSubmit,
-        defaultContacts: contactData ? [contactData] : [],
-        defaultActivity: desiredInterest
-      }]);
 
       if (contactData) {
         setSelectedContact(contactData);
@@ -517,6 +611,22 @@ const Index = () => {
             
             // If this is a post-event message, fetch the full event details with attendees
             let eventData = null;
+            // Parse message content if it's JSON
+            let messageContent = payload.new.message;
+            let messageMetadata = null;
+            
+            try {
+              if (typeof payload.new.message === 'string') {
+                const parsedMessage = JSON.parse(payload.new.message);
+                if (parsedMessage.text && parsedMessage.metadata) {
+                  messageContent = parsedMessage.text;
+                  messageMetadata = parsedMessage.metadata;
+                }
+              }
+            } catch (e) {
+              // Use message as-is if parsing fails
+              console.log('Message not in JSON format, using as is');
+            }
 
             if (payload.new.event_id) {
               console.log('Fetching event details for:', payload.new.event_id);
@@ -553,18 +663,19 @@ const Index = () => {
             console.log('Raw message:', payload.new.message);
 
             let newMessage: Message = {
-              content: payload.new.message,
+              id: payload.new.id, // Add message ID
+              content: messageContent,
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
-              contactInfo: payload.new.contact_info,
-              showFeedbackForm: eventData && !eventData.feedback_sent,
+              showPlanningForm: false,
+              showFeedbackForm: !!eventData && !eventData.feedback_sent,
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
-              completedEvent: eventData,
+              completedEvent: eventData || undefined,
               onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
               onPlanningSubmit: payload.new.morning_checkin ? handlePlanSubmit : undefined,
-              //defaultContacts: payload.new.default_contact ? [{ name: payload.new.default_contact }] : undefined,
-              defaultActivity: payload.new.default_activity,
+              //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
+              defaultActivity: messageMetadata?.defaultActivity,
               messageType
             };
 

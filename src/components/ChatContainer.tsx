@@ -107,6 +107,7 @@ export const ChatContainer = ({
                   onFeedbackSubmit={message.onFeedbackSubmit}
                   completedEvent={message.completedEvent}
                   messageType={message.messageType}
+                  messageId={message.id}
                 />
               );
             }
