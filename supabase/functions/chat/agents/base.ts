@@ -83,10 +83,47 @@ export abstract class Agent {
   }
 
   protected async getUserContacts(userId: string) {
-    const { data: contacts } = await supabase
-      .from('contacts')
-      .select('*')
-      .eq('user_id', userId);
+    // Fetch ALL contacts using pagination to overcome the 1000 row limit
+    // Supabase has a default limit of 1000 rows per query
+    const fetchAllContacts = async () => {
+      const PAGE_SIZE = 1000;
+      let allContacts: any[] = [];
+      let page = 0;
+      let hasMore = true;
+      
+      while (hasMore) {
+        const from = page * PAGE_SIZE;
+        const to = from + PAGE_SIZE - 1;
+        
+        console.log(`Fetching contacts page ${page} (${from}-${to})`);
+        
+        const { data, error } = await supabase
+          .from('contacts')
+          .select('*')
+          .eq('user_id', userId)
+          .range(from, to);
+        
+        if (error) {
+          console.error('Error fetching contacts:', error);
+          break;
+        }
+        
+        if (data && data.length > 0) {
+          allContacts = [...allContacts, ...data];
+          page++;
+          
+          // If we got fewer records than the page size, we've reached the end
+          hasMore = data.length === PAGE_SIZE;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`Fetched ${allContacts.length} total contacts for user ${userId}`);
+      return allContacts;
+    };
+    
+    const contacts = await fetchAllContacts();
     return contacts || [];
   }
 
