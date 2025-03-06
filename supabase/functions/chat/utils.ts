@@ -2,6 +2,103 @@ import { Contact } from "./types.ts";
 import { supabase } from '../_shared/supabase.ts';
 import { filterJSON } from "../_shared/utils.ts";
 
+/**
+ * Ensures contacts in AI responses are properly formatted
+ * Only uses exact contact ID matching against available contacts
+ * 
+ * @param response The AI response object
+ * @param availableContacts List of available contacts to match against
+ * @returns A formatted response with validated contacts
+ */
+export function ensureProperContactFormat(response: any, availableContacts: Contact[]): any {
+  if (!response) return response;
+  
+  // Create a copy of the response to avoid modifying the original
+  const formattedResponse = { ...response };
+  
+  // Check if contacts exist in the response
+  if (!formattedResponse.contacts) {
+    formattedResponse.contacts = [];
+    console.log('No contacts in response, using empty array');
+  }
+  
+  // Ensure contacts is an array
+  if (!Array.isArray(formattedResponse.contacts)) {
+    if (typeof formattedResponse.contacts === 'object' && formattedResponse.contacts !== null) {
+      // If it's a single object, wrap it in an array
+      formattedResponse.contacts = [formattedResponse.contacts];
+      console.log('Converted single contact object to array:', formattedResponse.contacts);
+    } else {
+      // Default to empty array for any other case
+      formattedResponse.contacts = [];
+      console.log('Invalid contacts format, using empty array');
+    }
+  }
+  
+  // Process each contact to ensure it has id and name
+  // ONLY match by exact contact ID, no name matching
+  formattedResponse.contacts = formattedResponse.contacts.map((contact: any, index: number) => {
+    if (typeof contact === 'object' && contact !== null && contact.id) {
+      // If it has an id, try to find the contact by exact ID match
+      const match = availableContacts.find(c => c.id === contact.id);
+      
+      if (match) {
+        return { id: match.id, name: match.name };
+      }
+    }
+    
+    // If no ID match, return null (will be filtered out)
+    return null;
+  }).filter(Boolean); // Remove null entries
+  
+  // If we don't have any valid contacts, suggest the first contact from available contacts
+  // This is just a fallback to ensure we have at least one contact
+  if (formattedResponse.contacts.length === 0 && availableContacts.length > 0) {
+    const suggestedContact = availableContacts[0];
+    formattedResponse.contacts = [{ id: suggestedContact.id, name: suggestedContact.name }];
+    
+    // Update the text to mention we're suggesting a contact
+    if (formattedResponse.text) {
+      formattedResponse.text += `
+
+I've suggested inviting ${suggestedContact.name} to this hangout.`;
+    }
+  }
+  
+  return formattedResponse;
+}
+
+/**
+ * Extracts JSON from a text string and merges it with a default response object
+ * 
+ * @param text The text to extract JSON from
+ * @param defaultResponse Optional default response to merge with extracted JSON
+ * @returns The extracted JSON merged with the default response, or just the default response if extraction fails
+ */
+export function extractJsonFromText(text: string, defaultResponse: any = { text, contacts: [] }): any {
+  console.log('Attempting to extract JSON from text');
+  
+  // Try to extract JSON from the text
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/m);
+    if (jsonMatch) {
+      console.log('Found potential JSON in text');
+      try {
+        const extractedJson = JSON.parse(jsonMatch[0]);
+        console.log('Successfully extracted JSON from text');
+        // Merge the extracted JSON with the default response
+        return { ...defaultResponse, ...extractedJson };
+      } catch (e) {
+        console.error('Failed to parse JSON from text match:', e);
+      }
+    }
+  } catch (e) {
+    console.error('Error trying to extract JSON from text:', e);
+  }
+  
+  return defaultResponse;
+}
+
 export async function searchGooglePlaces(searchString: string, location?: string): Promise<any> {
   const apiKey = Deno.env.get('VITE_PUBLIC_GOOGLE_MAPS_API_KEY');
   if (!apiKey) {

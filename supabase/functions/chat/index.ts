@@ -1,7 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ChitChatAgent } from "./agents/chitchat.ts";
-import { HangGeneratorAgent } from "./agents/hanggenerator.ts";
+import { HangGeneratorAgent } from "./agents/hanggeneratoragent.ts";
 import { PersonalityAnalyzerAgent } from "./agents/personalityanalyzer.ts";
 import { ConversationType } from "./types.ts";
 import { HangPlannerAgent } from "./agents/hangplanneragent.ts";

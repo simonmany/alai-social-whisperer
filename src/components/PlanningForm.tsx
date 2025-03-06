@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Users, Shuffle, Calendar, MapPin, UserPlus, Bot } from "lucide-react";
 import { Contact } from "@/types/contacts";
@@ -52,7 +52,10 @@ export const PlanningForm = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [askingAl, setAskingAl] = useState<'contacts' | 'activity' | 'datetime' | 'location' | null>(null);
 
-  const { data: contacts = [] } = useQuery({
+  // Define a type for the contacts map
+  type ContactsMap = Map<string, Contact>;
+
+  const { data: contactsData = [] } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       if (!session?.user?.id) return [];
@@ -104,6 +107,54 @@ export const PlanningForm = ({
     },
     enabled: !!session?.user?.id
   });
+
+  // Create a contacts map for efficient lookup by ID
+  const contactsMap: ContactsMap = useMemo(() => {
+    const map = new Map<string, Contact>();
+    contactsData.forEach(contact => {
+      if (contact && contact.id) {
+        map.set(contact.id, contact);
+      }
+    });
+    return map;
+  }, [contactsData]);
+
+  // For backward compatibility and where array operations are needed
+  const contacts = useMemo(() => Array.from(contactsMap.values()), [contactsMap]);
+
+  // Helper function to parse time string and convert to 24-hour format
+  const parseTimeString = (timeString: string): { hours: number, minutes: number } => {
+    const timeRegex = /(\d{1,2})(?::(\d{2}))?(?:\s*([AP]M))?/i;
+    const timeMatch = timeString.match(timeRegex);
+    
+    if (!timeMatch) {
+      console.warn('Invalid time format:', timeString);
+      return { hours: 18, minutes: 0 }; // Default to 6:00 PM
+    }
+    
+    let hours = parseInt(timeMatch[1]);
+    const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    const isPM = timeMatch[3] && timeMatch[3].toUpperCase().includes('PM');
+    
+    // Convert to 24-hour format
+    if (isPM && hours < 12) hours += 12;
+    if (!isPM && hours === 12) hours = 0;
+    
+    return { hours, minutes };
+  };
+
+  // Helper function to create a date object from date and time
+  const createDateFromDateAndTime = (dateObj: Date, timeString: string): { startDate: Date, endDate: Date } => {
+    const { hours, minutes } = parseTimeString(timeString);
+    
+    const startDate = new Date(dateObj);
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    const endDate = new Date(startDate);
+    endDate.setHours(endDate.getHours() + 2); // Default to 2 hour events
+    
+    return { startDate, endDate };
+  };
 
   const { data: closeContacts = [] } = useQuery({
     queryKey: ['closeContacts'],
@@ -183,6 +234,74 @@ export const PlanningForm = ({
     }
   };
 
+  const matchAndSetContacts = (responseContacts: any): boolean => {
+    // Ensure contacts is an array
+    let contactsArray = Array.isArray(responseContacts) ? responseContacts : 
+                         (typeof responseContacts === 'string' ? [responseContacts] : []);
+    
+    if (!Array.isArray(contactsArray) || contactsArray.length === 0) {
+      console.warn('Invalid contacts format or empty contacts array:', responseContacts);
+      return false;
+    }
+    
+    // Extract contact IDs from the response
+    const contactIds = contactsArray
+      .filter(contact => contact && (
+        (typeof contact === 'object' && contact.id) || 
+        typeof contact === 'string'
+      ))
+      .map(contact => {
+        if (typeof contact === 'object' && contact.id) {
+          return contact.id;
+        } else if (typeof contact === 'string') {
+          // Try to find by name match
+          const nameMatch = contacts.find(c => 
+            c.name.toLowerCase() === contact.toLowerCase()
+          );
+          return nameMatch?.id;
+        }
+        return null;
+      })
+      .filter(Boolean) as string[];
+    
+    if (contactIds.length === 0) {
+      console.warn('No valid contact IDs found in the response');
+      return false;
+    }
+    
+    // Match contacts by ID using the contactsMap for efficient lookup
+    const newContacts = contactIds
+      .map(id => contactsMap.get(id))
+      .filter(Boolean) as Contact[];
+    
+    if (newContacts.length === 0) {
+      console.warn('No contacts were matched from the AI response');
+      return false;
+    }
+    
+    // Create a Set of existing contact IDs for efficient lookup
+    const existingContactIds = new Set(selectedContacts.map(contact => contact.id));
+    
+    // Filter out contacts that are already selected
+    const contactsToAdd = newContacts.filter(contact => !existingContactIds.has(contact.id));
+    
+    if (contactsToAdd.length === 0) {
+      console.log('All suggested contacts are already selected');
+      return false;
+    }
+    
+    // Combine existing contacts with new ones
+    const combinedContacts = [...selectedContacts, ...contactsToAdd];
+    
+    console.log('Adding new contacts to selection:', 
+      contactsToAdd.map(c => ({ id: c.id, name: c.name })));
+    console.log('Combined contacts:', 
+      combinedContacts.map(c => ({ id: c.id, name: c.name })));
+    
+    setSelectedContacts(combinedContacts);
+    return true;
+  };
+
   const handleAskAl = async (field: 'contacts' | 'activity' | 'datetime' | 'location') => {
     if (!session?.user?.id || askingAl) return;
     
@@ -193,7 +312,6 @@ export const PlanningForm = ({
       // Use the HangPlannerAgent instead of ChitChatAgent
       // Pass only close contacts when requesting contact suggestions to avoid context limits
       const contactsToSend = field === 'contacts' ? closeContacts.slice(0, 10) : [];
-      console.log(`Sending ${contactsToSend.length} close contacts to AI for suggestions`);
       const data = await generateChatResponse(prompt, contactsToSend, true, ConversationType.HANG_PLANNER);
       
       if (data && typeof data === 'object') {
@@ -202,101 +320,7 @@ export const PlanningForm = ({
         
         // Update the form with Al's suggestion
         if (field === 'contacts' && response.contacts) {
-          console.log('Processing contacts suggestion:', response.contacts);
-          
-          // Handle different formats of contacts from the AI
-          let contactNames: string[] = [];
-          let contactIds: string[] = [];
-          
-          if (Array.isArray(response.contacts)) {
-            // Extract contact info from the response
-            response.contacts.forEach((contact: any) => {
-              if (typeof contact === 'string') {
-                contactNames.push(contact);
-              } else if (typeof contact === 'object') {
-                if (contact.id) contactIds.push(contact.id);
-                if (contact.name) contactNames.push(contact.name);
-              }
-            });
-          } else if (typeof response.contacts === 'string') {
-            // Handle case where contacts might be a comma-separated string
-            contactNames = response.contacts.split(',').map(name => name.trim());
-          }
-          
-          console.log('Extracted contact names:', contactNames);
-          console.log('Extracted contact IDs:', contactIds);
-          
-          // If we have a text response from AI, extract names from it
-          if (response.text && typeof response.text === 'string') {
-            // Look for names in the AI's text response
-            const nameRegex = /([A-Z][a-z]+ [A-Z][a-z]+)/g;
-            const namesInText = response.text.match(nameRegex) || [];
-            if (namesInText.length > 0) {
-              console.log('Found names in AI text response:', namesInText);
-              contactNames = [...contactNames, ...namesInText];
-            }
-          }
-          
-          // Try to find matches by ID first from all contacts
-          let suggestedContacts = contacts.filter(c => contactIds.includes(c.id));
-          
-          // If no ID matches, try exact name matches from all contacts
-          if (suggestedContacts.length === 0) {
-            suggestedContacts = contacts.filter(c => 
-              contactNames.some(name => c.name.toLowerCase() === name.toLowerCase())
-            );
-          }
-          
-          // If still no matches, try partial name matches from all contacts
-          if (suggestedContacts.length === 0) {
-            suggestedContacts = contacts.filter(c => 
-              contactNames.some(name => 
-                c.name.toLowerCase().includes(name.toLowerCase()) || 
-                name.toLowerCase().includes(c.name.toLowerCase())
-              )
-            );
-          }
-          
-          console.log('Found matching contacts:', suggestedContacts);
-          
-          if (suggestedContacts.length) {
-            // Take just the first suggested contact if there are multiple
-            const contactToAdd = suggestedContacts[0];
-            
-            // Only add if not already selected
-            if (!selectedContacts.some(c => c.id === contactToAdd.id)) {
-              console.log('Adding contact to selection:', contactToAdd);
-              setSelectedContacts([...selectedContacts, contactToAdd]);
-            } else {
-              console.log('Contact already selected:', contactToAdd);
-            }
-          } else {
-            console.log('No matching contacts found, trying more aggressive matching');
-            
-            // Try more aggressive matching - look for any partial match in either direction
-            for (const name of contactNames) {
-              // Find any contact that contains part of the name or vice versa
-              const possibleMatches = contacts.filter(c => 
-                c.name.toLowerCase().includes(name.toLowerCase().split(' ')[0]) || // First name match
-                c.name.toLowerCase().includes(name.toLowerCase().split(' ').pop() || '') || // Last name match
-                name.toLowerCase().includes(c.name.toLowerCase().split(' ')[0]) || // AI name contains contact first name
-                name.toLowerCase().includes(c.name.toLowerCase().split(' ').pop() || '') // AI name contains contact last name
-              );
-              
-              if (possibleMatches.length > 0) {
-                console.log(`Found possible matches for '${name}':`, possibleMatches);
-                const contactToAdd = possibleMatches[0];
-                
-                if (!selectedContacts.some(c => c.id === contactToAdd.id)) {
-                  console.log('Adding best match contact to selection:', contactToAdd);
-                  setSelectedContacts([...selectedContacts, contactToAdd]);
-                  return; // Exit after adding one contact
-                }
-              }
-            }
-            
-            console.log('No matching contacts found even with aggressive matching');
-          }
+          matchAndSetContacts(response.contacts);
         } else if (field === 'activity' && response.activity) {
           setActivity(response.activity);
         } else if (field === 'location' && response.location) {
@@ -337,27 +361,13 @@ export const PlanningForm = ({
             if (response.datetime.time) {
               console.log('Setting time from AI response:', response.datetime.time);
               
-              // Parse the time string to extract hours, minutes, and AM/PM
-              const timeRegex = /(\d{1,2})(?::(\d{2}))?(\s*[AP]M)?/i;
-              const timeMatch = response.datetime.time.match(timeRegex);
+              // Use the helper function to parse the time
+              const { hours, minutes } = parseTimeString(response.datetime.time);
               
-              if (timeMatch) {
-                let hours = parseInt(timeMatch[1]);
-                const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
-                const isPM = timeMatch[3] && timeMatch[3].toUpperCase().includes('PM');
-                
-                // Convert to 24-hour format
-                if (isPM && hours < 12) hours += 12;
-                if (!isPM && hours === 12) hours = 0;
-                
-                // Format time as HH:MM
-                const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-                console.log('Formatted time for dropdown:', formattedTime);
-                setSelectedTime(formattedTime);
-              } else {
-                // If we can't parse the time, just use it as is
-                setSelectedTime(response.datetime.time);
-              }
+              // Format time as HH:MM
+              const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+              console.log('Formatted time for dropdown:', formattedTime);
+              setSelectedTime(formattedTime);
             }
           } catch (error) {
             console.error('Error parsing date/time from AI response:', error);
@@ -381,7 +391,7 @@ export const PlanningForm = ({
         }
         
         // Send the AI's response to the chat
-        onSubmit("", response.text || response.message || "Here's my suggestion.");
+        onSubmit("", response.text || "Here's my suggestion.");
       }
     } catch (error) {
       console.error('Error getting AI suggestions:', error);
@@ -392,7 +402,7 @@ export const PlanningForm = ({
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
     if (!session?.user?.id || isSubmitting) return;
     
     setIsSubmitting(true);
@@ -441,9 +451,7 @@ export const PlanningForm = ({
           if (data && typeof data === 'object') {
             console.log('Received data from HangGenerator:', JSON.stringify(data, null, 2));
 
-            let response = data.response || data;
-            console.log('Processing response:', JSON.stringify(response, null, 2));
-            
+            let response = data.response || data;            
             // Check if the response is a string (not JSON)
             if (typeof response === 'string' || (response.text && !response.contacts)) {
               console.log('Response appears to be plain text, attempting to extract JSON');
@@ -452,7 +460,6 @@ export const PlanningForm = ({
                 // Look for JSON-like structure in the text
                 const jsonMatch = response.text?.match(/\{[\s\S]*\}/m);
                 if (jsonMatch) {
-                  console.log('Found potential JSON in text:', jsonMatch[0]);
                   try {
                     const extractedJson = JSON.parse(jsonMatch[0]);
                     console.log('Successfully parsed JSON from text:', extractedJson);
@@ -466,186 +473,13 @@ export const PlanningForm = ({
                 console.error('Error trying to extract JSON from text:', e);
               }
             }
-            
-            console.log('Final processed response:', JSON.stringify(response, null, 2));
-            console.log('Response contacts (raw):', response.contacts);
-            
+                        
             // Update form with AI suggestions
             let formUpdated = false;
             
             // Check if we have contacts in the response
-            if (response.contacts) {
-              console.log('Raw contacts from HangGenerator:', response.contacts);
-              
-              // Try to extract contacts from text if no structured contacts
-              if (response.text && (!response.contacts.length || !Array.isArray(response.contacts))) {
-                console.log('Trying to extract contacts from text:', response.text);
-                // Look for names in the AI's text response
-                const nameRegex = /([A-Z][a-z]+ [A-Z][a-z]+)/g;
-                const namesInText = response.text.match(nameRegex) || [];
-                if (namesInText.length > 0) {
-                  console.log('Found names in AI text response:', namesInText);
-                  response.contacts = namesInText.map(name => ({ name }));
-                }
-              }
-              
-              // Ensure contacts is an array
-              const contactsArray = Array.isArray(response.contacts) ? response.contacts : 
-                                   (typeof response.contacts === 'string' ? [response.contacts] : []);
-              
-              console.log('Normalized contacts array:', contactsArray);
-              
-              // Extract contact IDs from the response - ONLY use IDs, no name matching
-              let contactIds: string[] = [];
-              
-              // Ensure we're dealing with an array
-              if (!Array.isArray(response.contacts)) {
-                console.warn('Response contacts is not an array:', response.contacts);
-                if (response.contacts && typeof response.contacts === 'object') {
-                  // Single object case
-                  contactsArray = [response.contacts];
-                } else {
-                  contactsArray = [];
-                }
-              }
-              
-              console.log('Processing contacts array:', JSON.stringify(contactsArray, null, 2));
-              
-              // Extract IDs from each contact object
-              contactsArray.forEach((contact: any, index: number) => {
-                console.log(`Processing contact ${index}:`, contact);
-                if (typeof contact === 'object' && contact !== null) {
-                  if (contact.id) {
-                    console.log(`Found contact ID: ${contact.id} for ${contact.name || 'unnamed contact'}`);
-                    contactIds.push(contact.id);
-                  } else if (contact.name) {
-                    // Try to find a matching contact by name as a fallback
-                    console.warn('Contact object has no ID but has name:', contact.name);
-                    const nameMatch = contacts.find(c => 
-                      c.name.toLowerCase() === contact.name.toLowerCase()
-                    );
-                    if (nameMatch) {
-                      console.log(`Found contact by name match: ${nameMatch.id} (${nameMatch.name})`);
-                      contactIds.push(nameMatch.id);
-                    } else {
-                      console.warn(`No contact found with name: ${contact.name}`);
-                    }
-                  } else {
-                    console.warn('Contact object has no ID or name:', contact);
-                  }
-                } else if (typeof contact === 'string') {
-                  console.warn('Contact is a string, not an object with ID:', contact);
-                  // Try to find a matching contact by name as a fallback
-                  const nameMatch = contacts.find(c => 
-                    c.name.toLowerCase() === contact.toLowerCase()
-                  );
-                  if (nameMatch) {
-                    console.log(`Found contact by string name match: ${nameMatch.id} (${nameMatch.name})`);
-                    contactIds.push(nameMatch.id);
-                  }
-                }
-              });
-              
-              console.log('Extracted contact IDs:', contactIds);
-              console.log(`Available contacts for matching: ${contacts.length} total contacts`);
-              
-              // Function to match contacts by ID against ALL available contacts
-              // Optimized for performance with large contact lists
-              const matchContactsById = (contactIds: string[], allContacts: Contact[]) => {
-                console.log(`Matching ${contactIds.length} contact IDs against ${allContacts.length} total contacts`);
-                
-                // Early exit if no contacts to match
-                if (contactIds.length === 0 || allContacts.length === 0) {
-                  console.log('No contacts to match or no available contacts');
-                  return [];
-                }
-                
-                // Create a map for faster lookup - O(n) operation once
-                const contactMap = new Map<string, Contact>();
-                allContacts.forEach(contact => {
-                  if (contact && contact.id) {
-                    contactMap.set(contact.id, contact);
-                  }
-                });
-                
-                console.log(`Created contact map with ${contactMap.size} entries`);
-                
-                // Match each contact ID - O(m) where m is the number of IDs to match
-                const matchedContacts: Contact[] = [];
-                let matchCount = 0;
-                
-                // Use a Set for faster lookups when checking for duplicates
-                const addedIds = new Set<string>();
-                
-                contactIds.forEach(id => {
-                  // Skip if we've already added this ID
-                  if (addedIds.has(id)) return;
-                  
-                  const match = contactMap.get(id);
-                  if (match) {
-                    matchCount++;
-                    addedIds.add(id);
-                    matchedContacts.push(match);
-                  } else {
-                    console.warn(`✗ No match found for contact ID ${id}`);
-                  }
-                });
-                
-                console.log(`Successfully matched ${matchCount} out of ${contactIds.length} contact IDs`);
-                return matchedContacts;
-              };
-              
-              // Find matches by ID ONLY - exact matching against ALL contacts
-              let suggestedContacts = matchContactsById(contactIds, contacts);
-              console.log('Contacts matched by ID:', suggestedContacts.map(c => ({ id: c.id, name: c.name })));
-              
-              console.log('All matched contacts:', suggestedContacts);
-              
-              if (suggestedContacts.length) {
-                // Only add valid contacts that exist in the database
-                const validContacts = suggestedContacts.filter(c => 
-                  c && c.id && c.name
-                );
-                
-                console.log('Valid contacts after filtering:', validContacts.map(c => ({ id: c.id, name: c.name })));
-                
-                if (validContacts.length) {
-                  console.log('Setting ALL matched contacts to selection:', validContacts.map(c => ({ id: c.id, name: c.name })));
-                  // Replace the current selection with all suggested contacts
-                  // This ensures we get all contacts suggested by the AI
-                  setSelectedContacts(validContacts);
-                  formUpdated = true;
-                } else {
-                  console.log('No valid contacts to add');
-                }
-              } else {
-                console.warn('No contacts were matched from the AI response');
-                
-                // If we have contact IDs but no matches, log this for debugging
-                if (contactIds.length > 0) {
-                  console.warn(`Had ${contactIds.length} contact IDs but no matches were found:`, contactIds);
-                  console.warn(`Available contacts count: ${contacts.length}`);
-                  
-                  // Sample the first 10 contacts to check if they're properly loaded
-                  const sampleContacts = contacts.slice(0, 10);
-                  console.log('Sample of available contacts:', sampleContacts.map(c => ({ id: c.id, name: c.name })));
-                  
-                  // Check if the contact IDs exist in the database at all
-                  contactIds.forEach(id => {
-                    const exists = contacts.some(c => c.id === id);
-                    console.warn(`Contact ID ${id} exists in database: ${exists}`);
-                    
-                    // If not found by ID, try to find a similar contact by ID pattern
-                    if (!exists) {
-                      const similarContacts = contacts.filter(c => c.id && c.id.includes(id.substring(0, 8)));
-                      if (similarContacts.length > 0) {
-                        console.warn(`Found ${similarContacts.length} contacts with similar ID pattern to ${id}:`, 
-                          similarContacts.map(c => ({ id: c.id, name: c.name })));
-                      }
-                    }
-                  });
-                }
-              }
+            if (response.contacts) {              
+              formUpdated = matchAndSetContacts(response.contacts);
             }
   
             if (response.activity && !isComplete.activity) {
@@ -657,7 +491,15 @@ export const PlanningForm = ({
               const date = parse(response.datetime.date, 'yyyy-MM-dd', new Date());
               if (isValid(date)) {
                 setSelectedDate(date);
-                setSelectedTime(response.datetime.time);
+                console.log('Setting time from AI response:', response.datetime.time);
+              
+                // Use the helper function to parse the time
+                const { hours, minutes } = parseTimeString(response.datetime.time);
+                
+                // Format time as HH:MM
+                const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                console.log('Formatted time for dropdown:', formattedTime);
+                setSelectedTime(formattedTime);
                 formUpdated = true;
               }
             }
@@ -687,30 +529,23 @@ export const PlanningForm = ({
       }
 
       // Convert date and time to UTC
-      const [hours, minutes] = selectedTime.match(/\d+/g)!;
-      const isPM = selectedTime.includes('PM');
-      let hour = parseInt(hours);
-      if (isPM && hour !== 12) hour += 12;
-      if (!isPM && hour === 12) hour = 0;
+      const { startDate, endDate } = createDateFromDateAndTime(selectedDate, selectedTime);
       
-      const startDate = new Date(selectedDate);
-      startDate.setHours(hour, parseInt(minutes));
-      const endDate = new Date(startDate);
-      endDate.setHours(endDate.getHours() + 2); // Default to 2 hour events
+      const event = {
+        user_id: session.user.id,
+        title: activity,
+        description: `Hangout with ${selectedContacts.map(c => c.name).join(', ')}`,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+        location: location,
+        updated_at: new Date().toISOString()
+      };
 
       // Add event to calendar_events table
       try {
         const { error: eventError } = await supabase
           .from('calendar_events')
-          .insert({
-            user_id: session.user.id,
-            title: activity,
-            description: `Hangout with ${selectedContacts.map(c => c.name).join(', ')}`,
-            start_time: startDate.toISOString(),
-            end_time: endDate.toISOString(),
-            location: location,
-            updated_at: new Date().toISOString()
-          });
+          .insert(event);
 
         if (eventError) {
           console.error('Error creating calendar event:', eventError);

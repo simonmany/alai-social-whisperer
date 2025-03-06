@@ -1,85 +1,10 @@
 import { Agent } from './base.ts';
 import { Contact } from '../types.ts';
-import { searchGooglePlaces } from '../utils.ts';
+import { searchGooglePlaces, ensureProperContactFormat, extractJsonFromText } from '../utils.ts';
 import { functions } from '../types.ts';
 
 export class HangPlannerAgent extends Agent {
-  // Helper function to ensure contacts are properly formatted - using ONLY exact contact IDs
-  private ensureProperContactFormat(response: any, availableContacts: Contact[]): any {
-    if (!response) return response;
-    
-    // Create a copy of the response to avoid modifying the original
-    const formattedResponse = { ...response };
-    
-    // Check if contacts exist in the response
-    if (!formattedResponse.contacts) {
-      formattedResponse.contacts = [];
-      console.log('No contacts in response, using empty array');
-    }
-    
-    // Ensure contacts is an array
-    if (!Array.isArray(formattedResponse.contacts)) {
-      if (typeof formattedResponse.contacts === 'object' && formattedResponse.contacts !== null) {
-        // If it's a single object, wrap it in an array
-        formattedResponse.contacts = [formattedResponse.contacts];
-        console.log('Converted single contact object to array:', formattedResponse.contacts);
-      } else {
-        // Default to empty array for any other case
-        formattedResponse.contacts = [];
-        console.log('Invalid contacts format, using empty array');
-      }
-    }
-    
-    console.log('Processing contacts array with', formattedResponse.contacts.length, 'items');
-    formattedResponse.contacts.forEach((contact: any, index: number) => {
-      console.log(`Contact ${index}:`, contact);
-    });
-    
-    // Process each contact to ensure it has id and name
-    // ONLY match by exact contact ID, no name matching
-    formattedResponse.contacts = formattedResponse.contacts.map((contact: any, index: number) => {
-      console.log(`Processing contact ${index}:`, contact);
-      
-      if (typeof contact === 'object' && contact !== null && contact.id) {
-        // If it has an id, try to find the contact by exact ID match
-        console.log(`Looking for contact with ID: ${contact.id}`);
-        const match = availableContacts.find(c => c.id === contact.id);
-        
-        if (match) {
-          console.log(`Found match for ID ${contact.id}: ${match.name}`);
-          return { id: match.id, name: match.name };
-        } else {
-          console.log(`No match found for ID ${contact.id}`);
-        }
-      } else {
-        console.log(`Contact ${index} has no ID or is not an object:`, contact);
-      }
-      
-      // If no ID match, return null (will be filtered out)
-      return null;
-    }).filter(Boolean); // Remove null entries
-    
-    console.log('Contacts after ID-only matching:', formattedResponse.contacts);
-    console.log('Number of contacts after filtering:', formattedResponse.contacts.length);
-    
-    // If we don't have any valid contacts, suggest the first contact from available contacts
-    // This is just a fallback to ensure we have at least one contact
-    if (formattedResponse.contacts.length === 0 && availableContacts.length > 0) {
-      const suggestedContact = availableContacts[0];
-      formattedResponse.contacts = [{ id: suggestedContact.id, name: suggestedContact.name }];
-      
-      // Update the text to mention we're suggesting a contact
-      if (formattedResponse.text) {
-        formattedResponse.text += `
 
-I've suggested inviting ${suggestedContact.name} to this hangout.`;
-      }
-      
-      console.log('No valid contacts found, suggesting fallback contact:', suggestedContact.name);
-    }
-    
-    return formattedResponse;
-  }
   protected systemPrompt = `You are helping the user plan a hangout step by step. The steps you will go through are as follows:
   - Ask the user what they would like to do with the mentioned friend
   - Based on the user's response, ask where they would like to meet the friend. Provide a place suggestion from searchGooglePlaces
@@ -118,8 +43,6 @@ I've suggested inviting ${suggestedContact.name} to this hangout.`;
   3. ALWAYS use 12-hour time format with AM/PM (e.g. 2:30 PM)
   4. Only suggest dates within the next 7 days
   5. Always check that the date you suggest is valid and in the future
-    
-  When all of the steps are complete, and you have filled in the json response, confirm with the user that their event is in the calendar.
 `
 
   async chat(
@@ -153,7 +76,7 @@ I've suggested inviting ${suggestedContact.name} to this hangout.`;
 
     messages.push({role: 'user', content: `Context: ${JSON.stringify(context, null, 2)}\nMessage: ${message}`})
 
-    this.saveChatMessage(userId, message, secretMessage, false);
+    this.saveChatMessage(userId, message, true, false);
 
     // Prepare messages for the AI
     messages.unshift({
@@ -198,65 +121,37 @@ I've suggested inviting ${suggestedContact.name} to this hangout.`;
       // After processing all tool calls, get the final response
       const finalResponse = await this.callOpenAI(messages);
       const finalData = await finalResponse.json();
-      try {
-        parsedResponse = JSON.parse(finalData.choices[0].message.content);
-        console.log('Successfully parsed tool response as JSON');
-      } catch (e) {
-        console.warn('Failed to parse tool response as JSON:', e);
-        parsedResponse = extractJsonFromText(finalData.choices[0].message.content);
+      if (typeof finalData.choices[0].message.content === 'string') {
+        const text = finalData.choices[0].message.content;
+        parsedResponse = extractJsonFromText(text);
+      } else {
+        console.log('Response is not a string:', finalData.choices[0].message.content);
+        const defaultResponse = {
+          text: '',
+          contacts: [],
+        };
+        parsedResponse = defaultResponse;
       }
     } else {
-      try {
-        parsedResponse = JSON.parse(aiResponse);
-        console.log('Successfully parsed direct response as JSON');
-      } catch (error) {
-        console.warn('Error parsing AI response as JSON:', error);
+      if (typeof aiResponse === 'string') {
         parsedResponse = extractJsonFromText(aiResponse);
+      } else {
+        console.log('Response is not a string:', aiResponse);
+        const defaultResponse = {
+          text: '',
+          contacts: [],
+        };
+        parsedResponse = defaultResponse;
       }
     }
-    
-    // Helper function to extract JSON from text
-    function extractJsonFromText(text) {
-      console.log('Attempting to extract JSON from text:', text);
-      // Default response if we can't extract JSON
-      const defaultResponse = {
-        text: text,
-        contacts: [],
-      };
-      
-      // Try to extract JSON from the text
-      try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/m);
-        if (jsonMatch) {
-          console.log('Found potential JSON in text:', jsonMatch[0]);
-          try {
-            const extractedJson = JSON.parse(jsonMatch[0]);
-            console.log('Successfully extracted JSON from text:', extractedJson);
-            // Merge the extracted JSON with the response
-            return { ...defaultResponse, ...extractedJson };
-          } catch (e) {
-            console.error('Failed to parse JSON from text match:', e);
-          }
-        }
-      } catch (e) {
-        console.error('Error trying to extract JSON from text:', e);
-      }
-      
-      return defaultResponse;
-    }
-    
-    console.log('Raw AI response before formatting:', parsedResponse);
-    console.log('Raw contacts before formatting:', parsedResponse.contacts);
-    console.log('Available contacts for matching:', contactInfo);
     
     // Ensure contacts are properly formatted
-    parsedResponse = this.ensureProperContactFormat(parsedResponse, contactInfo || []);
+    parsedResponse = ensureProperContactFormat(parsedResponse, contactInfo || []);
     
     console.log('Formatted response with contacts:', parsedResponse);
-    console.log('Final formatted contacts:', parsedResponse.contacts);
 
     if (parsedResponse.text) {
-      this.saveChatMessage(userId, parsedResponse.text, secretMessage, true);
+      this.saveChatMessage(userId, parsedResponse.text, true, true);
     }
     return { parsedResponse };
   }
