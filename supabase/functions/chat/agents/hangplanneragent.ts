@@ -2,6 +2,7 @@ import { Agent } from './base.ts';
 import { Contact } from '../types.ts';
 import { searchGooglePlaces, ensureProperContactFormat, extractJsonFromText } from '../utils.ts';
 import { functions } from '../types.ts';
+import { filterJSON } from '../../_shared/utils.ts';
 
 export class HangPlannerAgent extends Agent {
 
@@ -54,8 +55,38 @@ export class HangPlannerAgent extends Agent {
     // Get user profile for context
     const profile = await this.getUserProfile(userId);
     const profileData = this.filterUserProfile(profile);
-    
+    const events = await this.getEvents(userId, profile.utc_offset_minutes);
+
     const chatHistory = await this.getChatHistory(userId);
+
+        // Format events for better readability
+    const formattedEvents = events.map(event => ({
+      ...event,
+      start_time: new Date(event.start_time).toLocaleString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      }),
+      end_time: new Date(event.end_time).toLocaleString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      })
+    }));
+
+    // Filter events to include only necessary fields
+    const filteredEvents = formattedEvents.map(event => ({
+      title: event.title,
+      description: event.description,
+      start_time: event.start_time,
+      end_time: event.end_time,
+      location: event.location
+    }));
+
+    const filteredContacts = filterJSON(contactInfo);
 
     const messages = chatHistory?.map(msg => ({
       role: msg.is_ai ? 'assistant' : 'user',
@@ -66,7 +97,8 @@ export class HangPlannerAgent extends Agent {
     const now = new Date();
     const context = {
       user: profileData,
-      contacts: contactInfo || [],
+      contacts: filteredContacts || [],
+      events: filteredEvents,
       currentTime: {
         date: now.toISOString().split('T')[0],
         time: now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),

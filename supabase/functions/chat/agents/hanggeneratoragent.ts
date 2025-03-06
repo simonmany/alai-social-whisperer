@@ -1,10 +1,11 @@
 import { Agent } from './base.ts';
+import { HangPlannerAgent } from './hangplanneragent.ts';
 import { Contact } from '../types.ts';
 import { ensureProperContactFormat, extractJsonFromText } from '../utils.ts';
 import { functions } from '../types.ts';
 import { filterJSON } from '../../_shared/utils.ts';
 
-export class HangGeneratorAgent extends Agent {
+export class HangGeneratorAgent extends HangPlannerAgent {
 
   protected systemPrompt = `You are helping the user plan a hangout with their friends. 
     Try to suggest an activity that they will enjoy based on their profile and friends' profiles.
@@ -44,87 +45,4 @@ export class HangGeneratorAgent extends Agent {
     3. ALWAYS use 12-hour time format with AM/PM (e.g. 2:30 PM)
     4. Only suggest dates within the next 7 days
     5. Always check that the date you suggest is valid and in the future`
-  async chat(
-    userId: string,
-    message: string,
-    contactInfo?: Contact[],
-    secretMessage?: boolean
-  ): Promise<{ parsedResponse: any }> {
-    // Get user profile and events for context
-    const profile = await this.getUserProfile(userId);
-    const profileData = this.filterUserProfile(profile);
-    const events = await this.getEvents(userId, profile.utc_offset_minutes);
-
-    this.saveChatMessage(userId, message, true, false);
-    
-    // Format events for better readability
-    const formattedEvents = events.map(event => ({
-      ...event,
-      start_time: new Date(event.start_time).toLocaleString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }),
-      end_time: new Date(event.end_time).toLocaleString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })
-    }));
-
-    // Filter events to include only necessary fields
-    const filteredEvents = formattedEvents.map(event => ({
-      title: event.title,
-      description: event.description,
-      start_time: event.start_time,
-      end_time: event.end_time,
-      location: event.location
-    }));
-
-    const filteredContacts = filterJSON(contactInfo);
-
-    // Build context for the AI
-    const context = {
-      user: profileData,
-      events: filteredEvents,
-      contacts: filteredContacts
-    };
-
-    // Prepare messages for the AI
-    const messages = [
-      { role: 'system', content: this.systemPrompt },
-      { role: 'user', content: `Context: ${JSON.stringify(context, null, 2)}\n\nUser request: ${message}` }
-    ];
-
-    // Get response from OpenAI
-    const response = await this.callOpenAI(messages);
-    const data = await response.json();
-    
-    console.log('Raw OpenAI response content:', data.choices[0].message.content);
-    
-    // Try to parse the response as JSON
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(data.choices[0].message.content);
-      console.log('Successfully parsed response as JSON');
-    } catch (e) {
-      console.warn('Failed to parse response as JSON, using text format:', e);
-      // If parsing fails, extract JSON from the text using the shared utility function
-      const text = data.choices[0].message.content;
-      parsedResponse = extractJsonFromText(text, { text, contacts: [] });
-    }
-    
-    // Ensure contacts are properly formatted
-    parsedResponse = ensureProperContactFormat(parsedResponse, filteredContacts);
-    
-    console.log('Formatted response with contacts:', parsedResponse);
-
-    if (parsedResponse.text) {
-        this.saveChatMessage(userId, parsedResponse.text, true, true);
-    }
-    return { parsedResponse };
-  }
 }
