@@ -1,9 +1,4 @@
-import { Agent } from './base.ts';
 import { HangPlannerAgent } from './hangplanneragent.ts';
-import { Contact } from '../types.ts';
-import { ensureProperContactFormat, extractJsonFromText } from '../utils.ts';
-import { functions } from '../types.ts';
-import { filterJSON } from '../../_shared/utils.ts';
 
 export class HangGeneratorAgent extends HangPlannerAgent {
 

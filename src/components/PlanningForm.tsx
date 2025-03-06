@@ -208,17 +208,6 @@ export const PlanningForm = ({
     const locationStr = location || '';
     const timeStr = selectedDate && selectedTime ? 
       `${format(selectedDate, 'PPP')} at ${selectedTime}` : '';
-    
-    // Create a context object with the current state of the planning form
-    const context = {
-      currentState: {
-        contacts: selectedContacts.map(c => c.name).join(', '),
-        activity: activityStr,
-        location: locationStr,
-        datetime: timeStr
-      },
-      fieldToGenerate: field
-    };
 
     switch (field) {
       case 'contacts':
