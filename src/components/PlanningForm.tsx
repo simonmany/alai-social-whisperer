@@ -532,12 +532,25 @@ export const PlanningForm = ({
 
       // Add event to calendar_events table
       try {
-        const { error: eventError } = await supabase
+        const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
-          .insert(event);
+          .insert(event)
+          .select()
+          .single();
 
         if (eventError) {
           console.error('Error creating calendar event:', eventError);
+        }
+        else if (newEvent) {
+          const { error: attendeesError } = await supabase
+            .from('event_attendees')
+            .insert(selectedContacts.map(c => ({
+              event_id: newEvent.id,
+              contact_id: c.id
+            })));
+          if (attendeesError) {
+            console.error('Error adding attendees:', attendeesError);
+          }
         }
       } catch (error) {
         console.error('Error creating calendar event:', error);

@@ -90,8 +90,8 @@ export const ChatMessage = ({
       )}
     >
       {isAl ? (
-        <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent w-full">
-          <div className="prose prose-gray max-w-none space-y-2 w-full">
+        <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
+          <div className="prose prose-gray max-w-none space-y-2">
             {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
@@ -114,9 +114,9 @@ export const ChatMessage = ({
               ))}
             </div>
           )}
-          {/* Render feedback form immediately, not dependent on typewriter animation */}
+          {/* Always render feedback form for tutorial messages */}
           {showFeedbackForm && onFeedbackSubmit && (
-            <div className="mt-4 w-full" style={{ width: '100%', minWidth: '100%', maxWidth: '100%' }}>
+            <div className="mt-4 w-full">
               <InChatFeedbackForm
                 onSubmit={onFeedbackSubmit}
                 event={completedEvent}
@@ -128,10 +128,11 @@ export const ChatMessage = ({
               />
             </div>
           )}
-          {/* Render planning form if all conditions are met */}
-          {isTypewriterComplete && (showPlanningForm || (isAl && messageType === 'morning')) && (
+          {/* Render planning form if all conditions are met - wait for typewriter animation to complete */}
+          {isTypewriterComplete && (
             <div className="mt-4">
-              {showPlanningFormState ? (
+              {/* If showPlanningForm is true, always show the planning form directly */}
+              {showPlanningForm ? (
                 <PlanningForm
                   onSubmit={(message, newContent) => {
                     if (onPlanningSubmit) {
@@ -148,14 +149,17 @@ export const ChatMessage = ({
                   defaultTime={defaultTime}
                 />
               ) : (
-                <Button 
-                  onClick={() => setShowPlanningForm(true)}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <CalendarPlus className="mr-2 h-4 w-4" />
-                  Add something to calendar
-                </Button>
+                /* Only show the 'Add something to calendar' button for morning check-ins */
+                isAl && messageType === 'morning' && (
+                  <Button 
+                    onClick={() => setShowPlanningForm(true)}
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Add something to calendar
+                  </Button>
+                )
               )}
             </div>
           )}

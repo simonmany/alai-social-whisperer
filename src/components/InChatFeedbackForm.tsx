@@ -87,14 +87,17 @@ export const InChatFeedbackForm = ({
         .from('calendar_events')
         .select(`
           id,
+          user_id,
           title,
           start_time,
+          end_time,
           location,
           feedback_sent,
           event_attendees!left (
             contacts!contact_id (
               id,
-              name
+              name,
+              user_id
             )
           )
         `)
@@ -131,13 +134,16 @@ export const InChatFeedbackForm = ({
           // Map attendees from event_attendees
           const attendees = event.event_attendees?.map(ea => ({
             id: ea.contacts.id,
-            name: ea.contacts.name
+            name: ea.contacts.name,
+            user_id: ea.contacts.user_id
           })) || [];
           
           return {
             id: event.id,
+            user_id: event.user_id,
             title: event.title,
             start_time: event.start_time,
+            end_time: event.end_time,
             location: event.location,
             attendees,
             time: timeStr
@@ -418,23 +424,23 @@ export const InChatFeedbackForm = ({
 
   // Render event selection step
   const renderEventSelectionStep = () => (
-    <div className="space-y-4 w-full">
-      <div className="space-y-2 w-full">
+    <div className="space-y-4">
+      <div className="space-y-2">
         <h3 className="text-lg font-semibold">Select an event</h3>
         <p className="text-sm text-muted-foreground">
           Choose a recent event to provide feedback
         </p>
       </div>
       
-      <div className="min-h-[100px] border rounded-lg p-4 bg-background w-full">
+      <div className="min-h-[100px] border rounded-lg p-4 bg-background">
         {isLoadingEvents ? (
-          <div className="text-center py-4 w-full">Loading events...</div>
+          <div className="text-center py-4">Loading events...</div>
         ) : recentEvents.length > 0 ? (
-          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 w-full">
+          <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
             {recentEvents.map(event => renderEventCard(event))}
           </div>
         ) : (
-          <div className="text-center py-4 space-y-1 w-full">
+          <div className="text-center py-4 space-y-1">
             <p className="font-medium">You're all caught up!</p>
             <p className="text-sm text-muted-foreground">Feedback provided for all recent events</p>
           </div>
@@ -599,7 +605,7 @@ export const InChatFeedbackForm = ({
     <Card
       key={event.id}
       className={cn(
-        'p-4 transition-colors relative w-full',
+        'p-4 transition-colors relative',
         clickable && 'hover:bg-accent cursor-pointer',
         selectedEvent?.id === event.id && 'border-primary'
       )}
@@ -879,7 +885,7 @@ export const InChatFeedbackForm = ({
   }, [skipEventSelection, event, currentStep]);
 
   return (
-    <div className="space-y-4 w-full" style={{ width: '100%', minWidth: '100%' }}>
+    <div className="space-y-4">
       {renderCurrentStep()}
     </div>
   );

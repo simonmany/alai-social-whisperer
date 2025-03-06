@@ -23,6 +23,10 @@ import { format } from "date-fns";
 import { TIME_OPTIONS } from "@/utils/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Message, ChatHistoryMessage } from "@/types/chat";
+import { Capacitor } from '@capacitor/core';
+import { Contacts } from '@skektec/capacitor-contacts';
+import { CalendarEvent } from "@/types/calendar";
+import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -35,11 +39,13 @@ const Index = () => {
   const [tutorialComplete, setTutorialComplete] = useState(false);
   const [showProfileButton, setShowProfileButton] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [preventHistoryLoad, setPreventHistoryLoad] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
+  const [lastContactSync, setLastContactSync] = useState<Date | null>(null);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
@@ -112,18 +118,27 @@ const Index = () => {
 
   useEffect(() => {
     const loadChatHistory = async () => {
-      if (!session?.user?.id) return;
+      if (!session?.user?.id || preventHistoryLoad) return;
 
       try {
         const today = new Date();
         const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
         
-        const { data, error } = await supabase
+        // When in tutorial mode, we want to show all messages including secret ones
+        // When not in tutorial mode, filter out secret messages
+        let query = supabase
           .from('chat_history')
           .select('*')
           .eq('user_id', session.user.id)
-          .gte('created_at', startOfDay)
-          .order('created_at', { ascending: true });
+          .gte('created_at', startOfDay);
+          
+        // If tutorial is complete, only filter out secret messages
+        // We want to keep onboarding messages visible
+        if (tutorialComplete) {
+          query = query.eq('is_secret', false);
+        }
+          
+        const { data, error } = await query.order('created_at', { ascending: true });
 
         if (error) throw error;
 
@@ -186,7 +201,7 @@ const Index = () => {
                 .from('calendar_events')
                 .select(`
                   *,
-                  event_attendees!left (contacts!contact_id (id, name))
+                  event_attendees!left (contacts!contact_id (id, name, user_id))
                 `)
                 .eq('id', msg.event_id)
                 .maybeSingle();
@@ -204,7 +219,8 @@ const Index = () => {
                 if (eventData.event_attendees) {
                   const attendees = eventData.event_attendees.map((ea: any) => ({
                     id: ea.contacts.id,
-                    name: ea.contacts.name
+                    name: ea.contacts.name,
+                    user_id: ea.contacts.user_id
                   }));
                   
                   message.completedEvent.attendees = attendees;
@@ -252,8 +268,10 @@ const Index = () => {
       }
     };
 
+    // Only load chat history when session changes or preventHistoryLoad is toggled
+    // Don't reload when tutorialComplete changes - this prevents clearing messages
     loadChatHistory();
-  }, [session?.user?.id, showOnboarding, tutorialComplete]);
+  }, [session?.user?.id, preventHistoryLoad]);
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
@@ -286,6 +304,19 @@ const Index = () => {
     if (!session?.user.id) return;
     
     try {
+      // Reset any existing tutorial state
+      localStorage.removeItem('tutorialStep');
+      localStorage.removeItem('tutorialPlanSubmissionId');
+      
+      // Set tutorial step to track progress
+      localStorage.setItem('tutorialStep', 'welcome');
+      
+      // Set a flag to prevent automatic history loading
+      setPreventHistoryLoad(true);
+      
+      // Clear all messages first
+      setMessages([]);
+      
       if (showOnboarding) {
         await supabase
           .from('profiles')
@@ -390,53 +421,30 @@ const Index = () => {
           }]);
       }
       
+      // Immediately display the welcome message in the UI
+      setMessages([{
+        id: insertedMessage?.id || 'temp-welcome',
+        content: welcomeMessage,
+        isAl: true,
+        metadata: messageMetadata,
+        showPlanningForm: true,
+        onPlanningSubmit: handlePlanSubmit,
+        defaultContacts: contactName ? [{ name: contactName, id: contactData?.id }] : undefined,
+        defaultActivity: messageMetadata.defaultActivity,
+        typewriterPlayed: false
+      }]);
+      
       setTutorialComplete(false);
       setShowProfileButton(false);
 
       // Wait for the real-time subscription to catch up
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Force a fresh fetch of messages before adding planning form
-      const { data: latestMessages } = await supabase
-        .from('chat_history')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: true });
-
-      if (latestMessages) {
-        const historyMessages = latestMessages.map((msg, index) => {
-          let messageContent = msg.message;
-          let messageMetadata = null;
-          
-          try {
-            console.log('Parsing message:', msg.message);
-            const parsedMessage = JSON.parse(msg.message);
-            console.log('Parsed message:', parsedMessage);
-            if (parsedMessage.text && parsedMessage.metadata) {
-              messageContent = parsedMessage.text;
-              messageMetadata = parsedMessage.metadata;
-              console.log('Using parsed content:', messageContent);
-              console.log('Using metadata:', messageMetadata);
-            }
-          } catch (e) {
-            console.log('Message not in JSON format, using as is:', msg.message);
-          }
-
-          const isLatestMessage = index === latestMessages.length - 1;
-          
-          return {
-            id: msg.id,
-            content: messageContent,
-            isAl: msg.is_ai,
-            is_secret: msg.is_secret,
-            defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
-            defaultActivity: messageMetadata?.defaultActivity,
-            showPlanningForm: msg.is_onboarding_message && isLatestMessage,
-            onPlanningSubmit: handlePlanSubmit
-          };
-        });
-        setMessages(historyMessages);
-      }
+      // We don't need to fetch messages again since we're manually setting the welcome message
+      // Keep the preventHistoryLoad flag set to true to prevent automatic loading
+      
+      // Only allow chat history to load again after the user interacts with the planning form
+      // This prevents old messages from suddenly appearing
 
       if (contactData) {
         setSelectedContact(contactData);
@@ -473,9 +481,31 @@ const Index = () => {
         })
         .eq('id', session.user.id);
 
+      // Don't clear existing messages if there are any
+      // If there are no messages, add a welcome message
+      if (messages.length === 0) {
+        const welcomeMessage = "Hello! I'm here to help you plan and maintain meaningful connections. What would you like to do?";
+        
+        setMessages([{ 
+          content: welcomeMessage,
+          isAl: true
+        }]);
+        
+        // Save welcome message to chat history
+        await supabase
+          .from('chat_history')
+          .insert([{
+            message: JSON.stringify({
+              text: welcomeMessage
+            }),
+            is_ai: true,
+            user_id: session.user.id
+          }]);
+      }
+      
       setShowOnboarding(false);
       setTutorialComplete(true);
-      setShowProfileButton(false);
+      setShowProfileButton(true);
       setConversationType(ConversationType.CHAT);
       
       toast({
@@ -585,6 +615,13 @@ const Index = () => {
             filter: `user_id=eq.${session.user.id}`
           },
           async (payload) => {
+            // Skip tutorial messages in the real-time subscription
+            // We handle these manually in the tutorial flow
+            if (payload.new.is_onboarding_message) {
+              console.log('Skipping tutorial message in real-time subscription:', payload.new.id);
+              return;
+            }
+            
             // Create a flag to track if this message is already being handled
             let isHandlingMessage = false;
             
@@ -807,7 +844,213 @@ const Index = () => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [navigate, toast]);
-  
+
+  const syncContacts = async () => {
+    if (!Capacitor.isNativePlatform() || !session?.user?.id) return;
+
+    try {
+      const { contacts } = await Contacts.getContacts({
+        projection: {
+          name: true,
+          phones: true,
+          emails: true,
+          postalAddresses: true,
+        }
+      });
+
+      for (const contact of contacts) {
+        const { data: existingContact, error: checkError } = await supabase
+          .from('contacts')
+          .select('id, name, phone, email, address')
+          .eq('user_id', session.user.id)
+          .eq('name', contact.name.display)
+          .limit(1)
+          .maybeSingle();
+
+        if (checkError) throw checkError;
+
+        if (!existingContact) {
+          const { error: insertError } = await supabase
+            .from('contacts')
+            .insert({
+              user_id: session.user.id,
+              name: contact.name.display,
+              phone: contact.phones?.[0]?.number,
+              email: contact.emails?.[0]?.address,
+              address: contact.postalAddresses?.[0]?.street ? `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}` : null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+
+          if (insertError) throw insertError;
+        }
+        else if (
+          existingContact.name !== contact.name.display
+          || existingContact.phone !== contact.phones?.[0]?.number
+          || existingContact.email !== contact.emails?.[0]?.address
+          || existingContact.address !== `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}`
+        ) {
+          const { error: updateError } = await supabase
+            .from('contacts')
+            .update({
+              name: contact.name.display,
+              phone: contact.phones?.[0]?.number,
+              email: contact.emails?.[0]?.address,
+              address: contact.postalAddresses?.[0]?.street ? `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}` : null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingContact.id);
+
+          if (updateError) throw updateError;
+        }
+
+      }
+
+      setLastContactSync(new Date());
+    } catch (error) {
+      console.error('Error syncing contacts:', error);
+      toast({
+        title: "Error syncing contacts",
+        description: "There was an error syncing your contacts. Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const getLastContactSync = async () => {
+    if (!session?.user?.id) {
+      console.log('No session user id available');
+      return null;
+    }
+    
+    try {
+      console.log('Fetching last contact sync for user:', session.user.id);
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('updated_at')
+        .eq('user_id', session.user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error in getLastContactSync:', error);
+        throw error;
+      }
+      console.log('updated data', data);
+      return data ? new Date(data.updated_at) : null;
+    } catch (error) {
+      console.error('Error fetching last contact sync:', error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) {
+      console.log('Not on native platform, skipping contact sync');
+      return;
+    }
+
+    // Set initial lastContactSync based on most recent contact
+    getLastContactSync().then(date => {
+      console.log('Setting lastContactSync to:', date);
+      setLastContactSync(date);
+      // If the last sync was > 6 hours ago, sync now
+      if (date && Date.now() - date.getTime() > 6 * 60 * 60 * 1000) {
+        console.log('Last contact sync was more than 6 hours ago, syncing now');
+        syncContacts();
+      }
+    });
+
+    // Set up periodic sync (every 6 hours)
+    const syncInterval = setInterval(syncContacts, 6 * 60 * 60 * 1000);
+
+    return () => clearInterval(syncInterval);
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    const setupCalendarEventsSubscription = () => {
+      if (!session?.user.id || !Capacitor.isNativePlatform()) return;
+
+      console.log('Setting up real-time calendar events subscription');
+
+      const channels = supabase.channel('custom-all-channel')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'calendar_events', filter: `user_id=eq.${session.user.id}` },
+          async (payload) => {
+            console.log('Change received!', payload);
+
+            if (payload.new.calendar_event_id) {
+              console.log('Event already exists on calendar, skipping');
+              return;
+            }
+            
+            // If a new event is inserted, add it to the native calendar
+            if (payload.eventType === 'INSERT') {
+              try {
+                const event = payload.new;
+                
+                // Format the start and end times for the native calendar
+                const startTime = new Date(event.start_time);
+                // Default to 1 hour duration if end_time is not provided
+                const endTime = event.end_time ? new Date(event.end_time) : new Date(startTime.getTime() + 60 * 60 * 1000);
+                
+                // Get attendee names if available
+                let attendeeNames = '';
+                let attendees = [];
+                const { data: eventAttendees, error: eventAttendeesError } = await supabase
+                  .from('event_attendees')
+                  .select('contact_id')
+                  .eq('event_id', event.id);
+                
+                if (eventAttendees && eventAttendees.length > 0) {
+                  const { data, error } = await supabase
+                    .from('contacts')
+                    .select('name, email')
+                    .in('id', eventAttendees.map((a: any) => a.contact_id));
+
+                  attendeeNames = data?.map((a: any) => a.name).join(', ') || '';
+                  attendees = data;
+                }
+                
+                // Create the event in the native calendar
+                await CapacitorCalendar.createEvent({
+                  title: event.title,
+                  location: event.location || '',
+                  description: `${event.description || ''}\n\nAttendees: ${attendeeNames}`,
+                  startDate: startTime.getTime(),
+                  endDate: endTime.getTime(),
+                });
+
+                // TODO (ari) store attendees, though email is required and its less common than phone
+                
+                console.log('Event added to native calendar:', event.title);
+                
+              } catch (error) {
+                console.error('Error adding event to native calendar:', error);
+              }
+            }
+
+            if (payload.eventType === 'DELETE') {
+              console.log('Event deleted from native calendar:', payload.old.title);
+              await CapacitorCalendar.deleteEvent({
+                id: payload.old.calendar_event_id,
+              });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        console.log('Cleaning up calendar events subscription');
+        supabase.removeChannel(channels);
+      };
+    };
+
+    setupCalendarEventsSubscription();
+  }, [session?.user?.id]);
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
@@ -945,7 +1188,70 @@ const Index = () => {
     }
   };
 
-  const handlePlanSubmit = (message: string, newContent?: string) => {
+  const handleTutorialFeedbackSubmit = async (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => {
+    // Check current tutorial step
+    const currentStep = localStorage.getItem('tutorialStep');
+    
+    // Prevent duplicate submissions
+    if (currentStep === 'feedbackSubmitted') {
+      console.log('Feedback already submitted, ignoring duplicate');
+      return;
+    }
+    
+    // Mark that we've submitted the feedback
+    localStorage.setItem('tutorialStep', 'feedbackSubmitted');
+    
+    // Add user's feedback message to the UI
+    if (message) {
+      setMessages(prev => [...prev, { 
+        content: message, 
+        isAl: false
+      }]);
+      
+      // Save user's message to chat history
+      await supabase
+        .from('chat_history')
+        .insert([{
+          message: message,
+          is_ai: false,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
+    }
+    
+    // Send a message acknowledging the feedback
+    const finalMessage = "Thanks for sharing. Reflecting on your past hangs helps me suggest better ones - and helps you keep track of valuable memories and conversations.";
+    
+    // Add the final tutorial message with typewriter animation
+    setMessages(prev => [...prev, { 
+      content: finalMessage, 
+      isAl: true,
+      is_onboarding_message: true,
+      typewriterPlayed: false // Ensure typewriter animation plays
+    }]);
+    
+    // Save the final message to chat history
+    await supabase
+      .from('chat_history')
+      .insert([{
+        message: JSON.stringify({
+          text: finalMessage
+        }),
+        is_ai: true,
+        user_id: session.user.id,
+        is_onboarding_message: true
+      }]);
+    
+    // Mark the tutorial as complete in the database
+    // No need for a delay since we're not clearing messages anymore
+    await handleTutorialComplete();
+    
+    // Don't clear tutorial step - this prevents duplicate submissions
+    // but we'll keep the state to track progress
+  };
+  
+  // This function is called when the user submits their plan during the tutorial
+  const handlePlanSubmit = async (message: string, newContent?: string) => {
     if (newContent) {
       // Update the existing planning form message
       setMessages(prev => prev.map(msg => 
@@ -956,9 +1262,102 @@ const Index = () => {
       ));
     }
     else {
-      // Only remove the planning form when submitting the final plan
-      handleSend(message);
-      setTutorialComplete(true);
+      // Check current tutorial step
+      const currentStep = localStorage.getItem('tutorialStep');
+      
+      // Prevent duplicate submissions
+      if (currentStep === 'planSubmitted') {
+        console.log('Plan already submitted, ignoring duplicate');
+        return;
+      }
+      
+      // Mark that we've submitted the plan
+      localStorage.setItem('tutorialStep', 'planSubmitted');
+      
+      // Create a unique ID for the user message to prevent duplicates
+      const userMessageId = crypto.randomUUID();
+      
+      // Add user's message to the UI with a unique ID
+      setMessages(prev => [...prev, { 
+        id: userMessageId,
+        content: message, 
+        isAl: false,
+        is_onboarding_message: true
+      }]);
+      
+      // Save user's message to chat history
+      await supabase
+        .from('chat_history')
+        .insert([{
+          message: message,
+          is_ai: false,
+          user_id: session.user.id,
+          is_onboarding_message: true
+        }]);
+      
+      // Add loading message while we wait for AI response
+      const loadingMessageId = crypto.randomUUID();
+      setMessages(prev => [...prev, { 
+        id: loadingMessageId,
+        content: "Thinking...", 
+        isAl: true,
+        is_onboarding_message: true,
+        isLoading: true
+      }]);
+      
+      try {
+        // Generate AI response to the plan
+        const response = await generateChatResponse(message, [], true, ConversationType.TUTORIAL);
+        
+        // Remove loading message
+        setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
+        
+        // Add AI response to the UI
+        setMessages(prev => [...prev, { 
+          content: response.message || "That sounds like a great plan! I've added it to your calendar.", 
+          isAl: true,
+          is_onboarding_message: true
+        }]);
+        
+        // Wait for a short delay to ensure the AI response is visible
+        setTimeout(() => {
+          // Check if we're still in the right step
+          if (localStorage.getItem('tutorialStep') !== 'planSubmitted') return;
+          
+          // Update step
+          localStorage.setItem('tutorialStep', 'reflectionPrompt');
+          
+          // Add the reflection message with feedback form
+          const reflectionMessage = "Now that you've planned something for the future, let's do a little reflecting on the past.\n\nWhat's a hangout you really enjoyed recently? Let's relive it together - it'll help me get to know you as well.\n\nIf you connected your calendar, you should see some recent events populate below. Feel free to choose one, or tell me about something off the books entirely:";
+          
+          // Add the reflection message to the UI with the feedback form
+          setMessages(prev => [...prev, { 
+            content: reflectionMessage, 
+            isAl: true,
+            is_onboarding_message: true,
+            showFeedbackForm: true,
+            onFeedbackSubmit: handleTutorialFeedbackSubmit,
+            feedbackStep: "event-selection"
+          }]);
+          
+          // Save the reflection message to chat history
+          supabase
+            .from('chat_history')
+            .insert([{
+              message: JSON.stringify({
+                text: reflectionMessage
+              }),
+              is_ai: true,
+              user_id: session.user.id,
+              is_onboarding_message: true,
+              typewriter_played: true
+            }]);
+        }, 2000); // Wait 2 seconds after AI response before showing reflection prompt
+      } catch (error) {
+        console.error('Error in tutorial plan flow:', error);
+        // Remove loading message if there was an error
+        setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
+      }
     }
   };
 
@@ -1002,8 +1401,13 @@ const Index = () => {
         })
         .eq('id', session?.user?.id);
 
+      // Mark tutorial as complete but don't clear messages
       setTutorialComplete(true);
-      setConversationType(ConversationType.CHAT)
+      setConversationType(ConversationType.CHAT);
+      setShowProfileButton(true);
+      
+      // Don't change preventHistoryLoad - keep it true
+      // This prevents the chat history from being reloaded and clearing messages
     } catch (error) {
       console.error('Error completing tutorial:', error);
       toast({
@@ -1131,7 +1535,7 @@ const Index = () => {
           className="gap-2"
           onClick={handleSkipOnboarding}
         >
-          Skip Onboarding (Dev Only)
+          Skip Onboarding and Tutorial (Dev Only)
         </Button>
         <Button
           variant="outline"
