@@ -114,7 +114,7 @@ export const ChatMessage = ({
               ))}
             </div>
           )}
-          {/* Render feedback form immediately, not dependent on typewriter animation */}
+          {/* Always render feedback form for tutorial messages */}
           {showFeedbackForm && onFeedbackSubmit && (
             <div className="mt-4 w-full">
               <InChatFeedbackForm
@@ -128,10 +128,11 @@ export const ChatMessage = ({
               />
             </div>
           )}
-          {/* Render planning form if all conditions are met */}
-          {isTypewriterComplete && (showPlanningForm || (isAl && messageType === 'morning')) && (
+          {/* Render planning form if all conditions are met - wait for typewriter animation to complete */}
+          {isTypewriterComplete && (
             <div className="mt-4">
-              {showPlanningFormState ? (
+              {/* If showPlanningForm is true, always show the planning form directly */}
+              {showPlanningForm ? (
                 <PlanningForm
                   onSubmit={(message, newContent) => {
                     if (onPlanningSubmit) {
@@ -148,14 +149,17 @@ export const ChatMessage = ({
                   defaultTime={defaultTime}
                 />
               ) : (
-                <Button 
-                  onClick={() => setShowPlanningForm(true)}
-                  variant="outline"
-                  className="w-full justify-start"
-                >
-                  <CalendarPlus className="mr-2 h-4 w-4" />
-                  Add something to calendar
-                </Button>
+                /* Only show the 'Add something to calendar' button for morning check-ins */
+                isAl && messageType === 'morning' && (
+                  <Button 
+                    onClick={() => setShowPlanningForm(true)}
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
+                    <CalendarPlus className="mr-2 h-4 w-4" />
+                    Add something to calendar
+                  </Button>
+                )
               )}
             </div>
           )}
