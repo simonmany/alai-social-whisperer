@@ -7,21 +7,7 @@ import FeedbackDialog from "@/components/FeedbackDialog";
 import PlanningDialog from "@/components/PlanningDialog";
 import { generateChatResponse } from "@/utils/openai";
 import { useToast } from "@/hooks/use-toast";
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  google_event_id?: string;
-  location?: string;
-  feedback_sent?: boolean;
-  attendees?: Array<{
-    id: string;
-    name: string;
-  }>;
-}
+import { CalendarEvent } from "@/types/calendar";
 
 export const EventCard = ({
   event
@@ -79,7 +65,7 @@ export const EventCard = ({
           
           <div className="flex flex-col gap-1.5 max-w-full">
             <p className="text-sm text-muted-foreground">
-              {format(new Date(event.start_time), 'MMM d, h:mm a')}
+              {event.all_day? "all day" : format(new Date(event.start_time), 'MMM d, h:mm a')}
             </p>
 
             {event.location && (

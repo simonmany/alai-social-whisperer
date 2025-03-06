@@ -3,20 +3,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { EventCard } from "./EventCard";
 import { CalendarPrompts } from "@/components/CalendarPrompts";
 import { startOfDay, endOfDay, isWithinInterval, isPast } from "date-fns";
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  google_event_id?: string;
-  location?: string;
-  attendees?: Array<{
-    id: string;
-    name: string;
-  }>;
-}
+import { CalendarEvent } from "@/types/calendar";
 
 interface DayViewProps {
   events: CalendarEvent[];

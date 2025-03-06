@@ -19,7 +19,7 @@ import { Contact } from "@/types/contacts";
 import { APP_CONSTANTS } from "@/utils/constants";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { startOfDay, format } from "date-fns";
 import { TIME_OPTIONS } from "@/utils/constants";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Message, ChatHistoryMessage } from "@/types/chat";
@@ -122,7 +122,7 @@ const Index = () => {
 
       try {
         const today = new Date();
-        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+        const dayStart = startOfDay(today);
         
         // When in tutorial mode, we want to show all messages including secret ones
         // When not in tutorial mode, filter out secret messages
@@ -130,7 +130,7 @@ const Index = () => {
           .from('chat_history')
           .select('*')
           .eq('user_id', session.user.id)
-          .gte('created_at', startOfDay);
+          .gte('created_at', dayStart.toISOString());
           
         // If tutorial is complete, only filter out secret messages
         // We want to keep onboarding messages visible
@@ -1049,6 +1049,26 @@ const Index = () => {
     };
 
     setupCalendarEventsSubscription();
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!session?.user?.id) {
+      return;
+    }
+
+    const setUtcOffset = async () => {
+      const now = new Date();
+      const offset = now.getTimezoneOffset();
+      const { error } = await supabase
+        .from('profiles')
+        .update({utc_offset_minutes: offset})
+        .eq('id', session?.user?.id);
+
+      if (error) {
+        console.warn('Error updating UTC offset minutes for user');
+      }
+    }
+    setUtcOffset()
   }, [session?.user?.id]);
 
   const handleGoogleSignIn = async () => {

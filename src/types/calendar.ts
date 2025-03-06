@@ -9,6 +9,7 @@ export interface CalendarEvent {
     location?: string;
     feedback_sent?: boolean;
     attendees?: Array<Contact>;
+    all_day: boolean;
   }
 
 export interface CalendarData {

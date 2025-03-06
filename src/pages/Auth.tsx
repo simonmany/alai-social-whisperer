@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { Separator } from "@/components/ui/separator";
+import { Capacitor } from "@capacitor/core";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -138,7 +139,7 @@ const Auth = () => {
           <CardDescription>Sign in or create a new account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Button 
+          {!Capacitor.isNativePlatform() && (<Button 
             variant="outline" 
             className="w-full flex items-center justify-center gap-2"
             onClick={handleGoogleLogin}
@@ -150,7 +151,7 @@ const Auth = () => {
               className="w-4 h-4"
             />
             Sign in with Google
-          </Button>
+          </Button>)}
 
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -158,7 +159,7 @@ const Auth = () => {
             </div>
             <div className="relative flex justify-center text-xs uppercase">
               <span className="bg-background px-2 text-muted-foreground">
-                Or continue with
+                Continue with
               </span>
             </div>
           </div>
