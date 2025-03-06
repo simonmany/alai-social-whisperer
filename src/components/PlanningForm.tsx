@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { Users, Shuffle, Calendar, MapPin, UserPlus } from "lucide-react";
+import { Users, Shuffle, Calendar, MapPin, UserPlus, Bot } from "lucide-react";
 import { Contact } from "@/types/contacts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, parse, isValid } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,27 +50,111 @@ export const PlanningForm = ({
   const [showContactDialog, setShowContactDialog] = useState(false);
   const { session } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [askingAl, setAskingAl] = useState<'contacts' | 'activity' | 'datetime' | 'location' | null>(null);
 
-  const { data: contacts = [] } = useQuery({
+  // Define a type for the contacts map
+  type ContactsMap = Map<string, Contact>;
+
+  const { data: contactsData = [] } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('name');
-
-      if (error) throw error;
+      // Fetch ALL contacts for the user using pagination to overcome the 1000 row limit
+      // Supabase has a default limit of 1000 rows per query
+      const fetchAllContacts = async () => {
+        const PAGE_SIZE = 1000;
+        let allContacts: any[] = [];
+        let page = 0;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const from = page * PAGE_SIZE;
+          const to = from + PAGE_SIZE - 1;
+          
+          console.log(`Fetching contacts page ${page} (${from}-${to})`);
+          
+          const { data, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('name')
+            .range(from, to);
+          
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            allContacts = [...allContacts, ...data];
+            page++;
+            
+            // If we got fewer records than the page size, we've reached the end
+            hasMore = data.length === PAGE_SIZE;
+          } else {
+            hasMore = false;
+          }
+        }
+        
+        return allContacts;
+      };
       
-      return (data || []).map(contact => ({
+      const allContacts = await fetchAllContacts();
+      console.log(`Fetched ${allContacts.length} total contacts for matching`);
+      
+      return allContacts.map(contact => ({
         ...contact,
         interests: Array.isArray(contact.interests) ? contact.interests : [],
       })) as Contact[];
     },
     enabled: !!session?.user?.id
   });
+
+  // Create a contacts map for efficient lookup by ID
+  const contactsMap: ContactsMap = useMemo(() => {
+    const map = new Map<string, Contact>();
+    contactsData.forEach(contact => {
+      if (contact && contact.id) {
+        map.set(contact.id, contact);
+      }
+    });
+    return map;
+  }, [contactsData]);
+
+  // For backward compatibility and where array operations are needed
+  const contacts = useMemo(() => Array.from(contactsMap.values()), [contactsMap]);
+
+  // Helper function to parse time string and convert to 24-hour format
+  const parseTimeString = (timeString: string): { hours: number, minutes: number } => {
+    const timeRegex = /(\d{1,2})(?::(\d{2}))?(?:\s*([AP]M))?/i;
+    const timeMatch = timeString.match(timeRegex);
+    
+    if (!timeMatch) {
+      console.warn('Invalid time format:', timeString);
+      return { hours: 18, minutes: 0 }; // Default to 6:00 PM
+    }
+    
+    let hours = parseInt(timeMatch[1]);
+    const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    const isPM = timeMatch[3] && timeMatch[3].toUpperCase().includes('PM');
+    
+    // Convert to 24-hour format
+    if (isPM && hours < 12) hours += 12;
+    if (!isPM && hours === 12) hours = 0;
+    
+    return { hours, minutes };
+  };
+
+  // Helper function to create a date object from date and time
+  const createDateFromDateAndTime = (dateObj: Date, timeString: string): { startDate: Date, endDate: Date } => {
+    const { hours, minutes } = parseTimeString(timeString);
+    
+    const startDate = new Date(dateObj);
+    startDate.setHours(hours, minutes, 0, 0);
+    
+    const endDate = new Date(startDate);
+    endDate.setHours(endDate.getHours() + 2); // Default to 2 hour events
+    
+    return { startDate, endDate };
+  };
 
   const { data: closeContacts = [] } = useQuery({
     queryKey: ['closeContacts'],
@@ -117,7 +202,196 @@ export const PlanningForm = ({
 
   const allFieldsComplete = isComplete.contacts && isComplete.activity && isComplete.datetime && isComplete.location;
 
-  const handleSubmit = async () => {
+  const getPromptForField = (field: 'contacts' | 'activity' | 'datetime' | 'location'): string => {
+    const contactsStr = selectedContacts.length > 0 ? selectedContacts.map(c => c.name).join(', ') : '';
+    const activityStr = activity || '';
+    const locationStr = location || '';
+    const timeStr = selectedDate && selectedTime ? 
+      `${format(selectedDate, 'PPP')} at ${selectedTime}` : '';
+
+    switch (field) {
+      case 'contacts':
+        return `I'm planning a hangout and need suggestions for who to invite. ${contactsStr ? `I've already selected: ${contactsStr}.` : ''} ${activityStr ? `We'll be doing: ${activityStr}.` : ''} ${locationStr ? `At: ${locationStr}.` : ''} ${timeStr ? `On: ${timeStr}.` : ''} Please suggest ONE contact to invite from my close contacts. I'm sending you my closest contacts in the contactInfo field. Return a JSON with 'text' for your conversational message and 'contacts' array with ONLY the suggested contact's name or ID.`;
+      case 'activity':
+        return `I'm planning a hangout and need activity suggestions. ${contactsStr ? `With: ${contactsStr}.` : ''} ${activityStr ? `Current activity idea: ${activityStr}.` : ''} ${locationStr ? `At: ${locationStr}.` : ''} ${timeStr ? `On: ${timeStr}.` : ''} Please suggest an activity. Return a JSON with 'text' for your message and 'activity' for your suggestion.`;
+      case 'location':
+        return `I'm planning a hangout and need location suggestions. ${contactsStr ? `With: ${contactsStr}.` : ''} ${activityStr ? `Activity: ${activityStr}.` : ''} ${locationStr ? `Current location idea: ${locationStr}.` : ''} ${timeStr ? `On: ${timeStr}.` : ''} Please suggest a location. Return a JSON with 'text' for your message and 'location' for your suggestion.`;
+      case 'datetime':
+        return `I'm planning a hangout and need date/time suggestions. ${contactsStr ? `With: ${contactsStr}.` : ''} ${activityStr ? `Activity: ${activityStr}.` : ''} ${locationStr ? `At: ${locationStr}.` : ''} ${timeStr ? `Current time idea: ${timeStr}.` : ''} Please suggest a date and time. Return a JSON with 'text' for your message and 'datetime' object with 'date' in YYYY-MM-DD format and 'time' in 12-hour format with AM/PM.`;
+      default:
+        return '';
+    }
+  };
+
+  const matchAndSetContacts = (responseContacts: any): boolean => {
+    // Ensure contacts is an array
+    let contactsArray = Array.isArray(responseContacts) ? responseContacts : 
+                         (typeof responseContacts === 'string' ? [responseContacts] : []);
+    
+    if (!Array.isArray(contactsArray) || contactsArray.length === 0) {
+      console.warn('Invalid contacts format or empty contacts array:', responseContacts);
+      return false;
+    }
+    
+    // Extract contact IDs from the response
+    const contactIds = contactsArray
+      .filter(contact => contact && (
+        (typeof contact === 'object' && contact.id) || 
+        typeof contact === 'string'
+      ))
+      .map(contact => {
+        if (typeof contact === 'object' && contact.id) {
+          return contact.id;
+        } else if (typeof contact === 'string') {
+          // Try to find by name match
+          const nameMatch = contacts.find(c => 
+            c.name.toLowerCase() === contact.toLowerCase()
+          );
+          return nameMatch?.id;
+        }
+        return null;
+      })
+      .filter(Boolean) as string[];
+    
+    if (contactIds.length === 0) {
+      console.warn('No valid contact IDs found in the response');
+      return false;
+    }
+    
+    // Match contacts by ID using the contactsMap for efficient lookup
+    const newContacts = contactIds
+      .map(id => contactsMap.get(id))
+      .filter(Boolean) as Contact[];
+    
+    if (newContacts.length === 0) {
+      console.warn('No contacts were matched from the AI response');
+      return false;
+    }
+    
+    // Create a Set of existing contact IDs for efficient lookup
+    const existingContactIds = new Set(selectedContacts.map(contact => contact.id));
+    
+    // Filter out contacts that are already selected
+    const contactsToAdd = newContacts.filter(contact => !existingContactIds.has(contact.id));
+    
+    if (contactsToAdd.length === 0) {
+      console.log('All suggested contacts are already selected');
+      return false;
+    }
+    
+    // Combine existing contacts with new ones
+    const combinedContacts = [...selectedContacts, ...contactsToAdd];
+    
+    console.log('Adding new contacts to selection:', 
+      contactsToAdd.map(c => ({ id: c.id, name: c.name })));
+    console.log('Combined contacts:', 
+      combinedContacts.map(c => ({ id: c.id, name: c.name })));
+    
+    setSelectedContacts(combinedContacts);
+    return true;
+  };
+
+  const handleAskAl = async (field: 'contacts' | 'activity' | 'datetime' | 'location') => {
+    if (!session?.user?.id || askingAl) return;
+    
+    setAskingAl(field);
+    try {
+      const prompt = getPromptForField(field);
+      // Set secretMessage to true to hide the prompt from the user
+      // Use the HangPlannerAgent instead of ChitChatAgent
+      // Pass only close contacts when requesting contact suggestions to avoid context limits
+      const contactsToSend = field === 'contacts' ? closeContacts.slice(0, 10) : [];
+      const data = await generateChatResponse(prompt, contactsToSend, true, ConversationType.HANG_PLANNER);
+      
+      if (data && typeof data === 'object') {
+        const response = data.response || data;
+        console.log('AI response for field:', field, response);
+        
+        // Update the form with Al's suggestion
+        if (field === 'contacts' && response.contacts) {
+          matchAndSetContacts(response.contacts);
+        } else if (field === 'activity' && response.activity) {
+          setActivity(response.activity);
+        } else if (field === 'location' && response.location) {
+          setLocation(response.location);
+        } else if (field === 'datetime' && response.datetime) {
+          try {
+            console.log('Processing datetime from AI:', response.datetime);
+            
+            // Parse the date from YYYY-MM-DD format
+            if (response.datetime.date) {
+              // Try using date-fns parse first (more robust)
+              try {
+                const date = parse(response.datetime.date, 'yyyy-MM-dd', new Date());
+                if (isValid(date)) {
+                  console.log('Successfully parsed date with date-fns:', date);
+                  setSelectedDate(date);
+                } else {
+                  throw new Error('Invalid date from date-fns parse');
+                }
+              } catch (parseError) {
+                // Fallback to manual parsing
+                console.log('Falling back to manual date parsing');
+                const dateParts = response.datetime.date.split('-');
+                if (dateParts.length === 3) {
+                  const year = parseInt(dateParts[0]);
+                  const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed in JS Date
+                  const day = parseInt(dateParts[2]);
+                  const newDate = new Date(year, month, day);
+                  if (!isNaN(newDate.getTime())) {
+                    console.log('Successfully parsed date manually:', newDate);
+                    setSelectedDate(newDate);
+                  }
+                }
+              }
+            }
+            
+            // Set the time if provided
+            if (response.datetime.time) {
+              console.log('Setting time from AI response:', response.datetime.time);
+              
+              // Use the helper function to parse the time
+              const { hours, minutes } = parseTimeString(response.datetime.time);
+              
+              // Format time as HH:MM
+              const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+              console.log('Formatted time for dropdown:', formattedTime);
+              setSelectedTime(formattedTime);
+            }
+          } catch (error) {
+            console.error('Error parsing date/time from AI response:', error);
+            // Set fallback values
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            setSelectedDate(tomorrow);
+            setSelectedTime('6:00 PM');
+          }
+        }
+        
+        // Update the form state
+        if (onUpdate) {
+          onUpdate({
+            contacts: selectedContacts,
+            activity,
+            location,
+            date: selectedDate,
+            time: selectedTime
+          });
+        }
+        
+        // Send the AI's response to the chat
+        onSubmit("", response.text || "Here's my suggestion.");
+      }
+    } catch (error) {
+      console.error('Error getting AI suggestions:', error);
+      // Show a user-friendly error message in the chat
+      onSubmit("", "Sorry, I couldn't generate a suggestion right now. Please try again later.");
+    } finally {
+      setAskingAl(null);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     if (!session?.user?.id || isSubmitting) return;
     
     setIsSubmitting(true);
@@ -164,25 +438,37 @@ export const PlanningForm = ({
           const data = await generateChatResponse(contextMessage, closeContacts, true, ConversationType.HANG_GENERATOR);
   
           if (data && typeof data === 'object') {
-            console.log('Received data:', data);
+            console.log('Received data from HangGenerator:', JSON.stringify(data, null, 2));
 
-            const response = data.response || data;
-            
+            let response = data.response || data;            
+            // Check if the response is a string (not JSON)
+            if (typeof response === 'string' || (response.text && !response.contacts)) {
+              console.log('Response appears to be plain text, attempting to extract JSON');
+              // Try to extract JSON from the text
+              try {
+                // Look for JSON-like structure in the text
+                const jsonMatch = response.text?.match(/\{[\s\S]*\}/m);
+                if (jsonMatch) {
+                  try {
+                    const extractedJson = JSON.parse(jsonMatch[0]);
+                    console.log('Successfully parsed JSON from text:', extractedJson);
+                    // Merge the extracted JSON with the response
+                    response = { ...response, ...extractedJson };
+                  } catch (e) {
+                    console.error('Failed to parse JSON from text:', e);
+                  }
+                }
+              } catch (e) {
+                console.error('Error trying to extract JSON from text:', e);
+              }
+            }
+                        
             // Update form with AI suggestions
             let formUpdated = false;
             
-            if (response.contacts?.length) {
-              const suggestedContacts = contacts.filter(c => 
-                response.contacts?.some(contact => contact.id === c.id)
-              );
-              if (suggestedContacts.length) {
-                // Merge suggestedContacts and selectedContacts
-                const mergedContacts = Array.from(new Set([...selectedContacts, ...suggestedContacts].map(c => c.id)))
-                  .map(id => selectedContacts.find(c => c.id === id) || suggestedContacts.find(c => c.id === id))
-                  .filter((c): c is Contact => c !== undefined);
-                setSelectedContacts(mergedContacts);
-                formUpdated = true;
-              }
+            // Check if we have contacts in the response
+            if (response.contacts) {              
+              formUpdated = matchAndSetContacts(response.contacts);
             }
   
             if (response.activity && !isComplete.activity) {
@@ -194,7 +480,15 @@ export const PlanningForm = ({
               const date = parse(response.datetime.date, 'yyyy-MM-dd', new Date());
               if (isValid(date)) {
                 setSelectedDate(date);
-                setSelectedTime(response.datetime.time);
+                console.log('Setting time from AI response:', response.datetime.time);
+              
+                // Use the helper function to parse the time
+                const { hours, minutes } = parseTimeString(response.datetime.time);
+                
+                // Format time as HH:MM
+                const formattedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+                console.log('Formatted time for dropdown:', formattedTime);
+                setSelectedTime(formattedTime);
                 formUpdated = true;
               }
             }
@@ -224,30 +518,23 @@ export const PlanningForm = ({
       }
 
       // Convert date and time to UTC
-      const [hours, minutes] = selectedTime.match(/\d+/g)!;
-      const isPM = selectedTime.includes('PM');
-      let hour = parseInt(hours);
-      if (isPM && hour !== 12) hour += 12;
-      if (!isPM && hour === 12) hour = 0;
+      const { startDate, endDate } = createDateFromDateAndTime(selectedDate, selectedTime);
       
-      const startDate = new Date(selectedDate);
-      startDate.setHours(hour, parseInt(minutes));
-      const endDate = new Date(startDate);
-      endDate.setHours(endDate.getHours() + 2); // Default to 2 hour events
+      const event = {
+        user_id: session.user.id,
+        title: activity,
+        description: `Hangout with ${selectedContacts.map(c => c.name).join(', ')}`,
+        start_time: startDate.toISOString(),
+        end_time: endDate.toISOString(),
+        location: location,
+        updated_at: new Date().toISOString()
+      };
 
       // Add event to calendar_events table
       try {
         const { data: newEvent, error: eventError } = await supabase
           .from('calendar_events')
-          .insert({
-            user_id: session.user.id,
-            title: activity,
-            description: `Hangout with ${selectedContacts.map(c => c.name).join(', ')}`,
-            start_time: startDate.toISOString(),
-            end_time: endDate.toISOString(),
-            location: location,
-            updated_at: new Date().toISOString()
-          })
+          .insert(event)
           .select()
           .single();
 
@@ -372,104 +659,309 @@ export const PlanningForm = ({
 
       {step === 'main' && (
         <div className="space-y-4">
-          <Button
-            variant="outline"
-            className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
-              isComplete.contacts ? 'border-2 border-purple-300 hover:border-purple-400' : ''
-            }`}
-            onClick={() => setStep('contacts')}
-          >
-            <div className="flex items-center gap-3 w-full">
-              <Users className="h-5 w-5 shrink-0" />
-              <div className="flex-1">
-                <div className="font-medium mb-0.5">Who's coming?</div>
-                {selectedContacts.length > 0 ? (
-                  <div className="text-sm text-muted-foreground">
-                    {selectedContacts.length <= 5 ? (
-                      selectedContacts.map((contact, index) => (
-                        <span key={contact.id}>
-                          {contact.name}
-                          {index < selectedContacts.length - 1 ? ', ' : ''}
-                        </span>
+          {/* Contacts Section */}
+          <div className={`relative border rounded-lg p-4 pt-6 ${isComplete.contacts ? 'border-purple-500' : ''}`}>
+            <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
+              <div className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                <span className="font-medium text-sm">Who's coming?</span>
+                {isComplete.contacts && <span className="text-purple-500 ml-1">✓</span>}
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 mb-2">
+              {selectedContacts.map(contact => (
+                <Button
+                  key={contact.id}
+                  variant="secondary"
+                  className="h-8 px-3 flex items-center gap-2"
+                  onClick={() => handleContactSelect(contact)}
+                >
+                  {contact.name}
+                  <span className="text-xs">×</span>
+                </Button>
+              ))}
+            </div>
+            
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  placeholder="Search contacts..."
+                  value={contactInput}
+                  onChange={(e) => setContactInput(e.target.value)}
+                  className="flex-1 w-full"
+                />
+              </div>
+              
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setShowContactDialog(true)}
+                title="Add new contact"
+                type="button"
+              >
+                <UserPlus className="h-4 w-4" />
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs whitespace-nowrap border-purple-600 text-purple-600 hover:bg-purple-50"
+                onClick={() => handleAskAl('contacts')}
+                disabled={askingAl !== null}
+              >
+                {askingAl === 'contacts' ? (
+                  <span>Thinking...</span>
+                ) : (
+                  <span>Ask Al</span>
+                )}
+              </Button>
+            </div>
+            
+            {/* Contact dropdown moved below the input field */}
+            {contactInput && filteredContacts.length > 0 && (
+              <div className="relative z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-[300px] overflow-auto">
+                {filteredContacts.map(contact => (
+                  <div
+                    key={contact.id}
+                    className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      handleContactSelect(contact);
+                      setContactInput("");
+                    }}
+                  >
+                    {contact.name}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Activity Section */}
+          <div className={`relative border rounded-lg p-4 pt-6 ${isComplete.activity ? 'border-purple-500' : ''}`}>
+            <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
+              <div className="flex items-center gap-1">
+                <Shuffle className="h-4 w-4" />
+                <span className="font-medium text-sm">What do you want to do?</span>
+                {isComplete.activity && <span className="text-purple-500 ml-1">✓</span>}
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  value={activity}
+                  onChange={(e) => {
+                    setActivity(e.target.value);
+                    if (onUpdate) {
+                      onUpdate({
+                        contacts: selectedContacts,
+                        activity: e.target.value,
+                        location,
+                        date: selectedDate,
+                        time: selectedTime
+                      });
+                    }
+                  }}
+                  placeholder="e.g. get coffee, go for a walk, grab lunch"
+                  className="flex-1 w-full"
+                />
+                {activity && 
+                  // Only show dropdown if there are matching activities AND none of them is an exact match
+                  activities.filter(act => 
+                    act.name.toLowerCase().includes(activity.toLowerCase())
+                  ).length > 0 && 
+                  !activities.some(act => act.name.toLowerCase() === activity.toLowerCase()) && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-[300px] overflow-auto">
+                    {activities
+                      .filter(act => 
+                        act.name.toLowerCase().includes(activity.toLowerCase())
+                      )
+                      .map(act => (
+                        <div
+                          key={act.id}
+                          className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            setActivity(act.name);
+                            if (onUpdate) {
+                              onUpdate({
+                                contacts: selectedContacts,
+                                activity: act.name,
+                                location,
+                                date: selectedDate,
+                                time: selectedTime
+                              });
+                            }
+                          }}
+                        >
+                          {act.name}
+                        </div>
                       ))
-                    ) : (
-                      `${selectedContacts.length} contacts selected`
-                    )}
+                    }
                   </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">Select contacts</div>
                 )}
               </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs whitespace-nowrap border-purple-600 text-purple-600 hover:bg-purple-50"
+                onClick={() => handleAskAl('activity')}
+                disabled={askingAl !== null}
+              >
+                {askingAl === 'activity' ? (
+                  <span>Thinking...</span>
+                ) : (
+                  <span>Ask Al</span>
+                )}
+              </Button>
             </div>
-          </Button>
+          </div>
 
-          <Button
-            variant="outline"
-            className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
-              isComplete.activity ? 'border-2 border-purple-300 hover:border-purple-400' : ''
-            }`}
-            onClick={() => setStep('activity')}
-          >
-            <div className="flex items-center gap-3 w-full">
-              <Shuffle className="h-5 w-5 shrink-0" />
-              <div className="flex-1">
-                <div className="font-medium mb-0.5">What do you want to do?</div>
-                {activity ? (
-                  <div className="text-sm text-muted-foreground">{activity}</div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">Choose an activity</div>
-                )}
+          {/* Date/Time Section */}
+          <div className={`relative border rounded-lg p-4 pt-6 ${isComplete.datetime ? 'border-purple-500' : ''}`}>
+            <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
+              <div className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                <span className="font-medium text-sm">When?</span>
+                {isComplete.datetime && <span className="text-purple-500 ml-1">✓</span>}
               </div>
             </div>
-          </Button>
+            
+            <div className="flex items-end gap-2 mb-2">
+              <div className="flex-1">
+                <Label className="text-xs">Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-9"
+                    >
+                      {selectedDate ? (
+                        format(selectedDate, 'PPP')
+                      ) : (
+                        <span className="text-muted-foreground">Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="w-32">
+                <Label className="text-xs">Time</Label>
+                <Select
+                  value={selectedTime}
+                  onValueChange={(value) => {
+                    setSelectedTime(value);
+                    if (onUpdate) {
+                      onUpdate({
+                        contacts: selectedContacts,
+                        activity,
+                        location,
+                        date: selectedDate,
+                        time: value
+                      });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Select time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 * 4 }).map((_, index) => {
+                      const hour = Math.floor(index / 4);
+                      const minute = (index % 4) * 15;
+                      const formattedHour = hour.toString().padStart(2, '0');
+                      const formattedMinute = minute.toString().padStart(2, '0');
+                      const timeValue = `${formattedHour}:${formattedMinute}`;
+                      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+                      const amPm = hour < 12 ? 'AM' : 'PM';
+                      const displayTime = `${displayHour}:${formattedMinute.toString().padStart(2, '0')} ${amPm}`;
+                      return (
+                        <SelectItem key={timeValue} value={timeValue}>
+                          {displayTime}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs whitespace-nowrap h-9 border-purple-600 text-purple-600 hover:bg-purple-50"
+                onClick={() => handleAskAl('datetime')}
+                disabled={askingAl !== null}
+              >
+                {askingAl === 'datetime' ? (
+                  <span>Thinking...</span>
+                ) : (
+                  <span>Ask Al</span>
+                )}
+              </Button>
+            </div>
+            {/* Ask Al button moved inline with date/time fields */}
+          </div>
 
-          <Button
-            variant="outline"
-            className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
-              isComplete.datetime ? 'border-2 border-purple-300 hover:border-purple-400' : ''
-            }`}
-            onClick={() => setStep('datetime')}
-          >
-            <div className="flex items-center gap-3 w-full">
-              <Calendar className="h-5 w-5 shrink-0" />
-              <div className="flex-1">
-                <div className="font-medium mb-0.5">When?</div>
-                {selectedDate && selectedTime ? (
-                  <div className="text-sm text-muted-foreground">
-                    {format(selectedDate, 'PPP')} at {selectedTime}
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">Pick a date and time</div>
-                )}
+          {/* Location Section */}
+          <div className={`relative border rounded-lg p-4 pt-6 ${isComplete.location ? 'border-purple-500' : ''}`}>
+            <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
+              <div className="flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                <span className="font-medium text-sm">Where?</span>
+                {isComplete.location && <span className="text-purple-500 ml-1">✓</span>}
               </div>
             </div>
-          </Button>
-
-          <Button
-            variant="outline"
-            className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
-              isComplete.location ? 'border-2 border-purple-300 hover:border-purple-400' : ''
-            }`}
-            onClick={() => setStep('location')}
-          >
-            <div className="flex items-center gap-3 w-full">
-              <MapPin className="h-5 w-5 shrink-0" />
-              <div className="flex-1">
-                <div className="font-medium mb-0.5">Where?</div>
-                {location ? (
-                  <div className="text-sm text-muted-foreground">{location}</div>
+            
+            <div className="flex gap-2">
+              <Input
+                value={location}
+                onChange={(e) => {
+                  setLocation(e.target.value);
+                  if (onUpdate) {
+                    onUpdate({
+                      contacts: selectedContacts,
+                      activity,
+                      location: e.target.value,
+                      date: selectedDate,
+                      time: selectedTime
+                    });
+                  }
+                }}
+                placeholder="e.g. Central Park, Joe's Coffee, etc."
+                className="flex-1"
+              />
+              
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs whitespace-nowrap border-purple-600 text-purple-600 hover:bg-purple-50"
+                onClick={() => handleAskAl('location')}
+                disabled={askingAl !== null}
+              >
+                {askingAl === 'location' ? (
+                  <span>Thinking...</span>
                 ) : (
-                  <div className="text-sm text-muted-foreground">Choose a location</div>
+                  <span>Ask Al</span>
                 )}
-              </div>
+              </Button>
             </div>
-          </Button>
+          </div>
 
           <div className="flex justify-end mt-4">
             <Button
               onClick={handleSubmit}
               className="bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
+              disabled={isSubmitting || askingAl !== null}
             >
               {isSubmitting 
                 ? "Planning..." 
@@ -607,6 +1099,13 @@ export const PlanningForm = ({
         </div>
       )}
 
+      {/* Add ContactsDialog at the main level so it works from any section */}
+      <ContactsDialog
+        open={showContactDialog}
+        onOpenChange={setShowContactDialog}
+        onSubmit={handleNewContactSubmit}
+        userId={session?.user?.id || ""}
+      />
     </div>
   );
 };

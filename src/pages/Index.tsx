@@ -1376,7 +1376,7 @@ const Index = () => {
       }]);
       // Add AI response with the planning form
       setMessages(prev => [...prev, { 
-        content: "Sure! Let's plan something. Fill out the details below:", 
+        content: "Let's do it.\n\nAny thoughts on who, what, when, or where? Let me know - I'll help with any blanks.\n\nI can also come up with something for you from scratch.", 
         isAl: true,
         showPlanningForm: true,
         onPlanningSubmit: handlePlanSubmit,
