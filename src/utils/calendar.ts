@@ -3,42 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Capacitor } from "@capacitor/core";
 import { Contact } from "@/types/contacts";
 
-
-async function matchAttendeesToContacts(userId: string, attendees: CalendarEvent['attendees']): Promise<Array<Contact>> {
-  let contacts: Contact[] = [];
-  for (const attendee of attendees) {
-    const { data: findContact, error: findError } = await supabase
-      .from('contacts')
-      .select('*')
-      .eq('user_id', userId)
-      .or(
-        `name.eq.${attendee.name},email.eq.${attendee.name},email.eq.${attendee.email}`
-      )
-      .single();
-
-      if (findError && findError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
-        console.error('Error finding contact:', findError);
-        continue;
-      }
-      if (findContact) contacts.push(findContact);
-    if (!findContact) {
-      const { data: newContact, error } = await supabase
-        .from('contacts')
-        .upsert({
-          name: attendee.name,
-          email: attendee.email,
-          user_id: userId
-        })
-        .select('*')
-        .limit(1)
-        .single();
-        console.log('Creating new contact', newContact);
-        contacts.push(newContact);
-    }
-  }
-  return contacts;
-}
-
 export async function checkPermissions(): Promise<{ 
   status: 'read' | 'write' | 'all' | 'none';
 }> {
@@ -48,8 +12,7 @@ export async function checkPermissions(): Promise<{
     const { result: readStatus } = await CapacitorCalendar.checkPermission({scope: CalendarPermissionScope.READ_CALENDAR});
     const { result: writeStatus } = await CapacitorCalendar.checkPermission({scope: CalendarPermissionScope.WRITE_CALENDAR});
 
-    let status = 'none';
-    if (readStatus === 'granted' || writeStatus === 'granted') {
+=    if (readStatus === 'granted' || writeStatus === 'granted') {
         if (readStatus === 'granted' && writeStatus === 'granted') {
             return { status: "all" };
         } else if (readStatus === 'granted') {
@@ -66,18 +29,16 @@ export const synchronizeEvents = async (userId: string): Promise<{
   updated: number;
   error?: string;
 }> => {
+  // Only proceed if we're on a native platform
+  if (!Capacitor.isNativePlatform()) {
+    return { added: 0, updated: 0, error: 'Calendar sync is only available on native platforms' };
+  }
+  // Check calendar permissions
+  const { result: permissionStatus } = await CapacitorCalendar.checkPermission({scope: CalendarPermissionScope.READ_CALENDAR});
+  if (permissionStatus !== 'granted') {
+    return { added: 0, updated: 0, error: 'Calendar permission not granted, click connect calendar' };
+  }
   try {
-    // Only proceed if we're on a native platform
-    if (!Capacitor.isNativePlatform()) {
-      return { added: 0, updated: 0, error: 'Calendar sync is only available on native platforms' };
-    }
-
-    // Check calendar permissions
-    const { result: permissionStatus } = await CapacitorCalendar.checkPermission({scope: CalendarPermissionScope.READ_CALENDAR});
-    if (permissionStatus !== 'granted') {
-      return { added: 0, updated: 0, error: 'Calendar permission not granted' };
-    }
-
     // Get events for the next 30 days
     const now = new Date();
     const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
@@ -89,108 +50,19 @@ export const synchronizeEvents = async (userId: string): Promise<{
       to: thirtyDaysFromNow.getTime()
     });
 
-    let added = 0;
-    let updated = 0;
-
-    // Process each native event
-    // TODO (ari) compare by creationDate if exists, as well at calendar source and title
-    for (const nativeEvent of nativeEvents) {
-
-      const { data: existingEvent, error } = await supabase
-        .from('calendar_events')
-        .select(`
-          id,
-          title,
-          description,
-          feedback_sent,
-          start_time,
-          end_time,
-          location,
-          event_attendees!left (
-            contacts!contact_id (
-              id,
-              name
-            )
-          )
-        `)
-        .eq('user_id', userId)
-        .eq('calendar_event_id', nativeEvent.id)
-        .maybeSingle();
-
-      if (error) {
-        throw new Error(`Failed to fetch existing event: ${error.message}`);
+    const { added, updated, error } = await supabase.functions.invoke(
+      'sync_native_calendar',
+      {body:
+        { user_id: userId, native_events: nativeEvents}
       }
+    )
 
-      console.log('found existing event? ', JSON.stringify(existingEvent, null, 2))
-
-
-      const eventData = {
-        user_id: userId,
-        title: nativeEvent.title,
-        start_time: new Date(nativeEvent.startDate).toISOString(),
-        end_time: new Date(nativeEvent.endDate).toISOString(),
-        location: nativeEvent.location,
-        description: nativeEvent.description,
-        updated_at: now.toISOString(),
-        created_at: nativeEvent.creationDate ? new Date(nativeEvent.creationDate).toISOString() : now.toISOString(),
-        timezone: nativeEvent.timezone,
-        all_day: nativeEvent.isAllDay,
-        calendar_event_id: nativeEvent.id,
-      };
-
-      let attendees = await matchAttendeesToContacts(userId, nativeEvent.attendees);
-
-      if (!existingEvent) {
-        // Insert new event
-        const { error: insertError } = await supabase
-          .from('calendar_events')
-          .insert(eventData);
-
-        if (insertError) {
-          console.error('Failed to insert event:', insertError);
-          continue;
-        }
-        added++;
-      } else if (
-        existingEvent.start_time !== eventData.start_time ||
-        existingEvent.end_time !== eventData.end_time ||
-        existingEvent.location !== eventData.location ||
-        existingEvent.description !== eventData.description ||
-        existingEvent.event_attendees?.length !== attendees?.length
-      ) {
-        // Update existing event if there are changes
-        const { error: updateError } = await supabase
-          .from('calendar_events')
-          .update(eventData)
-          .eq('id', existingEvent.id);
-
-        // Add all attendees to event_attendees table
-        const { error: attendeesError } = await supabase
-          .from('event_attendees')
-          .upsert(
-            attendees.map(attendee => ({
-              event_id: existingEvent.id,
-              contact_id: attendee.id,
-            })),
-            { 
-              onConflict: 'event_id, contact_id',
-              ignoreDuplicates: false
-            }
-          );
-
-        if (attendeesError) {
-          console.error('Failed to update event attendees:', attendeesError);
-        }
-
-        if (updateError) {
-          console.error('Failed to update event:', updateError);
-          continue;
-        }
-        updated++;
-      }
+    if (error) {
+      throw new Error(error);
     }
 
-    return { added, updated };
+    return {added, updated};
+
   } catch (error) {
     console.error('Calendar sync error:', error);
     return {

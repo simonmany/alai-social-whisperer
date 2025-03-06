@@ -858,54 +858,11 @@ const Index = () => {
         }
       });
 
-      for (const contact of contacts) {
-        const { data: existingContact, error: checkError } = await supabase
-          .from('contacts')
-          .select('id, name, phone, email, address')
-          .eq('user_id', session.user.id)
-          .eq('name', contact.name.display)
-          .limit(1)
-          .maybeSingle();
+      const { result, error } = await supabase.functions.invoke('sync_native_contacts', {body: {user_id: session?.user?.id, native_contacts: contacts}});
 
-        if (checkError) throw checkError;
-
-        if (!existingContact) {
-          const { error: insertError } = await supabase
-            .from('contacts')
-            .insert({
-              user_id: session.user.id,
-              name: contact.name.display,
-              phone: contact.phones?.[0]?.number,
-              email: contact.emails?.[0]?.address,
-              address: contact.postalAddresses?.[0]?.street ? `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}` : null,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-
-          if (insertError) throw insertError;
-        }
-        else if (
-          existingContact.name !== contact.name.display
-          || existingContact.phone !== contact.phones?.[0]?.number
-          || existingContact.email !== contact.emails?.[0]?.address
-          || existingContact.address !== `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}`
-        ) {
-          const { error: updateError } = await supabase
-            .from('contacts')
-            .update({
-              name: contact.name.display,
-              phone: contact.phones?.[0]?.number,
-              email: contact.emails?.[0]?.address,
-              address: contact.postalAddresses?.[0]?.street ? `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}` : null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingContact.id);
-
-          if (updateError) throw updateError;
-        }
-
+      if (error) {
+        throw new Error(error);
       }
-
       setLastContactSync(new Date());
     } catch (error) {
       console.error('Error syncing contacts:', error);
