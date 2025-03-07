@@ -1024,6 +1024,7 @@ const Index = () => {
       if (error) {
         console.warn('Error updating UTC offset minutes for user');
       }
+      console.log('UTC offset updated successfully', offset);
     }
     setUtcOffset()
   }, [session?.user?.id]);
