@@ -886,6 +886,7 @@ const Index = () => {
         .from('contacts')
         .select('updated_at')
         .eq('user_id', session.user.id)
+        .not('updated_at','is', null)
         .order('updated_at', { ascending: false })
         .limit(1)
         .single();
@@ -894,7 +895,6 @@ const Index = () => {
         console.error('Error in getLastContactSync:', error);
         throw error;
       }
-      console.log('updated data', data);
       return data ? new Date(data.updated_at) : null;
     } catch (error) {
       console.error('Error fetching last contact sync:', error);

@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { supabase } from '../_shared/supabase';
+import { supabase } from '../_shared/supabase.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -169,7 +169,7 @@ serve(async (req) => {
     JSON.stringify({ added, updated, error: '' }),
     {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     },
   );
 });

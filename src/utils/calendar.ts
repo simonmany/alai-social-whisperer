@@ -12,7 +12,7 @@ export async function checkPermissions(): Promise<{
     const { result: readStatus } = await CapacitorCalendar.checkPermission({scope: CalendarPermissionScope.READ_CALENDAR});
     const { result: writeStatus } = await CapacitorCalendar.checkPermission({scope: CalendarPermissionScope.WRITE_CALENDAR});
 
-=    if (readStatus === 'granted' || writeStatus === 'granted') {
+    if (readStatus === 'granted' || writeStatus === 'granted') {
         if (readStatus === 'granted' && writeStatus === 'granted') {
             return { status: "all" };
         } else if (readStatus === 'granted') {

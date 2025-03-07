@@ -1,5 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { supabase } from '../_shared/supabase';
+import { supabase } from '../_shared/supabase.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,6 +49,8 @@ serve(async (req) => {
         || existingContact.email !== contact.emails?.[0]?.address
         || existingContact.address !== `${contact.postalAddresses?.[0]?.street}, ${contact.postalAddresses?.[0]?.city}`
       ) {
+        // TODO (ari) these mistmatch because undefined != null. think of a smart way to do this
+        // while also updatedin updated_at
         const { error: updateError } = await supabase
           .from('contacts')
           .update({
@@ -66,7 +68,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error.message);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -78,7 +80,7 @@ serve(async (req) => {
     JSON.stringify({ result: 'success' }),
     {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     },
   );
 });
