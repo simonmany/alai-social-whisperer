@@ -1015,7 +1015,7 @@ const Index = () => {
 
     const setUtcOffset = async () => {
       const now = new Date();
-      const offset = now.getTimezoneOffset();
+      const offset = -(now.getTimezoneOffset());
       const { error } = await supabase
         .from('profiles')
         .update({utc_offset_minutes: offset})
