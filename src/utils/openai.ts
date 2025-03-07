@@ -15,6 +15,7 @@ export enum ConversationType {
   HANG_PLANNER = 'HANG_PLANNER',
   PERSONALITY_ANALYZER = 'PERSONALITY_ANALYZER',
   HANG_GENERATOR = 'HANG_GENERATOR',
+  DAILY_CHECKIN = 'DAILY_CHECKIN'
 }
 
 export const generateChatResponse = async (message: string, contactInfo?: ContactInfo[], secretMessage?: boolean, conversationType: ConversationType = ConversationType.CHAT) => {

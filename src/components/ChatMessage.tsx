@@ -84,8 +84,8 @@ export const ChatMessage = ({
   return (
     <div
       className={cn(
-        "mb-4 max-w-[80%] text-xl font-cormorant",
-        isAl ? "self-start" : "self-end",
+        "mb-4 text-xl font-cormorant",
+        isAl ? "self-start w-[80%]" : "self-end max-w-[80%]",
         animate && (isAl ? "animate-slide-in-left" : "animate-slide-in-right")
       )}
     >
