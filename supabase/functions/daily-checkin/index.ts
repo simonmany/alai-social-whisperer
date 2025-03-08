@@ -3,6 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 import { stringifyJSON } from '../_shared/utils.ts';
 import { convertToLocalTime } from "../_shared/utils.ts";
+import { supabase } from '../_shared/supabase.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,18 +17,6 @@ serve(async (req) => {
 
   try {
     console.log('Starting daily check-in function');
-    
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Missing environment variables:', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey });
-      throw new Error('Missing environment variables');
-    }
-
-    console.log('Creating Supabase client with URL:', supabaseUrl);
-    
-    const supabaseClient = createClient(supabaseUrl, supabaseKey);
 
     const requestBody = await req.json();
     console.log('Received request body:', requestBody);
@@ -42,7 +31,7 @@ serve(async (req) => {
 
     // Get user's profile for timezone, goals, and catch-up contacts
     console.log('Fetching profile for user:', user_id);
-    const { data: profile, error: profileError } = await supabaseClient
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('id, display_name, city, goals, utc_offset_minutes, catch_up_contacts')
       .eq('id', user_id)
@@ -87,7 +76,7 @@ serve(async (req) => {
       const endOfDayUTC = new Date(endOfDay.getTime() - (profile.utc_offset_minutes || 0) * 60000);
   
       if (type === 'morning') {
-        const { data, error: eventsError } = await supabaseClient
+        const { data, error: eventsError } = await supabase
           .from('calendar_events')
           .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
@@ -108,7 +97,7 @@ serve(async (req) => {
         // First, fetch catch-up contacts if any are specified
         let catchUpContacts = [];
         if (profile.catch_up_contacts?.length > 0) {
-          const { data: catchUpData, error: catchUpError } = await supabaseClient
+          const { data: catchUpData, error: catchUpError } = await supabase
             .from('contacts')
             .select('id, name, closeness, interests, relationship, meeting_story')
             .eq('user_id', user_id)
@@ -122,7 +111,7 @@ serve(async (req) => {
         }
 
         // Then fetch other close contacts as backup suggestions
-        let query = supabaseClient
+        let query = supabase
           .from('contacts')
           .select('id, name, closeness, interests, relationship, meeting_story')
           .eq('user_id', user_id)
@@ -158,7 +147,7 @@ Format each availability as:
 ### Reminders
 Prep needed for today's events:`;
       } else {
-        const { data: pastData, error: pastEventsError } = await supabaseClient
+        const { data: pastData, error: pastEventsError } = await supabase
           .from('calendar_events')
           .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
@@ -176,7 +165,7 @@ Prep needed for today's events:`;
           end_time: convertToLocalTime(event.end_time, profile.utc_offset_minutes)
         })) || [];
         // Get upcoming events for the rest of today
-        const { data: upcomingData, error: upcomingEventsError } = await supabaseClient
+        const { data: upcomingData, error: upcomingEventsError } = await supabase
           .from('calendar_events')
           .select('title, description, start_time, end_time')
           .eq('user_id', user_id)
@@ -216,7 +205,7 @@ Your goal is to better understand the user's likes and dislikes across people, a
       console.log('Processing post-event request for event:', event_id);
       
       // Get event details including attendees
-      const { data: eventDetails, error: eventError } = await supabaseClient
+      const { data: eventDetails, error: eventError } = await supabase
         .from('calendar_events')
         .select(`
           *,
@@ -266,7 +255,7 @@ Your goal is to better understand the user's likes and dislikes across people, a
     });
 
     console.log('Invoking chat function with type:', type);
-    const { data: chatResponse, error: chatError } = await supabaseClient.functions.invoke('chat', {
+    const { data: chatResponse, error: chatError } = await supabase.functions.invoke('chat', {
       body: { 
         message, 
         userId: user_id, 
@@ -279,7 +268,15 @@ Your goal is to better understand the user's likes and dislikes across people, a
       }
     });
 
-    console.log('Chat function response:', chatResponse);
+    if (chatResponse.response.text && (type === 'morning' || type === 'evening')) {
+      console.log('invoking sms');
+      supabase.functions.invoke('sms', {
+        body: {
+          user_id,
+          message: chatResponse.response.text
+        }
+      });
+    }
 
     if (chatError) {
       console.error('Error calling chat function:', chatError);
