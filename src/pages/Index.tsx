@@ -1545,67 +1545,17 @@ const Index = () => {
         )}
       </main>
 
-      <div className="fixed bottom-4 left-4 flex flex-col gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleStartTutorial}
-        >
-          <Play className="h-4 w-4" />
-          Start Tutorial
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleSkipOnboarding}
-        >
-          Skip Onboarding and Tutorial (Dev Only)
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleRestartOnboarding}
-        >
-          <Redo className="h-4 w-4" />
-          Restart Onboarding
-        </Button>
-        
-        <div className="h-px bg-border my-2" />
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestMorningCheckin}
-        >
-          <Play className="h-4 w-4" />
-          Test Morning Check-in
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestEveningCheckin}
-        >
-          <Play className="h-4 w-4" />
-          Test Evening Check-in
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestCompletedEvents}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Test Completed Events
-        </Button>
-      </div>
+      {/* Dev mode buttons moved to Profile component */}
 
       <Profile 
         open={isProfileOpen} 
         onOpenChange={setIsProfileOpen}
+        onStartTutorial={handleStartTutorial}
+        onSkipOnboarding={handleSkipOnboarding}
+        onRestartOnboarding={handleRestartOnboarding}
+        onTestMorningCheckin={handleTestMorningCheckin}
+        onTestEveningCheckin={handleTestEveningCheckin}
+        onTestCompletedEvents={handleTestCompletedEvents}
       />
       <FeedbackDialog
         open={isFeedbackOpen}
