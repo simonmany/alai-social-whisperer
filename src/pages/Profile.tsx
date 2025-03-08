@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { LogOut, Settings, Share2 } from "lucide-react";
+import { LogOut, Settings, Share2, Play, Redo, RefreshCw, Code } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -16,12 +16,29 @@ import Autocomplete from 'react-google-autocomplete';
 interface ProfileProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  // Dev mode callbacks
+  onStartTutorial?: () => void;
+  onSkipOnboarding?: () => void;
+  onRestartOnboarding?: () => void;
+  onTestMorningCheckin?: () => void;
+  onTestEveningCheckin?: () => void;
+  onTestCompletedEvents?: () => void;
 }
 
-const Profile = ({ open, onOpenChange }: ProfileProps) => {
+const Profile = ({ 
+  open, 
+  onOpenChange, 
+  onStartTutorial,
+  onSkipOnboarding,
+  onRestartOnboarding,
+  onTestMorningCheckin,
+  onTestEveningCheckin,
+  onTestCompletedEvents 
+}: ProfileProps) => {
   const [showIntegrations, setShowIntegrations] = useState(false);
   const [isConnectingCalendar, setIsConnectingCalendar] = useState(false);
   const [isLocationDialogOpen, setIsLocationDialogOpen] = useState(false);
+  const [isDevModeOpen, setIsDevModeOpen] = useState(false);
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -341,6 +358,14 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
                 </Button>
                 <Button 
                   variant="outline" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => setIsDevModeOpen(true)}
+                >
+                  <Code className="h-4 w-4" />
+                  Dev Mode
+                </Button>
+                <Button 
+                  variant="outline" 
                   className="w-full justify-start gap-2 text-destructive hover:text-destructive"
                   onClick={handleSignOut}
                 >
@@ -373,6 +398,101 @@ const Profile = ({ open, onOpenChange }: ProfileProps) => {
             ) : (
               <div className="text-sm text-gray-500">Loading location selector...</div>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDevModeOpen} onOpenChange={setIsDevModeOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Developer Mode</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 p-4">
+            <h3 className="text-sm font-medium mb-2">Tutorial & Onboarding</h3>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start gap-2"
+                onClick={() => {
+                  setIsDevModeOpen(false);
+                  onOpenChange(false);
+                  onStartTutorial?.();
+                }}
+              >
+                <Play className="h-4 w-4" />
+                Start Tutorial
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start gap-2"
+                onClick={() => {
+                  setIsDevModeOpen(false);
+                  onOpenChange(false);
+                  onSkipOnboarding?.();
+                }}
+              >
+                Skip Onboarding and Tutorial (Dev Only)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start gap-2"
+                onClick={() => {
+                  setIsDevModeOpen(false);
+                  onOpenChange(false);
+                  onRestartOnboarding?.();
+                }}
+              >
+                <Redo className="h-4 w-4" />
+                Restart Onboarding
+              </Button>
+            </div>
+
+            <div className="h-px bg-border my-2" />
+            <h3 className="text-sm font-medium mb-2">Testing</h3>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start gap-2"
+                onClick={() => {
+                  setIsDevModeOpen(false);
+                  onOpenChange(false);
+                  onTestMorningCheckin?.();
+                }}
+              >
+                <Play className="h-4 w-4" />
+                Test Morning Check-in
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start gap-2"
+                onClick={() => {
+                  setIsDevModeOpen(false);
+                  onOpenChange(false);
+                  onTestEveningCheckin?.();
+                }}
+              >
+                <Play className="h-4 w-4" />
+                Test Evening Check-in
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start gap-2"
+                onClick={() => {
+                  setIsDevModeOpen(false);
+                  onOpenChange(false);
+                  onTestCompletedEvents?.();
+                }}
+              >
+                <RefreshCw className="h-4 w-4" />
+                Test Completed Events
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

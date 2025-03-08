@@ -1167,6 +1167,16 @@ const Index = () => {
   };
 
   const handleTutorialFeedbackSubmit = async (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => {
+    // Check if the tutorial has already been completed
+    if (tutorialComplete) {
+      console.log('Tutorial already completed, processing feedback as regular message');
+      // Just handle as a regular message if tutorial is complete
+      if (message) {
+        handleSend(message);
+      }
+      return;
+    }
+    
     // Check current tutorial step
     const currentStep = localStorage.getItem('tutorialStep');
     
@@ -1183,7 +1193,8 @@ const Index = () => {
     if (message) {
       setMessages(prev => [...prev, { 
         content: message, 
-        isAl: false
+        isAl: false,
+        is_onboarding_message: true
       }]);
       
       // Save user's message to chat history
@@ -1228,7 +1239,7 @@ const Index = () => {
     // but we'll keep the state to track progress
   };
   
-  // This function is called when the user submits their plan during the tutorial
+  // This function is called when the user submits a plan
   const handlePlanSubmit = async (message: string, newContent?: string) => {
     if (newContent) {
       // Update the existing planning form message
@@ -1240,17 +1251,8 @@ const Index = () => {
       ));
     }
     else {
-      // Check current tutorial step
-      const currentStep = localStorage.getItem('tutorialStep');
-      
-      // Prevent duplicate submissions
-      if (currentStep === 'planSubmitted') {
-        console.log('Plan already submitted, ignoring duplicate');
-        return;
-      }
-      
-      // Mark that we've submitted the plan
-      localStorage.setItem('tutorialStep', 'planSubmitted');
+      // Check if the tutorial has been completed
+      const isTutorialActive = !tutorialComplete;
       
       // Create a unique ID for the user message to prevent duplicates
       const userMessageId = crypto.randomUUID();
@@ -1260,7 +1262,7 @@ const Index = () => {
         id: userMessageId,
         content: message, 
         isAl: false,
-        is_onboarding_message: true
+        is_onboarding_message: isTutorialActive
       }]);
       
       // Save user's message to chat history
@@ -1270,7 +1272,7 @@ const Index = () => {
           message: message,
           is_ai: false,
           user_id: session.user.id,
-          is_onboarding_message: true
+          is_onboarding_message: isTutorialActive
         }]);
       
       // Add loading message while we wait for AI response
@@ -1279,13 +1281,17 @@ const Index = () => {
         id: loadingMessageId,
         content: "Thinking...", 
         isAl: true,
-        is_onboarding_message: true,
+        is_onboarding_message: isTutorialActive,
         isLoading: true
       }]);
       
       try {
+        // If we're in the tutorial, use tutorial conversation type
+        // Otherwise use regular chat
+        const conversationType = isTutorialActive ? ConversationType.TUTORIAL : ConversationType.CHAT;
+        
         // Generate AI response to the plan
-        const response = await generateChatResponse(message, [], true, ConversationType.TUTORIAL);
+        const response = await generateChatResponse(message, [], true, conversationType);
         
         // Remove loading message
         setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
@@ -1294,45 +1300,60 @@ const Index = () => {
         setMessages(prev => [...prev, { 
           content: response.message || "That sounds like a great plan! I've added it to your calendar.", 
           isAl: true,
-          is_onboarding_message: true
+          is_onboarding_message: isTutorialActive
         }]);
         
-        // Wait for a short delay to ensure the AI response is visible
-        setTimeout(() => {
-          // Check if we're still in the right step
-          if (localStorage.getItem('tutorialStep') !== 'planSubmitted') return;
+        // Only show tutorial-specific messages if the tutorial is active
+        if (isTutorialActive) {
+          // Check current tutorial step
+          const currentStep = localStorage.getItem('tutorialStep');
           
-          // Update step
-          localStorage.setItem('tutorialStep', 'reflectionPrompt');
+          // Prevent duplicate submissions
+          if (currentStep === 'planSubmitted') {
+            console.log('Plan already submitted, ignoring duplicate');
+            return;
+          }
           
-          // Add the reflection message with feedback form
-          const reflectionMessage = "Now that you've planned something for the future, let's do a little reflecting on the past.\n\nWhat's a hangout you really enjoyed recently? Let's relive it together - it'll help me get to know you as well.\n\nIf you connected your calendar, you should see some recent events populate below. Feel free to choose one, or tell me about something off the books entirely:";
+          // Mark that we've submitted the plan
+          localStorage.setItem('tutorialStep', 'planSubmitted');
           
-          // Add the reflection message to the UI with the feedback form
-          setMessages(prev => [...prev, { 
-            content: reflectionMessage, 
-            isAl: true,
-            is_onboarding_message: true,
-            showFeedbackForm: true,
-            onFeedbackSubmit: handleTutorialFeedbackSubmit,
-            feedbackStep: "event-selection"
-          }]);
-          
-          // Save the reflection message to chat history
-          supabase
-            .from('chat_history')
-            .insert([{
-              message: JSON.stringify({
-                text: reflectionMessage
-              }),
-              is_ai: true,
-              user_id: session.user.id,
+          // Wait for a short delay to ensure the AI response is visible
+          setTimeout(() => {
+            // Check if we're still in the right step
+            if (localStorage.getItem('tutorialStep') !== 'planSubmitted') return;
+            
+            // Update step
+            localStorage.setItem('tutorialStep', 'reflectionPrompt');
+            
+            // Add the reflection message with feedback form
+            const reflectionMessage = "Now that you've planned something for the future, let's do a little reflecting on the past.\n\nWhat's a hangout you really enjoyed recently? Let's relive it together - it'll help me get to know you as well.\n\nIf you connected your calendar, you should see some recent events populate below. Feel free to choose one, or tell me about something off the books entirely:";
+            
+            // Add the reflection message to the UI with the feedback form
+            setMessages(prev => [...prev, { 
+              content: reflectionMessage, 
+              isAl: true,
               is_onboarding_message: true,
-              typewriter_played: true
+              showFeedbackForm: true,
+              onFeedbackSubmit: handleTutorialFeedbackSubmit,
+              feedbackStep: "event-selection"
             }]);
-        }, 2000); // Wait 2 seconds after AI response before showing reflection prompt
+            
+            // Save the reflection message to chat history
+            supabase
+              .from('chat_history')
+              .insert([{
+                message: JSON.stringify({
+                  text: reflectionMessage
+                }),
+                is_ai: true,
+                user_id: session.user.id,
+                is_onboarding_message: true,
+                typewriter_played: true
+              }]);
+          }, 2000); // Wait 2 seconds after AI response before showing reflection prompt
+        }
       } catch (error) {
-        console.error('Error in tutorial plan flow:', error);
+        console.error('Error in plan submission flow:', error);
         // Remove loading message if there was an error
         setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
       }
@@ -1346,16 +1367,21 @@ const Index = () => {
   };
 
   const handleSuggestedPrompt = (prompt: string) => {
+    // Check if we're in the tutorial or regular chat
+    const isTutorialActive = !tutorialComplete;
+    
     if (prompt === "plan me a hang") {
       // Add a message from the user indicating they want to plan
       setMessages(prev => [...prev, { 
         content: "I'd like to plan a hang", 
-        isAl: false 
+        isAl: false,
+        is_onboarding_message: isTutorialActive
       }]);
       // Add AI response with the planning form
       setMessages(prev => [...prev, { 
         content: "Let's do it.\n\nAny thoughts on who, what, when, or where? Let me know - I'll help with any blanks.\n\nI can also come up with something for you from scratch.", 
         isAl: true,
+        is_onboarding_message: isTutorialActive,
         showPlanningForm: true,
         onPlanningSubmit: handlePlanSubmit,
         defaultContacts: selectedContact ? [selectedContact] : [],
@@ -1497,67 +1523,17 @@ const Index = () => {
         )}
       </main>
 
-      <div className="fixed bottom-4 left-4 flex flex-col gap-2">
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleStartTutorial}
-        >
-          <Play className="h-4 w-4" />
-          Start Tutorial
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleSkipOnboarding}
-        >
-          Skip Onboarding and Tutorial (Dev Only)
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleRestartOnboarding}
-        >
-          <Redo className="h-4 w-4" />
-          Restart Onboarding
-        </Button>
-        
-        <div className="h-px bg-border my-2" />
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestMorningCheckin}
-        >
-          <Play className="h-4 w-4" />
-          Test Morning Check-in
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestEveningCheckin}
-        >
-          <Play className="h-4 w-4" />
-          Test Evening Check-in
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2"
-          onClick={handleTestCompletedEvents}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Test Completed Events
-        </Button>
-      </div>
+      {/* Dev mode buttons moved to Profile component */}
 
       <Profile 
         open={isProfileOpen} 
         onOpenChange={setIsProfileOpen}
+        onStartTutorial={handleStartTutorial}
+        onSkipOnboarding={handleSkipOnboarding}
+        onRestartOnboarding={handleRestartOnboarding}
+        onTestMorningCheckin={handleTestMorningCheckin}
+        onTestEveningCheckin={handleTestEveningCheckin}
+        onTestCompletedEvents={handleTestCompletedEvents}
       />
       <FeedbackDialog
         open={isFeedbackOpen}
