@@ -69,6 +69,7 @@ serve(async (req) => {
           start_time,
           end_time,
           location,
+          all_day,
           event_attendees!left (
             contacts!contact_id (
               id,

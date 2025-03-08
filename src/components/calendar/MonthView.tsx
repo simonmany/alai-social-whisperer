@@ -5,20 +5,7 @@ import { EventCard } from "./EventCard";
 import { CalendarPrompts } from "@/components/CalendarPrompts";
 import { isFuture, isPast, isSameDay, isToday } from "date-fns";
 import { useState } from "react";
-
-interface CalendarEvent {
-  id: string;
-  title: string;
-  description?: string;
-  start_time: string;
-  end_time: string;
-  google_event_id?: string;
-  location?: string;
-  attendees?: Array<{
-    id: string;
-    name: string;
-  }>;
-}
+import { CalendarEvent } from "@/types/calendar";
 
 interface MonthViewProps {
   events: CalendarEvent[];

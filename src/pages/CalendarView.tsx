@@ -122,6 +122,7 @@ const CalendarView = () => {
             location,
             google_event_id,
             feedback_sent,
+            all_day,
             event_attendees!left (
               contacts!contact_id (
                 id,
@@ -156,7 +157,8 @@ const CalendarView = () => {
               id: attendee.contacts.id,
               name: attendee.contacts.name,
               user_id: attendee.contacts.user_id
-            })) || []
+            })) || [],
+          all_day: event.all_day
         }));
 
         const permissions = await checkPermissions();

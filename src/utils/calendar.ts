@@ -49,6 +49,7 @@ export const synchronizeEvents = async (userId: string): Promise<{
       from: tenDaysBeforeNow.getTime(),
       to: thirtyDaysFromNow.getTime()
     });
+    console.log(nativeEvents[0]);
 
     const { added, updated, error } = await supabase.functions.invoke(
       'sync_native_calendar',
