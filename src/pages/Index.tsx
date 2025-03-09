@@ -54,7 +54,6 @@ const Index = () => {
   const queryClient = useQueryClient();
   const [conversationType, setConversationType] = useState(ConversationType.CHAT)
   
-  // Define handleFeedbackSubmit at the top level of the component
   const handleFeedbackSubmit = async (message: string, event?: CalendarEvent, moods?: string[], notes?: string) => {
     if (!session?.user?.id) return;
 
@@ -726,6 +725,7 @@ const Index = () => {
               onPlanningSubmit: handlePlanSubmit,
               //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
               defaultActivity: messageMetadata?.defaultActivity,
+              typewriterPlayed: payload.new.typewriter_played,
               messageType
             };
 
