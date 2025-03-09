@@ -48,7 +48,7 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
         instagram: instagram,
         linkedin: linkedin,
         twitter: twitter,
-        meetingStory: meetingStory,
+        meeting_story: meetingStory,
         relationship: relationship,
         is_archived: false,
         created_at: new Date().toISOString(),
