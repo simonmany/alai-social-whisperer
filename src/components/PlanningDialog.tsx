@@ -753,11 +753,11 @@ const PlanningDialog = ({
   );
 
   const renderMainStep = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-hidden">
       <div className="space-y-4">
         <Button
           variant="outline"
-          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative break-words ${
             isComplete.contacts ? 'border-2 border-purple-300 hover:border-purple-400' : ''
           }`}
           onClick={() => setStep('contacts')}
@@ -791,7 +791,7 @@ const PlanningDialog = ({
 
         <Button
           variant="outline"
-          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative break-words ${
             isComplete.activity ? 'border-2 border-purple-300 hover:border-purple-400' : ''
           }`}
           onClick={() => setStep('activity')}
@@ -816,7 +816,7 @@ const PlanningDialog = ({
 
         <Button
           variant="outline"
-          className={`w-full justify-start text-left h-auto py-4 px-6 relative ${
+          className={`w-full justify-start text-left h-auto py-4 px-6 relative break-words ${
             isComplete.datetime ? 'border-2 border-purple-300 hover:border-purple-400' : ''
           }`}
           onClick={() => setStep('datetime')}
@@ -841,7 +841,7 @@ const PlanningDialog = ({
       </div>
 
       <Button 
-        className="w-full bg-purple-600 hover:bg-purple-700 text-white"
+        className="w-full bg-purple-600 hover:bg-purple-700 text-white break-words"
         onClick={handleSubmit}
       >
         {!isComplete.contacts && !isComplete.activity && !isComplete.datetime && !isComplete.location
@@ -864,7 +864,7 @@ const PlanningDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] overflow-hidden">
         <DialogHeader>
           <DialogTitle>Let's plan something! Fill out the details below, or I can help figure it out for you:</DialogTitle>
         </DialogHeader>
