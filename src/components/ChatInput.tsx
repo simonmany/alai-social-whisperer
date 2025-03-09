@@ -1,8 +1,13 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SendHorizontal } from "lucide-react";
+import { Capacitor } from '@capacitor/core';
+
+export interface ChatInputRef {
+  clearInput: () => void;
+  getValue: () => string;
+}
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -12,14 +17,24 @@ interface ChatInputProps {
   showSendButton?: boolean;
 }
 
-export const ChatInput = ({ 
+export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({ 
   onSend, 
   placeholder = "... or tell me what's on your mind!",
   type = "text",
   initialValue = "",
   showSendButton = true
-}: ChatInputProps) => {
+}, ref) => {
   const [message, setMessage] = useState(initialValue);
+
+  // Expose methods to parent components
+  useImperativeHandle(ref, () => ({
+    clearInput: () => {
+      setMessage("");
+    },
+    getValue: () => {
+      return message;
+    }
+  }));
 
   useEffect(() => {
     setMessage(initialValue);
@@ -34,6 +49,9 @@ export const ChatInput = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    console.log('trimmed!!!!!!', message.trim());
+    console.log('key!!!!!', e);
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (message.trim()) {
@@ -63,4 +81,4 @@ export const ChatInput = ({
       )}
     </form>
   );
-};
+});
