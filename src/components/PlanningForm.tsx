@@ -156,22 +156,33 @@ export const PlanningForm = ({
     return { startDate, endDate };
   };
 
+  // TODO (ari) this is how we get real contacts, for now we get random contacts
+  // const { data: closeContacts = [] } = useQuery({
+  //   queryKey: ['closeContacts'],
+  //   queryFn: async () => {
+  //     const { data, error } = await supabase
+  //       .from('contacts')
+  //       .select('*')
+  //       .eq('user_id', session.user.id)
+  //       .order('closeness')
+  //       .limit(10);
+      
+  //     if (error) throw error;
+  //     console.log('close contacts', data);
+  //     return (data || []).map(contact => ({
+  //       ...contact,
+  //       interests: Array.isArray(contact.interests) ? contact.interests : [],
+  //     })) as Contact[];
+  //   },
+  //   enabled: !!session?.user?.id
+  // });
+
   const { data: closeContacts = [] } = useQuery({
     queryKey: ['closeContacts'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('closeness')
-        .limit(10);
-      
-      if (error) throw error;
-      console.log('close contacts', data);
-      return (data || []).map(contact => ({
-        ...contact,
-        interests: Array.isArray(contact.interests) ? contact.interests : [],
-      })) as Contact[];
+      // Randomly select 10 contacts from allContacts
+      const shuffledContacts = [...contacts].sort(() => Math.random() - 0.5);
+      return shuffledContacts.slice(0, 10);
     },
     enabled: !!session?.user?.id
   });

@@ -10,8 +10,8 @@ export class HangPlannerAgent extends Agent {
   - Ask the user what they would like to do with the mentioned friend
   - Based on the user's response, ask where they would like to meet the friend. Provide a place suggestion from searchGooglePlaces
   - Ask the user when they would like to meet the friend. Always include the phrase "Pick a date and time"
-  - When you suggest an activity, suggest one that the user has not already scheduled.
-  - When you suggest contacts to attend the hang, prefer contacts that the user has not already scheduled.
+  - When you suggest an activity, suggest one that is different from what the user already scheduled.
+  - When you suggest contacts to attend the hang, prefer contacts that the user has not seen recently.
   Do not move on to the next step until the user has answered the previous step.
   
   As you collect all of this information, return a JSON with the following structure:
@@ -88,6 +88,7 @@ export class HangPlannerAgent extends Agent {
     }));
 
     const filteredContacts = filterJSON(contactInfo);
+    console.log(JSON.stringify(filteredContacts, null, 2));
 
     const messages = chatHistory?.map(msg => ({
       role: msg.is_ai ? 'assistant' : 'user',
