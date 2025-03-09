@@ -61,7 +61,7 @@ const PlanningDialog = ({
   const [activity, setActivity] = useState(defaultActivity);
   const [location, setLocation] = useState(defaultLocation);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(defaultDate);
-  const [selectedTime, setSelectedTime] = useState<string>();
+  const [selectedTime, setSelectedTime] = useState<string | undefined>(defaultDate ? format(defaultDate, 'h:mm a') : undefined);
   const [showNewContactDialog, setShowNewContactDialog] = useState(false);
   const [showPlanningForm, setShowPlanningForm] = useState(false);
   const [formState, setFormState] = useState({
@@ -69,7 +69,7 @@ const PlanningDialog = ({
     activity: defaultActivity,
     location: defaultLocation,
     date: defaultDate,
-    time: undefined as string | undefined
+    time: defaultDate ? format(defaultDate, 'h:mm a') : undefined
   });
   const { toast } = useToast();
   const { session } = useAuth();
@@ -83,7 +83,7 @@ const PlanningDialog = ({
         setActivity(defaultActivity);
         setLocation(defaultLocation);
         setSelectedDate(defaultDate);
-        setSelectedTime(undefined);
+        setSelectedTime(defaultDate ? format(defaultDate, 'h:mm a') : undefined);
         setShowNewContactDialog(false);
         setShowPlanningForm(false);
         setFormState({
@@ -91,7 +91,7 @@ const PlanningDialog = ({
           activity: defaultActivity,
           location: defaultLocation,
           date: defaultDate,
-          time: undefined
+          time: defaultDate ? format(defaultDate, 'h:mm a') : undefined
         });
       }, 100);
     }
@@ -855,7 +855,7 @@ const PlanningDialog = ({
 
   const isComplete = {
     contacts: selectedContacts.length > 0,
-    activity: !!activity && !!location,
+    activity: !!activity, 
     datetime: !!selectedDate && !!selectedTime,
     location: !!location
   };
