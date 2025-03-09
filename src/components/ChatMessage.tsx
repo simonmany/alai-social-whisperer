@@ -132,7 +132,7 @@ export const ChatMessage = ({
           {isTypewriterComplete && (
             <div className="mt-4">
               {/* If showPlanningForm is true, always show the planning form directly */}
-              {showPlanningForm ? (
+              {showPlanningFormState ? (
                 <PlanningForm
                   onSubmit={(message, newContent) => {
                     if (onPlanningSubmit) {

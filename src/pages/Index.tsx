@@ -748,58 +748,36 @@ const Index = () => {
     };
   }, [session?.user.id, toast]);
 
-  // useEffect(() => {
-  //   const checkTutorialStatus = async () => {
-  //     if (!session?.user.id) return;
-
-  //     try {
-  //       const { data, error } = await supabase
-  //         .from('profiles')
-  //         .select('has_completed_tutorial, onboarding_completed, onboarding_step')
-  //         .eq('id', session.user.id)
-  //         .single();
-
-  //       if (error) throw error;
-
-  //       console.log('Tutorial status check:', {
-  //         hasCompletedTutorial: data.has_completed_tutorial,
-  //         onboardingCompleted: data.onboarding_completed,
-  //         onboardingStep: data.onboarding_step
-  //       });
-
-  //       setTutorialComplete(data.has_completed_tutorial);
-  //       setShowOnboarding(!data.onboarding_completed);
-        
-  //       setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
-  //     } catch (error) {
-  //       console.error('Error checking tutorial status:', error);
-  //     }
-  //   };
-
-  //   checkTutorialStatus();
-  // }, [session?.user?.id]);
-
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
+    const checkTutorialStatus = async () => {
       if (!session?.user.id) return;
 
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('onboarding_completed')
+          .select('has_completed_tutorial, onboarding_completed, onboarding_step')
           .eq('id', session.user.id)
           .single();
 
         if (error) throw error;
 
+        console.log('Tutorial status check:', {
+          hasCompletedTutorial: data.has_completed_tutorial,
+          onboardingCompleted: data.onboarding_completed,
+          onboardingStep: data.onboarding_step
+        });
+
+        setTutorialComplete(data.has_completed_tutorial);
         setShowOnboarding(!data.onboarding_completed);
+        
+        setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
       } catch (error) {
-        console.error('Error checking onboarding status:', error);
+        console.error('Error checking tutorial status:', error);
       }
     };
 
-    checkOnboardingStatus();
-  }, [session?.user.id]);
+    checkTutorialStatus();
+  }, [session?.user?.id]);
 
   useEffect(() => {
     const state = location.state as { prompt?: string };
