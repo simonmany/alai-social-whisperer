@@ -582,9 +582,9 @@ export const PlanningForm = ({
   };
 
   return (
-    <div className="space-y-4 w-full bg-white rounded-lg p-4 border">
+    <div className="space-y-4 w-full bg-white rounded-lg p-4 border h-full flex flex-col">
       {step === 'contacts' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label>Add Contacts</Label>
             <Popover>
@@ -658,7 +658,7 @@ export const PlanningForm = ({
       )}
 
       {step === 'main' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           {/* Contacts Section */}
           <div className={`relative border rounded-lg p-4 pt-6 ${isComplete.contacts ? 'border-purple-500' : ''}`}>
             <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
@@ -976,7 +976,7 @@ export const PlanningForm = ({
       )}
 
       {step === 'activity' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label htmlFor="activity">Activity</Label>
             <div className="flex gap-2">
@@ -1051,7 +1051,7 @@ export const PlanningForm = ({
       )}
 
       {step === 'datetime' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label>Date</Label>
             <CalendarComponent
@@ -1080,7 +1080,7 @@ export const PlanningForm = ({
       )}
 
       {step === 'location' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
             <Input
