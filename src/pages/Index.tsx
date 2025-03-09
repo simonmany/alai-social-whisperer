@@ -615,12 +615,6 @@ const Index = () => {
             filter: `user_id=eq.${session.user.id}`
           },
           async (payload) => {
-            // Skip tutorial messages in the real-time subscription
-            // We handle these manually in the tutorial flow
-            if (payload.new.is_onboarding_message) {
-              console.log('Skipping tutorial message in real-time subscription:', payload.new.id);
-              return;
-            }
             
             // Create a flag to track if this message is already being handled
             let isHandlingMessage = false;
@@ -754,36 +748,36 @@ const Index = () => {
     };
   }, [session?.user.id, toast]);
 
-  useEffect(() => {
-    const checkTutorialStatus = async () => {
-      if (!session?.user.id) return;
+  // useEffect(() => {
+  //   const checkTutorialStatus = async () => {
+  //     if (!session?.user.id) return;
 
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('has_completed_tutorial, onboarding_completed, onboarding_step')
-          .eq('id', session.user.id)
-          .single();
+  //     try {
+  //       const { data, error } = await supabase
+  //         .from('profiles')
+  //         .select('has_completed_tutorial, onboarding_completed, onboarding_step')
+  //         .eq('id', session.user.id)
+  //         .single();
 
-        if (error) throw error;
+  //       if (error) throw error;
 
-        console.log('Tutorial status check:', {
-          hasCompletedTutorial: data.has_completed_tutorial,
-          onboardingCompleted: data.onboarding_completed,
-          onboardingStep: data.onboarding_step
-        });
+  //       console.log('Tutorial status check:', {
+  //         hasCompletedTutorial: data.has_completed_tutorial,
+  //         onboardingCompleted: data.onboarding_completed,
+  //         onboardingStep: data.onboarding_step
+  //       });
 
-        setTutorialComplete(!!data.has_completed_tutorial);
-        setShowOnboarding(!data.onboarding_completed);
+  //       setTutorialComplete(data.has_completed_tutorial);
+  //       setShowOnboarding(!data.onboarding_completed);
         
-        setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
-      } catch (error) {
-        console.error('Error checking tutorial status:', error);
-      }
-    };
+  //       setShowProfileButton(data.onboarding_step !== 'splash' && data.onboarding_step !== 'initial');
+  //     } catch (error) {
+  //       console.error('Error checking tutorial status:', error);
+  //     }
+  //   };
 
-    checkTutorialStatus();
-  }, [session?.user?.id]);
+  //   checkTutorialStatus();
+  // }, [session?.user?.id]);
 
   useEffect(() => {
     const checkOnboardingStatus = async () => {
@@ -1169,7 +1163,7 @@ const Index = () => {
   const handleTutorialFeedbackSubmit = async (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => {
     // Check if the tutorial has already been completed
     if (tutorialComplete) {
-      console.log('Tutorial already completed, processing feedback as regular message');
+      console.warn('Tutorial already completed, processing feedback as regular message');
       // Just handle as a regular message if tutorial is complete
       if (message) {
         handleSend(message);
@@ -1188,49 +1182,30 @@ const Index = () => {
     
     // Mark that we've submitted the feedback
     localStorage.setItem('tutorialStep', 'feedbackSubmitted');
-    
-    // Add user's feedback message to the UI
-    if (message) {
-      setMessages(prev => [...prev, { 
-        content: message, 
-        isAl: false,
-        is_onboarding_message: true
-      }]);
       
       // Save user's message to chat history
-      await supabase
-        .from('chat_history')
-        .insert([{
-          message: message,
-          is_ai: false,
-          user_id: session.user.id,
-          is_onboarding_message: true
-        }]);
-    }
+    await supabase
+      .from('chat_history')
+      .insert([{
+        message: message,
+        is_ai: false,
+        user_id: session.user.id,
+        is_onboarding_message: true
+      }]);
     
     // Send a message acknowledging the feedback
-    const finalMessage = "Thanks for sharing. Reflecting on your past hangs helps me suggest better ones - and helps you keep track of valuable memories and conversations.";
-    
-    // Add the final tutorial message with typewriter animation
-    setMessages(prev => [...prev, { 
-      content: finalMessage, 
-      isAl: true,
-      is_onboarding_message: true,
-      typewriterPlayed: false // Ensure typewriter animation plays
-    }]);
+    const finalMessage = "Thanks for sharing. Reflecting on your past hangs helps me suggest better ones - and helps you keep track of valuable memories and conversations.\nAs I learn more about what you like, I'll be able to suggest even better options. I can't wait to help you plan your next hang!";
     
     // Save the final message to chat history
     await supabase
       .from('chat_history')
       .insert([{
-        message: JSON.stringify({
-          text: finalMessage
-        }),
+        message: finalMessage,
         is_ai: true,
         user_id: session.user.id,
         is_onboarding_message: true
       }]);
-    
+
     // Mark the tutorial as complete in the database
     // No need for a delay since we're not clearing messages anymore
     await handleTutorialComplete();
@@ -1258,23 +1233,15 @@ const Index = () => {
       const userMessageId = crypto.randomUUID();
       
       // Add user's message to the UI with a unique ID
-      setMessages(prev => [...prev, { 
-        id: userMessageId,
-        content: message, 
-        isAl: false,
-        is_onboarding_message: isTutorialActive
-      }]);
-      
-      // Save user's message to chat history
-      await supabase
-        .from('chat_history')
-        .insert([{
-          message: message,
-          is_ai: false,
-          user_id: session.user.id,
+      if (isTutorialActive) {
+        setMessages(prev => [...prev, { 
+          id: userMessageId,
+          content: message, 
+          isAl: false,
           is_onboarding_message: isTutorialActive
         }]);
-      
+      }
+
       // Add loading message while we wait for AI response
       const loadingMessageId = crypto.randomUUID();
       setMessages(prev => [...prev, { 
@@ -1286,22 +1253,15 @@ const Index = () => {
       }]);
       
       try {
-        // If we're in the tutorial, use tutorial conversation type
-        // Otherwise use regular chat
-        const conversationType = isTutorialActive ? ConversationType.TUTORIAL : ConversationType.CHAT;
+        const conversationType = ConversationType.CHAT;
         
         // Generate AI response to the plan
-        const response = await generateChatResponse(message, [], true, conversationType);
-        
+        const secretMessage = isTutorialActive;
+        console.warn('is secret message', secretMessage);
+        const response = await generateChatResponse(message, [], secretMessage, conversationType);
+
         // Remove loading message
         setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
-        
-        // Add AI response to the UI
-        setMessages(prev => [...prev, { 
-          content: response.message || "That sounds like a great plan! I've added it to your calendar.", 
-          isAl: true,
-          is_onboarding_message: isTutorialActive
-        }]);
         
         // Only show tutorial-specific messages if the tutorial is active
         if (isTutorialActive) {
@@ -1401,12 +1361,14 @@ const Index = () => {
       await supabase
         .from('profiles')
         .update({ 
-          has_completed_tutorial: true 
+          has_completed_tutorial: true,
+          onboarding_completed: true
         })
         .eq('id', session?.user?.id);
 
       // Mark tutorial as complete but don't clear messages
       setTutorialComplete(true);
+      setShowOnboarding(false);
       setConversationType(ConversationType.CHAT);
       setShowProfileButton(true);
       
