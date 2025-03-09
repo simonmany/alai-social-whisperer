@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "@/components/ChatMessage";
-import { ChatInput } from "@/components/ChatInput";
+import { ChatInput, ChatInputRef } from "@/components/ChatInput";
 import { SuggestedPrompt } from "@/components/SuggestedPrompt";
 import { Button } from "@/components/ui/button";
 import { ChevronDown, SendHorizontal } from "lucide-react";
@@ -37,6 +37,7 @@ export const ChatContainer = ({
 }: ChatContainerProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const chatInputRef = useRef<ChatInputRef>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
 
   const scrollToBottom = () => {
@@ -148,16 +149,22 @@ export const ChatContainer = ({
               </div>
               
               {/* Text input */}
-              <ChatInput onSend={onSend} showSendButton={false} />
+              <ChatInput 
+                ref={chatInputRef} 
+                onSend={onSend} 
+                showSendButton={false} 
+              />
             </div>
             
             {/* Send button column */}
             <div className="flex items-end">
               <Button type="submit" size="icon" onClick={() => {
-                const inputElement = document.querySelector('form textarea') as HTMLTextAreaElement;
-                if (inputElement && inputElement.value.trim()) {
-                  onSend(inputElement.value.trim());
-                  inputElement.value = '';
+                if (chatInputRef.current) {
+                  const value = chatInputRef.current.getValue();
+                  if (value.trim()) {
+                    onSend(value.trim());
+                    chatInputRef.current.clearInput();
+                  }
                 }
               }}>
                 <SendHorizontal className="h-4 w-4" />

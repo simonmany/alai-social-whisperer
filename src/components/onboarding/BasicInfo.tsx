@@ -5,6 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Autocomplete from 'react-google-autocomplete';
+import 'react-phone-number-input/style.css'
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input'
 
 interface BasicInfoProps {
   session: any;
@@ -19,7 +21,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
   const [location, setLocation] = useState("");
   const [utcOffset, setUtcOffset] = useState<number>(0);
   const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState<string | undefined>(undefined);
   const [nameSubmitted, setNameSubmitted] = useState(false);
   const [locationSubmitted, setLocationSubmitted] = useState(false);
   const [completedScreens, setCompletedScreens] = useState<number[]>([]);
@@ -98,7 +100,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
       const updates = {
         display_name: name,
         city: location,
-        ...(phone && { phone_number: phone })
+        ...(phone && isValidPhoneNumber(phone) && { phone_number: phone })
       };
 
       await supabase
@@ -269,16 +271,18 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
                 className="text-left text-xl font-cormorant"
               />
               <div className="space-y-4">
-                <Input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                <PhoneInput
+                  international
+                  defaultCountry="US"
                   placeholder="Enter your phone number..."
+                  value={phone}
+                  onChange={setPhone}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       handleSubmit();
                     }
                   }}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <p className="text-sm text-muted-foreground">
                   We will never share your number. Including it will allow you to text Al via SMS.
@@ -289,7 +293,7 @@ export const BasicInfo = ({ session, onComplete, initialName }: BasicInfoProps) 
                     className="flex-1"
                     variant="default"
                   >
-                    Continue
+                    {phone ? "Continue" : "Skip"}
                   </Button>
                 </div>
               </div>

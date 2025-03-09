@@ -85,12 +85,15 @@ export const ChatMessage = ({
     <div
       className={cn(
         "mb-4 text-xl font-cormorant",
-        isAl ? "self-start w-[80%]" : "self-end max-w-[80%]",
+        isAl ? (showPlanningFormState ? "self-start w-full" : "self-start w-[80%]") : "self-end max-w-[80%]",
         animate && (isAl ? "animate-slide-in-left" : "animate-slide-in-right")
       )}
     >
       {isAl ? (
-        <div className="text-gray-800 px-4 py-2 rounded-lg bg-transparent">
+        <div className={cn(
+          "text-gray-800 px-4 py-2 rounded-lg bg-transparent",
+          showPlanningFormState && "w-full max-w-none"
+        )}>
           <div className="prose prose-gray max-w-none space-y-2">
             {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
@@ -130,24 +133,26 @@ export const ChatMessage = ({
           )}
           {/* Render planning form if all conditions are met - wait for typewriter animation to complete */}
           {isTypewriterComplete && (
-            <div className="mt-4">
+            <div className="mt-4 w-full">
               {/* If showPlanningForm is true, always show the planning form directly */}
-              {showPlanningForm ? (
-                <PlanningForm
-                  onSubmit={(message, newContent) => {
-                    if (onPlanningSubmit) {
-                      onPlanningSubmit(message, newContent);
-                    }
-                    if (!newContent) {
-                      setShowPlanningForm(false);
-                    }
-                  }}
-                  defaultContacts={defaultContacts}
-                  defaultActivity={defaultActivity}
-                  defaultLocation={defaultLocation}
-                  defaultDate={defaultDate}
-                  defaultTime={defaultTime}
-                />
+              {showPlanningFormState ? (
+                <div className="w-full max-w-none">
+                  <PlanningForm
+                    onSubmit={(message, newContent) => {
+                      if (onPlanningSubmit) {
+                        onPlanningSubmit(message, newContent);
+                      }
+                      if (!newContent) {
+                        setShowPlanningForm(false);
+                      }
+                    }}
+                    defaultContacts={defaultContacts}
+                    defaultActivity={defaultActivity}
+                    defaultLocation={defaultLocation}
+                    defaultDate={defaultDate}
+                    defaultTime={defaultTime}
+                  />
+                </div>
               ) : (
                 /* Only show the 'Add something to calendar' button for morning check-ins */
                 isAl && messageType === 'morning' && (

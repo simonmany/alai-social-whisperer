@@ -9,6 +9,8 @@ export class HangGeneratorAgent extends HangPlannerAgent {
     Prefer days when there is not already an event.
     When you suggest a date, check the listed events to make sure the user doesn't have something else scheduled for the same time.
     When you suggest a date, check to make sure it's the same date in your text response and the datetime object.
+    When you suggest an activity, suggest one that is different from what the user already scheduled.
+    When you suggest contacts to attend the hang, prefer contacts that the user has not seen recently.
     Format the suggestions at the end as JSON. The structure of your response should be:
     {
       "text": your conversational response,

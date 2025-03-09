@@ -156,22 +156,33 @@ export const PlanningForm = ({
     return { startDate, endDate };
   };
 
+  // TODO (ari) this is how we get real contacts, for now we get random contacts
+  // const { data: closeContacts = [] } = useQuery({
+  //   queryKey: ['closeContacts'],
+  //   queryFn: async () => {
+  //     const { data, error } = await supabase
+  //       .from('contacts')
+  //       .select('*')
+  //       .eq('user_id', session.user.id)
+  //       .order('closeness')
+  //       .limit(10);
+      
+  //     if (error) throw error;
+  //     console.log('close contacts', data);
+  //     return (data || []).map(contact => ({
+  //       ...contact,
+  //       interests: Array.isArray(contact.interests) ? contact.interests : [],
+  //     })) as Contact[];
+  //   },
+  //   enabled: !!session?.user?.id
+  // });
+
   const { data: closeContacts = [] } = useQuery({
     queryKey: ['closeContacts'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('closeness')
-        .limit(10);
-      
-      if (error) throw error;
-      console.log('close contacts', data);
-      return (data || []).map(contact => ({
-        ...contact,
-        interests: Array.isArray(contact.interests) ? contact.interests : [],
-      })) as Contact[];
+      // Randomly select 10 contacts from allContacts
+      const shuffledContacts = [...contacts].sort(() => Math.random() - 0.5);
+      return shuffledContacts.slice(0, 10);
     },
     enabled: !!session?.user?.id
   });
@@ -582,9 +593,9 @@ export const PlanningForm = ({
   };
 
   return (
-    <div className="space-y-4 w-full bg-white rounded-lg p-4 border">
+    <div className="space-y-4 w-full bg-white rounded-lg p-4 border h-full flex flex-col">
       {step === 'contacts' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label>Add Contacts</Label>
             <Popover>
@@ -658,7 +669,7 @@ export const PlanningForm = ({
       )}
 
       {step === 'main' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           {/* Contacts Section */}
           <div className={`relative border rounded-lg p-4 pt-6 ${isComplete.contacts ? 'border-purple-500' : ''}`}>
             <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
@@ -976,7 +987,7 @@ export const PlanningForm = ({
       )}
 
       {step === 'activity' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label htmlFor="activity">Activity</Label>
             <div className="flex gap-2">
@@ -1051,7 +1062,7 @@ export const PlanningForm = ({
       )}
 
       {step === 'datetime' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label>Date</Label>
             <CalendarComponent
@@ -1080,7 +1091,7 @@ export const PlanningForm = ({
       )}
 
       {step === 'location' && (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
             <Input
