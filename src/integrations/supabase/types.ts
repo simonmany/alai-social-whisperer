@@ -32,6 +32,8 @@ export type Database = {
       }
       calendar_events: {
         Row: {
+          all_day: boolean | null
+          calendar_event_id: string | null
           created_at: string | null
           description: string | null
           end_time: string
@@ -42,11 +44,14 @@ export type Database = {
           location: string | null
           mood: string | null
           start_time: string
+          timezone: string | null
           title: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          all_day?: boolean | null
+          calendar_event_id?: string | null
           created_at?: string | null
           description?: string | null
           end_time: string
@@ -57,11 +62,14 @@ export type Database = {
           location?: string | null
           mood?: string | null
           start_time: string
+          timezone?: string | null
           title: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          all_day?: boolean | null
+          calendar_event_id?: string | null
           created_at?: string | null
           description?: string | null
           end_time?: string
@@ -72,6 +80,7 @@ export type Database = {
           location?: string | null
           mood?: string | null
           start_time?: string
+          timezone?: string | null
           title?: string
           updated_at?: string | null
           user_id?: string
@@ -82,34 +91,43 @@ export type Database = {
         Row: {
           created_at: string
           evening_checkin: boolean | null
+          event_id: string | null
+          event_title: string | null
           id: string
           is_ai: boolean
           is_onboarding_message: boolean | null
           is_secret: boolean | null
           message: string
           morning_checkin: boolean | null
+          typewriter_played: boolean | null
           user_id: string
         }
         Insert: {
           created_at?: string
           evening_checkin?: boolean | null
+          event_id?: string | null
+          event_title?: string | null
           id?: string
           is_ai?: boolean
           is_onboarding_message?: boolean | null
           is_secret?: boolean | null
           message: string
           morning_checkin?: boolean | null
+          typewriter_played?: boolean | null
           user_id: string
         }
         Update: {
           created_at?: string
           evening_checkin?: boolean | null
+          event_id?: string | null
+          event_title?: string | null
           id?: string
           is_ai?: boolean
           is_onboarding_message?: boolean | null
           is_secret?: boolean | null
           message?: string
           morning_checkin?: boolean | null
+          typewriter_played?: boolean | null
           user_id?: string
         }
         Relationships: []
@@ -197,6 +215,7 @@ export type Database = {
       }
       contacts: {
         Row: {
+          address: string | null
           closeness: number | null
           created_at: string
           email: string | null
@@ -211,9 +230,11 @@ export type Database = {
           photo: string | null
           relationship: string | null
           twitter: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
+          address?: string | null
           closeness?: number | null
           created_at?: string
           email?: string | null
@@ -228,9 +249,11 @@ export type Database = {
           photo?: string | null
           relationship?: string | null
           twitter?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
+          address?: string | null
           closeness?: number | null
           created_at?: string
           email?: string | null
@@ -245,6 +268,7 @@ export type Database = {
           photo?: string | null
           relationship?: string | null
           twitter?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -371,6 +395,41 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      nightly_journal: {
+        Row: {
+          bud: Json | null
+          created_at: string
+          id: string
+          rose: Json | null
+          thorn: Json | null
+          user_id: string | null
+        }
+        Insert: {
+          bud?: Json | null
+          created_at?: string
+          id?: string
+          rose?: Json | null
+          thorn?: Json | null
+          user_id?: string | null
+        }
+        Update: {
+          bud?: Json | null
+          created_at?: string
+          id?: string
+          rose?: Json | null
+          thorn?: Json | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nightly_journal_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

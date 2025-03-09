@@ -93,29 +93,6 @@ const Index = () => {
   };
 
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      if (!session?.user?.id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) throw error;
-
-        console.log('Onboarding status:', data?.onboarding_completed);
-        setShowOnboarding(!data?.onboarding_completed);
-      } catch (error) {
-        console.error('Error checking onboarding status:', error);
-      }
-    };
-
-    checkOnboardingStatus();
-  }, [session?.user?.id]);
-
-  useEffect(() => {
     const loadChatHistory = async () => {
       if (!session?.user?.id || preventHistoryLoad) return;
 
@@ -193,6 +170,18 @@ const Index = () => {
               defaultActivity: messageMetadata?.defaultActivity,
               typewriterPlayed: msg.typewriter_played || false,
             };
+
+            // TODO (ari) should we set mesafes to played that are loaded from history?
+            // see what people think
+            // // If message is being loaded from history, not realtime subscription
+            // const { error } = await supabase
+            //   .from('chat_history')
+            //   .update({ typewriter_played: true })
+            //   .eq('id', msg.id);
+            
+            // if (error) {
+            //   console.error('Error updating typewriter status:', error);
+            // }
             
             // If this is a post-event message, fetch the event details
             if (msg.event_id) {
@@ -210,6 +199,7 @@ const Index = () => {
               }
 
               if (eventData && !eventData.feedback_sent) {
+                console.warn('this is a post-event message');
                 message.completedEvent = eventData;
                 message.onFeedbackSubmit = handleFeedbackSubmit;
                 message.feedbackStep = "mood-selection";
