@@ -49,8 +49,6 @@ export const ChatInput = forwardRef<ChatInputRef, ChatInputProps>(({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    console.log('trimmed!!!!!!', message.trim());
-    console.log('key!!!!!', e);
 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
