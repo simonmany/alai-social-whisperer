@@ -634,47 +634,6 @@ const Index = () => {
             // Create a flag to track if this message is already being handled
             let isHandlingMessage = false;
             
-            const onFeedbackSubmit = async (feedback: string) => {
-              try {
-                // Set flag to indicate we're handling this message
-                isHandlingMessage = true;
-                
-                // Update both feedback and feedback_sent flag when user submits
-                await supabase
-                  .from('calendar_events')
-                  .update({ 
-                    feedback_sent: true, 
-                    feedback 
-                  })
-                  .eq('id', payload.new.event_id);
-
-                // Remove the feedback form after successful submission
-                setMessages(prev => prev.map(msg => 
-                  msg.eventId === payload.new.event_id 
-                    ? { ...msg, showFeedbackForm: false }
-                    : msg
-                ));
-
-                toast({
-                  title: "Feedback submitted",
-                  description: "Thank you for your feedback!"
-                });
-                
-                // Reset the flag after a short delay to ensure we don't miss subsequent messages
-                setTimeout(() => {
-                  isHandlingMessage = false;
-                }, 1000);
-              } catch (error) {
-                console.error('Error submitting feedback:', error);
-                toast({
-                  title: "Error",
-                  description: "Failed to submit feedback",
-                  variant: "destructive"
-                });
-                isHandlingMessage = false;
-              }
-            };
-            
             // If this is a post-event message, fetch the full event details with attendees
             let eventData = null;
             // Parse message content if it's JSON
@@ -727,11 +686,6 @@ const Index = () => {
 
             // Create message after we have all the data
 
-            console.log('Currsne test', (eventData && !eventData.feedback_sent));
-            console.log('Event data:', !!eventData);
-            console.log('feedback sent', eventData?.feedback_sent);
-            console.log('data', eventData);
-
             let newMessage: Message = {
               id: payload.new.id, // Add message ID
               content: messageContent,
@@ -742,7 +696,7 @@ const Index = () => {
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
               completedEvent: eventData || undefined,
-              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
+              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? handleFeedbackSubmit : undefined,
               onPlanningSubmit: handlePlanSubmit,
               //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
               defaultActivity: messageMetadata?.defaultActivity,
