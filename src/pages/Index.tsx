@@ -225,7 +225,6 @@ const Index = () => {
               }
 
               if (eventData && !eventData.feedback_sent) {
-                console.warn('this is a post-event message');
                 message.completedEvent = eventData;
                 message.onFeedbackSubmit = handleFeedbackSubmit;
                 message.feedbackStep = "mood-selection";
@@ -692,11 +691,11 @@ const Index = () => {
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
               showPlanningForm: false,
-              showFeedbackForm: (payload.new.event_id && !eventData?.feedback_sent) ? true : false,
+              showFeedbackForm: (eventData && !eventData.feedback_sent) ? true : false,
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
               completedEvent: eventData || undefined,
-              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? handleFeedbackSubmit : undefined,
+              onFeedbackSubmit: handleFeedbackSubmit,
               onPlanningSubmit: handlePlanSubmit,
               //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
               defaultActivity: messageMetadata?.defaultActivity,
