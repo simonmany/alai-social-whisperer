@@ -154,6 +154,30 @@ const Index = () => {
               // Message is not in JSON format, use as is
             }
             
+            let eventData;
+            if (msg.event_id) {
+              console.log('Fetching event details for:', msg.event_id);
+              const { data, error: eventError } = await supabase
+                .from('calendar_events')
+                .select(`
+                  *,
+                  event_attendees!left (contacts!contact_id (id, name))
+                `)
+                .eq('id', msg.event_id)
+                .maybeSingle();
+
+              if (eventError) {
+                console.error('Error fetching event:', eventError);
+              } else {
+                eventData = data;
+                console.log('Event data:', {
+                  id: eventData?.id,
+                  title: eventData?.title,
+                  feedback_sent: eventData?.feedback_sent
+                });
+              }
+            }
+
             const message: Message = {
               id: msg.id,
               content: messageContent,
@@ -161,14 +185,16 @@ const Index = () => {
               is_secret: msg.is_secret,
               eventId: msg.event_id,
               eventTitle: msg.event_title,
-              showFeedbackForm: msg.event_id ? true : false,
+              showFeedbackForm: (msg.event_id && !eventData?.feedback_sent) ? true : false,
               messageType,
               // Only show planning form for the latest onboarding message
               showPlanningForm: msg.is_onboarding_message && index === data.length - 1,
               onPlanningSubmit: handlePlanSubmit,
+              onFeedbackSubmit: handleFeedbackSubmit,
               //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
               defaultActivity: messageMetadata?.defaultActivity,
               typewriterPlayed: msg.typewriter_played || false,
+              completedEvent: eventData,
             };
 
             // TODO (ari) should we set mesafes to played that are loaded from history?
@@ -701,13 +727,18 @@ const Index = () => {
 
             // Create message after we have all the data
 
+            console.log('Currsne test', (eventData && !eventData.feedback_sent));
+            console.log('Event data:', !!eventData);
+            console.log('feedback sent', eventData?.feedback_sent);
+            console.log('data', eventData);
+
             let newMessage: Message = {
               id: payload.new.id, // Add message ID
               content: messageContent,
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
               showPlanningForm: false,
-              showFeedbackForm: !!eventData && !eventData.feedback_sent,
+              showFeedbackForm: (payload.new.event_id && !eventData?.feedback_sent) ? true : false,
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
               completedEvent: eventData || undefined,
