@@ -143,6 +143,32 @@ export const PlanningForm = ({
     return { hours, minutes };
   };
 
+  // Helper function to check if a date is in the past
+  const isDateInPast = (date: Date): boolean => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    return date < today;
+  };
+
+  // Helper function to check if a time is in the past for the current date
+  const isTimeInPast = (time: string): boolean => {
+    if (!selectedDate) return false;
+    
+    const now = new Date();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Only check for today
+    if (selectedDate.getTime() !== today.getTime()) return false;
+    
+    const { hours, minutes } = parseTimeString(time);
+    const selectedDateTime = new Date(selectedDate);
+    selectedDateTime.setHours(hours, minutes, 0, 0);
+    
+    return selectedDateTime < now;
+  };
+
   // Helper function to create a date object from date and time
   const createDateFromDateAndTime = (dateObj: Date, timeString: string): { startDate: Date, endDate: Date } => {
     const { hours, minutes } = parseTimeString(timeString);
@@ -154,6 +180,17 @@ export const PlanningForm = ({
     endDate.setHours(endDate.getHours() + 2); // Default to 2 hour events
     
     return { startDate, endDate };
+  };
+
+  // Helper function to format time from 24-hour to 12-hour format with AM/PM
+  const formatTimeFor12Hour = (timeString: string): string => {
+    if (!timeString) return '';
+    
+    const { hours, minutes } = parseTimeString(timeString);
+    const isPM = hours >= 12;
+    const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+    const formattedMinute = minutes.toString().padStart(2, '0');
+    return `${displayHour}:${formattedMinute} ${isPM ? 'PM' : 'AM'}`;
   };
 
   // TODO (ari) this is how we get real contacts, for now we get random contacts
@@ -568,9 +605,10 @@ export const PlanningForm = ({
       }
 
       const dateStr = selectedDate ? format(selectedDate, 'PPP') : '';
+      const formattedTime = formatTimeFor12Hour(selectedTime);
       const message = `I just scheduled ${activity} with ${selectedContacts.map(c => c.name).join(', ')} ${
         location ? `at ${location}` : ''
-      } on ${dateStr} ${selectedTime}`;
+      } on ${dateStr} ${formattedTime}`;
       onSubmit(message);
     } catch (error) {
       console.error('Error in handleSubmit:', error);
@@ -861,6 +899,7 @@ export const PlanningForm = ({
                       selected={selectedDate}
                       onSelect={setSelectedDate}
                       initialFocus
+                      disabled={(date) => isDateInPast(new Date(date))}
                     />
                   </PopoverContent>
                 </Popover>
@@ -896,8 +935,16 @@ export const PlanningForm = ({
                       const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
                       const amPm = hour < 12 ? 'AM' : 'PM';
                       const displayTime = `${displayHour}:${formattedMinute.toString().padStart(2, '0')} ${amPm}`;
+                      
+                      // Check if this time is in the past for today
+                      const isPastTime = isTimeInPast(timeValue);
+                      
                       return (
-                        <SelectItem key={timeValue} value={timeValue}>
+                        <SelectItem 
+                          key={timeValue} 
+                          value={timeValue}
+                          disabled={isPastTime}
+                        >
                           {displayTime}
                         </SelectItem>
                       );
@@ -1070,6 +1117,7 @@ export const PlanningForm = ({
               selected={selectedDate}
               onSelect={setSelectedDate}
               className="rounded-md border w-full"
+              disabled={(date) => isDateInPast(new Date(date))}
             />
           </div>
           <div className="space-y-2">

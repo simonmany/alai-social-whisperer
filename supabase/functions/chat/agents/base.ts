@@ -138,16 +138,40 @@ export abstract class Agent {
   }
 
   protected async getEvents(userId: string, utcOffset: number = -240) {
-    const now = new Date();
-    now.setUTCHours(0, 0, 0, 0);
-    const tenDaysFromNow = new Date();
-    tenDaysFromNow.setDate(now.getDate() + 10);
+    // Get current UTC date
+    const utcNow = new Date();
+    
+    // Convert UTC now to user's local time
+    const userLocalTimeISO = convertToLocalTime(utcNow.toISOString(), utcOffset);
+    const userLocalTime = new Date(userLocalTimeISO);
+    
+    // Set to start of the user's local day
+    const startOfUserDay = new Date(
+      userLocalTime.getFullYear(),
+      userLocalTime.getMonth(),
+      userLocalTime.getDate(),
+      0, 0, 0, 0
+    );
+    
+    // Convert start of user's day back to UTC for database query
+    // We need to manually adjust since the startOfUserDay is interpreted as UTC by toISOString()
+    const startOfUserDayUTC = new Date(startOfUserDay.getTime() - (utcOffset * 60 * 1000));
+    
+    // Calculate ten days from the user's now
+    const tenDaysFromUserNow = new Date(startOfUserDayUTC);
+    tenDaysFromUserNow.setDate(startOfUserDayUTC.getDate() + 10);
+    
     const { data: events } = await supabase
       .from('calendar_events')
-      .select('*')
+      .select(`
+        title,
+        start_time,
+        end_time,
+        location,
+        event_attendees!left (contacts!contact_id (id, name))`) // TODO ari should also load relationship?
       .eq('user_id', userId)
-      .gte('start_time', now.toISOString())
-      .lte('start_time', tenDaysFromNow.toISOString())
+      .gte('start_time', startOfUserDayUTC.toISOString())
+      .lte('start_time', tenDaysFromUserNow.toISOString())
       .order('start_time', { ascending: true });
 
     // Convert event times to local timezone

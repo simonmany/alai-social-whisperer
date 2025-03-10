@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { User, Phone, Instagram, Linkedin, Twitter, Archive } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Contact } from "@/types/contacts";
+import 'react-phone-number-input/style.css';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 
 interface ContactsDialogProps {
   open: boolean;
@@ -48,7 +49,7 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
         instagram: instagram,
         linkedin: linkedin,
         twitter: twitter,
-        meetingStory: meetingStory,
+        meeting_story: meetingStory,
         relationship: relationship,
         is_archived: false,
         created_at: new Date().toISOString(),
@@ -137,11 +138,13 @@ const ContactsDialog = ({ open, onOpenChange, onSubmit, userId }: ContactsDialog
 
           <div className="grid gap-2">
             <Label htmlFor="phone">Phone</Label>
-            <Input
-              id="phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+            <PhoneInput
+              international
+              defaultCountry="US"
               placeholder="Enter their phone number..."
+              value={phone}
+              onChange={setPhone}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             />
           </div>
 

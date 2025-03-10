@@ -41,6 +41,7 @@ interface FeedbackDialogProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (message: string) => void;
   selectedEventId?: string;
+  isSubmitting?: boolean;
 }
 
 const getInitials = (name: string) => {
@@ -51,7 +52,7 @@ const getInitials = (name: string) => {
     .toUpperCase();
 };
 
-export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedEventId }: FeedbackDialogProps) {
+export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedEventId, isSubmitting = false }: FeedbackDialogProps) {
   const { session } = useAuth();
   const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -637,39 +638,35 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
                       <div className="space-y-4">
                         <div>
                           <h4 className="text-sm font-medium mb-2">Who was there:</h4>
-                          <div className="space-y-2">
-                            <div className="relative">
-                              {renderContactSearch()}
-                            </div>
+                          <div className="relative">
+                            {renderContactSearch()}
+                          </div>
 
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {selectedEvent?.attendees.map((attendee) => (
-                                <div
-                                  key={attendee.id}
-                                  className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
-                                  onClick={() => openContactDrawer(selectedEvent.attendees.indexOf(attendee))}
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {selectedEvent?.attendees.map((attendee) => (
+                              <div
+                                key={attendee.id}
+                                className="flex items-center gap-1 bg-secondary px-2 py-0.5 rounded-full text-xs"
+                                onClick={() => openContactDrawer(selectedEvent.attendees.indexOf(attendee))}
+                              >
+                                <Avatar className="h-4 w-4">
+                                  <AvatarFallback>{getInitials(attendee.name)}</AvatarFallback>
+                                </Avatar>
+                                <span>{attendee.name}</span>
+                                {attendee.is_archived && (
+                                  <Archive className="h-4 w-4 text-muted-foreground" />
+                                )}
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveAttendee(attendee.id);
+                                  }}
+                                  className="hover:text-destructive"
                                 >
-                                  <Avatar className="h-4 w-4">
-                                    <AvatarFallback className="text-[10px]">
-                                      {getInitials(attendee.name)}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <span>{attendee.name}</span>
-                                  {attendee.is_archived && (
-                                    <Archive className="h-4 w-4 text-muted-foreground" />
-                                  )}
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleRemoveAttendee(attendee.id);
-                                    }}
-                                    className="hover:text-destructive"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         </div>
 
@@ -875,9 +872,15 @@ export default function FeedbackDialog({ open, onOpenChange, onSubmit, selectedE
             )}
 
             {(selectedEvent || (isManualEntry && manualActivity)) && (
-              <Button className="w-full" onClick={handleSubmit}>
-                Submit Feedback
-              </Button>
+              <div className="flex justify-end mt-4">
+                <Button 
+                  onClick={handleSubmit} 
+                  disabled={isSubmitting}
+                  className="bg-purple-600 hover:bg-purple-700 text-white"
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Feedback"}
+                </Button>
+              </div>
             )}
           </div>
         </DialogContent>

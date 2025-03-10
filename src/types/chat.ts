@@ -49,4 +49,5 @@ export interface ChatHistoryMessage {
   event_id?: string;
   event_title?: string;
   typewriter_played?: boolean;
+  feedback_sent?: boolean;
 }

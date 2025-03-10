@@ -15,7 +15,7 @@ export interface Contact {
   updated_at?: string;
   is_archived?: boolean;
   custom_fields?: Record<string, any>;
-  meetingStory?: string;
+  meeting_story?: string;
   instagram?: string;
   linkedin?: string;
   twitter?: string;
