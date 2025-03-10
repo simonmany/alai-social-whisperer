@@ -93,29 +93,6 @@ const Index = () => {
   };
 
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      if (!session?.user?.id) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('onboarding_completed')
-          .eq('id', session.user.id)
-          .single();
-
-        if (error) throw error;
-
-        console.log('Onboarding status:', data?.onboarding_completed);
-        setShowOnboarding(!data?.onboarding_completed);
-      } catch (error) {
-        console.error('Error checking onboarding status:', error);
-      }
-    };
-
-    checkOnboardingStatus();
-  }, [session?.user?.id]);
-
-  useEffect(() => {
     const loadChatHistory = async () => {
       if (!session?.user?.id || preventHistoryLoad) return;
 
@@ -177,6 +154,30 @@ const Index = () => {
               // Message is not in JSON format, use as is
             }
             
+            let eventData;
+            if (msg.event_id) {
+              console.log('Fetching event details for:', msg.event_id);
+              const { data, error: eventError } = await supabase
+                .from('calendar_events')
+                .select(`
+                  *,
+                  event_attendees!left (contacts!contact_id (id, name))
+                `)
+                .eq('id', msg.event_id)
+                .maybeSingle();
+
+              if (eventError) {
+                console.error('Error fetching event:', eventError);
+              } else {
+                eventData = data;
+                console.log('Event data:', {
+                  id: eventData?.id,
+                  title: eventData?.title,
+                  feedback_sent: eventData?.feedback_sent
+                });
+              }
+            }
+
             const message: Message = {
               id: msg.id,
               content: messageContent,
@@ -184,15 +185,29 @@ const Index = () => {
               is_secret: msg.is_secret,
               eventId: msg.event_id,
               eventTitle: msg.event_title,
-              showFeedbackForm: msg.event_id ? true : false,
+              showFeedbackForm: (msg.event_id && !eventData?.feedback_sent) ? true : false,
               messageType,
               // Only show planning form for the latest onboarding message
               showPlanningForm: msg.is_onboarding_message && index === data.length - 1,
               onPlanningSubmit: handlePlanSubmit,
+              onFeedbackSubmit: handleFeedbackSubmit,
               //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
               defaultActivity: messageMetadata?.defaultActivity,
               typewriterPlayed: msg.typewriter_played || false,
+              completedEvent: eventData,
             };
+
+            // TODO (ari) should we set mesafes to played that are loaded from history?
+            // see what people think
+            // // If message is being loaded from history, not realtime subscription
+            // const { error } = await supabase
+            //   .from('chat_history')
+            //   .update({ typewriter_played: true })
+            //   .eq('id', msg.id);
+            
+            // if (error) {
+            //   console.error('Error updating typewriter status:', error);
+            // }
             
             // If this is a post-event message, fetch the event details
             if (msg.event_id) {
@@ -618,47 +633,6 @@ const Index = () => {
             // Create a flag to track if this message is already being handled
             let isHandlingMessage = false;
             
-            const onFeedbackSubmit = async (feedback: string) => {
-              try {
-                // Set flag to indicate we're handling this message
-                isHandlingMessage = true;
-                
-                // Update both feedback and feedback_sent flag when user submits
-                await supabase
-                  .from('calendar_events')
-                  .update({ 
-                    feedback_sent: true, 
-                    feedback 
-                  })
-                  .eq('id', payload.new.event_id);
-
-                // Remove the feedback form after successful submission
-                setMessages(prev => prev.map(msg => 
-                  msg.eventId === payload.new.event_id 
-                    ? { ...msg, showFeedbackForm: false }
-                    : msg
-                ));
-
-                toast({
-                  title: "Feedback submitted",
-                  description: "Thank you for your feedback!"
-                });
-                
-                // Reset the flag after a short delay to ensure we don't miss subsequent messages
-                setTimeout(() => {
-                  isHandlingMessage = false;
-                }, 1000);
-              } catch (error) {
-                console.error('Error submitting feedback:', error);
-                toast({
-                  title: "Error",
-                  description: "Failed to submit feedback",
-                  variant: "destructive"
-                });
-                isHandlingMessage = false;
-              }
-            };
-            
             // If this is a post-event message, fetch the full event details with attendees
             let eventData = null;
             // Parse message content if it's JSON
@@ -717,11 +691,11 @@ const Index = () => {
               isAl: payload.new.is_ai,
               is_secret: payload.new.is_secret,
               showPlanningForm: false,
-              showFeedbackForm: !!eventData && !eventData.feedback_sent,
+              showFeedbackForm: (eventData && !eventData.feedback_sent) ? true : false,
               eventId: payload.new.event_id,
               eventTitle: payload.new.event_title,
               completedEvent: eventData || undefined,
-              onFeedbackSubmit: (eventData && !eventData.feedback_sent) ? onFeedbackSubmit : undefined,
+              onFeedbackSubmit: handleFeedbackSubmit,
               onPlanningSubmit: handlePlanSubmit,
               //defaultContacts: messageMetadata?.defaultContact ? [{ name: messageMetadata.defaultContact }] : undefined,
               defaultActivity: messageMetadata?.defaultActivity,

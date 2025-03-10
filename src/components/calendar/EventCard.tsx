@@ -1,4 +1,3 @@
-
 import { format, startOfDay, endOfDay } from "date-fns";
 import { MapPin, Users, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +7,7 @@ import PlanningDialog from "@/components/PlanningDialog";
 import { generateChatResponse } from "@/utils/openai";
 import { useToast } from "@/hooks/use-toast";
 import { CalendarEvent } from "@/types/calendar";
+import { useNavigate } from "react-router-dom";
 
 export const EventCard = ({
   event
@@ -16,19 +16,28 @@ export const EventCard = ({
 }) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showPlanning, setShowPlanning] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const {
     toast
   } = useToast();
+  const navigate = useNavigate();
   const eventDate = new Date(event.start_time);
   const now = new Date();
   const endDate = new Date(event.end_time);
 
   const handleSubmit = async (message: string) => {
     try {
-      await generateChatResponse(`Here's my feedback about ${event.title}: ${message}`);
+      setIsSubmitting(true);
+      generateChatResponse(`Here's my feedback about ${event.title}: ${message}`);
+      
+      // Close the feedback dialog
       setShowFeedback(false);
+      
+      // Navigate to the main page
+      navigate('/');
     } catch (error) {
       console.error('Error sending feedback to AI:', error);
+      setIsSubmitting(false);
       toast({
         title: "Error",
         description: "Failed to process feedback with AI",
@@ -36,6 +45,7 @@ export const EventCard = ({
       });
     }
   };
+  
   const handleCardClick = () => {
     if (eventDate > now) {
       setShowPlanning(true);
@@ -43,6 +53,7 @@ export const EventCard = ({
       setShowFeedback(true);
     }
   };
+  
   return (
     <>
       <div 
@@ -94,6 +105,7 @@ export const EventCard = ({
         onOpenChange={setShowFeedback}
         onSubmit={handleSubmit}
         selectedEventId={event.id}
+        isSubmitting={isSubmitting}
       />
 
       <PlanningDialog

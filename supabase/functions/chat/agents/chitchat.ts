@@ -1,7 +1,7 @@
 import { Agent } from './base.ts';
 import { Contact, functions } from '../types.ts';
 import { extractNamesFromText, searchContactsByNames, upsertContacts, searchGooglePlaces, findFriendsForActivity, mergeContacts, upsertContactGroups } from '../utils.ts';
-import { stringifyJSON } from '../../_shared/utils.ts';
+import { filterJSON, stringifyJSON } from '../../_shared/utils.ts';
 
 export class ChitChatAgent extends Agent {
   protected systemPrompt = ``
@@ -110,6 +110,7 @@ export class ChitChatAgent extends Agent {
     const context = this.buildContext(profile);
 
     let events = await this.getEvents(profile.id, profile.utc_offset_minutes);
+    events = filterJSON(events);
 
     const messages = chatHistory?.map(msg => ({
       role: msg.is_ai ? 'assistant' : 'user',
