@@ -584,7 +584,8 @@ export const PlanningForm = ({
         start_time: startDate.toISOString(),
         end_time: endDate.toISOString(),
         location: location,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        feedback_sent: false,
       };
 
       // Add event to calendar_events table
