@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -282,10 +282,81 @@ const Profile = ({
     }
   };
 
+  // Touch handling state for swipe gesture
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const sheetContentRef = useRef<HTMLDivElement>(null);
+
+  // Touch event handlers for swipe gesture
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touchXPosition = e.touches[0].clientX;
+    
+    // Only capture touches that start near the left edge (within 50px of edge)
+    if (touchXPosition < 50) {
+      setTouchStart(touchXPosition);
+      console.log(`[Profile] Touch start at X: ${touchXPosition} (near left edge)`);
+    } else {
+      setTouchStart(null);
+      console.log(`[Profile] Ignoring touch start at X: ${touchXPosition} (not near left edge)`);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    
+    const touchXPosition = e.touches[0].clientX;
+    setTouchEnd(touchXPosition);
+    
+    // Only log occasionally to avoid flooding
+    if (Math.random() < 0.1) {
+      console.log(`[Profile] Touch move to X: ${touchXPosition}, delta: ${touchXPosition - touchStart}`);
+    }
+  }, [touchStart]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    
+    // Get final position from the touch event
+    let finalTouchEnd = touchEnd;
+    if (!finalTouchEnd && e.changedTouches && e.changedTouches.length > 0) {
+      finalTouchEnd = e.changedTouches[0].clientX;
+      setTouchEnd(finalTouchEnd);
+    }
+    
+    console.log(`[Profile] Touch end - Start: ${touchStart}, End: ${finalTouchEnd || 'unknown'}`);
+    
+    // Process the swipe immediately instead of using state
+    if (touchStart !== null && finalTouchEnd !== null) {
+      const distance = finalTouchEnd - touchStart; // Left to right swipe
+      
+      console.log(`[Profile] Processing swipe - Distance: ${distance}px`);
+      
+      // Detect left to right swipe (minimum 100px movement)
+      if (distance > 100) {
+        console.log("[Profile] Left to right swipe detected, closing profile");
+        onOpenChange(false); // Close the profile sheet
+      } else {
+        console.log(`[Profile] Swipe rejected - distance ${distance}px is less than threshold 100px`);
+      }
+    } else {
+      console.log("[Profile] Incomplete swipe data, cannot process");
+    }
+    
+    // Reset touch tracking
+    setTouchStart(null);
+    setTouchEnd(null);
+  }, [touchStart, touchEnd, onOpenChange]);
+
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="overflow-y-auto">
+        <SheetContent 
+          className="overflow-y-auto" 
+          ref={sheetContentRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+        >
           {showIntegrations ? (
             <IntegrationsMenu
               onGoogleSignIn={handleGoogleCalendarConnect}
