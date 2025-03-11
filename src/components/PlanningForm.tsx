@@ -1,6 +1,8 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
+import Autocomplete from 'react-google-autocomplete';
 import { Button } from "@/components/ui/button";
 import { Users, Shuffle, Calendar, MapPin, UserPlus, Bot } from "lucide-react";
+import { BrainProfile } from "@/components/icons/BrainProfile";
 import { Contact } from "@/types/contacts";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +51,7 @@ export const PlanningForm = ({
   const [selectedDate, setSelectedDate] = useState<Date>(defaultDate);
   const [selectedTime, setSelectedTime] = useState<string>(defaultTime);
   const [contactInput, setContactInput] = useState("");
+  const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
   const [showContactDialog, setShowContactDialog] = useState(false);
   const { session } = useAuth();
   
@@ -58,6 +61,27 @@ export const PlanningForm = ({
       setSelectedContacts(defaultContacts);
     }
   }, [defaultContacts]);
+  
+  // Fetch Google Maps API key
+  useEffect(() => {
+    const fetchMapsKey = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke('get-maps-key');
+        if (error) {
+          console.error('Error fetching Maps API key:', error);
+          return;
+        }
+        
+        if (data && data.apiKey) {
+          setMapsApiKey(data.apiKey);
+        }
+      } catch (error) {
+        console.error('Error fetching Maps API key:', error);
+      }
+    };
+    
+    fetchMapsKey();
+  }, []);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [askingAl, setAskingAl] = useState<'contacts' | 'activity' | 'datetime' | 'location' | null>(null);
 
@@ -666,6 +690,7 @@ export const PlanningForm = ({
                           handleContactSelect(contact);
                           setContactInput("");
                         }}
+                        className="text-sm"
                       >
                         {contact.name}
                       </CommandItem>
@@ -722,7 +747,7 @@ export const PlanningForm = ({
             <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
               <div className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                <span className="font-medium text-sm">Who's coming?</span>
+                <span className="font-bold text-sm">Who's coming?</span>
                 {isComplete.contacts && <span className="text-purple-500 ml-1">✓</span>}
               </div>
             </div>
@@ -771,7 +796,7 @@ export const PlanningForm = ({
                 {askingAl === 'contacts' ? (
                   <span>Thinking...</span>
                 ) : (
-                  <span>Ask Al</span>
+                  <BrainProfile className="h-4 w-4" />
                 )}
               </Button>
             </div>
@@ -782,7 +807,7 @@ export const PlanningForm = ({
                 {filteredContacts.map(contact => (
                   <div
                     key={contact.id}
-                    className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                    className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm"
                     onClick={() => {
                       handleContactSelect(contact);
                       setContactInput("");
@@ -800,7 +825,7 @@ export const PlanningForm = ({
             <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
               <div className="flex items-center gap-1">
                 <Shuffle className="h-4 w-4" />
-                <span className="font-medium text-sm">What do you want to do?</span>
+                <span className="font-bold text-sm">What do you want to do?</span>
                 {isComplete.activity && <span className="text-purple-500 ml-1">✓</span>}
               </div>
             </div>
@@ -838,7 +863,7 @@ export const PlanningForm = ({
                       .map(act => (
                         <div
                           key={act.id}
-                          className="px-4 py-2 cursor-pointer hover:bg-gray-100"
+                          className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm"
                           onClick={() => {
                             setActivity(act.name);
                             if (onUpdate) {
@@ -870,7 +895,7 @@ export const PlanningForm = ({
                 {askingAl === 'activity' ? (
                   <span>Thinking...</span>
                 ) : (
-                  <span>Ask Al</span>
+                  <BrainProfile className="h-4 w-4" />
                 )}
               </Button>
             </div>
@@ -881,14 +906,13 @@ export const PlanningForm = ({
             <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                <span className="font-medium text-sm">When?</span>
+                <span className="font-bold text-sm">When?</span>
                 {isComplete.datetime && <span className="text-purple-500 ml-1">✓</span>}
               </div>
             </div>
             
             <div className="flex items-end gap-2 mb-2">
               <div className="flex-1">
-                <Label className="text-xs">Date</Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
@@ -915,7 +939,6 @@ export const PlanningForm = ({
               </div>
               
               <div className="w-32">
-                <Label className="text-xs">Time</Label>
                 <Select
                   value={selectedTime}
                   onValueChange={(value) => {
@@ -953,6 +976,7 @@ export const PlanningForm = ({
                           key={timeValue} 
                           value={timeValue}
                           disabled={isPastTime}
+                          className="text-sm"
                         >
                           {displayTime}
                         </SelectItem>
@@ -972,7 +996,7 @@ export const PlanningForm = ({
                 {askingAl === 'datetime' ? (
                   <span>Thinking...</span>
                 ) : (
-                  <span>Ask Al</span>
+                  <BrainProfile className="h-4 w-4" />
                 )}
               </Button>
             </div>
@@ -984,29 +1008,62 @@ export const PlanningForm = ({
             <div className="absolute top-0 left-4 -translate-y-1/2 bg-white px-2">
               <div className="flex items-center gap-1">
                 <MapPin className="h-4 w-4" />
-                <span className="font-medium text-sm">Where?</span>
+                <span className="font-bold text-sm">Where?</span>
                 {isComplete.location && <span className="text-purple-500 ml-1">✓</span>}
               </div>
             </div>
             
             <div className="flex gap-2">
-              <Input
-                value={location}
-                onChange={(e) => {
-                  setLocation(e.target.value);
-                  if (onUpdate) {
-                    onUpdate({
-                      contacts: selectedContacts,
-                      activity,
-                      location: e.target.value,
-                      date: selectedDate,
-                      time: selectedTime
-                    });
-                  }
-                }}
-                placeholder="e.g. Central Park, Joe's Coffee, etc."
-                className="flex-1"
-              />
+              {mapsApiKey ? (
+                <div className="flex-1">
+                  <Autocomplete
+                    apiKey={mapsApiKey}
+                    onPlaceSelected={(place: any) => {
+                      if (place && typeof place === 'object') {
+                        const locationName = place.name || '';
+                        const address = place.formatted_address || '';
+                        const fullLocation = locationName && address ? `${locationName}, ${address}` : (locationName || address);
+                        
+                        setLocation(fullLocation);
+                        if (onUpdate) {
+                          onUpdate({
+                            contacts: selectedContacts,
+                            activity,
+                            location: fullLocation,
+                            date: selectedDate,
+                            time: selectedTime
+                          });
+                        }
+                      }
+                    }}
+                    defaultValue={location}
+                    options={{
+                      types: ['establishment'],
+                      fields: ['name', 'formatted_address']
+                    }}
+                    className="w-full h-9 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="e.g. Starbucks, Central Park, Joe's Coffee, etc."
+                  />
+                </div>
+              ) : (
+                <Input
+                  value={location}
+                  onChange={(e) => {
+                    setLocation(e.target.value);
+                    if (onUpdate) {
+                      onUpdate({
+                        contacts: selectedContacts,
+                        activity,
+                        location: e.target.value,
+                        date: selectedDate,
+                        time: selectedTime
+                      });
+                    }
+                  }}
+                  placeholder="e.g. Central Park, Joe's Coffee, etc."
+                  className="flex-1"
+                />
+              )}
               
               <Button
                 variant="outline"
@@ -1018,16 +1075,16 @@ export const PlanningForm = ({
                 {askingAl === 'location' ? (
                   <span>Thinking...</span>
                 ) : (
-                  <span>Ask Al</span>
+                  <BrainProfile className="h-4 w-4" />
                 )}
               </Button>
             </div>
           </div>
 
-          <div className="flex justify-end mt-4">
+          <div className="mt-4 w-full">
             <Button
               onClick={handleSubmit}
-              className="bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="bg-purple-600 hover:bg-purple-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed w-full"
               disabled={isSubmitting || askingAl !== null}
             >
               {isSubmitting 

@@ -17,8 +17,6 @@ import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
 import { TIME_OPTIONS } from '@/utils/constants';
 import ContactsDialog from './ContactsDialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './ui/command';
-import Autocomplete from 'react-google-autocomplete';
 
 interface InChatFeedbackFormProps {
   onSubmit: (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => void;
@@ -58,43 +56,33 @@ export const InChatFeedbackForm = ({
   const [isEditingEvent, setIsEditingEvent] = useState(false);
   const [isContactsDialogOpen, setIsContactsDialogOpen] = useState(false);
   const [showActivitySuggestions, setShowActivitySuggestions] = useState(false);
-  const [mapsApiKey, setMapsApiKey] = useState<string | null>(null);
+  const [isGoogleMapsLoaded, setIsGoogleMapsLoaded] = useState(true);
+  
+  // Activity options for dropdown suggestions
+  const activityOptions = [
+    "Coffee",
+    "Lunch",
+    "Dinner",
+    "Drinks",
+    "Movie",
+    "Concert",
+    "Hiking",
+    "Shopping",
+    "Museum",
+    "Park",
+    "Beach",
+    "Gym",
+    "Yoga",
+    "Brunch",
+    "Study session",
+    "Game night",
+    "Birthday party",
+    "Wedding",
+    "Conference",
+    "Meeting"
+  ];
   
   const { session } = useAuth();
-
-  // Fetch Google Maps API key
-  useEffect(() => {
-    const fetchMapsKey = async () => {
-      try {
-        const { data, error } = await supabase.functions.invoke('get-maps-key');
-        if (error) {
-          console.error('Error fetching Maps API key:', error);
-          return;
-        }
-        
-        if (data && data.apiKey) {
-          setMapsApiKey(data.apiKey);
-        }
-      } catch (error) {
-        console.error('Error fetching Maps API key:', error);
-      }
-    };
-    
-    fetchMapsKey();
-  }, []);
-
-  // Fetch activity suggestions
-  const { data: activities = [] } = useQuery({
-    queryKey: ['activities'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('activities')
-        .select('*');
-      
-      if (error) throw error;
-      return data || [];
-    }
-  });
 
   // Fetch contacts for attendee selection using pagination to overcome the 1000 row limit
   const { data: contacts = [], isLoading: isLoadingContacts } = useQuery({
@@ -537,7 +525,7 @@ export const InChatFeedbackForm = ({
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">How'd it go?</h3>
+          <h3 className="text-lg font-bold">How'd it go?</h3>
           <Button
             variant="ghost"
             size="sm"
@@ -577,7 +565,7 @@ export const InChatFeedbackForm = ({
       </div>
       
       <div className="space-y-2">
-        <h3 className="text-sm font-medium">Select all that apply:</h3>
+        <h3 className="text-sm font-bold">Select all that apply:</h3>
         <div className="flex flex-wrap gap-2">
           {moodOptions.map(mood => (
             <Button
@@ -786,66 +774,14 @@ export const InChatFeedbackForm = ({
           )}
           
           <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Input
-                id="event-attendees"
-                placeholder="Type to search contacts..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full"
-                onFocus={() => setIsAddingAttendee(true)}
-                onBlur={() => setTimeout(() => setIsAddingAttendee(false), 200)}
-              />
-              
-              {isAddingAttendee && searchTerm && (
-                <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-[200px] overflow-auto">
-                  {isLoadingContacts ? (
-                    <div className="p-2 text-center text-sm text-muted-foreground">Loading contacts...</div>
-                  ) : (
-                    (() => {
-                      // Create a Set of attendee IDs for faster lookup
-                      const attendeeIds = new Set(eventAttendees.map(a => a.id));
-                      
-                      // Filter contacts once
-                      const filteredContacts = contacts.filter(c => 
-                        c.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-                        !attendeeIds.has(c.id)
-                      );
-                      
-                      // Show appropriate message if no contacts found
-                      if (filteredContacts.length === 0) {
-                        return <div className="p-2 text-center text-sm text-muted-foreground">No contacts found</div>;
-                      }
-                      
-                      // Limit to first 50 matches to avoid rendering too many items
-                      const displayContacts = filteredContacts.slice(0, 50);
-                      
-                      return (
-                        <>
-                          {displayContacts.map(contact => (
-                            <div
-                              key={contact.id}
-                              className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm"
-                              onClick={() => {
-                                handleAddAttendee(contact);
-                                setSearchTerm('');
-                              }}
-                            >
-                              {contact.name}
-                            </div>
-                          ))}
-                          {filteredContacts.length > 50 && (
-                            <div className="p-2 text-center text-xs text-muted-foreground">
-                              Showing first 50 of {filteredContacts.length} matches. Type more to refine.
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()
-                  )}
-                </div>
-              )}
-            </div>
+            <Input
+              id="event-attendees"
+              placeholder="Type to search contacts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+              onFocus={() => setIsAddingAttendee(true)}
+            />
             <Button
               variant="outline"
               size="icon"
@@ -855,6 +791,56 @@ export const InChatFeedbackForm = ({
               <UserPlus className="h-4 w-4" />
             </Button>
           </div>
+          
+          {isAddingAttendee && searchTerm && (
+            <div className="max-h-[150px] overflow-y-auto border rounded-md mt-1">
+              {isLoadingContacts ? (
+                <div className="p-2 text-center text-sm text-muted-foreground">Loading contacts...</div>
+              ) : (
+                (() => {
+                  // Create a Set of attendee IDs for faster lookup
+                  const attendeeIds = new Set(eventAttendees.map(a => a.id));
+                  
+                  // Filter contacts once
+                  const filteredContacts = contacts.filter(c => 
+                    c.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+                    !attendeeIds.has(c.id)
+                  );
+                  
+                  // Show appropriate message if no contacts found
+                  if (filteredContacts.length === 0) {
+                    return <div className="p-2 text-center text-sm text-muted-foreground">No contacts found</div>;
+                  }
+                  
+                  // Limit to first 50 matches to avoid rendering too many items
+                  const displayContacts = filteredContacts.slice(0, 50);
+                  
+                  return (
+                    <>
+                      {displayContacts.map(contact => (
+                        <Button
+                          key={contact.id}
+                          variant="ghost"
+                          className="w-full justify-start text-left px-2 py-1 h-auto"
+                          onClick={() => {
+                            handleAddAttendee(contact);
+                            setSearchTerm('');
+                          }}
+                        >
+                          {contact.name}
+                        </Button>
+                      ))}
+                      {filteredContacts.length > 50 && (
+                        <div className="p-2 text-center text-xs text-muted-foreground">
+                          Showing first 50 of {filteredContacts.length} matches. Type more to refine.
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
+              )}
+            </div>
+          )}
         </div>
         
         <div className="space-y-2">
@@ -866,36 +852,39 @@ export const InChatFeedbackForm = ({
               value={eventTitle}
               onChange={(e) => {
                 setEventTitle(e.target.value);
-                setShowActivitySuggestions(e.target.value.length > 0);
+                // Show dropdown suggestions if there are any matching activities
+                if (e.target.value && activityOptions.some(act => 
+                  act.toLowerCase().includes(e.target.value.toLowerCase())
+                )) {
+                  setShowActivitySuggestions(true);
+                } else {
+                  setShowActivitySuggestions(false);
+                }
               }}
-              onFocus={() => setShowActivitySuggestions(eventTitle.length > 0)}
-              onBlur={() => setTimeout(() => setShowActivitySuggestions(false), 200)}
             />
-            {showActivitySuggestions && eventTitle.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-[200px] overflow-auto">
-                {activities
-                  .filter(act => act.name?.toLowerCase().includes(eventTitle.toLowerCase()))
-                  .slice(0, 8)
-                  .map(act => (
+            {showActivitySuggestions && eventTitle && (
+              <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-[300px] overflow-auto">
+                {activityOptions
+                  .filter(act => 
+                    act.toLowerCase().includes(eventTitle.toLowerCase())
+                  )
+                  .map((act, index) => (
                     <div
-                      key={act.id}
+                      key={index}
                       className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-sm"
                       onClick={() => {
-                        setEventTitle(act.name);
+                        setEventTitle(act);
                         setShowActivitySuggestions(false);
                       }}
                     >
-                      {act.name}
+                      {act}
                     </div>
                   ))
                 }
-                {activities.filter(act => act.name?.toLowerCase().includes(eventTitle.toLowerCase())).length === 0 && (
-                  <div className="px-4 py-2 text-sm text-gray-500">No matching activities</div>
-                )}
               </div>
             )}
           </div>
-
+        </div>
         </div>
         
         <div className="space-y-2">
@@ -951,30 +940,34 @@ export const InChatFeedbackForm = ({
         
         <div className="space-y-2">
           <Label htmlFor="event-location" className="font-bold">Where?</Label>
-          {mapsApiKey ? (
-            <Autocomplete
-              apiKey={mapsApiKey}
-              onPlaceSelected={(place) => {
-                if (place && place.formatted_address) {
-                  setEventLocation(place.formatted_address);
-                }
-              }}
-              options={{
-                types: ['establishment', 'geocode'],
-              }}
-              className="w-full h-10 px-3 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              defaultValue={eventLocation}
-              onChange={(e) => setEventLocation(e.target.value)}
-              placeholder="e.g. Starbucks on Main St"
-            />
-          ) : (
-            <Input
-              id="event-location"
-              placeholder="e.g. Starbucks on Main St"
-              value={eventLocation}
-              onChange={(e) => setEventLocation(e.target.value)}
-            />
-          )}
+          <div className="relative">
+            {isGoogleMapsLoaded ? (
+              <Autocomplete
+                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
+                onPlaceSelected={(place) => {
+                  if (place && place.formatted_address) {
+                    setEventLocation(place.formatted_address);
+                  } else if (place && place.name) {
+                    setEventLocation(place.name);
+                  }
+                }}
+                options={{
+                  types: ['establishment'],
+                  fields: ['name', 'formatted_address']
+                }}
+                className="w-full h-9 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="e.g. Starbucks, Central Park, Joe's Coffee, etc."
+                defaultValue={eventLocation}
+              />
+            ) : (
+              <Input
+                id="event-location"
+                placeholder="e.g. Starbucks on Main St"
+                value={eventLocation}
+                onChange={(e) => setEventLocation(e.target.value)}
+              />
+            )}
+          </div>
         </div>
       </div>
       
