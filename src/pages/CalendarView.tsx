@@ -15,7 +15,7 @@ import { Capacitor } from "@capacitor/core";
 import { synchronizeEvents, checkPermissions } from "@/utils/calendar";
 import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
 import { CalendarEvent, CalendarData } from "@/types/calendar";
-
+import { useState, useCallback, useRef, useEffect } from "react";
 
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 type CalendarEventRow = Database['public']['Tables']['calendar_events']['Row'];
@@ -25,6 +25,19 @@ const CalendarView = () => {
   const navigate = useNavigate();
   const { session } = useAuth();
   const { toast } = useToast();
+  
+  // Touch handling state
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [swipeAttempted, setSwipeAttempted] = useState(false);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
+  const addDebugLog = useCallback((message: string) => {
+    console.log(message);
+    setDebugLog(prev => [...prev, message]);
+  }, []);
+
+  const sheetContentRef = useRef<HTMLDivElement>(null);
 
   const { data: calendarData = { events: [], isConnected: false }, isLoading, refetch } = useQuery<CalendarData, Error>({
     queryKey: ["calendar-events"],
@@ -209,6 +222,68 @@ const CalendarView = () => {
     navigate("/", { state: { prompt: message } });
   };
 
+  // Touch event handlers with improved logging
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touchXPosition = e.touches[0].clientX;
+    
+    // Only capture touches that start near the right edge (within 70px of edge)
+    const screenWidth = window.innerWidth;
+    if (touchXPosition > screenWidth - 70) {
+      setTouchStart(touchXPosition);
+      addDebugLog(`Touch start at X: ${touchXPosition} (near right edge)`);
+    } else {
+      setTouchStart(null);
+    }
+  }, [addDebugLog]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    
+    const touchXPosition = e.touches[0].clientX;
+    setTouchEnd(touchXPosition);
+    
+    // Only log occasionally to avoid flooding
+    if (Math.random() < 0.1) {
+      addDebugLog(`Touch move to X: ${touchXPosition}`);
+    }
+  }, [touchStart, addDebugLog]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStart === null) return;
+    
+    // Get final position from the touch event if not already set
+    if (!touchEnd && e.changedTouches && e.changedTouches.length > 0) {
+      setTouchEnd(e.changedTouches[0].clientX);
+    }
+    
+    setSwipeAttempted(true);
+    
+    addDebugLog(`Touch end - Start: ${touchStart}, End: ${touchEnd || (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0].clientX : 'unknown')}`);
+  }, [touchStart, touchEnd, addDebugLog]);
+
+  // Process swipe after state updates
+  useEffect(() => {
+    if (swipeAttempted && touchStart !== null) {
+      const finalTouchEnd = touchEnd || touchStart; // Fallback if touchEnd wasn't set
+      const distance = touchStart - finalTouchEnd;
+      
+      addDebugLog(`Processing swipe - Distance: ${distance}px`);
+      
+      // Detect right to left swipe (minimum 100px movement)
+      if (distance > 100) {
+        addDebugLog("Right to left swipe detected, navigating to root");
+        navigate("/");
+      } else {
+        addDebugLog(`Swipe rejected - distance ${distance}px is less than threshold 100px`);
+      }
+      
+      // Reset touch tracking
+      setTouchStart(null);
+      setTouchEnd(null);
+      setSwipeAttempted(false);
+    }
+  }, [swipeAttempted, touchStart, touchEnd, navigate, addDebugLog]);
+
   return (
     <Sheet open={true}>
       <SheetContent
@@ -216,8 +291,21 @@ const CalendarView = () => {
         className="w-full sm:w-[540px] p-0 flex flex-col h-full overflow-hidden"
         onPointerDownOutside={() => navigate("/")}
         showCloseButton={false}
+        ref={sheetContentRef}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
-        <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        {/* Debug log display - only visible in development */}
+        {process.env.NODE_ENV === 'development' && debugLog.length > 0 && (
+          <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-xs p-2 z-50 max-h-32 overflow-y-auto">
+            {debugLog.slice(-10).map((log, i) => (
+              <div key={i}>{log}</div>
+            ))}
+          </div>
+        )}
+        
+        <div className="fixed top-0 left-0 right-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="pt-[env(safe-area-inset-top)] px-[env(safe-area-inset-right)] pb-4 px-[env(safe-area-inset-left)] border-b">
             <div className="flex items-center">
               <Button

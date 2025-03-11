@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Search, ChevronUp, ChevronDown, ChevronRight, Plus, ArrowLeft, Trash, Smile, ZoomIn, ZoomOut } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTrigger, DrawerClose } from "@/components/ui/drawer";
@@ -88,6 +88,13 @@ const ContactsView = () => {
   const [isEmojiPickerOpen, setIsEmojiPickerOpen] = useState(false);
   const [isGroupsExpanded, setIsGroupsExpanded] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(0); // 0 = innermost (Inner Orbit), 100 = outermost
+  
+  // Touch handling state for swipe gestures
+  const [touchStartY, setTouchStartY] = useState<number | null>(null);
+  const [touchEndY, setTouchEndY] = useState<number | null>(null);
+  const [swipeAttempted, setSwipeAttempted] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const navigate = useNavigate();
   const {
     toast
@@ -96,6 +103,69 @@ const ContactsView = () => {
   const {
     session
   } = useAuth();
+  
+  // Touch event handlers for bottom-to-top swipe gesture
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touchYPosition = e.touches[0].clientY;
+    
+    // Only capture touches that start near the bottom edge (within 70px of edge)
+    const screenHeight = window.innerHeight;
+    if (touchYPosition > screenHeight - 70) {
+      setTouchStartY(touchYPosition);
+      console.log(`[ContactsView] Touch start at Y: ${touchYPosition} (near bottom edge)`);
+    } else {
+      setTouchStartY(null);
+    }
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (touchStartY === null) return;
+    
+    const touchYPosition = e.touches[0].clientY;
+    setTouchEndY(touchYPosition);
+    
+    // Only log occasionally to avoid flooding
+    if (Math.random() < 0.1) {
+      console.log(`[ContactsView] Touch move to Y: ${touchYPosition}, delta: ${touchStartY - touchYPosition}`);
+    }
+  }, [touchStartY]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartY === null) return;
+    
+    // Get final position from the touch event if not already set
+    if (!touchEndY && e.changedTouches && e.changedTouches.length > 0) {
+      setTouchEndY(e.changedTouches[0].clientY);
+    }
+    
+    setSwipeAttempted(true);
+    
+    console.log(`[ContactsView] Touch end - Start: ${touchStartY}, End: ${touchEndY || (e.changedTouches && e.changedTouches.length > 0 ? e.changedTouches[0].clientY : 'unknown')}`);
+  }, [touchStartY, touchEndY]);
+
+  // Process swipe after state updates
+  useEffect(() => {
+    if (swipeAttempted && touchStartY !== null) {
+      const finalTouchEndY = touchEndY || touchStartY; // Fallback if touchEndY wasn't set
+      const distance = touchStartY - finalTouchEndY; // Bottom to top swipe
+      
+      console.log(`[ContactsView] Processing swipe - Distance: ${distance}px`);
+      
+      // Detect bottom to top swipe (minimum 100px movement)
+      if (distance > 100) {
+        console.log("[ContactsView] Bottom to top swipe detected, navigating to home");
+        navigate("/");
+      } else {
+        console.log(`[ContactsView] Swipe rejected - distance ${distance}px is less than threshold 100px`);
+      }
+      
+      // Reset touch tracking
+      setTouchStartY(null);
+      setTouchEndY(null);
+      setSwipeAttempted(false);
+    }
+  }, [swipeAttempted, touchStartY, touchEndY, navigate]);
+
   const {
     data: profileData
   } = useQuery({
@@ -1376,7 +1446,12 @@ const ContactsView = () => {
       <div className="absolute inset-0 bg-black bg-opacity-50" />
     </div>
 
-    <div className="container max-w-2xl mx-auto p-4 h-full relative z-10">
+    <div className="container max-w-2xl mx-auto p-4 h-full relative z-10"
+         ref={containerRef}
+         onTouchStart={handleTouchStart}
+         onTouchMove={handleTouchMove}
+         onTouchEnd={handleTouchEnd}
+    >
       <div className="relative flex flex-col h-full">
         <div className="relative mb-4">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
