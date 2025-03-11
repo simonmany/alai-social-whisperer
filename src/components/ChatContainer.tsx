@@ -111,7 +111,7 @@ export const ChatContainer = ({
           
           {isLoading && (
             <div className="self-start text-sm text-gray-500 animate-pulse">
-              Al is typing...
+              Al is thinking...
             </div>
           )}
           <div ref={messagesEndRef} />

@@ -179,13 +179,16 @@ export const InterestSelector = ({
 
   return (
     <div className="space-y-4">
-      <Input
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        placeholder={placeholder}
-        className="text-xl font-cormorant"
-        onKeyDown={handleInputKeyDown}
-      />
+      <div className="space-y-1">
+        <Input
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder={placeholder}
+          className="text-xl font-cormorant"
+          onKeyDown={handleInputKeyDown}
+        />
+        <p className="text-sm text-gray-500 pl-1">Press Enter to add an interest. Add as many as you like.</p>
+      </div>
       
       {filteredItems.length > 0 && (
         <div className="bg-white rounded-lg shadow-lg p-2 space-y-1">
