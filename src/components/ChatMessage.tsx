@@ -91,7 +91,7 @@ export const ChatMessage = ({
   return (
     <div
       className={cn(
-        "mb-4 text-xl font-cormorant",
+        "mb-4 font-cormorant",
         isAl ? (showPlanningFormState ? "self-start w-full" : "self-start w-[80%]") : "self-end max-w-[80%]",
         animate && (isAl ? "animate-slide-in-left" : "animate-slide-in-right")
       )}
@@ -101,7 +101,7 @@ export const ChatMessage = ({
           "text-gray-800 px-4 py-2 rounded-lg bg-transparent",
           showPlanningFormState && "w-full max-w-none"
         )}>
-          <div className="prose prose-gray max-w-none space-y-2">
+          <div className="prose prose-base max-w-none space-y-2 text-xl">
             {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
@@ -178,7 +178,9 @@ export const ChatMessage = ({
         </div>
       ) : (
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm">
-          <div className="whitespace-pre-line">{content}</div>
+          <div className="prose prose-base text-primary-foreground max-w-none text-xl">
+            <ReactMarkdown>{content}</ReactMarkdown>
+          </div>
         </div>
       )}
     </div>

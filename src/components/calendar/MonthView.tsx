@@ -32,13 +32,13 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="p-4">
+    <div className="flex flex-col h-full w-full">
+      <div className="px-2 py-2 w-full">
         <Calendar
           mode="single"
           selected={selectedDay}
           onSelect={handleDaySelect}
-          className="rounded-md border"
+          className="rounded-md border w-full max-w-none mx-auto"
           components={{
             DayContent: ({ date }) => {
               const hasEvent = events.some(
@@ -62,7 +62,7 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
       </div>
 
       <ScrollArea className="flex-1">
-        <div className="p-4">
+        <div className="px-2 py-2">
           {/* Upcoming Events */}
           <div className="rounded-lg mb-4">
             <h3 className="font-semibold text-muted-foreground mb-3">
@@ -95,7 +95,7 @@ export const MonthView = ({ events, onPrompt }: MonthViewProps) => {
         </div>
       </ScrollArea>
 
-      <div className="px-4 py-3 border-t bg-background">
+      <div className="bg-background">
         <CalendarPrompts onPrompt={onPrompt} type="month" />
       </div>
     </div>
