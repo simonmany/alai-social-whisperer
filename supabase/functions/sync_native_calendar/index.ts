@@ -102,6 +102,7 @@ serve(async (req) => {
         timezone: nativeEvent.timezone,
         all_day: nativeEvent.isAllDay,
         calendar_event_id: nativeEvent.id,
+        feedback_sent: false,
       };
 
       let attendees = await matchAttendeesToContacts(user_id, nativeEvent.attendees);
