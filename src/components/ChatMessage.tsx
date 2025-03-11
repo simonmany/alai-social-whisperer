@@ -101,7 +101,7 @@ export const ChatMessage = ({
           "text-gray-800 px-4 py-2 rounded-lg bg-transparent",
           showPlanningFormState && "w-full max-w-none"
         )}>
-          <div className="prose prose-gray max-w-none space-y-2">
+          <div className="prose prose-gray max-w-none space-y-2 text-xl">
             {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
@@ -178,7 +178,7 @@ export const ChatMessage = ({
         </div>
       ) : (
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm">
-          <div className="whitespace-pre-line">{content}</div>
+          <div className="whitespace-pre-line text-xl">{content}</div>
         </div>
       )}
     </div>
