@@ -108,9 +108,9 @@ const ContactsView = () => {
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touchYPosition = e.touches[0].clientY;
     
-    // Only capture touches that start near the bottom edge (within 70px of edge)
+    // Only capture touches that start near the bottom edge (within 100px of edge)
     const screenHeight = window.innerHeight;
-    if (touchYPosition > screenHeight - 70) {
+    if (touchYPosition > screenHeight - 100) {
       setTouchStartY(touchYPosition);
       console.log(`[ContactsView] Touch start at Y: ${touchYPosition} (near bottom edge)`);
     } else {
