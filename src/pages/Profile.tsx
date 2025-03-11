@@ -290,6 +290,7 @@ const Profile = ({
             <IntegrationsMenu
               onGoogleSignIn={handleGoogleCalendarConnect}
               isConnectingCalendar={isConnectingCalendar}
+              onBack={() => setShowIntegrations(false)}
             />
           ) : (
             <div className="space-y-6">
@@ -344,9 +345,30 @@ const Profile = ({
               )}
 
               <div className="flex flex-col gap-2">
-                <Button variant="outline" className="w-full justify-start gap-2">
-                  <Settings className="h-4 w-4" />
-                  Settings
+                {/* Settings button removed temporarily */}
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => window.open("https://docs.google.com/forms/d/e/1FAIpQLSeHvIY29Z7q8c2QiEkdG91JpipZF0B4fFD57F4kNekW3XxP2A/viewform?usp=dialog", "_blank")}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 9v4"/>
+                    <path d="M12 17h.01"/>
+                    <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"/>
+                  </svg>
+                  Bug Report
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start gap-2"
+                  onClick={() => window.open("https://docs.google.com/forms/d/e/1FAIpQLSd_mZ9wx1t8gVuzFW7QMP4DDdmfBjrKH_8eoCVSka0noqBxYA/viewform?usp=dialog", "_blank")}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                  </svg>
+                  Feature Request
                 </Button>
                 <Button 
                   variant="outline" 

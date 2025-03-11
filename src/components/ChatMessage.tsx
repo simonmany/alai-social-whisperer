@@ -63,6 +63,13 @@ export const ChatMessage = ({
   const [isTypewriterComplete, setIsTypewriterComplete] = useState(typewriterPlayed);
   const [showPlanningFormState, setShowPlanningForm] = useState(showPlanningForm);
 
+  // Effect to update showPlanningFormState when prop changes
+  useEffect(() => {
+    if (showPlanningForm) {
+      setShowPlanningForm(true);
+    }
+  }, [showPlanningForm]);
+
   // Effect to update typewriter_played in database when animation completes
   useEffect(() => {
     const updateTypewriterStatus = async () => {
@@ -135,7 +142,7 @@ export const ChatMessage = ({
           {isTypewriterComplete && (
             <div className="mt-4 w-full">
               {/* If showPlanningForm is true, always show the planning form directly */}
-              {showPlanningFormState ? (
+              {(showPlanningForm === true || showPlanningFormState === true) ? (
                 <div className="w-full max-w-none">
                   <PlanningForm
                     onSubmit={(message, newContent) => {

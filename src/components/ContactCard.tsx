@@ -69,26 +69,35 @@ export const ContactCard = ({
     );
   };
 
+  // Track local archive state to update UI immediately
+  const [localArchivedState, setLocalArchivedState] = useState(is_archived);
+
   const toggleArchiveStatus = async () => {
     if (!id) return;
     
+    // Update local state immediately for responsive UI
+    const newArchivedState = !localArchivedState;
+    setLocalArchivedState(newArchivedState);
     setIsUpdating(true);
+    
     try {
       const { error } = await supabase
         .from('contacts')
-        .update({ is_archived: !is_archived })
+        .update({ is_archived: newArchivedState })
         .eq('id', id);
 
       if (error) throw error;
 
       toast({
-        title: is_archived ? "Contact unarchived" : "Contact archived",
-        description: `${name} has been ${is_archived ? "unarchived" : "archived"}.`,
+        title: newArchivedState ? "Contact archived" : "Contact unarchived",
+        description: `${name} has been ${newArchivedState ? "archived" : "unarchived"}.`,
       });
 
       // Invalidate queries to refresh the contacts list
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
     } catch (error: any) {
+      // Revert local state if there was an error
+      setLocalArchivedState(!newArchivedState);
       toast({
         title: "Error updating contact",
         description: error.message,
@@ -194,27 +203,27 @@ export const ContactCard = ({
       <Button
         variant="outline"
         size="sm"
-        onClick={() => setShowDeleteConfirm(true)}
-        disabled={isUpdating}
-        className="absolute -top-2 -left-2 z-50 flex items-center gap-1 shadow-xl backdrop-blur-sm border text-xs font-medium h-8 bg-red-950/60 border-red-500/20 text-red-200 hover:bg-red-900/60"
-      >
-        <Trash2 className="h-3 w-3" />
-        Delete
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
         onClick={toggleArchiveStatus}
         disabled={isUpdating}
         className={cn(
           "absolute -top-2 -right-2 z-50 flex items-center gap-1 shadow-xl backdrop-blur-sm border text-xs font-medium h-8",
-          is_archived 
+          localArchivedState 
             ? "bg-red-500/90 border-red-400/50 text-white hover:bg-red-600/90" 
             : "bg-black/60 border-purple-500/20 text-muted-foreground hover:bg-purple-900/20"
         )}
       >
         <Archive className="h-3 w-3" />
-        {is_archived ? "Archived" : "Archive"}
+        {localArchivedState ? "Archived" : "Archive"}
+      </Button>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setShowDeleteConfirm(true)}
+        disabled={isUpdating}
+        className="absolute top-8 -right-2 z-50 flex items-center gap-1 shadow-xl backdrop-blur-sm border text-xs font-medium h-8 bg-red-950/60 border-red-500/20 text-red-200 hover:bg-red-900/60"
+      >
+        <Trash2 className="h-3 w-3" />
+        Delete
       </Button>
 
       <CardContent className="p-8">

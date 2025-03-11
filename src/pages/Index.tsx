@@ -372,11 +372,24 @@ const Index = () => {
         if (!contactError && contact) {
           contactName = contact.name;
           contactData = contact;
+        } else {
+          // If we can't find the contact by ID, try to find it by name
+          // This can happen if the contact was just created during onboarding
+          const { data: contacts, error: contactsError } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (!contactsError && contacts && contacts.length > 0) {
+            contactName = contacts[0].name;
+            contactData = contacts[0];
+          }
         }
       }
 
-      console.log('profileData:', profileData);
-      console.log('desired_interests:', profileData?.desired_interests);
+
       const desiredInterest = profileData?.desired_interests?.[0] || '';
 
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\n${contactName ? `Let's dive right in and get started planning your first Hang!\n\nYou mentioned wanting to see ${contactName} for ${desiredInterest}. Now, we just need to figure out *when* and *where*. You can fill in the blanks yourself, or have AI figure it out for you based on your calendar and location!` : "Let's dive right in and get started planning your first Hang!"}`;
@@ -443,9 +456,13 @@ const Index = () => {
         metadata: messageMetadata,
         showPlanningForm: true,
         onPlanningSubmit: handlePlanSubmit,
-        defaultContacts: contactName ? [{ name: contactName, id: contactData?.id }] : undefined,
-        defaultActivity: messageMetadata.defaultActivity,
-        typewriterPlayed: false
+        defaultContacts: contactName ? [{ id: contactData?.id || 'temp-id', name: contactName }] : [],
+        defaultActivity: desiredInterest || '',
+        defaultLocation: '',
+        defaultDate: undefined,
+        defaultTime: '',
+        typewriterPlayed: false,
+        is_onboarding_message: true
       }]);
       
       setTutorialComplete(false);
@@ -1018,7 +1035,7 @@ const Index = () => {
 
     setIsLoading(true);
 
-    if (message.toLowerCase().includes("talk about past hang") || message === "Reflect") {
+    if (message.toLowerCase().includes("reflect about a past hang") || message === "Reflect") {
       setMessages(prev => [...prev, 
         { content: message, isAl: false },
         { 
@@ -1299,8 +1316,8 @@ const Index = () => {
         defaultContacts: selectedContact ? [selectedContact] : [],
         defaultActivity: selectedActivity
       }]);
-    } else if (prompt === "talk about past hang") {
-      handleSend("talk about past hang");
+    } else if (prompt === "Let's reflect about a past hang.") {
+      handleSend("Let's reflect about a past hang.");
     } else if (prompt === "add a new contact") {
       setIsContactsOpen(true);
     } else {
@@ -1383,7 +1400,7 @@ const Index = () => {
 
   const defaultPrompts = [
     { text: "Plan", action: "plan me a hang" },
-    { text: "Reflect", action: "talk about past hang" }
+    { text: "Reflect", action: "Let's reflect about a past hang." }
   ];
 
   const handleDateTimeSubmit = () => {
