@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Users, Shuffle, Calendar, MapPin, UserPlus, Bot } from "lucide-react";
 import { Contact } from "@/types/contacts";
@@ -14,6 +14,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import ContactsDialog from "@/components/ContactsDialog";
 import { generateChatResponse, ConversationType } from "@/utils/openai";
+
 
 interface PlanningFormProps {
   onSubmit: (message: string, newContent?: string) => void;
@@ -40,6 +41,7 @@ export const PlanningForm = ({
   defaultTime,
   onUpdate
 }: PlanningFormProps) => {
+  
   const [step, setStep] = useState<'main' | 'contacts' | 'activity' | 'datetime' | 'location'>('main');
   const [selectedContacts, setSelectedContacts] = useState<Contact[]>(defaultContacts);
   const [activity, setActivity] = useState<string>(defaultActivity);
@@ -49,6 +51,13 @@ export const PlanningForm = ({
   const [contactInput, setContactInput] = useState("");
   const [showContactDialog, setShowContactDialog] = useState(false);
   const { session } = useAuth();
+  
+  // Update selectedContacts when defaultContacts changes
+  useEffect(() => {
+    if (defaultContacts && defaultContacts.length > 0) {
+      setSelectedContacts(defaultContacts);
+    }
+  }, [defaultContacts]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [askingAl, setAskingAl] = useState<'contacts' | 'activity' | 'datetime' | 'location' | null>(null);
 

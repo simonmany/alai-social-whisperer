@@ -16,6 +16,7 @@ import { ArrowLeft, CalendarIcon, MapPinIcon, UsersIcon, ThumbsUp, ThumbsDown, P
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
 import { TIME_OPTIONS } from '@/utils/constants';
+import ContactsDialog from './ContactsDialog';
 
 interface InChatFeedbackFormProps {
   onSubmit: (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => void;
@@ -53,23 +54,54 @@ export const InChatFeedbackForm = ({
   const [isAddingAttendee, setIsAddingAttendee] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [isEditingEvent, setIsEditingEvent] = useState(false);
+  const [isContactsDialogOpen, setIsContactsDialogOpen] = useState(false);
   
   const { session } = useAuth();
 
-  // Fetch contacts for attendee selection
+  // Fetch contacts for attendee selection using pagination to overcome the 1000 row limit
   const { data: contacts = [], isLoading: isLoadingContacts } = useQuery({
     queryKey: ['contacts'],
     queryFn: async () => {
       if (!session?.user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('contacts')
-        .select('*')
-        .eq('user_id', session.user.id)
-        .order('name');
-
-      if (error) throw error;
-      return data;
+      // Fetch ALL contacts for the user using pagination to overcome the 1000 row limit
+      const fetchAllContacts = async () => {
+        const PAGE_SIZE = 1000;
+        let allContacts: any[] = [];
+        let page = 0;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const from = page * PAGE_SIZE;
+          const to = from + PAGE_SIZE - 1;
+          
+          console.log(`Fetching contacts page ${page} (${from}-${to})`);
+          
+          const { data, error } = await supabase
+            .from('contacts')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('name')
+            .range(from, to);
+          
+          if (error) throw error;
+          
+          if (data && data.length > 0) {
+            allContacts = [...allContacts, ...data];
+            page++;
+            
+            // If we got fewer records than the page size, we've reached the end
+            hasMore = data.length === PAGE_SIZE;
+          } else {
+            hasMore = false;
+          }
+        }
+        
+        console.log(`Fetched ${allContacts.length} total contacts for suggestions`);
+        return allContacts;
+      };
+      
+      return await fetchAllContacts();
     },
     enabled: !!session?.user?.id && (currentStep === "event-creation" || isAddingAttendee)
   });
@@ -240,6 +272,12 @@ export const InChatFeedbackForm = ({
     }
     setIsAddingAttendee(false);
     setSearchTerm('');
+  };
+  
+  // Handle new contact creation from ContactsDialog
+  const handleContactDialogSubmit = (message: string, contact: Contact) => {
+    handleAddAttendee(contact);
+    setIsContactsDialogOpen(false);
   };
 
   // Handle removing an attendee
@@ -701,6 +739,95 @@ export const InChatFeedbackForm = ({
         </div>
         
         <div className="space-y-2">
+          <Label>Who was there?</Label>
+          {eventAttendees.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {eventAttendees.map((attendee) => (
+                <div key={attendee.id} className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
+                  <span className="text-sm">{attendee.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-5 w-5"
+                    onClick={() => handleRemoveAttendee(attendee.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <div className="flex gap-2">
+            <Input
+              placeholder="Type to search contacts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+              onFocus={() => setIsAddingAttendee(true)}
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-10 w-10 flex-shrink-0"
+              onClick={() => setIsContactsDialogOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {isAddingAttendee && searchTerm && (
+            <div className="max-h-[150px] overflow-y-auto border rounded-md mt-1">
+              {isLoadingContacts ? (
+                <div className="p-2 text-center text-sm text-muted-foreground">Loading contacts...</div>
+              ) : (
+                (() => {
+                  // Create a Set of attendee IDs for faster lookup
+                  const attendeeIds = new Set(eventAttendees.map(a => a.id));
+                  
+                  // Filter contacts once
+                  const filteredContacts = contacts.filter(c => 
+                    c.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
+                    !attendeeIds.has(c.id)
+                  );
+                  
+                  // Show appropriate message if no contacts found
+                  if (filteredContacts.length === 0) {
+                    return <div className="p-2 text-center text-sm text-muted-foreground">No contacts found</div>;
+                  }
+                  
+                  // Limit to first 50 matches to avoid rendering too many items
+                  const displayContacts = filteredContacts.slice(0, 50);
+                  
+                  return (
+                    <>
+                      {displayContacts.map(contact => (
+                        <Button
+                          key={contact.id}
+                          variant="ghost"
+                          className="w-full justify-start text-left px-2 py-1 h-auto"
+                          onClick={() => {
+                            handleAddAttendee(contact);
+                            setSearchTerm('');
+                          }}
+                        >
+                          {contact.name}
+                        </Button>
+                      ))}
+                      {filteredContacts.length > 50 && (
+                        <div className="p-2 text-center text-xs text-muted-foreground">
+                          Showing first 50 of {filteredContacts.length} matches. Type more to refine.
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
+              )}
+            </div>
+          )}
+        </div>
+        
+        <div className="space-y-2">
           <Label htmlFor="event-date">When?</Label>
           <div className="flex gap-2">
             <div className="relative w-full">
@@ -760,85 +887,6 @@ export const InChatFeedbackForm = ({
             onChange={(e) => setEventLocation(e.target.value)}
           />
         </div>
-        
-        <div className="space-y-2">
-          <Label>Who was there?</Label>
-          {eventAttendees.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {eventAttendees.map((attendee) => (
-                <div key={attendee.id} className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md">
-                  <span className="text-sm">{attendee.name}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5"
-                    onClick={() => handleRemoveAttendee(attendee.id)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          {isAddingAttendee ? (
-            <div className="space-y-2">
-              <Input
-                placeholder="Search contacts..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                autoFocus
-              />
-              <div className="max-h-[150px] overflow-y-auto border rounded-md">
-                {isLoadingContacts ? (
-                  <div className="p-2 text-center text-sm text-muted-foreground">Loading contacts...</div>
-                ) : contacts.filter(c => 
-                    c.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-                    !eventAttendees.some(a => a.id === c.id)
-                  ).length === 0 ? (
-                  <div className="p-2 text-center text-sm text-muted-foreground">No contacts found</div>
-                ) : (
-                  contacts
-                    .filter(c => 
-                      c.name.toLowerCase().includes(searchTerm.toLowerCase()) && 
-                      !eventAttendees.some(a => a.id === c.id)
-                    )
-                    .map(contact => (
-                      <Button
-                        key={contact.id}
-                        variant="ghost"
-                        className="w-full justify-start text-left px-2 py-1 h-auto"
-                        onClick={() => handleAddAttendee(contact)}
-                      >
-                        {contact.name}
-                      </Button>
-                    ))
-                )}
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setIsAddingAttendee(false);
-                    setSearchTerm('');
-                  }}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              className="w-full flex items-center justify-center gap-2"
-              onClick={() => setIsAddingAttendee(true)}
-            >
-              <UserPlus className="h-4 w-4" />
-              <span>Add person</span>
-            </Button>
-          )}
-        </div>
       </div>
       
       <div className="flex justify-end gap-2 pt-2">
@@ -887,6 +935,14 @@ export const InChatFeedbackForm = ({
   return (
     <div className="space-y-4">
       {renderCurrentStep()}
+      
+      {/* ContactsDialog for adding new contacts */}
+      <ContactsDialog
+        open={isContactsDialogOpen}
+        onOpenChange={setIsContactsDialogOpen}
+        onSubmit={handleContactDialogSubmit}
+        userId={session?.user?.id || ''}
+      />
     </div>
   );
 };

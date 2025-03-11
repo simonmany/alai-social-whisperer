@@ -9,7 +9,8 @@ import {
   Facebook,
   MessageCircle,
   Video,
-  ArrowUp
+  ArrowUp,
+  ChevronLeft
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -17,9 +18,10 @@ import { useState } from "react";
 interface IntegrationsMenuProps {
   onGoogleSignIn: () => void;
   isConnectingCalendar: boolean;
+  onBack: () => void;
 }
 
-export const IntegrationsMenu = ({ onGoogleSignIn, isConnectingCalendar }: IntegrationsMenuProps) => {
+export const IntegrationsMenu = ({ onGoogleSignIn, isConnectingCalendar, onBack }: IntegrationsMenuProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDummyIntegration = (service: string) => {
@@ -37,6 +39,15 @@ export const IntegrationsMenu = ({ onGoogleSignIn, isConnectingCalendar }: Integ
 
   return (
     <div className="space-y-6">
+      {/* Back Button */}
+      <Button 
+        variant="ghost" 
+        onClick={onBack} 
+        className="mb-2 -ml-2 px-2 text-muted-foreground hover:text-foreground"
+      >
+        <ChevronLeft className="h-4 w-4 mr-1" />
+        Back to Profile
+      </Button>
       {/* Calendars Section */}
       <div>
         <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
@@ -70,38 +81,38 @@ export const IntegrationsMenu = ({ onGoogleSignIn, isConnectingCalendar }: Integ
           <Button 
             variant="outline" 
             onClick={() => handleDummyIntegration("Facebook")}
-            disabled={isLoading}
-            className="w-full justify-start gap-2"
+            disabled={true}
+            className="w-full justify-start gap-2 text-muted-foreground"
           >
             <Facebook className="h-4 w-4" />
-            Connect Facebook
+            Connect Facebook (Coming Soon)
           </Button>
           <Button 
             variant="outline" 
             onClick={() => handleDummyIntegration("Instagram")}
-            disabled={isLoading}
-            className="w-full justify-start gap-2"
+            disabled={true}
+            className="w-full justify-start gap-2 text-muted-foreground"
           >
             <Instagram className="h-4 w-4" />
-            Connect Instagram
+            Connect Instagram (Coming Soon)
           </Button>
           <Button 
             variant="outline" 
             onClick={() => handleDummyIntegration("Snapchat")}
-            disabled={isLoading}
-            className="w-full justify-start gap-2"
+            disabled={true}
+            className="w-full justify-start gap-2 text-muted-foreground"
           >
             <MessageCircle className="h-4 w-4" />
-            Connect Snapchat
+            Connect Snapchat (Coming Soon)
           </Button>
           <Button 
             variant="outline" 
             onClick={() => handleDummyIntegration("TikTok")}
-            disabled={isLoading}
-            className="w-full justify-start gap-2"
+            disabled={true}
+            className="w-full justify-start gap-2 text-muted-foreground"
           >
             <Video className="h-4 w-4" />
-            Connect TikTok
+            Connect TikTok (Coming Soon)
           </Button>
         </div>
       </div>
@@ -116,38 +127,38 @@ export const IntegrationsMenu = ({ onGoogleSignIn, isConnectingCalendar }: Integ
           <Button 
             variant="outline" 
             onClick={() => handleDummyIntegration("Spotify")}
-            disabled={isLoading}
-            className="w-full justify-start gap-2"
+            disabled={true}
+            className="w-full justify-start gap-2 text-muted-foreground"
           >
             <Music className="h-4 w-4" />
-            Connect Spotify
+            Connect Spotify (Coming Soon)
           </Button>
           <Button 
             variant="outline" 
             onClick={() => handleDummyIntegration("OpenTable")}
-            disabled={isLoading}
-            className="w-full justify-start gap-2"
+            disabled={true}
+            className="w-full justify-start gap-2 text-muted-foreground"
           >
             <Utensils className="h-4 w-4" />
-            Connect OpenTable
+            Connect OpenTable (Coming Soon)
           </Button>
           <Button 
             variant="outline" 
             onClick={() => handleDummyIntegration("Resy")}
-            disabled={isLoading}
-            className="w-full justify-start gap-2"
+            disabled={true}
+            className="w-full justify-start gap-2 text-muted-foreground"
           >
             <Utensils className="h-4 w-4" />
-            Connect Resy
+            Connect Resy (Coming Soon)
           </Button>
           <Button 
             variant="outline" 
             onClick={() => handleDummyIntegration("Strava")}
-            disabled={isLoading}
-            className="w-full justify-start gap-2"
+            disabled={true}
+            className="w-full justify-start gap-2 text-muted-foreground"
           >
             <ArrowUp className="h-4 w-4" />
-            Connect Strava
+            Connect Strava (Coming Soon)
           </Button>
         </div>
       </div>
