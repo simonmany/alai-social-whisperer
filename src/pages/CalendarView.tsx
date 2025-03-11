@@ -198,25 +198,7 @@ const CalendarView = () => {
     gcTime: 0
   });
 
-  const handleConnectCalendar = async () => {
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      console.error('Error getting user:', userError);
-      return;
-    }
-
-    if (!Capacitor.isNativePlatform()) {
-      if (user?.app_metadata?.provider === 'email') {
-        navigate('/email-calendar/connect');
-      } else {
-        navigate('/connect-calendar');
-      }
-    }
-    else {
-      await CapacitorCalendar.requestFullCalendarAccess();
-      await synchronizeEvents(user.id);
-    }
-  };
+  // Calendar connection is now handled in Profile > Integrations
 
   const handlePrompt = (message: string) => {
     navigate("/", { state: { prompt: message } });
@@ -322,18 +304,7 @@ const CalendarView = () => {
         </div>
 
         <div className="flex flex-col flex-1 overflow-hidden pt-[calc(4rem+env(safe-area-inset-top))]">
-          {!calendarData.isConnected && !isLoading && (
-            <div className="p-4 border-b bg-muted/30">
-              <div className="flex flex-col items-center justify-center space-y-4">
-                <p className="text-center text-muted-foreground">
-                  Connect your Google Calendar to sync and manage your events
-                </p>
-                <Button onClick={handleConnectCalendar}>
-                  Connect Calendar
-                </Button>
-              </div>
-            </div>
-          )}
+          {/* Calendar connection is now handled in Profile > Integrations */}
 
           <Tabs defaultValue="day" className="flex-1 flex flex-col min-h-0 w-full">
             <div className="px-4 pt-2">
@@ -371,53 +342,7 @@ const CalendarView = () => {
             )}
           </Tabs>
 
-          {calendarData.isConnected && (
-            <div className="p-4 border-t mt-auto">
-              <Button
-                variant="destructive"
-                className="w-full"
-                onClick={async () => {
-                  try {
-                    if (!session?.user?.id) return;
-
-                    const { error: updateError } = await supabase
-                      .from('profiles')
-                      .update({
-                        google_access_token: null,
-                        google_refresh_token: null,
-                        google_token_expires_at: null,
-                        has_google_calendar: false,
-                        google_token_expired: false,
-                        updated_at: new Date().toISOString()
-                      } satisfies Partial<ProfileUpdate>)
-                      .eq('id', session.user.id);
-
-                    if (updateError) throw updateError;
-
-                    const { error: deleteError } = await supabase
-                      .from('calendar_events')
-                      .delete()
-                      .eq('user_id', session.user.id);
-
-                    if (deleteError) throw deleteError;
-
-                    // TODO (ari) disconnect from native calendar provider
-
-                    window.location.reload();
-                  } catch (error) {
-                    console.error("Error disconnecting calendar:", error);
-                    toast({
-                      title: "Error",
-                      description: "Failed to disconnect calendar. Please try again.",
-                      variant: "destructive"
-                    });
-                  }
-                }}
-              >
-                Disconnect Calendar
-              </Button>
-            </div>
-          )}
+          {/* Calendar connection is now handled in Profile > Integrations */}
         </div>
       </SheetContent>
     </Sheet>

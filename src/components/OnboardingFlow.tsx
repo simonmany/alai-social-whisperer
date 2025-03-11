@@ -31,10 +31,42 @@ type OnboardingStep =
   | 'demographics';
 
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
-  const [step, setStep] = useState<OnboardingStep>('basic');
-  const [state, setState] = useState<OnboardingState>({});
+  // Initialize step and state from localStorage if available
+  const [step, setStepInternal] = useState<OnboardingStep>(() => {
+    if (typeof window !== 'undefined') {
+      const savedStep = localStorage.getItem('onboardingStep');
+      return (savedStep as OnboardingStep) || 'basic';
+    }
+    return 'basic';
+  });
+  
+  const [state, setStateInternal] = useState<OnboardingState>(() => {
+    if (typeof window !== 'undefined') {
+      const savedState = localStorage.getItem('onboardingState');
+      return savedState ? JSON.parse(savedState) : {};
+    }
+    return {};
+  });
   const { session } = useAuth();
   const { toast } = useToast();
+  
+  // Wrapper functions to persist step and state to localStorage
+  const setStep = (newStep: OnboardingStep) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('onboardingStep', newStep);
+    }
+    setStepInternal(newStep);
+  };
+  
+  const setState = (newState: OnboardingState | ((prev: OnboardingState) => OnboardingState)) => {
+    setStateInternal(prevState => {
+      const nextState = typeof newState === 'function' ? newState(prevState) : newState;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('onboardingState', JSON.stringify(nextState));
+      }
+      return nextState;
+    });
+  };
   const [aiPreferencesResponse, setAiPreferencesResponse] = useState<string | AIPreferencesResponse>("");
   const [isLoadingPreferencesAi, setIsLoadingPreferencesAi] = useState(false);
   const [hasPlayedTypewriter, setHasPlayedTypewriter] = useState(false);
@@ -170,6 +202,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         })
         .eq('id', session?.user?.id);
 
+      // Clear onboarding data from localStorage when skipping
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('onboardingStep');
+        localStorage.removeItem('onboardingState');
+      }
+
       onComplete();
     } catch (error: any) {
       console.error('Error completing onboarding:', error);
@@ -202,6 +240,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                     ].filter(Boolean)
         })
         .eq('id', session?.user?.id);
+
+      // Clear onboarding data from localStorage when complete
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('onboardingStep');
+        localStorage.removeItem('onboardingState');
+      }
 
       onComplete();
     } catch (error: any) {
@@ -271,6 +315,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const handlePriorityPersonSubmit = async () => {
     if (!priorityPerson.trim()) return;
     
+    console.log('Submitting priority person:', priorityPerson.trim());
     setIsSubmitting(true);
     try {
       const { data: contact, error: contactError } = await supabase
@@ -282,7 +327,12 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         .select()
         .single();
 
-      if (contactError) throw contactError;
+      if (contactError) {
+        console.error('Error creating contact:', contactError);
+        throw contactError;
+      }
+
+      console.log('Created/updated contact:', contact);
 
       const { error: profileError } = await supabase
         .from('profiles')
@@ -291,13 +341,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
         })
         .eq('id', session?.user?.id);
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error('Error updating profile:', profileError);
+        throw profileError;
+      }
+      
+      console.log('Updated profile with catch_up_contacts:', [contact.id]);
 
       setPriorityPersonName(contact.name);
-      setShowOtherPeopleInput(true);
-      setPriorityLine3(true);
-      setPriorityPerson(priorityPerson.trim());
-      setHasSubmittedOnce(true);
+      // Skip to interests screen directly
+      setStep('interests');
     } catch (error: any) {
       toast({
         title: "Error adding contact",
@@ -781,50 +834,16 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
                       onClick={handlePriorityPersonSubmit}
                       className="w-full"
                       disabled={!priorityPerson.trim() || isSubmitting}
-                      variant={hasSubmittedOnce ? "outline" : "default"}
+                      variant="default"
                     >
-                      {hasSubmittedOnce ? "Update" : "Submit"}
+                      Submit
                     </Button>
                   </div>
                 )}
               </>
             )}
 
-            {priorityLine3 && (
-              <>
-                {showOtherPeopleInput ? (
-                  <div className="text-xl">
-                    Got it. Did anyone else come to mind? Feel free to add as many as you like.
-                  </div>
-                ) : (
-                  <TypewriterText
-                    key="priority3"
-                    text="Got it. Did anyone else come to mind? Feel free to add as many as you like."
-                    delay={250}
-                    typingSpeed={25}
-                    onComplete={() => setShowOtherPeopleInput(true)}
-                    className="text-xl"
-                  />
-                )}
-
-                {showOtherPeopleInput && (
-                  <div className="space-y-4">
-                    <Textarea
-                      value={otherPeople}
-                      onChange={(e) => setOtherPeople(e.target.value)}
-                      placeholder="Enter names (separated by commas)"
-                    />
-                    <Button 
-                      onClick={handleOtherPeopleSubmit}
-                      className="w-full"
-                      disabled={isSubmitting}
-                    >
-                      {otherPeople.trim() ? "Submit" : "Skip"}
-                    </Button>
-                  </div>
-                )}
-              </>
-            )}
+            {/* Removed the "other people" input section */}
           </div>
         )}
 
