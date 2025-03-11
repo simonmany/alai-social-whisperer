@@ -142,7 +142,7 @@ export const ChatMessage = ({
           {isTypewriterComplete && (
             <div className="mt-4 w-full">
               {/* If showPlanningForm is true, always show the planning form directly */}
-              {(showPlanningForm === true || showPlanningFormState === true) ? (
+              {showPlanningFormState ? (
                 <div className="w-full max-w-none">
                   <PlanningForm
                     onSubmit={(message, newContent) => {
