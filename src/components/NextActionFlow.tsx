@@ -7,10 +7,10 @@ import { CalendarEvent } from '@/types/calendar';
 
 interface NextActionFlowProps {
   unreflectedEvents?: CalendarEvent[];
-  onAddToCalendar: () => void;
-  onViewSummary: (period: 'day' | 'week' | 'month') => void;
-  onSkip: () => void;
-  onSelectEvent: (event: CalendarEvent) => void;
+  onAddToCalendar?: () => void;
+  onViewSummary?: (period: 'day' | 'week' | 'month') => void;
+  onSkip?: (step?: string) => void;
+  onSelectEvent?: (event: CalendarEvent) => void;
   step: 'unreflected-events' | 'plan-something' | 'view-summary';
 }
 
@@ -22,6 +22,18 @@ export const NextActionFlow = ({
   onSelectEvent,
   step
 }: NextActionFlowProps) => {
+  console.log('NextActionFlow rendered with step:', step);
+  
+  // Debug function to log when buttons are clicked
+  const handleSkip = () => {
+    console.log('Skip button clicked for step:', step);
+    if (onSkip) {
+      // Ensure we pass the current step to onSkip
+      onSkip(step);
+    } else {
+      console.error('onSkip is undefined');
+    }
+  };
   
   if (step === 'unreflected-events' && unreflectedEvents.length > 0) {
     return (
@@ -30,14 +42,21 @@ export const NextActionFlow = ({
           <EventFeedbackCard
             key={event.id}
             event={event}
-            onFeedbackSubmit={() => onSelectEvent(event)}
+            onFeedbackSubmit={() => {
+              console.log('Select event button clicked for event:', event.id, 'step:', step);
+              if (onSelectEvent) {
+                onSelectEvent(event);
+              } else {
+                console.error('onSelectEvent is undefined');
+              }
+            }}
           />
         ))}
         
         <Button
-          variant="ghost"
-          className="w-full text-muted-foreground"
-          onClick={onSkip}
+          variant="default"
+          className="w-full bg-black hover:bg-black/90 text-white"
+          onClick={handleSkip}
         >
           Not right now
         </Button>
@@ -51,16 +70,23 @@ export const NextActionFlow = ({
         <Button 
           variant="outline"
           className="w-full justify-start"
-          onClick={onAddToCalendar}
+          onClick={() => {
+            console.log('Add to calendar button clicked for step:', step);
+            if (onAddToCalendar) {
+              onAddToCalendar();
+            } else {
+              console.error('onAddToCalendar is undefined');
+            }
+          }}
         >
           <CalendarPlus className="mr-2 h-4 w-4" />
           Add something to calendar
         </Button>
         
         <Button
-          variant="ghost"
-          className="w-full text-muted-foreground"
-          onClick={onSkip}
+          variant="default"
+          className="w-full bg-black hover:bg-black/90 text-white"
+          onClick={handleSkip}
         >
           Not right now
         </Button>
@@ -69,13 +95,43 @@ export const NextActionFlow = ({
   }
   
   if (step === 'view-summary') {
+    console.log('Rendering view-summary step');
+    
+    // Debug functions for view summary buttons
+    const handleViewDay = () => {
+      console.log('View day button clicked for step:', step);
+      if (onViewSummary) {
+        onViewSummary('day');
+      } else {
+        console.error('onViewSummary is undefined');
+      }
+    };
+    
+    const handleViewWeek = () => {
+      console.log('View week button clicked for step:', step);
+      if (onViewSummary) {
+        onViewSummary('week');
+      } else {
+        console.error('onViewSummary is undefined');
+      }
+    };
+    
+    const handleViewMonth = () => {
+      console.log('View month button clicked for step:', step);
+      if (onViewSummary) {
+        onViewSummary('month');
+      } else {
+        console.error('onViewSummary is undefined');
+      }
+    };
+    
     return (
       <div className="space-y-3 mt-3">
         <Card className="p-4 space-y-3">
           <Button 
             variant="outline"
             className="w-full justify-start"
-            onClick={() => onViewSummary('day')}
+            onClick={handleViewDay}
           >
             <Clock className="mr-2 h-4 w-4" />
             About my day
@@ -84,7 +140,7 @@ export const NextActionFlow = ({
           <Button 
             variant="outline"
             className="w-full justify-start"
-            onClick={() => onViewSummary('week')}
+            onClick={handleViewWeek}
           >
             <Clock className="mr-2 h-4 w-4" />
             About my week
@@ -93,7 +149,7 @@ export const NextActionFlow = ({
           <Button 
             variant="outline"
             className="w-full justify-start"
-            onClick={() => onViewSummary('month')}
+            onClick={handleViewMonth}
           >
             <Clock className="mr-2 h-4 w-4" />
             About my month
@@ -101,9 +157,9 @@ export const NextActionFlow = ({
         </Card>
         
         <Button
-          variant="ghost"
-          className="w-full text-muted-foreground"
-          onClick={onSkip}
+          variant="default"
+          className="w-full bg-black hover:bg-black/90 text-white"
+          onClick={handleSkip}
         >
           Not right now
         </Button>

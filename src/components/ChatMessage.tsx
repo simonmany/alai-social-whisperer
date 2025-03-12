@@ -192,6 +192,7 @@ export const ChatMessage = ({
               {/* Render NextActionFlow if showNextActionFlow is true */}
               {showNextActionFlow && nextActionStep && (
                 <div className="w-full">
+                  {console.log('Rendering NextActionFlow with step:', nextActionStep)}
                   <NextActionFlow
                     step={nextActionStep}
                     unreflectedEvents={unreflectedEvents}

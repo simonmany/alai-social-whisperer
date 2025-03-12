@@ -58,10 +58,12 @@ const Index = () => {
   const [conversationType, setConversationType] = useState(ConversationType.CHAT)
   
   const handleFeedbackSubmit = async (message: string, event?: CalendarEvent, moods?: string[], notes?: string) => {
+    console.log('handleFeedbackSubmit called with message:', message);
     if (!session?.user?.id) return;
 
-    // Remove the feedback form from messages
-    setMessages(prev => prev.filter(msg => !msg.showFeedbackForm));
+    // Create a copy of messages and remove showFeedbackForm from all messages
+    const updatedMessages = messages.filter(msg => !msg.showFeedbackForm);
+    console.log('Filtered out messages with showFeedbackForm');
 
     setIsLoading(true);
     // We no longer add messages directly to the UI
@@ -70,6 +72,7 @@ const Index = () => {
     try {
       // If we have an event, update it in the database
       if (event?.id) {
+        console.log('Updating event in database:', event.id);
         await supabase
           .from('calendar_events')
           .update({
@@ -84,8 +87,23 @@ const Index = () => {
       // and they will be picked up by the real-time subscription
       await generateChatResponse(message, [], false, ConversationType.CHAT);
       
-      // After feedback is submitted, check for unreflected events
-      await checkForNextActions();
+      // Instead of calling checkForNextActions, explicitly set the next step to 'plan-something'
+      // Add a message with the plan-something step
+      const finalMessages = [...updatedMessages, {
+        id: crypto.randomUUID(),
+        content: "Want to plan something new?",
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: 'plan-something',
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent
+      }];
+      
+      console.log('Setting messages with plan-something step after feedback');
+      setMessages(finalMessages);
+      setNextActionStep('plan-something');
     } catch (error) {
       console.error('Error generating response:', error);
       toast({
@@ -1513,13 +1531,15 @@ const Index = () => {
   // Handle actions from the NextActionFlow component
   const handleAddToCalendar = () => {
     setNextActionStep(null);
-    // Replace the last message with a planning form
+    // Add user response and AI message with planning form
     setMessages(prev => {
       const newMessages = [...prev];
-      // Remove the last message if it's the next action prompt
-      if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
-        newMessages.pop();
-      }
+      // Add user message
+      newMessages.push({
+        id: crypto.randomUUID(),
+        content: "Add something to calendar",
+        isAl: false
+      });
       // Add a new message with planning form
       newMessages.push({
         id: crypto.randomUUID(),
@@ -1533,106 +1553,169 @@ const Index = () => {
   };
   
   const handleViewSummary = (period: 'day' | 'week' | 'month') => {
-    setNextActionStep(null);
-    
-    // Remove the next action message
-    setMessages(prev => {
-      const newMessages = [...prev];
-      // Remove the last message if it's the next action prompt
-      if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
-        newMessages.pop();
-      }
-      return newMessages;
-    });
+    console.log('handleViewSummary called with period:', period);
     
     // Generate a prompt based on the selected period
     let prompt = '';
+    let buttonText = '';
     
     switch(period) {
       case 'day':
         prompt = 'What does my day look like?';
+        buttonText = 'About my day';
         break;
       case 'week':
         prompt = 'What does my week ahead look like?';
+        buttonText = 'About my week';
         break;
       case 'month':
         prompt = 'What does my month ahead look like?';
+        buttonText = 'About my month';
         break;
     }
     
+    // Create a copy of messages and remove showNextActionFlow from all messages
+    const updatedMessages = messages.map(msg => {
+      if (msg.showNextActionFlow) {
+        console.log('Found message with showNextActionFlow, updating to false');
+        return { ...msg, showNextActionFlow: false };
+      }
+      return msg;
+    });
+    
+    // Add user message with the button text
+    const messagesWithUserResponse = [...updatedMessages, {
+      id: crypto.randomUUID(),
+      content: buttonText,
+      isAl: false
+    }];
+    
+    console.log('Setting messages with view summary selection');
+    setMessages(messagesWithUserResponse);
+    setNextActionStep(null);
+    
+    // Send the prompt to get the AI response
     handleSend(prompt);
   };
   
-  const handleSkipNextAction = () => {
-    // If we're in the unreflected events step, move to plan something
-    if (nextActionStep === 'unreflected-events') {
-      // Remove the current message and add a new one for plan something
-      setMessages(prev => {
-        const newMessages = [...prev];
-        // Remove the last message if it's the next action prompt
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
-          newMessages.pop();
-        }
-        // Add a new message for planning
-        newMessages.push({
-          id: crypto.randomUUID(),
-          content: "Looks like you've already reflected on all your recent hangs. Want to plan something new?",
-          isAl: true,
-          showNextActionFlow: true,
-          nextActionStep: 'plan-something',
-          onAddToCalendar: handleAddToCalendar,
-          onViewSummary: handleViewSummary,
-          onSkipNextAction: handleSkipNextAction,
-          onSelectEvent: handleSelectEvent
-        });
-        return newMessages;
-      });
-      setNextActionStep('plan-something');
-    }
-    // If we're in the plan something step, move to view summary
-    else if (nextActionStep === 'plan-something') {
-      // Remove the current message and add a new one for view summary
-      setMessages(prev => {
-        const newMessages = [...prev];
-        // Remove the last message if it's the next action prompt
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
-          newMessages.pop();
-        }
-        // Add a new message for view summary
-        newMessages.push({
-          id: crypto.randomUUID(),
-          content: "Would you like to see a summary of your upcoming events?",
-          isAl: true,
-          showNextActionFlow: true,
-          nextActionStep: 'view-summary',
-          onAddToCalendar: handleAddToCalendar,
-          onViewSummary: handleViewSummary,
-          onSkipNextAction: handleSkipNextAction,
-          onSelectEvent: handleSelectEvent
-        });
-        return newMessages;
-      });
-      setNextActionStep('view-summary');
-    }
-    // If we're in the view summary step, end the flow
+  const handleSkipNextAction = (stepFromComponent?: string) => {
+    console.log('handleSkipNextAction called with step from state:', nextActionStep);
+    console.log('handleSkipNextAction called with step from component:', stepFromComponent);
+    
+    // Find all messages with showNextActionFlow=true to determine the current step
+    const nextActionMessages = messages.filter(msg => msg.showNextActionFlow);
+    console.log('Messages with showNextActionFlow:', nextActionMessages);
+    
+    // Get the most recent message with showNextActionFlow=true
+    const nextActionMessage = nextActionMessages[nextActionMessages.length - 1];
+    
+    // IMPORTANT: Use the step in this priority order:
+    // 1. Step passed from the component (most reliable)
+    // 2. Step from the message with showNextActionFlow=true
+    // 3. Step from the state
+    const currentStep = stepFromComponent || nextActionMessage?.nextActionStep || nextActionStep;
+    
+    console.log('Current step determined from messages:', currentStep);
+    console.log('Most recent message with showNextActionFlow:', nextActionMessage);
+    
+    // Create a copy of messages and remove showNextActionFlow from all messages
+    // But keep the content and other properties
+    const updatedMessages = messages.map(msg => {
+      if (msg.showNextActionFlow) {
+        console.log('Found message with showNextActionFlow, updating to false');
+        return { ...msg, showNextActionFlow: false, nextActionStep: null };
+      }
+      return msg;
+    });
+    
+    // Add user message saying "Not right now"
+    const messagesWithUserResponse = [...updatedMessages, {
+      id: crypto.randomUUID(),
+      content: "Not right now",
+      isAl: false
+    }];
+    
+    // Determine the next step based on the current step
+    let nextStep = null;
+    let aiResponseMessage = null;
+    
+    if (currentStep === 'unreflected-events') {
+      console.log('Processing unreflected-events step -> plan-something');
+      nextStep = 'plan-something';
+      aiResponseMessage = {
+        id: crypto.randomUUID(),
+        content: "Want to plan something new?",
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: 'plan-something',
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent
+      };
+    } 
+    else if (currentStep === 'plan-something') {
+      console.log('Processing plan-something step -> view-summary');
+      nextStep = 'view-summary';
+      aiResponseMessage = {
+        id: crypto.randomUUID(),
+        content: "Would you like to see a summary of your upcoming events?",
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: 'view-summary',
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent
+      };
+    } 
+    else if (currentStep === 'view-summary') {
+      console.log('Processing view-summary step -> end');
+      nextStep = null;
+      aiResponseMessage = {
+        id: crypto.randomUUID(),
+        content: "No problem! I'm here if you need anything else.",
+        isAl: true
+      };
+    } 
     else {
-      // Just remove the next action message
-      setMessages(prev => {
-        const newMessages = [...prev];
-        // Remove the last message if it's the next action prompt
-        if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
-          newMessages.pop();
-        }
-        return newMessages;
-      });
-      setNextActionStep(null);
+      // If we can't determine the current step, check if we have any nextActionStep in the state
+      // This helps recover from situations where the message state and component state are out of sync
+      console.log('Unexpected step:', currentStep, '-> determining next step');
+      
+      // Default fallback behavior - go to plan-something
+      nextStep = 'plan-something';
+      aiResponseMessage = {
+        id: crypto.randomUUID(),
+        content: "Want to plan something new?",
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: 'plan-something',
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent
+      };
     }
+    
+    // Add the AI response message
+    const finalMessages = [...messagesWithUserResponse, aiResponseMessage];
+    
+    console.log('Setting nextActionStep to:', nextStep);
+    console.log('Setting messages with new step');
+    
+    // Update state
+    setMessages(finalMessages);
+    setNextActionStep(nextStep);
   };
   
   // These functions have been replaced with inline logic in handleSkipNextAction
   
   const handleSelectEvent = (event: CalendarEvent) => {
-    setNextActionStep(null);
+    console.log('handleSelectEvent called with event:', event);
+    
+    // Instead of setting nextActionStep to null, progress to the next step
+    setNextActionStep('plan-something');
     
     // Format the event date for a more conversational message
     const eventDate = new Date(event.start_time);
@@ -1642,27 +1725,39 @@ const Index = () => {
       day: 'numeric' 
     });
     
-    // Show the feedback form for the selected event
-    setMessages(prev => {
-      const newMessages = [...prev];
-      // Remove the last message if it's the next action prompt
-      if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
-        newMessages.pop();
+    // Create a copy of messages and remove showNextActionFlow from all messages
+    const updatedMessages = messages.map(msg => {
+      if (msg.showNextActionFlow) {
+        console.log('Found message with showNextActionFlow, updating to false');
+        return { ...msg, showNextActionFlow: false };
       }
-      
-      // Add a new message with feedback form
-      const eventName = event.title || 'this event';
-      newMessages.push({
-        id: crypto.randomUUID(),
-        content: `How was ${eventName} on ${formattedDate}? I'd love to hear about your experience!`,
-        isAl: true,
-        showFeedbackForm: true,
-        feedbackStep: "mood-selection",
-        completedEvent: event,
-        onFeedbackSubmit: handleFeedbackSubmit
-      });
-      return newMessages;
+      return msg;
     });
+    
+    // Add user message indicating they selected this event
+    const eventName = event.title || 'this event';
+    const messagesWithUserResponse = [...updatedMessages, {
+      id: crypto.randomUUID(),
+      content: `Tell me about ${eventName}`,
+      isAl: false
+    }];
+    
+    // Add a new message with feedback form
+    const finalMessages = [...messagesWithUserResponse, {
+      id: crypto.randomUUID(),
+      content: `How was ${eventName} on ${formattedDate}? I'd love to hear about your experience!`,
+      isAl: true,
+      showFeedbackForm: true,
+      feedbackStep: "mood-selection",
+      completedEvent: event,
+      onFeedbackSubmit: handleFeedbackSubmit
+    }];
+    
+    console.log('Setting messages with feedback form');
+    setMessages(finalMessages);
+    
+    // We don't need to add the next action flow message here anymore
+    // It will be added by the handleFeedbackSubmit function after the user submits feedback
   };
 
   return (
