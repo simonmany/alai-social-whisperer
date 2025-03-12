@@ -12,6 +12,7 @@ import { CalendarPlus } from "lucide-react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { NextActionFlow } from "@/components/NextActionFlow";
 
 interface ChatMessageProps {
   content: string;
@@ -20,8 +21,15 @@ interface ChatMessageProps {
   contacts?: Contact[];
   showFeedbackForm?: boolean;
   showPlanningForm?: boolean;
+  showNextActionFlow?: boolean;
+  nextActionStep?: 'unreflected-events' | 'plan-something' | 'view-summary';
+  unreflectedEvents?: CalendarEvent[];
   onPlanningSubmit?: (message: string, newContent?: string) => void;
   onFeedbackSubmit?: (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => void;
+  onAddToCalendar?: () => void;
+  onViewSummary?: (period: 'day' | 'week' | 'month') => void;
+  onSkipNextAction?: () => void;
+  onSelectEvent?: (event: CalendarEvent) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
@@ -43,8 +51,15 @@ export const ChatMessage = ({
   animate = true, 
   contacts,
   showFeedbackForm,
+  showNextActionFlow,
+  nextActionStep,
+  unreflectedEvents,
   onPlanningSubmit,
   onFeedbackSubmit,
+  onAddToCalendar,
+  onViewSummary,
+  onSkipNextAction,
+  onSelectEvent,
   defaultContacts,
   defaultActivity,
   defaultLocation,
@@ -172,6 +187,20 @@ export const ChatMessage = ({
                     Add something to calendar
                   </Button>
                 )
+              )}
+              
+              {/* Render NextActionFlow if showNextActionFlow is true */}
+              {showNextActionFlow && nextActionStep && (
+                <div className="w-full">
+                  <NextActionFlow
+                    step={nextActionStep}
+                    unreflectedEvents={unreflectedEvents}
+                    onAddToCalendar={onAddToCalendar}
+                    onViewSummary={onViewSummary}
+                    onSkip={onSkipNextAction}
+                    onSelectEvent={onSelectEvent}
+                  />
+                </div>
               )}
             </div>
           )}

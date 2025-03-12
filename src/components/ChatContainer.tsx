@@ -102,6 +102,13 @@ export const ChatContainer = ({
                   onFeedbackSubmit={message.onFeedbackSubmit}
                   completedEvent={message.completedEvent}
                   messageType={message.messageType}
+                  showNextActionFlow={message.showNextActionFlow}
+                  nextActionStep={message.nextActionStep}
+                  unreflectedEvents={message.unreflectedEvents}
+                  onAddToCalendar={message.onAddToCalendar}
+                  onViewSummary={message.onViewSummary}
+                  onSkipNextAction={message.onSkipNextAction}
+                  onSelectEvent={message.onSelectEvent}
                 />
               );
             }

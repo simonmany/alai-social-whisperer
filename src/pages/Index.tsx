@@ -27,6 +27,7 @@ import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@skektec/capacitor-contacts';
 import { CalendarEvent } from "@/types/calendar";
 import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
+import { NextActionFlow } from "@/components/NextActionFlow";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -42,6 +43,8 @@ const Index = () => {
   const [preventHistoryLoad, setPreventHistoryLoad] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<string>("");
+  const [nextActionStep, setNextActionStep] = useState<'unreflected-events' | 'plan-something' | 'view-summary' | null>(null);
+  const [unreflectedEvents, setUnreflectedEvents] = useState<CalendarEvent[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
@@ -80,6 +83,9 @@ const Index = () => {
       // Generate the chat response - this will save both messages to the database
       // and they will be picked up by the real-time subscription
       await generateChatResponse(message, [], false, ConversationType.CHAT);
+      
+      // After feedback is submitted, check for unreflected events
+      await checkForNextActions();
     } catch (error) {
       console.error('Error generating response:', error);
       toast({
@@ -89,6 +95,92 @@ const Index = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Function to check for unreflected events and determine next action flow
+  const checkForNextActions = async () => {
+    console.log('checkForNextActions called');
+    if (!session?.user?.id) return;
+    console.log('User is logged in, proceeding with checkForNextActions');
+    
+    try {
+      // First check for unreflected events
+      const { data: unreflectedEventsData, error: eventsError } = await supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          event_attendees!left (contacts!contact_id (id, name, user_id))
+        `)
+        .eq('user_id', session.user.id)
+        .eq('feedback_sent', false)
+        .lt('start_time', new Date().toISOString())
+        .order('start_time', { ascending: false })
+        .limit(3);
+      
+      if (eventsError) {
+        console.error('Error fetching unreflected events:', eventsError);
+        return;
+      }
+      
+      // Format attendees for display
+      const formattedEvents = unreflectedEventsData.map(event => {
+        const formattedEvent = { ...event };
+        
+        if (event.event_attendees) {
+          const attendees = event.event_attendees.map((ea: any) => ({
+            id: ea.contacts.id,
+            name: ea.contacts.name,
+            user_id: ea.contacts.user_id
+          }));
+          
+          formattedEvent.attendees = attendees;
+        }
+        
+        return formattedEvent;
+      });
+      
+      setUnreflectedEvents(formattedEvents);
+      
+      // Start the next action flow
+      let nextStep: 'unreflected-events' | 'plan-something' = 'plan-something';
+      
+      if (formattedEvents.length > 0) {
+        // If there are unreflected events, start with that step
+        nextStep = 'unreflected-events';
+      }
+      
+      // Set the next action step
+      setNextActionStep(nextStep);
+      
+      console.log('Setting nextActionStep to:', nextStep);
+      console.log('Unreflected events:', formattedEvents);
+      
+      // Add a conversational message to the chat
+      let nextActionMessage = '';
+      
+      if (nextStep === 'unreflected-events') {
+        nextActionMessage = `I noticed you have ${formattedEvents.length > 1 ? 'some' : 'an'} event${formattedEvents.length > 1 ? 's' : ''} you haven't reflected on yet. Would you like to share how it went?`;
+      } else {
+        nextActionMessage = "Looks like you've already reflected on all your recent hangs. Want to plan something new?";
+      }
+      
+      // Add the message to the chat
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        content: nextActionMessage,
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: nextStep,
+        unreflectedEvents: formattedEvents,
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent
+      }]);
+      
+    } catch (error) {
+      console.error('Error in checkForNextActions:', error);
     }
   };
 
@@ -1232,6 +1324,11 @@ const Index = () => {
         // Remove loading message
         setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
         
+        // After plan is submitted and not in tutorial mode, check for next actions
+        if (!isTutorialActive) {
+          await checkForNextActions();
+        }
+        
         // Only show tutorial-specific messages if the tutorial is active
         if (isTutorialActive) {
           // Check current tutorial step
@@ -1413,6 +1510,161 @@ const Index = () => {
     }
   };
 
+  // Handle actions from the NextActionFlow component
+  const handleAddToCalendar = () => {
+    setNextActionStep(null);
+    // Replace the last message with a planning form
+    setMessages(prev => {
+      const newMessages = [...prev];
+      // Remove the last message if it's the next action prompt
+      if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
+        newMessages.pop();
+      }
+      // Add a new message with planning form
+      newMessages.push({
+        id: crypto.randomUUID(),
+        content: "Let's plan something fun! What would you like to do?",
+        isAl: true,
+        showPlanningForm: true,
+        onPlanningSubmit: handlePlanSubmit
+      });
+      return newMessages;
+    });
+  };
+  
+  const handleViewSummary = (period: 'day' | 'week' | 'month') => {
+    setNextActionStep(null);
+    
+    // Remove the next action message
+    setMessages(prev => {
+      const newMessages = [...prev];
+      // Remove the last message if it's the next action prompt
+      if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
+        newMessages.pop();
+      }
+      return newMessages;
+    });
+    
+    // Generate a prompt based on the selected period
+    let prompt = '';
+    
+    switch(period) {
+      case 'day':
+        prompt = 'What does my day look like?';
+        break;
+      case 'week':
+        prompt = 'What does my week ahead look like?';
+        break;
+      case 'month':
+        prompt = 'What does my month ahead look like?';
+        break;
+    }
+    
+    handleSend(prompt);
+  };
+  
+  const handleSkipNextAction = () => {
+    // If we're in the unreflected events step, move to plan something
+    if (nextActionStep === 'unreflected-events') {
+      // Remove the current message and add a new one for plan something
+      setMessages(prev => {
+        const newMessages = [...prev];
+        // Remove the last message if it's the next action prompt
+        if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
+          newMessages.pop();
+        }
+        // Add a new message for planning
+        newMessages.push({
+          id: crypto.randomUUID(),
+          content: "Looks like you've already reflected on all your recent hangs. Want to plan something new?",
+          isAl: true,
+          showNextActionFlow: true,
+          nextActionStep: 'plan-something',
+          onAddToCalendar: handleAddToCalendar,
+          onViewSummary: handleViewSummary,
+          onSkipNextAction: handleSkipNextAction,
+          onSelectEvent: handleSelectEvent
+        });
+        return newMessages;
+      });
+      setNextActionStep('plan-something');
+    }
+    // If we're in the plan something step, move to view summary
+    else if (nextActionStep === 'plan-something') {
+      // Remove the current message and add a new one for view summary
+      setMessages(prev => {
+        const newMessages = [...prev];
+        // Remove the last message if it's the next action prompt
+        if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
+          newMessages.pop();
+        }
+        // Add a new message for view summary
+        newMessages.push({
+          id: crypto.randomUUID(),
+          content: "Would you like to see a summary of your upcoming events?",
+          isAl: true,
+          showNextActionFlow: true,
+          nextActionStep: 'view-summary',
+          onAddToCalendar: handleAddToCalendar,
+          onViewSummary: handleViewSummary,
+          onSkipNextAction: handleSkipNextAction,
+          onSelectEvent: handleSelectEvent
+        });
+        return newMessages;
+      });
+      setNextActionStep('view-summary');
+    }
+    // If we're in the view summary step, end the flow
+    else {
+      // Just remove the next action message
+      setMessages(prev => {
+        const newMessages = [...prev];
+        // Remove the last message if it's the next action prompt
+        if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
+          newMessages.pop();
+        }
+        return newMessages;
+      });
+      setNextActionStep(null);
+    }
+  };
+  
+  // These functions have been replaced with inline logic in handleSkipNextAction
+  
+  const handleSelectEvent = (event: CalendarEvent) => {
+    setNextActionStep(null);
+    
+    // Format the event date for a more conversational message
+    const eventDate = new Date(event.start_time);
+    const formattedDate = eventDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    // Show the feedback form for the selected event
+    setMessages(prev => {
+      const newMessages = [...prev];
+      // Remove the last message if it's the next action prompt
+      if (newMessages.length > 0 && newMessages[newMessages.length - 1].showNextActionFlow) {
+        newMessages.pop();
+      }
+      
+      // Add a new message with feedback form
+      const eventName = event.title || 'this event';
+      newMessages.push({
+        id: crypto.randomUUID(),
+        content: `How was ${eventName} on ${formattedDate}? I'd love to hear about your experience!`,
+        isAl: true,
+        showFeedbackForm: true,
+        feedbackStep: "mood-selection",
+        completedEvent: event,
+        onFeedbackSubmit: handleFeedbackSubmit
+      });
+      return newMessages;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       <header className="fixed top-0 left-0 right-0 z-50">
@@ -1438,9 +1690,7 @@ const Index = () => {
             onSend={handleSend}
             onSuggestedPrompt={handleSuggestedPrompt}
             suggestedPrompts={[]}
-          >
-            <></>
-          </ChatContainer>
+          />
         ) : (
           <ChatContainer
             messages={messages}
@@ -1448,9 +1698,7 @@ const Index = () => {
             onSend={handleSend}
             onSuggestedPrompt={handleSuggestedPrompt}
             suggestedPrompts={defaultPrompts}
-          >
-            <></>
-          </ChatContainer>
+          />
         )}
       </main>
 

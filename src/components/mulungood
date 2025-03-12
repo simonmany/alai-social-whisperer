@@ -1,0 +1,550 @@
+[mulungood](https://mulungood.com/)
+
+## Quick introduction to paginating queries with Supabase, with a handy Typescript function for fetching all results matching a filter, regardless of the default limit - all fully typed
+
+[Home](https://mulungood.com/)
+[Blog](https://mulungood.com/)
+Postgres limits the amount of rows returned in a SQL statement to prevent abuse and network-breaking payloads. In Supabase, [the default limit is 1000](https://supabase.com/docs/reference/javascript/select?example=querying-referenced-table-with-count).
+This introduces query pagination, which you can wrangle with [@supabase/supabase-js](https://supabase.com/docs/reference/javascript/installing)’s range function:
+
+```
+range
+```
+
+
+```
+const PAGINATION_SIZE = 1000
+
+function fetchByPage(page: number) {
+  return supabase
+    .from('example_table_name')
+    .select()
+		// use `range(from, to)` to paginate
+    .range(page * PAGINATION_SIZE, (page + 1) * PAGINATION_SIZE)
+}
+```
+
+
+```
+const PAGINATION_SIZE = 1000
+
+function fetchByPage(page: number) {
+  return supabase
+    .from('example_table_name')
+    .select()
+		// use `range(from, to)` to paginate
+    .range(page * PAGINATION_SIZE, (page + 1) * PAGINATION_SIZE)
+}
+```
+
+If you want to fetch all rows matching a filter regardless of this limit - for migrations, feeding large data dashboards, etc. -,  you can use the following fetchAllPaginatedResults function (Typescript version below):
+
+```
+fetchAllPaginatedResults
+```
+
+
+```
+import { PostgrestFilterBuilder } from '@supabase/postgrest-js'
+
+const PAGINATION_SIZE = 1000
+
+/**
+ * Given a Supabase query, return ALL results for it, paginating as necessary.
+ *
+ * By default, Postgres will only return the first 1000 results.
+ *
+ * Queries' `select` should include `count: "exact" | "estimated"'
+ */
+export async function fetchAllPaginatedResults<
+  QueryBuilder extends PostgrestFilterBuilder<any, any, any>,
+>(
+  queryBuilder: QueryBuilder,
+  accumulator?: {
+    data: Awaited<QueryBuilder>['data']
+    count?: number | null
+    fromRange: number
+  },
+) {
+  // If the query wasn't built with `.select(/* ... */, { count: 'exact' | 'estimated'}), we can't fetch all results.
+  if (
+    !(queryBuilder as any).headers ||
+    (!(queryBuilder as any).headers.Prefer?.includes('count=exact') &&
+      !(queryBuilder as any).headers.Prefer?.includes('count=estimated'))
+  ) {
+    throw new Error(
+      'fetchAllPaginatedResults must be used with a query that has `count: "exact"`',
+    )
+  }
+
+  let queryToRun = queryBuilder
+  // If running for the 2+ time, be explicit about the range
+  if (accumulator) {
+    queryToRun = queryBuilder.range(
+      accumulator.fromRange,
+      accumulator.fromRange + PAGINATION_SIZE,
+    )
+  }
+
+  const { data, error, count: queryCount } = await queryToRun
+
+  const count = queryCount || accumulator?.count || 0
+
+  if (error) {
+    return {
+      error,
+      data: accumulator?.data || null,
+      count: count || null,
+    } as const
+  }
+
+  const accumulatedData = [
+    ...(accumulator?.data || []),
+    ...(Array.isArray(data) ? data : []),
+  ] as Awaited<QueryBuilder>['data']
+
+  // While there are still more results to fetch, keep fetching recursively
+  if (count > accumulatedData.length) {
+    return fetchAllPaginatedResults(queryBuilder, {
+      data: accumulatedData,
+      count: count,
+      fromRange: (accumulator?.fromRange || 0) + PAGINATION_SIZE,
+    })
+  }
+
+  // If we've reached the end of the count, return the accumulated data
+  return {
+    data: accumulatedData,
+    count,
+    error: null,
+  } as const
+}
+```
+
+## Quick introduction to paginating queries with Supabase, with a handy Typescript function for fetching all results matching a filter, regardless of the default limit - all fully typed
+
+```
+import { PostgrestFilterBuilder } from '@supabase/postgrest-js'
+
+const PAGINATION_SIZE = 1000
+
+/**
+ * Given a Supabase query, return ALL results for it, paginating as necessary.
+ *
+ * By default, Postgres will only return the first 1000 results.
+ *
+ * Queries' `select` should include `count: "exact" | "estimated"'
+ */
+export async function fetchAllPaginatedResults<
+  QueryBuilder extends PostgrestFilterBuilder<any, any, any>,
+>(
+  queryBuilder: QueryBuilder,
+  accumulator?: {
+    data: Awaited<QueryBuilder>['data']
+    count?: number | null
+    fromRange: number
+  },
+) {
+  // If the query wasn't built with `.select(/* ... */, { count: 'exact' | 'estimated'}), we can't fetch all results.
+  if (
+    !(queryBuilder as any).headers ||
+    (!(queryBuilder as any).headers.Prefer?.includes('count=exact') &&
+      !(queryBuilder as any).headers.Prefer?.includes('count=estimated'))
+  ) {
+    throw new Error(
+      'fetchAllPaginatedResults must be used with a query that has `count: "exact"`',
+    )
+  }
+
+  let queryToRun = queryBuilder
+  // If running for the 2+ time, be explicit about the range
+  if (accumulator) {
+    queryToRun = queryBuilder.range(
+      accumulator.fromRange,
+      accumulator.fromRange + PAGINATION_SIZE,
+    )
+  }
+
+  const { data, error, count: queryCount } = await queryToRun
+
+  const count = queryCount || accumulator?.count || 0
+
+  if (error) {
+    return {
+      error,
+      data: accumulator?.data || null,
+      count: count || null,
+    } as const
+  }
+
+  const accumulatedData = [
+    ...(accumulator?.data || []),
+    ...(Array.isArray(data) ? data : []),
+  ] as Awaited<QueryBuilder>['data']
+
+  // While there are still more results to fetch, keep fetching recursively
+  if (count > accumulatedData.length) {
+    return fetchAllPaginatedResults(queryBuilder, {
+      data: accumulatedData,
+      count: count,
+      fromRange: (accumulator?.fromRange || 0) + PAGINATION_SIZE,
+    })
+  }
+
+  // If we've reached the end of the count, return the accumulated data
+  return {
+    data: accumulatedData,
+    count,
+    error: null,
+  } as const
+}
+```
+
+Which you then use by passing a select query builder with count:  'exact' | 'planned' into:
+
+```
+select
+```
+
+
+```
+count:  'exact' | 'planned'
+```
+
+
+```
+const allAuditLogs = await fetchAllPaginatedResults(
+  supabase.from('audit_logs').select('*', { count: 'exact' }).order('created_at'),
+)
+
+const allPostsByUser = await fetchAllPaginatedResults(
+  supabase.from('posts').select('*', { count: 'exact' }).eq('user_id', userId),
+)
+```
+
+
+```
+const allAuditLogs = await fetchAllPaginatedResults(
+  supabase.from('audit_logs').select('*', { count: 'exact' }).order('created_at'),
+)
+
+const allPostsByUser = await fetchAllPaginatedResults(
+  supabase.from('posts').select('*', { count: 'exact' }).eq('user_id', userId),
+)
+```
+
+### On the count parameter
+```
+count
+```
+
+We need to pass count:  'exact' | 'planned' to ask Supabase to return the total number of rows matching the current filter (via [Postgrest](https://postgrest.org/), Supabase’s communication layer with Postgres).
+
+```
+count:  'exact' | 'planned'
+```
+
+According to the Supabase documentation, the count parameter is used to specify how to count the number of rows to return. Besides count: undefined, which skips counting rows:
+
+```
+count
+```
+
+
+```
+count: undefined
+```
+
+- count=exact: exact number of rows that match the query
+- count=estimated: estimated count of matches. This is faster than an exact count, but may not be as accurate.
+- count=planned: returns the query plan for the query, including the estimated number of rows that will be returned. This can be useful for optimizing queries.
+
+```
+count=exact
+```
+
+
+```
+count=estimated
+```
+
+
+```
+count=planned
+```
+
+count=planned is mostly for optimization, but the difference between exact and estimated isn’t as clear to me. I suspect this only becomes a factor when tables hit hundreds of thousands of rows - in my tests on tables of about 20,000 rows, there was no significant difference between them.
+
+```
+count=planned
+```
+
+### Potential improvement: auto-including the count parameter
+```
+count
+```
+
+The API for this function could be improved by automatically adding the count parameter to queries, and not asking for count when fetching subsequent pages, but as of "@supabase/supabase-js": "^2.39.3", there’s no direct way of doing so. You’d need to set the private headers property of the PostgrestFilterBuilder, which feels brittle and hacky:
+
+```
+count
+```
+
+
+```
+count
+```
+
+
+```
+"@supabase/supabase-js": "^2.39.3"
+```
+
+
+```
+headers
+```
+
+
+```
+PostgrestFilterBuilder
+```
+
+
+```
+// Hacky way of modifying a query builder to include a `count` parameter to it
+function setQueryCount(
+  query: PostgrestFilterBuilder<any, any, any>,
+  count: 'exact' | 'estimated' | undefined,
+) {
+  const currentPrefer = query.headers.Prefer || ''
+  const partsWithoutCount = currentPrefer
+    .split(',')
+    .filter((part) => !part.includes('count='))
+
+  const finalPrefer = (() => {
+    if (count === undefined) {
+      return partsWithoutCount.join(',')
+    }
+
+    return [...partsWithoutCount, `count=${count}`].join(',')
+  })()
+
+  query.headers.Prefer = finalPrefer
+}
+
+
+const queryToRun = (() => {
+  // If running for the 2+ time, be explicit about the range
+  if (accumulator) {
+		// don't include the count after the first page
+    setQueryCount(queryBuilder, undefined)
+    return queryBuilder.range(
+      accumulator.fromRange,
+      accumulator.fromRange + PAGINATION_SIZE,
+    )
+  }
+
+  // During first run, fetch the first results, including the exact count
+  setQueryCount(queryBuilder, 'exact')
+  return queryBuilder
+})() as QueryBuilder
+```
+
+
+```
+// Hacky way of modifying a query builder to include a `count` parameter to it
+function setQueryCount(
+  query: PostgrestFilterBuilder<any, any, any>,
+  count: 'exact' | 'estimated' | undefined,
+) {
+  const currentPrefer = query.headers.Prefer || ''
+  const partsWithoutCount = currentPrefer
+    .split(',')
+    .filter((part) => !part.includes('count='))
+
+  const finalPrefer = (() => {
+    if (count === undefined) {
+      return partsWithoutCount.join(',')
+    }
+
+    return [...partsWithoutCount, `count=${count}`].join(',')
+  })()
+
+  query.headers.Prefer = finalPrefer
+}
+
+
+const queryToRun = (() => {
+  // If running for the 2+ time, be explicit about the range
+  if (accumulator) {
+		// don't include the count after the first page
+    setQueryCount(queryBuilder, undefined)
+    return queryBuilder.range(
+      accumulator.fromRange,
+      accumulator.fromRange + PAGINATION_SIZE,
+    )
+  }
+
+  // During first run, fetch the first results, including the exact count
+  setQueryCount(queryBuilder, 'exact')
+  return queryBuilder
+})() as QueryBuilder
+```
+
+## Typescript inference of query results
+Ideally, fetchAllPaginatedResults should introspect the query being passed to it and annotate the returned type accordingly, to avoid missing types or having to duplicate them.
+
+```
+fetchAllPaginatedResults
+```
+
+
+```
+// the ideal scenario: automatic type inference
+
+const { data } = await fetchAllPaginatedResults(
+  adminClient.from('assets').select('*', { count: 'exact' }),
+)
+// ^? data: AssetRow[] | null
+```
+
+
+```
+// the ideal scenario: automatic type inference
+
+const { data } = await fetchAllPaginatedResults(
+  adminClient.from('assets').select('*', { count: 'exact' }),
+)
+// ^? data: AssetRow[] | null
+```
+
+We can leverage [Typescript generics](https://www.typescriptlang.org/docs/handbook/2/generics.html) to do so, adding a variable to fetchAllPaginatedResults, which TS will match to the parameters being sent to the function:
+
+```
+fetchAllPaginatedResults
+```
+
+
+```
+export async function fetchAllPaginatedResults<
+  QueryBuilder extends PostgrestFilterBuilder<any, any, any>,
+>(
+  queryBuilder: QueryBuilder,
+  accumulator?: {
+    data: Awaited<QueryBuilder>['data']
+    count?: number | null
+    fromRange: number
+  },
+) {
+	// ... function body
+}
+```
+
+
+```
+export async function fetchAllPaginatedResults<
+  QueryBuilder extends PostgrestFilterBuilder<any, any, any>,
+>(
+  queryBuilder: QueryBuilder,
+  accumulator?: {
+    data: Awaited<QueryBuilder>['data']
+    count?: number | null
+    fromRange: number
+  },
+) {
+	// ... function body
+}
+```
+
+We’re saying the queryBuilder function parameter is of type QueryBuilder, a generic type variable that extends PostgrestFilterBuilder. If you try to pass it something other than a query builder (supabaseClient.from(/* ... */).select()), Typescript will error.
+
+```
+queryBuilder
+```
+
+
+```
+QueryBuilder
+```
+
+
+```
+extends PostgrestFilterBuilder
+```
+
+
+```
+supabaseClient.from(/* ... */).select()
+```
+
+To introspect the returned data, we use the Awaited[utility type](https://www.typescriptlang.org/docs/handbook/utility-types.html) to get the awaited result of the query’s promise, and pass it the QueryBuilder.
+
+```
+Awaited
+```
+
+
+```
+QueryBuilder
+```
+
+
+```
+const accumulatedData = [
+  ...(accumulator?.data || []),
+  ...(Array.isArray(data) ? data : []),
+] as Awaited<QueryBuilder>['data']
+
+// Awaited<QueryBuilder> yields the same type as running:
+// const response = await queryToRun
+// typeof accumulatedData = typeof response.data
+```
+
+
+```
+const accumulatedData = [
+  ...(accumulator?.data || []),
+  ...(Array.isArray(data) ? data : []),
+] as Awaited<QueryBuilder>['data']
+
+// Awaited<QueryBuilder> yields the same type as running:
+// const response = await queryToRun
+// typeof accumulatedData = typeof response.data
+```
+
+As a Supabase response returns more than just the data (count, error, status, etc.), we select the data property of the returned object.
+
+```
+count
+```
+
+
+```
+error
+```
+
+
+```
+status
+```
+
+
+```
+data
+```
+
+And that’s it! I hope this small addition to your toolbelt helps you to better reason about query ranges and the magic of Typescript inference and Supabase’s fully typed queries ✨
+
+## Recent posts
+[Setting Row-Level-Security (RLS) with Functions on SupabaseHow to use Postgres functions to improve the writing and maintenance of Row-Level-Security (RLS) in Supabase.](https://mulungood.com/supabase-row-level-security-with-functions)
+
+### Setting Row-Level-Security (RLS) with Functions on Supabase
+How to use Postgres functions to improve the writing and maintenance of Row-Level-Security (RLS) in Supabase.
+[Powering a blog with Notion through JSON files & NextJSHow to use Notion to power a NextJS blog, the benefits of using this approach, and why we chose it over another CMS.](https://mulungood.com/nextjs-notion-blog)
+
+### Powering a blog with Notion through JSON files & NextJS
+How to use Notion to power a NextJS blog, the benefits of using this approach, and why we chose it over another CMS.
+[mulungood](https://mulungood.com/)
+[hello@mulungood.com](mailto:hello@mulungood.com)
+[LinkedIn](https://www.linkedin.com/company/mulungood)

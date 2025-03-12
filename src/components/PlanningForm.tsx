@@ -927,14 +927,16 @@ export const PlanningForm = ({
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      initialFocus
-                      disabled={(date) => isDateInPast(new Date(date))}
-                    />
+                  <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+                    <div className="max-w-[300px]">
+                      <CalendarComponent
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        initialFocus
+                        disabled={(date) => isDateInPast(new Date(date))}
+                      />
+                    </div>
                   </PopoverContent>
                 </Popover>
               </div>
@@ -1179,13 +1181,15 @@ export const PlanningForm = ({
         <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
             <Label>Date</Label>
-            <CalendarComponent
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="rounded-md border w-full"
-              disabled={(date) => isDateInPast(new Date(date))}
-            />
+            <div className="mx-auto max-w-[350px]">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="rounded-md border"
+                disabled={(date) => isDateInPast(new Date(date))}
+              />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="time">Time</Label>
