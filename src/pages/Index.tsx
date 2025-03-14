@@ -61,13 +61,7 @@ const Index = () => {
     console.log('handleFeedbackSubmit called with message:', message);
     if (!session?.user?.id) return;
 
-    // Create a copy of messages and remove showFeedbackForm from all messages
-    const updatedMessages = messages.filter(msg => !msg.showFeedbackForm);
-    console.log('Filtered out messages with showFeedbackForm');
-
     setIsLoading(true);
-    // We no longer add messages directly to the UI
-    // The real-time subscription will handle adding messages to the UI
 
     try {
       // If we have an event, update it in the database
@@ -87,22 +81,6 @@ const Index = () => {
       // and they will be picked up by the real-time subscription
       await generateChatResponse(message, [], false, ConversationType.CHAT);
       
-      // Instead of calling checkForNextActions, explicitly set the next step to 'plan-something'
-      // Add a message with the plan-something step
-      const finalMessages = [...updatedMessages, {
-        id: crypto.randomUUID(),
-        content: "Want to plan something new?",
-        isAl: true,
-        showNextActionFlow: true,
-        nextActionStep: 'plan-something',
-        onAddToCalendar: handleAddToCalendar,
-        onViewSummary: handleViewSummary,
-        onSkipNextAction: handleSkipNextAction,
-        onSelectEvent: handleSelectEvent
-      }];
-      
-      console.log('Setting messages with plan-something step after feedback');
-      setMessages(finalMessages);
       setNextActionStep('plan-something');
     } catch (error) {
       console.error('Error generating response:', error);

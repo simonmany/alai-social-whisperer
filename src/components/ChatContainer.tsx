@@ -21,7 +21,7 @@ interface ChatContainerProps {
   onSuggestedPrompt: (prompt: string) => void;
   onTutorialAction?: () => void;
   disabled?: boolean;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   suggestedPrompts?: SuggestedPromptItem[];
 }
 
