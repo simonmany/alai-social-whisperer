@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { CalendarPlus, Clock } from 'lucide-react';
 import { EventFeedbackCard } from './EventFeedbackCard';
+import { InChatFeedbackForm } from "@/components/InChatFeedbackForm";
 import { CalendarEvent } from '@/types/calendar';
 
 interface NextActionFlowProps {
@@ -11,6 +12,7 @@ interface NextActionFlowProps {
   onViewSummary?: (period: 'day' | 'week' | 'month') => void;
   onSkip?: (step?: string) => void;
   onSelectEvent?: (event: CalendarEvent) => void;
+  onFeedbackSubmit?: (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => void;
   step: 'unreflected-events' | 'plan-something' | 'view-summary';
 }
 
@@ -20,6 +22,7 @@ export const NextActionFlow = ({
   onViewSummary,
   onSkip,
   onSelectEvent,
+  onFeedbackSubmit,
   step
 }: NextActionFlowProps) => {
   console.log('NextActionFlow rendered with step:', step);
@@ -42,14 +45,7 @@ export const NextActionFlow = ({
           <EventFeedbackCard
             key={event.id}
             event={event}
-            onFeedbackSubmit={() => {
-              console.log('Select event button clicked for event:', event.id, 'step:', step);
-              if (onSelectEvent) {
-                onSelectEvent(event);
-              } else {
-                console.error('onSelectEvent is undefined');
-              }
-            }}
+            onFeedbackSubmit={onFeedbackSubmit}
           />
         ))}
         

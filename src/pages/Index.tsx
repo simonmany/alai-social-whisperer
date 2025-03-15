@@ -172,7 +172,8 @@ const Index = () => {
         onAddToCalendar: handleAddToCalendar,
         onViewSummary: handleViewSummary,
         onSkipNextAction: handleSkipNextAction,
-        onSelectEvent: handleSelectEvent
+        onSelectEvent: handleSelectEvent,
+        onFeedbackSubmit: handleFeedbackSubmit
       }]);
       
     } catch (error) {
@@ -1123,21 +1124,6 @@ const Index = () => {
 
     setIsLoading(true);
 
-    if (message.toLowerCase().includes("reflect about a past hang") || message === "Reflect") {
-      setMessages(prev => [...prev, 
-        { content: message, isAl: false },
-        { 
-          content: "I'd love to hear about your past social experiences! Please select an event from below or tell me about something that wasn't on the calendar.", 
-          isAl: true,
-          showFeedbackForm: true,
-          feedbackStep: "event-selection",
-          onFeedbackSubmit: handleFeedbackSubmit
-        }
-      ]);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const response = await generateChatResponse(message, contactInfo ? [contactInfo] : undefined, false, conversationType);
 
@@ -1315,7 +1301,7 @@ const Index = () => {
         // Generate AI response to the plan
         const secretMessage = isTutorialActive;
         console.warn('is secret message', secretMessage);
-        const response = await generateChatResponse(message, [], secretMessage, conversationType);
+        await generateChatResponse(message, [], secretMessage, conversationType);
 
         // Remove loading message
         setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
@@ -1410,7 +1396,16 @@ const Index = () => {
         defaultActivity: selectedActivity
       }]);
     } else if (prompt === "Let's reflect about a past hang.") {
-      handleSend("Let's reflect about a past hang.");
+      setMessages(prev => [...prev, 
+        { content: prompt, isAl: false },
+        { 
+          content: "I'd love to hear about your past social experiences! Please select an event from below or tell me about something that wasn't on the calendar.", 
+          isAl: true,
+          showFeedbackForm: true,
+          feedbackStep: "event-selection",
+          onFeedbackSubmit: handleFeedbackSubmit
+        }
+      ]);
     } else if (prompt === "add a new contact") {
       setIsContactsOpen(true);
     } else {
@@ -1629,7 +1624,8 @@ const Index = () => {
         onAddToCalendar: handleAddToCalendar,
         onViewSummary: handleViewSummary,
         onSkipNextAction: handleSkipNextAction,
-        onSelectEvent: handleSelectEvent
+        onSelectEvent: handleSelectEvent,
+        onFeedbackSubmit: handleFeedbackSubmit
       };
     } 
     else if (currentStep === 'plan-something') {
@@ -1672,7 +1668,8 @@ const Index = () => {
         onAddToCalendar: handleAddToCalendar,
         onViewSummary: handleViewSummary,
         onSkipNextAction: handleSkipNextAction,
-        onSelectEvent: handleSelectEvent
+        onSelectEvent: handleSelectEvent,
+        onFeedbackSubmit: handleFeedbackSubmit
       };
     }
     
@@ -1719,20 +1716,6 @@ const Index = () => {
       content: `Tell me about ${eventName}`,
       isAl: false
     }];
-    
-    // Add a new message with feedback form
-    const finalMessages = [...messagesWithUserResponse, {
-      id: crypto.randomUUID(),
-      content: `How was ${eventName} on ${formattedDate}? I'd love to hear about your experience!`,
-      isAl: true,
-      showFeedbackForm: true,
-      feedbackStep: "mood-selection",
-      completedEvent: event,
-      onFeedbackSubmit: handleFeedbackSubmit
-    }];
-    
-    console.log('Setting messages with feedback form');
-    setMessages(finalMessages);
     
     // We don't need to add the next action flow message here anymore
     // It will be added by the handleFeedbackSubmit function after the user submits feedback

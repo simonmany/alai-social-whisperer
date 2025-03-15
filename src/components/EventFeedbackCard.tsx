@@ -4,7 +4,7 @@ import { Card } from './ui/card';
 import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { CalendarEvent } from '@/types/calendar';
-import { FeedbackForm } from './FeedbackForm';
+import { InChatFeedbackForm } from './InChatFeedbackForm';
 
 interface EventFeedbackCardProps {
   event: CalendarEvent;
@@ -40,7 +40,7 @@ export const EventFeedbackCard = ({
 
   if (showFeedbackForm) {
     return (
-      <FeedbackForm 
+      <InChatFeedbackForm 
         onSubmit={onFeedbackSubmit}
         event={event}
         skipEventSelection={true}

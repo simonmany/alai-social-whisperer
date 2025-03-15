@@ -200,6 +200,7 @@ export const ChatMessage = ({
                     onViewSummary={onViewSummary}
                     onSkip={onSkipNextAction}
                     onSelectEvent={onSelectEvent}
+                    onFeedbackSubmit={onFeedbackSubmit}
                   />
                 </div>
               )}
