@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { Capacitor } from "@capacitor/core";
+import { requestCalendarAccess } from "@/utils/calendar";
 
 interface IntegrationsMenuProps {
   onGoogleSignIn: () => void;
@@ -37,6 +39,23 @@ export const IntegrationsMenu = ({ onGoogleSignIn, isConnectingCalendar, onBack 
     setTimeout(() => setIsLoading(false), 1000);
   };
 
+  const handleNativeCalendarAccess = async () => {
+    try {
+      setIsLoading(true);
+      const result = await requestCalendarAccess();
+      if (result) {
+        toast.success("Calendar access granted");
+      } else {
+        toast.error("Calendar access denied");
+      }
+    } catch (error) {
+      console.error("Error requesting calendar access:", error);
+      toast.error("Failed to request calendar access");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Back Button */}
@@ -55,19 +74,31 @@ export const IntegrationsMenu = ({ onGoogleSignIn, isConnectingCalendar, onBack 
           Calendars
         </h3>
         <div className="space-y-2">
-          <Button 
-            variant="outline" 
-            onClick={onGoogleSignIn}
-            disabled={isConnectingCalendar}
-            className="w-full justify-start gap-2"
-          >
-            <img 
-              src="https://www.google.com/favicon.ico" 
-              alt="Google" 
-              className="w-4 h-4"
-            />
-            {isConnectingCalendar ? "Connecting..." : "Connect Google Calendar"}
-          </Button>
+          {Capacitor.isNativePlatform() ? (
+            <Button 
+              variant="outline" 
+              onClick={handleNativeCalendarAccess}
+              disabled={isLoading}
+              className="w-full justify-start gap-2"
+            >
+              <Calendar className="h-4 w-4" />
+              {isLoading ? "Connecting..." : "Connect Calendar"}
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              onClick={onGoogleSignIn}
+              disabled={isConnectingCalendar}
+              className="w-full justify-start gap-2"
+            >
+              <img 
+                src="https://www.google.com/favicon.ico" 
+                alt="Google" 
+                className="w-4 h-4"
+              />
+              {isConnectingCalendar ? "Connecting..." : "Connect Google Calendar"}
+            </Button>
+          )}
         </div>
       </div>
 

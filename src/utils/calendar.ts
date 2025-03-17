@@ -3,6 +3,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { Capacitor } from "@capacitor/core";
 import { Contact } from "@/types/contacts";
 
+
+export async function requestCalendarAccess() {
+  if (!Capacitor.isNativePlatform()) return;
+
+  const { result: readStatus } = await CapacitorCalendar.requestFullCalendarAccess();
+  return readStatus;
+}
+
 export async function checkPermissions(): Promise<{ 
   status: 'read' | 'write' | 'all' | 'none';
 }> {

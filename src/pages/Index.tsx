@@ -27,6 +27,7 @@ import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@skektec/capacitor-contacts';
 import { CalendarEvent } from "@/types/calendar";
 import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
+import { sendMorningMessageNotification, setupNotificationHandlers, setupLocalNotifications } from "@/utils/push_notifications";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -722,6 +723,12 @@ const Index = () => {
 
             // Simply add the new message to the UI
             setMessages(prev => [...prev, newMessage]);
+            
+            // Send push notification for morning messages on native platforms
+            if (payload.new.is_ai && (messageType === 'morning' || messageType === 'evening')) {
+              console.log('Sending push notification for morning message');
+              await sendMorningMessageNotification(messageContent);
+            }
           }
         )
         .subscribe();
@@ -991,6 +998,29 @@ const Index = () => {
     }
     setUtcOffset()
   }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    
+    console.log('Setting up notification handlers');
+    
+    // Setup notification handlers to navigate to main screen when tapped
+    const setupHandlers = async () => {
+      try {
+        await setupLocalNotifications();
+
+        // Pass a function to navigate to the main screen
+        await setupNotificationHandlers(() => {
+          console.log('Notification tapped, navigating to main screen');
+          navigate('/');
+        });
+      } catch (error) {
+        console.error('Error setting up notification handlers:', error);
+      }
+    };
+    
+    setupHandlers();
+  }, [navigate]);
 
   const handleGoogleSignIn = async () => {
     try {
