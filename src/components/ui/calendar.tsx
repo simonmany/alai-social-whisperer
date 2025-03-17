@@ -5,6 +5,9 @@ import { DayPicker } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
+// Import the calendar CSS
+import "./calendar.css";
+
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({
@@ -13,13 +16,11 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
-  // Force single column layout
-  const numberOfMonths = props.numberOfMonths || 1;
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      numberOfMonths={1} // Always show just one month
-      className={cn("p-2 w-full", className)}
+      numberOfMonths={props.numberOfMonths || 1}
+      className={cn("p-3 max-w-[300px] mx-auto", className)}
       classNames={{
         months: "flex flex-col w-full space-y-2",
         month: "space-y-2 w-full",

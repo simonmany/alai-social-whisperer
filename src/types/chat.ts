@@ -9,7 +9,16 @@ export interface Message {
   contactInfo?: Contact;
   showPlanningForm?: boolean;
   showFeedbackForm?: boolean;
-  onPlanningSubmit?: (message: string) => void;
+  // NextActionFlow properties
+  showNextActionFlow?: boolean;
+  nextActionStep?: 'unreflected-events' | 'plan-something' | 'view-summary';
+  unreflectedEvents?: CalendarEvent[];
+  onAddToCalendar?: () => void;
+  onViewSummary?: (period: 'day' | 'week' | 'month') => void;
+  onSkipNextAction?: () => void;
+  onSelectEvent?: (event: CalendarEvent) => void;
+  // Planning form properties
+  onPlanningSubmit?: (message: string, newContent?: string) => void;
   onFeedbackSubmit?: (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
