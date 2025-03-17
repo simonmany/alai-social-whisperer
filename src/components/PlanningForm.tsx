@@ -1039,6 +1039,20 @@ export const PlanningForm = ({
                         }
                       }
                     }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      // Handle manual input changes
+                      const customValue = e.target.value;
+                      setLocation(customValue);
+                      if (onUpdate) {
+                        onUpdate({
+                          contacts: selectedContacts,
+                          activity,
+                          location: customValue,
+                          date: selectedDate,
+                          time: selectedTime
+                        });
+                      }
+                    }}
                     defaultValue={location}
                     options={{
                       types: ['establishment'],
