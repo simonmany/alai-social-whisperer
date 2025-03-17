@@ -109,7 +109,7 @@ export const PlanningForm = ({
           
           const { data, error } = await supabase
             .from('contacts')
-            .select('*')
+            .select('id, name, interests, last_seen, relationship, meeting_story')
             .eq('user_id', session.user.id)
             .order('name')
             .range(from, to);
