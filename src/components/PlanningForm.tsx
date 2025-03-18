@@ -914,29 +914,17 @@ export const PlanningForm = ({
             
             <div className="flex items-end gap-2 mb-2">
               <div className="flex-1">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className="w-full justify-start text-left font-normal h-9"
-                    >
-                      {selectedDate ? (
-                        format(selectedDate, 'PPP')
-                      ) : (
-                        <span className="text-muted-foreground">Pick a date</span>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <CalendarComponent
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      initialFocus
-                      disabled={(date) => isDateInPast(new Date(date))}
-                    />
-                  </PopoverContent>
-                </Popover>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start text-left font-normal h-9"
+                  onClick={() => setStep('datetime')}
+                >
+                  {selectedDate ? (
+                    format(selectedDate, 'PPP')
+                  ) : (
+                    <span className="text-muted-foreground">Pick a date</span>
+                  )}
+                </Button>
               </div>
               
               <div className="w-32">
@@ -1100,6 +1088,32 @@ export const PlanningForm = ({
         </div>
       )}
 
+      {step === 'datetime' && (
+        <div className="flex flex-col flex-grow space-y-4">
+          <div className="space-y-2">
+            <Label>Select a Date</Label>
+            <div className="bg-white">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  setStep('main'); // Return to main step after selecting a date
+                }}
+                className="rounded-md border w-full bg-white"
+                disabled={(date) => isDateInPast(new Date(date))}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-between mt-4">
+            <Button variant="outline" onClick={() => setStep('main')}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
       {step === 'activity' && (
         <div className="flex flex-col flex-grow space-y-4">
           <div className="space-y-2">
@@ -1165,36 +1179,6 @@ export const PlanningForm = ({
                 </PopoverContent>
               </Popover>
             </div>
-          </div>
-          <Button
-            onClick={() => setStep('main')}
-            className="w-full"
-          >
-            Done
-          </Button>
-        </div>
-      )}
-
-      {step === 'datetime' && (
-        <div className="flex flex-col flex-grow space-y-4">
-          <div className="space-y-2">
-            <Label>Date</Label>
-            <CalendarComponent
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              className="rounded-md border w-full"
-              disabled={(date) => isDateInPast(new Date(date))}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="time">Time</Label>
-            <Input
-              id="time"
-              type="time"
-              value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
-            />
           </div>
           <Button
             onClick={() => setStep('main')}
