@@ -268,22 +268,64 @@ Your goal is to better understand the user's likes and dislikes across people, a
       }
     });
 
-    if (chatResponse.response.text && (type === 'morning' || type === 'evening')) {
-      console.log('invoking sms');
-      supabase.functions.invoke('sms', {
-        body: {
-          user_id,
-          message: chatResponse.response.text
-        }
-      });
-    }
-
     if (chatError) {
       console.error('Error calling chat function:', chatError);
       throw chatError;
     }
 
     console.log('Chat function response:', chatResponse);
+
+    // Send push notification if this is a morning checkin
+    if (chatResponse.response.text && type === 'morning') {
+      try {
+        console.log('Sending push notification for morning check-in');
+        
+        // Get user's push tokens from the database
+        const { data: pushTokens, error: pushTokenError } = await supabase
+          .from('user_push_tokens')
+          .select('push_token, device_type')
+          .eq('user_id', user_id);
+        
+        if (pushTokenError) {
+          console.error('Error fetching push tokens:', pushTokenError);
+        } else if (pushTokens && pushTokens.length > 0) {
+          console.log(`Found ${pushTokens.length} push tokens for user ${user_id}`);
+          
+          // Truncate message to a reasonable length for a notification (120 chars)
+          const truncatedMessage = chatResponse.response.text.length > 120 
+            ? chatResponse.response.text.substring(0, 117) + '...' 
+            : chatResponse.response.text;
+          
+          // For each token, send a push notification
+          for (const tokenData of pushTokens) {
+            // Prepare notification payload
+            const notificationPayload = {
+              token: tokenData.push_token,
+              notification: {
+                title: 'Your Morning Check-in',
+                body: truncatedMessage
+              },
+              data: {
+                type: 'morning_message',
+                messageId: chatResponse.response.messageId || '',
+                deepLink: 'alai://app/home'  // Deep link to open the app
+              }
+            };
+            
+            // Send the notification
+            supabase.functions.invoke('send-push', {
+              body: notificationPayload
+            });
+            
+            console.log(`Push notification sent to token: ${tokenData.push_token.substring(0, 10)}...`);
+          }
+        } else {
+          console.log(`No push tokens found for user ${user_id}`);
+        }
+      } catch (error) {
+        console.error('Error sending push notification:', error);
+      }
+    }
 
     console.log('Successfully processed check-in');
     return new Response(JSON.stringify({ status: 'success' }), {

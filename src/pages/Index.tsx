@@ -27,7 +27,8 @@ import { Capacitor } from '@capacitor/core';
 import { Contacts } from '@skektec/capacitor-contacts';
 import { CalendarEvent } from "@/types/calendar";
 import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
-import { sendMorningMessageNotification, setupNotificationHandlers, setupLocalNotifications } from "@/utils/push_notifications";
+import { NextActionFlow } from "@/components/NextActionFlow";
+import { addListeners, registerNotifications } from "@/utils/push_notifications";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +44,8 @@ const Index = () => {
   const [preventHistoryLoad, setPreventHistoryLoad] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<string>("");
+  const [nextActionStep, setNextActionStep] = useState<'unreflected-events' | 'plan-something' | 'view-summary' | null>(null);
+  const [unreflectedEvents, setUnreflectedEvents] = useState<CalendarEvent[]>([]);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
@@ -56,18 +59,15 @@ const Index = () => {
   const [conversationType, setConversationType] = useState(ConversationType.CHAT)
   
   const handleFeedbackSubmit = async (message: string, event?: CalendarEvent, moods?: string[], notes?: string) => {
+    console.log('handleFeedbackSubmit called with message:', message);
     if (!session?.user?.id) return;
 
-    // Remove the feedback form from messages
-    setMessages(prev => prev.filter(msg => !msg.showFeedbackForm));
-
     setIsLoading(true);
-    // We no longer add messages directly to the UI
-    // The real-time subscription will handle adding messages to the UI
 
     try {
       // If we have an event, update it in the database
       if (event?.id) {
+        console.log('Updating event in database:', event.id);
         await supabase
           .from('calendar_events')
           .update({
@@ -81,6 +81,8 @@ const Index = () => {
       // Generate the chat response - this will save both messages to the database
       // and they will be picked up by the real-time subscription
       await generateChatResponse(message, [], false, ConversationType.CHAT);
+      
+      setNextActionStep('plan-something');
     } catch (error) {
       console.error('Error generating response:', error);
       toast({
@@ -90,6 +92,93 @@ const Index = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Function to check for unreflected events and determine next action flow
+  const checkForNextActions = async () => {
+    console.log('checkForNextActions called');
+    if (!session?.user?.id) return;
+    console.log('User is logged in, proceeding with checkForNextActions');
+    
+    try {
+      // First check for unreflected events
+      const { data: unreflectedEventsData, error: eventsError } = await supabase
+        .from('calendar_events')
+        .select(`
+          *,
+          event_attendees!left (contacts!contact_id (id, name, user_id))
+        `)
+        .eq('user_id', session.user.id)
+        .eq('feedback_sent', false)
+        .lt('start_time', new Date().toISOString())
+        .order('start_time', { ascending: false })
+        .limit(3);
+      
+      if (eventsError) {
+        console.error('Error fetching unreflected events:', eventsError);
+        return;
+      }
+      
+      // Format attendees for display
+      const formattedEvents = unreflectedEventsData.map(event => {
+        const formattedEvent = { ...event };
+        
+        if (event.event_attendees) {
+          const attendees = event.event_attendees.map((ea: any) => ({
+            id: ea.contacts.id,
+            name: ea.contacts.name,
+            user_id: ea.contacts.user_id
+          }));
+          
+          formattedEvent.attendees = attendees;
+        }
+        
+        return formattedEvent;
+      });
+      
+      setUnreflectedEvents(formattedEvents);
+      
+      // Start the next action flow
+      let nextStep: 'unreflected-events' | 'plan-something' = 'plan-something';
+      
+      if (formattedEvents.length > 0) {
+        // If there are unreflected events, start with that step
+        nextStep = 'unreflected-events';
+      }
+      
+      // Set the next action step
+      setNextActionStep(nextStep);
+      
+      console.log('Setting nextActionStep to:', nextStep);
+      console.log('Unreflected events:', formattedEvents);
+      
+      // Add a conversational message to the chat
+      let nextActionMessage = '';
+      
+      if (nextStep === 'unreflected-events') {
+        nextActionMessage = `I noticed you have ${formattedEvents.length > 1 ? 'some' : 'an'} event${formattedEvents.length > 1 ? 's' : ''} you haven't reflected on yet. Would you like to share how it went?`;
+      } else {
+        nextActionMessage = "Looks like you've already reflected on all your recent hangs. Want to plan something new?";
+      }
+      
+      // Add the message to the chat
+      setMessages(prev => [...prev, {
+        id: crypto.randomUUID(),
+        content: nextActionMessage,
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: nextStep,
+        unreflectedEvents: formattedEvents,
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent,
+        onFeedbackSubmit: handleFeedbackSubmit
+      }]);
+      
+    } catch (error) {
+      console.error('Error in checkForNextActions:', error);
     }
   };
 
@@ -369,28 +458,15 @@ const Index = () => {
           .select('*')
           .eq('id', profileData.catch_up_contacts[0])
           .single();
-
-        if (!contactError && contact) {
-          contactName = contact.name;
+          
+        if (contactError) {
+          console.error('Error fetching contact:', contactError);
+        } else if (contact) {
           contactData = contact;
-        } else {
-          // If we can't find the contact by ID, try to find it by name
-          // This can happen if the contact was just created during onboarding
-          const { data: contacts, error: contactsError } = await supabase
-            .from('contacts')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
-            
-          if (!contactsError && contacts && contacts.length > 0) {
-            contactName = contacts[0].name;
-            contactData = contacts[0];
-          }
+          contactName = contact.name;
         }
       }
-
-
+      
       const desiredInterest = profileData?.desired_interests?.[0] || '';
 
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\n${contactName ? `Let's dive right in and get started planning your first Hang!\n\nYou mentioned wanting to see ${contactName} for ${desiredInterest}. Now, we just need to figure out *when* and *where*. You can fill in the blanks yourself, or have AI figure it out for you based on your calendar and location!` : "Let's dive right in and get started planning your first Hang!"}`;
@@ -723,12 +799,6 @@ const Index = () => {
 
             // Simply add the new message to the UI
             setMessages(prev => [...prev, newMessage]);
-            
-            // Send push notification for morning messages on native platforms
-            if (payload.new.is_ai && (messageType === 'morning' || messageType === 'evening')) {
-              console.log('Sending push notification for morning message');
-              await sendMorningMessageNotification(messageContent);
-            }
           }
         )
         .subscribe();
@@ -814,6 +884,34 @@ const Index = () => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [navigate, toast]);
+
+  useEffect(() => {
+    const setupPushNotifications = async () => {
+      if (!session?.user?.id || !Capacitor.isNativePlatform()) {
+        return;
+      }
+
+      console.log('Setting up push notifications');
+      
+      try {
+        // First add the listeners
+        await addListeners(() => {
+          console.log('Push notification tapped, navigating to main screen');
+          navigate('/');
+        });
+        
+        // Then register for push notifications
+        // This will trigger the registration event which will save the token
+        await registerNotifications();
+        
+        console.log('Push notifications initialized successfully');
+      } catch (error) {
+        console.error('Error setting up push notifications:', error);
+      }
+    };
+    
+    setupPushNotifications();
+  }, [session?.user?.id, navigate]);
 
   const syncContacts = async () => {
     if (!Capacitor.isNativePlatform() || !session?.user?.id) return;
@@ -999,29 +1097,6 @@ const Index = () => {
     setUtcOffset()
   }, [session?.user?.id]);
 
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    
-    console.log('Setting up notification handlers');
-    
-    // Setup notification handlers to navigate to main screen when tapped
-    const setupHandlers = async () => {
-      try {
-        await setupLocalNotifications();
-
-        // Pass a function to navigate to the main screen
-        await setupNotificationHandlers(() => {
-          console.log('Notification tapped, navigating to main screen');
-          navigate('/');
-        });
-      } catch (error) {
-        console.error('Error setting up notification handlers:', error);
-      }
-    };
-    
-    setupHandlers();
-  }, [navigate]);
-
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
@@ -1064,21 +1139,6 @@ const Index = () => {
     if (!message.trim()) return;
 
     setIsLoading(true);
-
-    if (message.toLowerCase().includes("reflect about a past hang") || message === "Reflect") {
-      setMessages(prev => [...prev, 
-        { content: message, isAl: false },
-        { 
-          content: "I'd love to hear about your past social experiences! Please select an event from below or tell me about something that wasn't on the calendar.", 
-          isAl: true,
-          showFeedbackForm: true,
-          feedbackStep: "event-selection",
-          onFeedbackSubmit: handleFeedbackSubmit
-        }
-      ]);
-      setIsLoading(false);
-      return;
-    }
 
     try {
       const response = await generateChatResponse(message, contactInfo ? [contactInfo] : undefined, false, conversationType);
@@ -1257,10 +1317,15 @@ const Index = () => {
         // Generate AI response to the plan
         const secretMessage = isTutorialActive;
         console.warn('is secret message', secretMessage);
-        const response = await generateChatResponse(message, [], secretMessage, conversationType);
+        await generateChatResponse(message, [], secretMessage, conversationType);
 
         // Remove loading message
         setMessages(prev => prev.filter(msg => msg.id !== loadingMessageId));
+        
+        // After plan is submitted and not in tutorial mode, check for next actions
+        if (!isTutorialActive) {
+          await checkForNextActions();
+        }
         
         // Only show tutorial-specific messages if the tutorial is active
         if (isTutorialActive) {
@@ -1347,7 +1412,16 @@ const Index = () => {
         defaultActivity: selectedActivity
       }]);
     } else if (prompt === "Let's reflect about a past hang.") {
-      handleSend("Let's reflect about a past hang.");
+      setMessages(prev => [...prev, 
+        { content: prompt, isAl: false },
+        { 
+          content: "I'd love to hear about your past social experiences! Please select an event from below or tell me about something that wasn't on the calendar.", 
+          isAl: true,
+          showFeedbackForm: true,
+          feedbackStep: "event-selection",
+          onFeedbackSubmit: handleFeedbackSubmit
+        }
+      ]);
     } else if (prompt === "add a new contact") {
       setIsContactsOpen(true);
     } else {
@@ -1443,6 +1517,226 @@ const Index = () => {
     }
   };
 
+  // Handle actions from the NextActionFlow component
+  const handleAddToCalendar = () => {
+    setNextActionStep(null);
+    // Add user response and AI message with planning form
+    setMessages(prev => {
+      const newMessages = [...prev];
+      // Add user message
+      newMessages.push({
+        id: crypto.randomUUID(),
+        content: "Add something to calendar",
+        isAl: false
+      });
+      // Add a new message with planning form
+      newMessages.push({
+        id: crypto.randomUUID(),
+        content: "Let's plan something fun! What would you like to do?",
+        isAl: true,
+        showPlanningForm: true,
+        onPlanningSubmit: handlePlanSubmit
+      });
+      return newMessages;
+    });
+  };
+  
+  const handleViewSummary = (period: 'day' | 'week' | 'month') => {
+    console.log('handleViewSummary called with period:', period);
+    
+    // Generate a prompt based on the selected period
+    let prompt = '';
+    let buttonText = '';
+    
+    switch(period) {
+      case 'day':
+        prompt = 'What does my day look like?';
+        buttonText = 'About my day';
+        break;
+      case 'week':
+        prompt = 'What does my week ahead look like?';
+        buttonText = 'About my week';
+        break;
+      case 'month':
+        prompt = 'What does my month ahead look like?';
+        buttonText = 'About my month';
+        break;
+    }
+    
+    // Create a copy of messages and remove showNextActionFlow from all messages
+    const updatedMessages = messages.map(msg => {
+      if (msg.showNextActionFlow) {
+        console.log('Found message with showNextActionFlow, updating to false');
+        return { ...msg, showNextActionFlow: false };
+      }
+      return msg;
+    });
+    
+    // Add user message with the button text
+    const messagesWithUserResponse = [...updatedMessages, {
+      id: crypto.randomUUID(),
+      content: buttonText,
+      isAl: false
+    }];
+    
+    console.log('Setting messages with view summary selection');
+    setMessages(messagesWithUserResponse);
+    setNextActionStep(null);
+    
+    // Send the prompt to get the AI response
+    handleSend(prompt);
+  };
+  
+  const handleSkipNextAction = (stepFromComponent?: string) => {
+    console.log('handleSkipNextAction called with step from state:', nextActionStep);
+    console.log('handleSkipNextAction called with step from component:', stepFromComponent);
+    
+    // Find all messages with showNextActionFlow=true to determine the current step
+    const nextActionMessages = messages.filter(msg => msg.showNextActionFlow);
+    console.log('Messages with showNextActionFlow:', nextActionMessages);
+    
+    // Get the most recent message with showNextActionFlow=true
+    const nextActionMessage = nextActionMessages[nextActionMessages.length - 1];
+    
+    // IMPORTANT: Use the step in this priority order:
+    // 1. Step passed from the component (most reliable)
+    // 2. Step from the message with showNextActionFlow=true
+    // 3. Step from the state
+    const currentStep = stepFromComponent || nextActionMessage?.nextActionStep || nextActionStep;
+    
+    console.log('Current step determined from messages:', currentStep);
+    console.log('Most recent message with showNextActionFlow:', nextActionMessage);
+    
+    // Create a copy of messages and remove showNextActionFlow from all messages
+    // But keep the content and other properties
+    const updatedMessages = messages.map(msg => {
+      if (msg.showNextActionFlow) {
+        console.log('Found message with showNextActionFlow, updating to false');
+        return { ...msg, showNextActionFlow: false, nextActionStep: null };
+      }
+      return msg;
+    });
+    
+    // Add user message saying "Not right now"
+    const messagesWithUserResponse = [...updatedMessages, {
+      id: crypto.randomUUID(),
+      content: "Not right now",
+      isAl: false
+    }];
+    
+    // Determine the next step based on the current step
+    let nextStep = null;
+    let aiResponseMessage = null;
+    
+    if (currentStep === 'unreflected-events') {
+      console.log('Processing unreflected-events step -> plan-something');
+      nextStep = 'plan-something';
+      aiResponseMessage = {
+        id: crypto.randomUUID(),
+        content: "Want to plan something new?",
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: 'plan-something',
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent,
+        onFeedbackSubmit: handleFeedbackSubmit
+      };
+    } 
+    else if (currentStep === 'plan-something') {
+      console.log('Processing plan-something step -> view-summary');
+      nextStep = 'view-summary';
+      aiResponseMessage = {
+        id: crypto.randomUUID(),
+        content: "Would you like to see a summary of your upcoming events?",
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: 'view-summary',
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent
+      };
+    } 
+    else if (currentStep === 'view-summary') {
+      console.log('Processing view-summary step -> end');
+      nextStep = null;
+      aiResponseMessage = {
+        id: crypto.randomUUID(),
+        content: "No problem! I'm here if you need anything else.",
+        isAl: true
+      };
+    } 
+    else {
+      // If we can't determine the current step, check if we have any nextActionStep in the state
+      // This helps recover from situations where the message state and component state are out of sync
+      console.log('Unexpected step:', currentStep, '-> determining next step');
+      
+      // Default fallback behavior - go to plan-something
+      nextStep = 'plan-something';
+      aiResponseMessage = {
+        id: crypto.randomUUID(),
+        content: "Want to plan something new?",
+        isAl: true,
+        showNextActionFlow: true,
+        nextActionStep: 'plan-something',
+        onAddToCalendar: handleAddToCalendar,
+        onViewSummary: handleViewSummary,
+        onSkipNextAction: handleSkipNextAction,
+        onSelectEvent: handleSelectEvent,
+        onFeedbackSubmit: handleFeedbackSubmit
+      };
+    }
+    
+    // Add the AI response message
+    const finalMessages = [...messagesWithUserResponse, aiResponseMessage];
+    
+    console.log('Setting nextActionStep to:', nextStep);
+    console.log('Setting messages with new step');
+    
+    // Update state
+    setMessages(finalMessages);
+    setNextActionStep(nextStep);
+  };
+  
+  // These functions have been replaced with inline logic in handleSkipNextAction
+  
+  const handleSelectEvent = (event: CalendarEvent) => {
+    console.log('handleSelectEvent called with event:', event);
+    
+    // Instead of setting nextActionStep to null, progress to the next step
+    setNextActionStep('plan-something');
+    
+    // Format the event date for a more conversational message
+    const eventDate = new Date(event.start_time);
+    const formattedDate = eventDate.toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    
+    // Create a copy of messages and remove showNextActionFlow from all messages
+    const updatedMessages = messages.map(msg => {
+      if (msg.showNextActionFlow) {
+        console.log('Found message with showNextActionFlow, updating to false');
+        return { ...msg, showNextActionFlow: false };
+      }
+      return msg;
+    });
+    
+    // Add user message indicating they selected this event
+    const eventName = event.title || 'this event';
+    const messagesWithUserResponse = [...updatedMessages, {
+      id: crypto.randomUUID(),
+      content: `Tell me about ${eventName}`,
+      isAl: false
+    }];
+    
+    // We don't need to add the next action flow message here anymore
+    // It will be added by the handleFeedbackSubmit function after the user submits feedback
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-hidden">
       <header className="fixed top-0 left-0 right-0 z-50">
@@ -1468,9 +1762,7 @@ const Index = () => {
             onSend={handleSend}
             onSuggestedPrompt={handleSuggestedPrompt}
             suggestedPrompts={[]}
-          >
-            <></>
-          </ChatContainer>
+          />
         ) : (
           <ChatContainer
             messages={messages}
@@ -1478,9 +1770,7 @@ const Index = () => {
             onSend={handleSend}
             onSuggestedPrompt={handleSuggestedPrompt}
             suggestedPrompts={defaultPrompts}
-          >
-            <></>
-          </ChatContainer>
+          />
         )}
       </main>
 
