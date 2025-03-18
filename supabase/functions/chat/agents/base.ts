@@ -99,7 +99,7 @@ export abstract class Agent {
         
         const { data, error } = await supabase
           .from('contacts')
-          .select('*')
+          .select('id, name, interests, last_seen, relationship, meeting_story')
           .eq('user_id', userId)
           .range(from, to);
         

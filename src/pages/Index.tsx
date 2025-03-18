@@ -28,6 +28,7 @@ import { Contacts } from '@skektec/capacitor-contacts';
 import { CalendarEvent } from "@/types/calendar";
 import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
 import { NextActionFlow } from "@/components/NextActionFlow";
+import { addListeners, registerNotifications } from "@/utils/push_notifications";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -457,28 +458,15 @@ const Index = () => {
           .select('*')
           .eq('id', profileData.catch_up_contacts[0])
           .single();
-
-        if (!contactError && contact) {
-          contactName = contact.name;
+          
+        if (contactError) {
+          console.error('Error fetching contact:', contactError);
+        } else if (contact) {
           contactData = contact;
-        } else {
-          // If we can't find the contact by ID, try to find it by name
-          // This can happen if the contact was just created during onboarding
-          const { data: contacts, error: contactsError } = await supabase
-            .from('contacts')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .order('created_at', { ascending: false })
-            .limit(1);
-            
-          if (!contactsError && contacts && contacts.length > 0) {
-            contactName = contacts[0].name;
-            contactData = contacts[0];
-          }
+          contactName = contact.name;
         }
       }
-
-
+      
       const desiredInterest = profileData?.desired_interests?.[0] || '';
 
       const welcomeMessage = `Hey ${profileData?.display_name || ''}. Thanks for taking the time to check me out - it means you care about the quality of your relationships and living a full life.\n\n${contactName ? `Let's dive right in and get started planning your first Hang!\n\nYou mentioned wanting to see ${contactName} for ${desiredInterest}. Now, we just need to figure out *when* and *where*. You can fill in the blanks yourself, or have AI figure it out for you based on your calendar and location!` : "Let's dive right in and get started planning your first Hang!"}`;
@@ -896,6 +884,34 @@ const Index = () => {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [navigate, toast]);
+
+  useEffect(() => {
+    const setupPushNotifications = async () => {
+      if (!session?.user?.id || !Capacitor.isNativePlatform()) {
+        return;
+      }
+
+      console.log('Setting up push notifications');
+      
+      try {
+        // First add the listeners
+        await addListeners(() => {
+          console.log('Push notification tapped, navigating to main screen');
+          navigate('/');
+        });
+        
+        // Then register for push notifications
+        // This will trigger the registration event which will save the token
+        await registerNotifications();
+        
+        console.log('Push notifications initialized successfully');
+      } catch (error) {
+        console.error('Error setting up push notifications:', error);
+      }
+    };
+    
+    setupPushNotifications();
+  }, [session?.user?.id, navigate]);
 
   const syncContacts = async () => {
     if (!Capacitor.isNativePlatform() || !session?.user?.id) return;

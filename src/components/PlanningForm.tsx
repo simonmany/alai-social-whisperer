@@ -109,7 +109,7 @@ export const PlanningForm = ({
           
           const { data, error } = await supabase
             .from('contacts')
-            .select('*')
+            .select('id, name, interests, last_seen, relationship, meeting_story')
             .eq('user_id', session.user.id)
             .order('name')
             .range(from, to);
@@ -1111,6 +1111,32 @@ export const PlanningForm = ({
                 : allFieldsComplete
                 ? "Looks good - Plan it!"
                 : "Figure out the rest!"}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {step === 'datetime' && (
+        <div className="flex flex-col flex-grow space-y-4">
+          <div className="space-y-2">
+            <Label>Select a Date</Label>
+            <div className="bg-white">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  setSelectedDate(date);
+                  setStep('main'); // Return to main step after selecting a date
+                }}
+                className="rounded-md border w-full bg-white"
+                disabled={(date) => isDateInPast(new Date(date))}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-between mt-4">
+            <Button variant="outline" onClick={() => setStep('main')}>
+              Cancel
             </Button>
           </div>
         </div>
