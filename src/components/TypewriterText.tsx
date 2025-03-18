@@ -117,26 +117,37 @@ export const TypewriterText = ({
         }
         .markdown-content {
           display: inline;
+          font-size: inherit;
+          line-height: inherit;
         }
         .markdown-content > * {
           display: inline;
           margin: 0;
           padding: 0;
+          font-size: inherit;
+          line-height: inherit;
         }
         .markdown-content p {
           display: inline;
           margin: 0;
+          font-size: inherit;
+          line-height: inherit;
         }
         .markdown-content h1, .markdown-content h2, .markdown-content h3,
         .markdown-content h4, .markdown-content h5, .markdown-content h6 {
           display: inline;
           margin: 0;
           padding: 0;
+          font-size: inherit;
+          line-height: inherit;
+          font-weight: inherit;
         }
         .markdown-content ul, .markdown-content ol {
           display: block;
           margin-top: 0.5em;
           margin-bottom: 0.5em;
+          font-size: inherit;
+          line-height: inherit;
         }
         .cursor {
           animation: blink 0.8s infinite;

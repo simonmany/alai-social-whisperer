@@ -914,17 +914,31 @@ export const PlanningForm = ({
             
             <div className="flex items-end gap-2 mb-2">
               <div className="flex-1">
-                <Button
-                  variant="outline"
-                  className="w-full justify-start text-left font-normal h-9"
-                  onClick={() => setStep('datetime')}
-                >
-                  {selectedDate ? (
-                    format(selectedDate, 'PPP')
-                  ) : (
-                    <span className="text-muted-foreground">Pick a date</span>
-                  )}
-                </Button>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal h-9"
+                    >
+                      {selectedDate ? (
+                        format(selectedDate, 'PPP')
+                      ) : (
+                        <span className="text-muted-foreground">Pick a date</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start" sideOffset={4}>
+                    <div className="max-w-[300px]">
+                      <CalendarComponent
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        initialFocus
+                        disabled={(date) => isDateInPast(new Date(date))}
+                      />
+                    </div>
+                  </PopoverContent>
+                </Popover>
               </div>
               
               <div className="w-32">
@@ -1023,6 +1037,20 @@ export const PlanningForm = ({
                             time: selectedTime
                           });
                         }
+                      }
+                    }}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      // Handle manual input changes
+                      const customValue = e.target.value;
+                      setLocation(customValue);
+                      if (onUpdate) {
+                        onUpdate({
+                          contacts: selectedContacts,
+                          activity,
+                          location: customValue,
+                          date: selectedDate,
+                          time: selectedTime
+                        });
                       }
                     }}
                     defaultValue={location}
@@ -1179,6 +1207,38 @@ export const PlanningForm = ({
                 </PopoverContent>
               </Popover>
             </div>
+          </div>
+          <Button
+            onClick={() => setStep('main')}
+            className="w-full"
+          >
+            Done
+          </Button>
+        </div>
+      )}
+
+      {step === 'datetime' && (
+        <div className="flex flex-col flex-grow space-y-4">
+          <div className="space-y-2">
+            <Label>Date</Label>
+            <div className="mx-auto max-w-[350px]">
+              <CalendarComponent
+                mode="single"
+                selected={selectedDate}
+                onSelect={setSelectedDate}
+                className="rounded-md border"
+                disabled={(date) => isDateInPast(new Date(date))}
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="time">Time</Label>
+            <Input
+              id="time"
+              type="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+            />
           </div>
           <Button
             onClick={() => setStep('main')}

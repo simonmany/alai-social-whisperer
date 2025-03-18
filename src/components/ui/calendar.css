@@ -1,0 +1,67 @@
+.rdp {
+  --rdp-cell-size: 40px; /* Size of cell */
+  --rdp-accent-color: hsl(var(--primary)); /* Accent color */
+  --rdp-background-color: hsl(var(--primary) / 0.2); /* Accent background color */
+  --rdp-accent-color-dark: hsl(var(--primary)); /* Accent color dark mode */
+  --rdp-background-color-dark: hsl(var(--primary) / 0.2); /* Accent background color dark mode */
+  --rdp-outline: 2px solid var(--rdp-accent-color); /* Outline border */
+  --rdp-outline-selected: 2px solid var(--rdp-accent-color); /* Outline border for selected elements */
+  --rdp-selected-color: hsl(var(--primary-foreground)); /* Color of selected element text */
+
+  margin: 1em;
+}
+
+.rdp-month {
+  background-color: hsl(var(--background));
+  border-radius: var(--radius);
+  padding: 0.5rem;
+}
+
+.rdp-day_selected, 
+.rdp-day_selected:focus-visible, 
+.rdp-day_selected:hover {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.rdp-day:hover {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.rdp-day_today {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+  font-weight: bold;
+}
+
+.rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+.rdp-nav_button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rdp-head_cell {
+  color: hsl(var(--muted-foreground));
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.rdp-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.5rem;
+}
+
+.rdp-caption_label {
+  font-weight: 600;
+}

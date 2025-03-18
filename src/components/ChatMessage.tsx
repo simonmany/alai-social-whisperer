@@ -12,6 +12,7 @@ import { CalendarPlus } from "lucide-react";
 import { TypewriterText } from "@/components/TypewriterText";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { NextActionFlow } from "@/components/NextActionFlow";
 
 interface ChatMessageProps {
   content: string;
@@ -20,8 +21,15 @@ interface ChatMessageProps {
   contacts?: Contact[];
   showFeedbackForm?: boolean;
   showPlanningForm?: boolean;
+  showNextActionFlow?: boolean;
+  nextActionStep?: 'unreflected-events' | 'plan-something' | 'view-summary';
+  unreflectedEvents?: CalendarEvent[];
   onPlanningSubmit?: (message: string, newContent?: string) => void;
   onFeedbackSubmit?: (message: string, event?: CalendarEvent, mood?: string[], notes?: string) => void;
+  onAddToCalendar?: () => void;
+  onViewSummary?: (period: 'day' | 'week' | 'month') => void;
+  onSkipNextAction?: () => void;
+  onSelectEvent?: (event: CalendarEvent) => void;
   defaultContacts?: Contact[];
   defaultActivity?: string;
   defaultLocation?: string;
@@ -43,8 +51,15 @@ export const ChatMessage = ({
   animate = true, 
   contacts,
   showFeedbackForm,
+  showNextActionFlow,
+  nextActionStep,
+  unreflectedEvents,
   onPlanningSubmit,
   onFeedbackSubmit,
+  onAddToCalendar,
+  onViewSummary,
+  onSkipNextAction,
+  onSelectEvent,
   defaultContacts,
   defaultActivity,
   defaultLocation,
@@ -101,7 +116,7 @@ export const ChatMessage = ({
           "text-gray-800 px-4 py-2 rounded-lg bg-transparent",
           showPlanningFormState && "w-full max-w-none"
         )}>
-          <div className="prose prose-base max-w-none space-y-2 text-xl">
+          <div className="prose prose-base max-w-none space-y-2 text-lg">
             {(!isAl || typewriterPlayed || isTypewriterComplete) ? (
               <ReactMarkdown>{content}</ReactMarkdown>
             ) : (
@@ -173,12 +188,28 @@ export const ChatMessage = ({
                   </Button>
                 )
               )}
+              
+              {/* Render NextActionFlow if showNextActionFlow is true */}
+              {showNextActionFlow && nextActionStep && (
+                <div className="w-full">
+                  {console.log('Rendering NextActionFlow with step:', nextActionStep)}
+                  <NextActionFlow
+                    step={nextActionStep}
+                    unreflectedEvents={unreflectedEvents}
+                    onAddToCalendar={onAddToCalendar}
+                    onViewSummary={onViewSummary}
+                    onSkip={onSkipNextAction}
+                    onSelectEvent={onSelectEvent}
+                    onFeedbackSubmit={onFeedbackSubmit}
+                  />
+                </div>
+              )}
             </div>
           )}
         </div>
       ) : (
         <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-sm">
-          <div className="prose prose-base text-primary-foreground max-w-none text-xl">
+          <div className="prose prose-base text-primary-foreground max-w-none text-lg">
             <ReactMarkdown>{content}</ReactMarkdown>
           </div>
         </div>
